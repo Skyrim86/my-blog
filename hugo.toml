@@ -1,0 +1,26 @@
+baseURL = 'https://skyrim.github.io'
+languageCode = 'zh-cn'
+title = '我的博客'
+theme = 'PaperMod'
+
+[params]
+  author = 'skyrim'
+  description = '记录学习与思考'
+  defaultTheme = 'auto'  # 自动/暗色/亮色
+
+[menu]
+  [[menu.main]]
+    identifier = 'home'
+    name = '首页'
+    url = '/'
+    weight = 10
+  [[menu.main]]
+    identifier = 'archives'
+    name = '归档'
+    url = '/archives/'
+    weight = 20
+  [[menu.main]]
+    identifier = 'tags'
+    name = '标签'
+    url = '/tags/'
+    weight = 30
