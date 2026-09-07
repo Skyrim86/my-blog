@@ -1,4 +1,4 @@
-baseURL = 'https://skyrim.github.io'
+baseURL = 'https://skyrim86.github.io/my-blog/'
 defaultContentLanguage = 'zh'
 title = 'Skyrim'
 theme = 'PaperMod'
