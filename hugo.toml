@@ -3,11 +3,17 @@ defaultContentLanguage = 'zh'
 title = 'Skyrim'
 theme = 'PaperMod'
 
+
+enableRobotsTXT = true
 # 启用 Emoji 支持
 enableEmoji = true
 
 # 启用 Git 信息（显示文章最后修改时间）
 enableGitInfo = true
+
+[taxonomies]
+  tag = 'tags'
+  category = 'categories'
 
 # 语言配置
 [languages]
@@ -34,6 +40,10 @@ pagerSize = 10
 # 核心参数配置
 # ============================================
 [params]
+  # 启用 OG/twitter meta 的开关
+  env = 'production'          
+  description = 'Skyrim 的技术与生活博客'
+
   # 环境：production 会启用压缩等优化
   env = 'production'
 
@@ -83,6 +93,13 @@ pagerSize = 10
   # 禁用主题切换动画（可选，觉得切换卡顿可以开）
   # disableThemeToggle = false
 
+[params]
+  ShowCodeCopyButtons = true #代码块一键复制
+  ShowPostNavLinks = true    # 上一篇/下一篇
+  ShowReadingTime = true     # 阅读时长
+  ShowToc = true             # 文章目录
+  TocOpen = true
+  ShowShareButtons = false   # 分享按钮按需开启 
 # ============================================
 # 首页 Profile Mode 配置
 # ============================================
@@ -118,6 +135,8 @@ pagerSize = 10
   minMatchCharLength = 0
   keys = ['title', 'permalink', 'summary', 'content']
 
+
+   
 # ============================================
 # 导航菜单
 # ============================================

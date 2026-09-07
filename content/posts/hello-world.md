@@ -1,8 +1,7 @@
 ---
-title: "你好，世界"
-date: 2026-09-06T18:30:00+08:00
-draft: false
-tags: ["随笔"]
+title: "文章标题"
+tags: ["Hugo", "教程"]
+category: "建站"
 ---
 
 这是我的第一篇博客文章！

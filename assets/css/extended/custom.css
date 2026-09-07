@@ -1,0 +1,11 @@
+   /* 圆角卡片 + 柔和阴影 */
+   .post-entry {
+     border-radius: 12px;
+     box-shadow: 0 2px 8px rgba(0,0,0,.06);
+   }
+   /* 中文正文行高优化 */
+   .post-content {
+     line-height: 1.85;
+     letter-spacing: .02em;
+   }
+   
