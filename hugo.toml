@@ -1,5 +1,5 @@
 baseURL = 'https://skyrim.github.io'
-languageCode = 'zh-CN'
+defaultContentLanguage = 'zh'
 title = 'Skyrim'
 theme = 'PaperMod'
 
@@ -9,12 +9,19 @@ enableEmoji = true
 # 启用 Git 信息（显示文章最后修改时间）
 enableGitInfo = true
 
+# 语言配置
+[languages]
+  [languages.zh]
+    locale = 'zh-CN'
+    label = '中文'
+    weight = 1
 # 启用 RSS
 [outputs]
   home = ['HTML', 'RSS', 'JSON']  # JSON 用于搜索功能
 
 # 分页设置
-paginate = 10
+[pagination] 
+pagerSize = 10
 
 # 永久链接格式
 [permalinks]
@@ -174,5 +181,5 @@ paginate = 10
 # ============================================
 [security]
   [security.exec]
-    allow = ['^dart-sass-embedded$', '^go$', '^npx$', '^postcss$']
+    allow = ['^dart-sass-embedded$', '^go$', '^npx$', '^postcss$', '^git$']
     osEnv = ['(?i)^((HTTPS?|NO)_PROXY|PATH|EXTENSIONS|DIR)$']
