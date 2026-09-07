@@ -69,13 +69,13 @@ pagerSize = 10
   ShowLastMod = true
 
   # 作者信息
-  author = '你的名字'
+  author = 'Skyrim'
 
   # 站点描述（SEO 用）
   description = '一个关于技术、生活与思考的个人博客'
 
   # 默认 Open Graph 图片（分享时显示）
-  images = ['/images/site-cover.png']
+  images = ['images/site-cover.png']
 
   # 日期格式
   DateFormat = '2006年1月2日'
@@ -88,8 +88,8 @@ pagerSize = 10
 # ============================================
 [params.profileMode]
   enabled = true
-  title = '你好，我是 XXX'
-  subtitle = '这里写一句你的个人介绍，比如：后端工程师 / 开源爱好者 / 终身学习者'
+  title = '你好，我是 Skyrim'
+  subtitle = '个人学习记录'
   imageUrl = 'images/avatar.png'
   imageTitle = 'avatar'
   imageWidth = 120
