@@ -2,7 +2,7 @@ baseURL = 'https://skyrim86.github.io/my-blog/'
 defaultContentLanguage = 'zh'
 title = 'Skyrim'
 theme = 'PaperMod'
-
+hasCJKLanguage = true 
 
 enableRobotsTXT = true
 # 启用 Emoji 支持
@@ -11,9 +11,15 @@ enableEmoji = true
 # 启用 Git 信息（显示文章最后修改时间）
 enableGitInfo = true
 
+[frontmatter]
+  lastmod = ['lastmod', ':git', 'date']
+  date = ['date', 'publishDate', 'lastmod']
+
 [taxonomies]
   tag = 'tags'
   category = 'categories'
+  series = 'series'
+
 
 # 语言配置
 [languages]
@@ -49,9 +55,6 @@ pagerSize = 10
   # 默认主题：auto 跟随系统 / light / dark
   defaultTheme = 'auto'
 
-  # 主题切换按钮
-  ShowThemeToggle = true
-
   # 显示阅读时间
   ShowReadingTime = true
 
@@ -75,9 +78,7 @@ pagerSize = 10
 
   # 分享按钮按需开启 
   ShowShareButtons = false 
-  # 作者信息
-  author = 'Skyrim'
-
+  
   # 默认 Open Graph 图片（分享时显示）
   images = ['images/site-cover.png']
 
@@ -85,7 +86,16 @@ pagerSize = 10
   DateFormat = '2006年1月2日'
 
   # 禁用主题切换动画（可选，觉得切换卡顿可以开）
-  # disableThemeToggle = false 
+  disableThemeToggle = false 
+
+  # 作者信息
+  author = 'Skyrim' 
+  
+  # 自动生成多种尺寸，移动端省流量
+[params.cover]
+  linkFullImages = true
+  responsiveImages = true   
+
 
 # ============================================
 # 首页 Profile Mode 配置
@@ -119,11 +129,9 @@ pagerSize = 10
   location = 0
   distance = 1000
   threshold = 0.4
-  minMatchCharLength = 0
+  minMatchCharLength = 1
   keys = ['title', 'permalink', 'summary', 'content']
 
-
-   
 # ============================================
 # 导航菜单
 # ============================================
