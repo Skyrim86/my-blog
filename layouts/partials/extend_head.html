@@ -1,14 +1,124 @@
-<button onclick="topFunction()" id="topBtn" title="回顶部">↑</button>
-<script>
-  const topBtn = document.getElementById("topBtn");
-  window.onscroll = function() {
-    if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
-      topBtn.style.display = "block";
-    } else {
-      topBtn.style.display = "none";
-    }
-  };
-  function topFunction() {
-    window.scrollTo({top: 0, behavior: 'smooth'});
+{{- /* 返回顶部按钮：JS 动态创建，避免在 head 里放置非法的 button 标签 */ -}}
+<script defer>
+(function () {
+  function initBackToTop() {
+    // 防止重复创建（如主题切换触发多次注入）
+    if (document.getElementById('back-to-top')) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'back-to-top';
+    btn.setAttribute('aria-label', '返回顶部');
+    btn.setAttribute('title', '返回顶部');
+    btn.textContent = '↑';
+    document.body.appendChild(btn);
+
+    var ticking = false;
+    window.addEventListener('scroll', function () {
+      if (!ticking) {
+        window.requestAnimationFrame(function () {
+          btn.classList.toggle('visible', window.scrollY > 400);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    btn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBackToTop);
+  } else {
+    initBackToTop();
+  }
+})();
 </script>
+
+{{- /* Giscus 主题跟随 PaperMod 明暗切换 - 健壮版 */ -}}
+<script>
+(function () {
+  var DEBUG = true;   // 修好后改成 false
+  function log() {
+    if (DEBUG) console.log('[giscus-sync]', [].slice.call(arguments).join(' '));
+  }
+
+ function isDark() {
+  // 信号源 1（最可靠）：PaperMod 自己存的用户偏好
+  var pref = localStorage.getItem('pref-theme');
+  if (pref === 'dark')  return true;
+  if (pref === 'light') return false;
+  // 信号源 2：class 兜底（auto 模式下 PaperMod 按系统偏好加 class）
+  return (document.body && document.body.classList.contains('dark')) ||
+         document.documentElement.classList.contains('dark') ||
+         window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+  function send(theme) {
+    var iframe = document.querySelector('iframe.giscus-frame');
+    if (!iframe) { log('× iframe 不存在，跳过'); return; }
+    try {
+      iframe.contentWindow.postMessage(
+        { giscus: { setConfig: { theme: theme } } },
+        'https://giscus.app'
+      );
+      log('✓ 已发送 setConfig:', theme);
+    } catch (e) {
+      log('× postMessage 异常:', e.message);
+    }
+  }
+
+  function sync() {
+    var theme = isDark() ? 'dark' : 'light';
+    log('触发同步 →', theme);
+    send(theme);
+    setTimeout(function () { send(theme); }, 600);
+  }
+
+  // ⭐ 核心：等 body 就绪再启动（head 里同步执行时 body 还不存在）
+  function start() {
+    log('启动, 初始 isDark =', isDark());
+
+    var observer = new MutationObserver(sync);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('#theme-toggle, .theme-toggle, [id*="theme"]')) {
+        log('检测到主题按钮点击');
+        setTimeout(sync, 50);
+      }
+    });
+
+    // 轮询等懒加载的 iframe 出现
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      var f = document.querySelector('iframe.giscus-frame');
+      if (f) {
+        f.addEventListener('load', function () {
+          log('iframe load 完成 → 同步初始主题');
+          send(isDark() ? 'dark' : 'light');
+        });
+        log('已找到 iframe（第 ' + tries + ' 次轮询）');
+        clearInterval(timer);
+      } else if (tries > 100) {
+        clearInterval(timer);
+        log('× 30 秒内未发现 iframe（页面可能没有评论区）');
+      }
+    }, 300);
+  }
+
+  // 三重保险：body 已在 → 立即启动；否则等 DOMContentLoaded；再不行兜底延迟
+  if (document.body) {
+    start();
+  } else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    setTimeout(start, 50);
+  }
+})();
+</script>
+
+

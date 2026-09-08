@@ -1,11 +1,122 @@
-   /* 圆角卡片 + 柔和阴影 */
-   .post-entry {
-     border-radius: 12px;
-     box-shadow: 0 2px 8px rgba(0,0,0,.06);
-   }
-   /* 中文正文行高优化 */
-   .post-content {
-     line-height: 1.85;
-     letter-spacing: .02em;
-   }
-   
+/* ============================================
+   1. 文章列表卡片：圆角 + 阴影
+   ============================================ */
+.main .entry-header,
+.main .entry-content,
+.main .entry-footer {
+  /* 让列表项整体看起来像卡片 */
+}
+article.post-entry,
+article.first-entry {
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  background: var(--code-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+article.post-entry:hover,
+article.first-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+}
+
+/* 封面图也加圆角 */
+.entry-cover img {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
+}
+
+/* 暗色模式下阴影加深 */
+.dark article.post-entry,
+.dark article.first-entry {
+  background: var(--code-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+.dark article.post-entry:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+}
+.dark .entry-cover img {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .35);
+}
+
+/* ============================================
+   2. 中文排版优化
+   ============================================ */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+               "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+               "Noto Sans CJK SC", sans-serif;
+  line-height: 1.85;          /* 中文正文行高 1.8~1.9 最舒适 */
+  letter-spacing: 0.02em;     /* 中英混排微调字距 */
+  word-break: break-word;     /* 防止长英文单词撑破布局 */
+}
+
+/* 正文段落：两端对齐 + 段间距 */
+.post-content {
+  font-size: 16px;
+}
+.post-content p {
+  margin: 1.2em 0;
+  text-align: justify;
+  text-justify: inter-ideograph;  /* 中文两端对齐算法 */
+}
+
+/* 标题行高收紧，与正文区分 */
+.post-content h1, .post-content h2, .post-content h3,
+.post-content h4, .post-content h5, .post-content h6 {
+  line-height: 1.4;
+  margin-top: 1.8em;
+  margin-bottom: 0.8em;
+}
+
+/* 列表和引用块行高同步 */
+.post-content li {
+  line-height: 1.85;
+}
+.post-content blockquote {
+  line-height: 1.8;
+  border-left: 3px solid var(--secondary);
+  padding-left: 1em;
+  color: var(--secondary);
+  font-style: normal;   /* 中文不适合斜体 */
+}
+
+/* 代码块中文字体兜底 */
+.post-content code,
+.post-content pre {
+  font-family: "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
+}
+
+/* ============================================
+   3. 返回顶部按钮样式（配合任务 3）
+   ============================================ */
+#back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--theme);
+  color: var(--content);
+  font-size: 18px;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity .3s, transform .3s, visibility .3s;
+  z-index: 999;
+  user-select: none;
+}
+#back-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+#back-to-top:hover {
+  border-color: var(--secondary);
+}

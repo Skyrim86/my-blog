@@ -25,7 +25,7 @@ enableGitInfo = true
 [languages]
   [languages.zh]
     locale = 'zh-CN'
-    languageName = '中文'
+    label = '中文'
     weight = 1
 # 启用 RSS
 [outputs]
@@ -90,13 +90,27 @@ pagerSize = 10
 
   # 作者信息
   author = 'Skyrim' 
-  
+
+  # 启用评论
+  comments = true
   # 自动生成多种尺寸，移动端省流量
 [params.cover]
   linkFullImages = true
   responsiveImages = true   
 
-
+[params.giscus]
+  repo = 'skyrim86/my-blog'
+  repoID = "R_kgDOUQGEOA"        # ← 替换为 giscus.app 给的值
+  category = 'Announcements'
+  categoryID = "DIC_kwDOUQGEOM4DFHXE"  # ← 替换为 giscus.app 给的值
+  mapping = 'title'                # 按文章标题关联 Discussion（比 pathname 稳定）
+  strict = '0'
+  reactionsEnabled = '1'
+  emitMetadata = '0'
+  inputPosition = 'bottom'           
+  theme = 'light'
+  lang = 'zh-CN'
+  loading = 'lazy'
 # ============================================
 # 首页 Profile Mode 配置
 # ============================================

@@ -1,0 +1,21 @@
+{{- /* Giscus 评论系统 - 参数从 hugo.toml [params.giscus] 读取 */ -}}
+{{- with site.Params.giscus }}
+<div class="giscus-wrapper" style="margin-top: 2rem;">
+  <script src="https://giscus.app/client.js"
+          data-repo="{{ .repo }}"
+          data-repo-id="{{ .repoID }}"
+          data-category="{{ .category }}"
+          data-category-id="{{ .categoryID }}"
+          data-mapping="{{ .mapping }}"
+          data-strict="{{ .strict }}"
+          data-reactions-enabled="{{ .reactionsEnabled }}"
+          data-emit-metadata="{{ .emitMetadata }}"
+          data-input-position="{{ .inputPosition }}"
+          data-theme="{{ .theme }}"
+          data-lang="{{ .lang }}"
+          data-loading="{{ .loading }}"
+          crossorigin="anonymous"
+          async>
+  </script>
+</div>
+{{- end }}
