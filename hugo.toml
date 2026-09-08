@@ -69,7 +69,6 @@ pagerSize = 10
 
   # 显示文章上下篇导航
   ShowPostNavLinks = true
-
   # 显示代码复制按钮
   ShowCodeCopyButtons = true
 

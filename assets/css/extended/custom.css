@@ -120,3 +120,26 @@ body {
 #back-to-top:hover {
   border-color: var(--secondary);
 }
+
+.post-series {
+  margin: 2rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.post-series summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.post-series ol {
+  margin: 0.75rem 0 0;
+  padding-left: 1.5rem;
+}
+.post-series li {
+  margin: 0.35rem 0;
+}
+.post-series li.current a {
+  font-weight: 600;
+  color: var(--primary);
+}

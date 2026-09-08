@@ -4,6 +4,7 @@ date: 2026-09-07
 description: "文章摘要，列表页显示"
 tags: ["Hugo"]
 categories: ["建站"]
+series: ["Hugo 建站笔记"]
 cover:
   image: "cover.jpg"       # 相对 index.md 的路径
   alt: "封面图描述"

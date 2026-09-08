@@ -1,0 +1,23 @@
+{{- if .Params.series }}
+<div class="post-series">
+  {{- $series := .Site.Taxonomies.series }}
+  {{- range .Params.series }}
+  {{- $seriesName := . }}
+  {{- range $name, $value := $series }}
+  {{- if or (eq $name $seriesName) (eq ($name | urlize) ($seriesName | urlize)) }}
+  <details open>
+    <summary>📚 系列文章：{{ $seriesName }}</summary>
+    <ol>
+      {{- range $value.Pages.ByDate }}
+      <li{{ if eq .Permalink $.Permalink }} class="current"{{ end }}>
+        <a href="{{ .Permalink }}">{{ .LinkTitle }}</a>
+        <sub>{{ .Date.Format (site.Params.DateFormat | default "2006-01-02") }}</sub>
+      </li>
+      {{- end }}
+    </ol>
+  </details>
+  {{- end }}
+  {{- end }}
+  {{- end }}
+</div>
+{{- end }}
