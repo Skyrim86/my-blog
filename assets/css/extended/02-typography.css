@@ -1,0 +1,47 @@
+/* ============================================
+   中文排版优化
+   ============================================ */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+               "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+               "Noto Sans CJK SC", sans-serif;
+  line-height: 1.85;          /* 中文正文行高 1.8~1.9 最舒适 */
+  letter-spacing: 0.02em;     /* 中英混排微调字距 */
+  word-break: break-word;     /* 防止长英文单词撑破布局 */
+}
+
+/* 正文段落：两端对齐 + 段间距 */
+.post-content {
+  font-size: 16px;
+}
+.post-content p {
+  margin: 1.2em 0;
+  text-align: justify;
+  text-justify: inter-ideograph;  /* 中文两端对齐算法 */
+}
+
+/* 标题行高收紧，与正文区分 */
+.post-content h1, .post-content h2, .post-content h3,
+.post-content h4, .post-content h5, .post-content h6 {
+  line-height: 1.4;
+  margin-top: 1.8em;
+  margin-bottom: 0.8em;
+}
+
+/* 列表和引用块行高同步 */
+.post-content li {
+  line-height: 1.85;
+}
+.post-content blockquote {
+  line-height: 1.8;
+  border-left: 3px solid var(--secondary);
+  padding-left: 1em;
+  color: var(--secondary);
+  font-style: normal;   /* 中文不适合斜体 */
+}
+
+/* 代码块中文字体兜底 */
+.post-content code,
+.post-content pre {
+  font-family: "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
+}

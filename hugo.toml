@@ -2,7 +2,7 @@ baseURL = 'https://skyrim86.github.io/my-blog/'
 defaultContentLanguage = 'zh'
 title = 'Skyrim'
 theme = 'PaperMod'
-hasCJKLanguage = true 
+hasCJKLanguage = true
 
 enableRobotsTXT = true
 # 启用 Emoji 支持
@@ -32,7 +32,7 @@ enableGitInfo = true
   home = ['HTML', 'RSS', 'JSON']  # JSON 用于搜索功能
 
 # 分页设置
-[pagination] 
+[pagination]
 pagerSize = 10
 
 # 永久链接格式
@@ -49,7 +49,7 @@ pagerSize = 10
   # 启用 OG/twitter meta 的开关
   env = 'production'
 
-  #站点介绍    
+  #站点介绍
   description = 'Skyrim 的技术与生活博客'
 
   # 默认主题：auto 跟随系统 / light / dark
@@ -62,7 +62,7 @@ pagerSize = 10
   ShowToc = true
 
   # 默认折叠目录
-  TocOpen = true  
+  TocOpen = true
 
   # 显示面包屑导航
   ShowBreadCrumbs = true
@@ -75,9 +75,9 @@ pagerSize = 10
   # 显示 RSS 订阅按钮
   ShowRssButtonInSectionTermList = true
 
-  # 分享按钮按需开启 
-  ShowShareButtons = false 
-  
+  # 分享按钮按需开启
+  ShowShareButtons = false
+
   # 默认 Open Graph 图片（分享时显示）
   images = ['images/site-cover.png']
 
@@ -85,28 +85,28 @@ pagerSize = 10
   DateFormat = '2006年1月2日'
 
   # 禁用主题切换动画（可选，觉得切换卡顿可以开）
-  disableThemeToggle = false 
+  disableThemeToggle = false
 
   # 作者信息
-  author = 'Skyrim' 
+  author = 'Skyrim'
 
   # 启用评论
   comments = true
   # 自动生成多种尺寸，移动端省流量
 [params.cover]
   linkFullImages = true
-  responsiveImages = true   
+  responsiveImages = true
 
 [params.giscus]
   repo = 'skyrim86/my-blog'
-  repoID = "R_kgDOUQGEOA"        # ← 替换为 giscus.app 给的值
+  repoID = "R_kgDOUQGEOA"
   category = 'Announcements'
-  categoryID = "DIC_kwDOUQGEOM4DFHXE"  # ← 替换为 giscus.app 给的值
+  categoryID = "DIC_kwDOUQGEOM4DFHXE"
   mapping = 'title'                # 按文章标题关联 Discussion（比 pathname 稳定）
   strict = '0'
   reactionsEnabled = '1'
   emitMetadata = '0'
-  inputPosition = 'bottom'           
+  inputPosition = 'bottom'
   theme = 'light'
   lang = 'zh-CN'
   loading = 'lazy'

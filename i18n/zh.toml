@@ -1,0 +1,5 @@
+# 站点级 UI 文案：与主题 i18n 合并，同名 key 覆盖主题译文
+# 模板中用 {{ i18n "key" (dict "参数" 值) }} 引用
+
+[seriesTitle]
+other = "📚 系列文章：{{ .name }}"

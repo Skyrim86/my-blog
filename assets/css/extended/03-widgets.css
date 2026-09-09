@@ -1,0 +1,58 @@
+/* ============================================
+   返回顶部按钮（JS 见 assets/js/back-to-top.js）
+   ============================================ */
+#back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--theme);
+  color: var(--content);
+  font-size: 18px;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity .3s, transform .3s, visibility .3s;
+  z-index: 999;
+  user-select: none;
+}
+#back-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+#back-to-top:hover {
+  border-color: var(--secondary);
+}
+
+/* ============================================
+   系列文章导航（模板见 layouts/_partials/series-posts.html）
+   ============================================ */
+.post-series {
+  margin: 2rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.post-series summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.post-series ol {
+  margin: 0.75rem 0 0;
+  padding-left: 1.5rem;
+}
+.post-series li {
+  margin: 0.35rem 0;
+}
+.post-series li.current a {
+  font-weight: 600;
+  color: var(--primary);
+}

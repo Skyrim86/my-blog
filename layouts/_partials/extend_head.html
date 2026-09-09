@@ -1,0 +1,6 @@
+{{- /* 自定义 JS 统一放 assets/js/，此处只做接线：minify + fingerprint（内容 hash 自动 cache-bust） */ -}}
+{{- $backToTop := resources.Get "js/back-to-top.js" | minify | fingerprint }}
+<script defer src="{{ $backToTop.RelPermalink }}" integrity="{{ $backToTop.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- $giscusSync := resources.Get "js/giscus-theme-sync.js" | minify | fingerprint }}
+<script defer src="{{ $giscusSync.RelPermalink }}" integrity="{{ $giscusSync.Data.Integrity }}" crossorigin="anonymous"></script>
