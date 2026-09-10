@@ -36,6 +36,7 @@ my-blog/
 │   ├── archives.md            # 归档页（layout: archives）
 │   ├── search.md              # 搜索页（layout: search, url: /search/）
 │   ├── tags.md                # 标签页（layout: tags, url: /tags/）
+│   ├── courses/_index.md      # 课程 section 列表页（url: /courses/）
 │   └── posts/<slug>/index.md  # 文章用 Page Bundle（cover 图放同目录）
 ├── static/
 │   ├── images/avatar.png      # 首页头像（profileMode 引用）
@@ -62,7 +63,7 @@ my-blog/
 | `[params.giscus]` | 评论系统全部参数；`mapping='title'` 按文章标题关联 Discussion（非 pathname）；`theme='light'` 是初始值，实际由同步脚本动态切换 |
 | `[params.profileMode]` | **首页是 Profile Mode**（个人名片 + 3 个按钮：文章/标签/关于），不是普通文章列表 |
 | `[params.fuseOpts]` | Fuse.js 搜索权重：`['title','permalink','summary','content']` |
-| `[[menu.main]]` | 6 个导航项：首页/文章/归档/标签/搜索/关于（weight 10–60） |
+| `[[menu.main]]` | 7 个导航项：首页(10)/**课程(15)**/文章(20)/归档(30)/标签(40)/搜索(50)/关于(60) |
 | `[markup.highlight]` | monokai 主题，行号开启 |
 | `[imaging]` | 图片质量 75、lanczos |
 | `[security.exec]` | 允许 git 等 exec（GitInfo 需要） |
@@ -111,7 +112,7 @@ my-blog/
 4. **面向访客的 UI 文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}` 引用；不要在模板里硬编码中文文案
 5. **复用主题 CSS 变量**（`--theme`/`--border`/`--secondary` 等），并始终为 `.dark` 写暗色适配——站点 `defaultTheme='auto'`
 6. **配置一律进 `hugo.toml`**，模板里通过 `site.Params.xxx` 读取，不要在模板中硬编码
-7. 文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录；新文章从 `archetypes/default.md` 的结构复制 front matter
+7. 文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录；新文章从 `archetypes/default.md` 的结构复制 front matter。**课程与文章结构相同**，放 `content/courses/<slug>/index.md`（`content/courses/_index.md` 是列表页本身）
 8. URL 变更需谨慎：permalinks 和 `mapping='title'` 的 giscus 都对路径/标题敏感，改名会丢评论关联
 9. `themes/PaperMod/` 不直接改；如需扩展主题行为，优先用 hook，其次在 `hugo.toml` 找开关
 10. 涉及 `baseURL` 的资源引用用 Hugo 的 `absURL`/relref 或相对路径，勿硬编码域名（站点在 `/my-blog/` 子路径下）
