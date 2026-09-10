@@ -11,6 +11,15 @@
 <script defer src="{{ $giscusSync.RelPermalink }}" integrity="{{ $giscusSync.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
+{{- /* 词条筛选框：Kind == "taxonomy" 即 /tags/、/categories/、/series/ 三个总览页。
+       UI 文案经 data-* 传给脚本（JS 无法直接调用 i18n）。 */ -}}
+{{- if eq .Kind "taxonomy" }}
+{{- $termsFilter := resources.Get "js/terms-filter.js" | minify | fingerprint }}
+<script defer src="{{ $termsFilter.RelPermalink }}" integrity="{{ $termsFilter.Data.Integrity }}" crossorigin="anonymous"
+        data-placeholder="{{ i18n "termsFilterPlaceholder" (dict "name" .Title) }}"
+        data-empty="{{ i18n "termsFilterEmpty" }}"></script>
+{{- end }}
+
 {{- /* 数学公式（KaTeX）：页面 front matter 写 math: true 时按需加载（站点未设 params.math；
        若将来想全站开启，在 hugo.toml 的 [params] 加 math = true 即可）。
        资源自托管在 static/katex/（katex.min.css 用相对路径 fonts/ 引用同目录字体），

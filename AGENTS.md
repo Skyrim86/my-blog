@@ -26,9 +26,11 @@ my-blog/
 │   │   ├── 02-typography.css  #   中文排版
 │   │   ├── 03-widgets.css     #   系列导航
 │   │   ├── 04-course.css      #   课程章节目录 + 章节入口 + 附件下载
-│   │   └── 05-project.css     #   项目元信息（技术栈标签 + 仓库链接）
+│   │   ├── 05-project.css     #   项目元信息（技术栈标签 + 仓库链接）
+│   │   └── 06-terms-filter.css #  词条筛选框（隐藏规则 + 间距 + 空提示）
 │   └── js/                    # 自定义 JS 源码（经 extend_head.html minify+fingerprint 后外链）
 │       ├── giscus-theme-sync.js # Giscus 主题跟随（仅在有评论区的页面加载）
+│       ├── terms-filter.js    # 标签/分类/系列总览页的词条筛选框
 │       └── katex-render.js    # KaTeX 公式渲染（按需加载，见 extend_head.html）
 ├── i18n/zh.toml               # 站点级 UI 文案（与主题 i18n 合并，同名覆盖）
 ├── layouts/
@@ -138,6 +140,14 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 - 元信息由 front matter 的 `tags`（技术栈，用标准 tags 分类法）与 `repo`（仓库地址）驱动，**两者都为空时面板完全不输出**；技术栈标签渲染为指向 `/tags/<词条>/` 的链接，因此项目与标签体系双向联动（项目页 → 词条页，词条页也会列出该项目）
 - 文案走 `i18n/zh.toml` 的 `project*` keys；样式在 `05-project.css`（只复用主题变量，变量本身随 `.dark` 切换，故无需额外暗色规则）
 
+**⑧ 词条筛选框（标签 / 分类 / 系列总览页）** — `assets/js/terms-filter.js` + `06-terms-filter.css`
+- 在 `/tags/`、`/categories/`、`/series/` 的词条列表上方注入一个输入框，输入即过滤下方词条（纯前端 DOM 过滤，不依赖搜索索引、不引入第三方库）
+- 由 `extend_head.html` 按 `{{ if eq .Kind "taxonomy" }}` 加载，正好命中这三个总览页；其他页面不加载
+- **没有自定义模板**：主题 `taxonomy.html` 无 hook，复制它会漂移，所以沿用「脚本动态创建 DOM」的做法（输入框 + 空提示都由 JS 插入）
+- UI 文案经 `<script>` 的 `data-placeholder` / `data-empty` 属性从 i18n 传入（JS 无法调用 Hugo 的 `i18n`），`data-placeholder` 带上页面标题，因此各页显示「在标签中筛选…」「在分类中筛选…」
+- 两个易踩的坑：① 隐藏词条**必须用 class**（`terms-filter-hidden`），因为主题的 `.terms-tags li { display:inline-block }` 会压过 `[hidden] { display:none }`；② 不要用 `requestAnimationFrame` 做节流，它在后台/隐藏标签页里不触发会导致筛选静默失效（已改为同步过滤）
+- 输入框样式直接复用主题的 `.searchbox input`（`search.css` 已打进全局样式表），`06-terms-filter.css` 只补间距、隐藏规则与空提示样式
+
 ## 5. 约定（添加新功能必读）
 
 1. **永远不要整份复制主题模板来覆盖**（如 copy `single.html`）。PaperMod 提供的 hook（覆盖 `layouts/_partials/` 下同名文件即可生效）：
@@ -149,7 +159,7 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
    - 新建自定义 partial 一律放 `layouts/_partials/`（带下划线），不要用旧的 `layouts/partials/` 或 `layouts/_default/`
 2. **JS 一律放 `assets/js/*.js`，由 `extend_head.html` 用 `resources.Get | minify | fingerprint` 接线外链**；不要往模板里写内联 `<script>`（无法 lint、无压缩、内联 defer 无效）。脚本按 defer 语义编写：执行时 DOM 已就绪
 3. **自定义 CSS 放 `assets/css/extended/`**，一个职责一个文件，用 `01-`/`02-`/… 数字前缀控制合并顺序（主题会 Concat + minify 成单文件）；模板中不要写 `<style>`
-4. **面向访客的 UI 文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}` 引用；不要在模板里硬编码中文文案
+4. **面向访客的 UI 文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}` 引用；不要在模板里硬编码中文文案。**JS 里的文案**让脚本读自己 `<script>` 标签的 `data-*` 属性（模板侧用 `i18n` 填值），`terms-filter.js` 就是这么做的
 5. **复用主题 CSS 变量**（`--theme`/`--border`/`--secondary` 等）。暗色适配请用 **`[data-theme="dark"]`**（主题的机制），写 `.dark` 是无效的——站点 `defaultTheme='auto'`
 6. **配置一律进 `hugo.toml`**，模板里通过 `site.Params.xxx` 读取，不要在模板中硬编码
 7. 文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录；新文章从 `archetypes/default.md` 的结构复制 front matter。**课程结构与文章不同**，务必按下面建：

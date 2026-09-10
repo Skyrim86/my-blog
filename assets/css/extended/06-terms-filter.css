@@ -1,0 +1,23 @@
+/* ============================================
+   词条筛选框（标签 / 分类 / 系列总览页）
+   脚本：assets/js/terms-filter.js
+   输入框本身的样式复用主题的 .searchbox input，这里只写它需要的补充规则。
+   ============================================ */
+
+/* 输入框与下方词条列表的间距（.terms-tags 自带 margin-top） */
+.terms-filter-box {
+  margin-bottom: 0.25rem;
+}
+
+/* 被筛掉的词条：必须用 class，主题的 .terms-tags li 设了 display:inline-block，
+   [hidden] 的 display:none 会被它压过，所以不能用 hidden 属性 */
+.terms-tags li.terms-filter-hidden {
+  display: none;
+}
+
+/* 没有任何词条匹配时的提示 */
+.terms-filter-empty {
+  margin-top: var(--content-gap);
+  color: var(--secondary);
+  font-size: 0.92rem;
+}
