@@ -1,0 +1,19 @@
+{{- /* 项目详情页元信息：技术栈标签 + 仓库链接。两者都没填时不输出任何内容。
+       由 extend_post_content.html 在 Type == "projects" 时注入（正文之后）。 */ -}}
+{{- if or .Params.tech .Params.repo }}
+<div class="project-meta">
+  {{- with .Params.tech }}
+  <div class="project-tech">
+    <span class="project-tech-label">{{ i18n "projectTechStack" }}</span>
+    <ul class="project-tech-list">
+      {{- range . }}
+      <li class="project-tech-tag">{{ . }}</li>
+      {{- end }}
+    </ul>
+  </div>
+  {{- end }}
+  {{- with .Params.repo }}
+  <a class="project-repo-link" href="{{ . }}" target="_blank" rel="noopener">{{ i18n "projectRepoLink" }} →</a>
+  {{- end }}
+</div>
+{{- end }}

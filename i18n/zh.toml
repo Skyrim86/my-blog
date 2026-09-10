@@ -31,3 +31,12 @@ other = "📎 附件下载"
 
 [courseDownloadAction]
 other = "下载"
+
+# ---------- 项目展示（见 content/projects/） ----------
+# 项目详情页元信息面板中的技术栈标签
+[projectTechStack]
+other = "技术栈"
+
+# 项目详情页的仓库链接按钮
+[projectRepoLink]
+other = "查看源码"

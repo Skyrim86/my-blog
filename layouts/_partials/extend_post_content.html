@@ -3,3 +3,7 @@
 {{- if eq .Type "courses" }}
 {{- partial "course-downloads.html" . }}
 {{- end }}
+{{- /* 项目详情页：正文之后追加技术栈与仓库链接 */ -}}
+{{- if eq .Type "projects" }}
+{{- partial "project-meta.html" . }}
+{{- end }}

@@ -18,13 +18,15 @@ my-blog/
 ├── hugo.toml                  # 唯一配置文件（无 config/ 目录分段）
 ├── archetypes/
 │   ├── default.md             # 新文章 front matter 模板（含注释掉的 series 字段）
-│   └── courses.md             # 课程章节页骨架（hugo new content courses/...）
+│   ├── courses.md             # 课程章节页骨架（hugo new content courses/...）
+│   └── projects.md            # 项目详情页骨架（hugo new content projects/<项目>/index.md）
 ├── assets/
 │   ├── css/extended/          # 自定义 CSS（主题自动 Concat + minify，按文件名排序）
 │   │   ├── 01-cards.css       #   文章列表卡片
 │   │   ├── 02-typography.css  #   中文排版
 │   │   ├── 03-widgets.css     #   返回顶部 + 系列导航
-│   │   └── 04-course.css      #   课程章节目录 + 章节入口 + 附件下载
+│   │   ├── 04-course.css      #   课程章节目录 + 章节入口 + 附件下载
+│   │   └── 05-project.css     #   项目元信息（技术栈标签 + 仓库链接）
 │   └── js/                    # 自定义 JS 源码（经 extend_head.html minify+fingerprint 后外链）
 │       ├── back-to-top.js     #   返回顶部按钮
 │       ├── giscus-theme-sync.js # Giscus 主题跟随
@@ -36,10 +38,11 @@ my-blog/
 │   │   └── chapter.html       #   章节入口页：学习笔记 / 作业 二选一
 │   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
 │       ├── extend_head.html   # 覆盖主题 hook：JS 资产接线 + KaTeX 按需加载
-│       ├── extend_post_content.html # 覆盖主题 hook：系列导航 + 课程材料页附件下载
+│       ├── extend_post_content.html # 覆盖主题 hook：系列导航 + 课程附件 + 项目元信息
 │       ├── series-posts.html  # 系列文章导航组件（文案走 i18n）
 │       ├── course-index.html  # 课程主页的章节目录组件
 │       ├── course-downloads.html # 课程材料页（笔记/作业）附件下载组件
+│       ├── project-meta.html  # 项目详情页的技术栈 + 仓库链接面板
 │       └── comments.html      # Giscus 评论组件（覆盖主题同名 partial）
 ├── content/
 │   ├── about.md               # 关于页（url: /about/）
@@ -48,6 +51,8 @@ my-blog/
 │   ├── tags.md                # 标签页（layout: tags, url: /tags/）
 │   ├── courses/_index.md      # 课程 section 列表页（url: /courses/）
 │   ├── courses/<课程>/        # 一门课程：_index.md 主页 + <chapter-0N>/（notes/、homework/，见第 5 节）
+│   ├── projects/_index.md     # 项目 section 列表页（url: /projects/）
+│   ├── projects/<项目>/index.md # 一个项目（平铺单页，与课程的多层结构不同）
 │   └── posts/<slug>/index.md  # 文章用 Page Bundle（cover 图放同目录）
 ├── static/
 │   ├── images/avatar.png      # 首页头像（profileMode 引用）
@@ -70,12 +75,12 @@ my-blog/
 | `[taxonomies]` | 三套分类法：`tags`、`categories`、**`series`（自定义，支撑系列导航功能）** |
 | `[outputs]` | 首页输出 `HTML + RSS + JSON`，**JSON 索引供 Fuse.js 搜索使用**，勿删 |
 | `[permalinks]` | 文章 URL 格式 `/:year/:month/:slug/`（如 `/2026/09/我的第一篇文章/`）；改动会破坏已发布链接 |
-| `[params]` | `env='production'`、`mainSections=['posts']`（首页列表/归档/上下篇只统计文章，课程章节不混入）、`defaultTheme='auto'`（跟随系统明暗）、开启阅读时间/TOC(默认展开)/面包屑/上下篇/代码复制/RSS 按钮；分享按钮关闭；`images=['images/site-cover.png']` 为默认 OG 图；`DateFormat='2006年1月2日'` |
+| `[params]` | `env='production'`、`mainSections=['posts']`（首页列表/归档/上下篇只统计文章，课程与项目都不混入）、`defaultTheme='auto'`（跟随系统明暗）、开启阅读时间/TOC(默认展开)/面包屑/上下篇/代码复制/RSS 按钮；分享按钮关闭；`images=['images/site-cover.png']` 为默认 OG 图；`DateFormat='2006年1月2日'` |
 | `[params.cover]` | `responsiveImages`、`linkFullImages`（点击封面看原图）开启 |
 | `[params.giscus]` | 评论系统全部参数；`mapping='title'` 按文章标题关联 Discussion（非 pathname）；`theme='light'` 是初始值，实际由同步脚本动态切换 |
 | `[params.profileMode]` | **首页是 Profile Mode**（个人名片：头像 + 标题 + 副标题，无按钮，需加按钮时用 `[[params.profileMode.buttons]]`） |
 | `[params.fuseOpts]` | Fuse.js 搜索权重：`['title','permalink','summary','content']` |
-| `[[menu.main]]` | 7 个导航项：首页(10)/**课程(15)**/文章(20)/归档(30)/标签(40)/搜索(50)/关于(60) |
+| `[[menu.main]]` | 8 个导航项，weight 以十进位留出插入空间：首页(10)/课程(20)/**项目(30)**/文章(40)/归档(50)/标签(60)/搜索(70)/关于(80) |
 | `[markup.highlight]` | monokai 主题，行号开启 |
 | `[imaging]` | 图片质量 75、lanczos |
 | `[security.exec]` | 允许 git 等 exec（GitInfo 需要） |
@@ -88,7 +93,7 @@ my-blog/
 - TOC、面包屑、上下篇导航、代码复制按钮、阅读时间
 - SEO：Open Graph/Twitter meta、`templates/schema_json.html`（JSON-LD）、hreflang
 - `robots.txt` 与 `sitemap.xml` 生成（`hugo.IsProduction` 判断，生产环境不 Disallow）
-- **数学公式**：主题本身不带 KaTeX/MathJax，由本项目在 `extend_head.html` 里按需从 CDN 加载（见 4.2 ⑦）
+- **数学公式**：主题本身不带 KaTeX/MathJax，由本项目**自托管**在 `static/katex/` 并按需加载（见 4.2 ⑦）
 
 ### 4.2 自定义功能
 
@@ -125,6 +130,13 @@ my-blog/
 - `katex.min.css` 用**相对路径** `fonts/...` 引用字体，因此它必须与 `fonts/` 同级；只装了 `woff2`（现代浏览器均支持，CSS 中排第一位，`woff`/`ttf` 回退不会被请求）
 - 课程材料页由课程主页 `_index.md` 的 `cascade: {math: true}` 统一继承；课程主页与章节入口页显式 `math: false` 覆盖，避免白加载约 300KB
 
+**⑧ 项目展示（平铺：列表 → 详情）** — `content/projects/` + `layouts/_partials/project-meta.html` + `05-project.css`
+- **与课程的关键差异**：项目是**平铺单页**（没有「章」这一层，也**没有**笔记/作业拆分，**没有**附件下载区）；每个项目 = `content/projects/<项目>/index.md` 一个页面，正文即项目介绍
+- **列表页** `/projects/` 由 `content/projects/_index.md` 提供，走主题 `list.html`，因此**没有**任何自定义模板（课程主页/章节页则各有一个自定义模板）
+- **详情页**走主题 `single.html`，由 `extend_post_content.html` 在 `Type == "projects"` 时注入 `project-meta.html`（正文之后、footer 之前），渲染「技术栈标签 + 查看源码按钮」
+- 元信息只有两个自定义 front matter 字段：`tech`（数组，技术栈标签）与 `repo`（字符串，仓库地址）；**两者都为空时面板完全不输出**
+- 文案走 `i18n/zh.toml` 的 `project*` keys；样式在 `05-project.css`（只复用主题变量，变量本身随 `.dark` 切换，故无需额外暗色规则）
+
 ## 5. 约定（添加新功能必读）
 
 1. **永远不要整份复制主题模板来覆盖**（如 copy `single.html`）。PaperMod 提供的 hook（覆盖 `layouts/_partials/` 下同名文件即可生效）：
@@ -149,6 +161,7 @@ my-blog/
      - 附件直接与各自 `index.md` 同目录（除图片外的任意文件），会出现在该页「📎 附件下载」区；**不需要文件名前缀**
    - 分区单位由课程主页的 `unit` 决定；章节只写 `weight`，显示名自动拼成「第 N 章」
    - 课程主页与章节入口页由 `layouts/courses/*.html` 依 `layout` 显式命中，其他 section 不受影响
+8. **项目结构与文章、课程都不同**：一个项目 = `content/projects/<项目>/index.md`（leaf bundle，**平铺单页**，不要再往下分层）。front matter 用 `title` / `date` / `description` / `tech`（技术栈数组）/ `repo`（仓库地址）/ `categories: ["项目"]`，骨架见 `archetypes/projects.md`。项目页复用主题 `single.html`，技术栈与仓库链接由 `project-meta.html` 自动追加到正文下方，**不需要写 layout**
 8. URL 变更需谨慎：permalinks 和 `mapping='title'` 的 giscus 都对路径/标题敏感，改名会丢评论关联
 9. `themes/PaperMod/` 不直接改；如需扩展主题行为，优先用 hook，其次在 `hugo.toml` 找开关
 10. 涉及 `baseURL` 的资源引用用 Hugo 的 `absURL`/relref 或相对路径，勿硬编码域名（站点在 `/my-blog/` 子路径下）
@@ -176,4 +189,6 @@ hugo --minify --gc    # 生产构建，输出到 public/
 - 课程主页与章节入口页要显式 `math: false` 覆盖 `cascade`，否则这些没有公式的页面也会白白加载约 300KB 的 KaTeX
 - 课程材料页的附件**不用文件名前缀**：内容页 bundle 里除图片外的资源都会列进下载区（图片会按图片过滤掉，不会出现在下载列表）
 - 课程各页 URL 由目录名决定（`/courses/<课程>/<chapter-0N>/notes/` 等），改名即改 URL；课程主页 URL（`/courses/<课程>/`）保持不变
+- 项目页同样由目录名决定 URL（`/projects/<项目>/`），改名即改 URL 并丢评论关联
+- 项目页与课程页都**不在**归档页与首页列表中（`mainSections=['posts']` 只放行文章），但**都会**进搜索引擎索引（`site.RegularPages`）、`sitemap.xml` 与 `/categories/`（项目用 `categories: ["项目"]`）
 - 旧 git 历史中部分中文 commit message 是 GBK 编码（显示乱码），仅影响历史可读性；新提交请保持 UTF-8

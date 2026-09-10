@@ -1,0 +1,72 @@
+/* ============================================
+   项目详情页元信息（技术栈 + 仓库链接）
+   模板：layouts/_partials/project-meta.html
+   ============================================ */
+.project-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2rem 0;
+  padding: 1rem 1.1rem;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.project-tech {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.project-tech-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.project-tech-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-tech-tag {
+  padding: 0 0.6rem;
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--secondary);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.project-repo-link {
+  flex: none;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--theme);
+  background: var(--primary);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.project-repo-link:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  .project-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -151,37 +151,43 @@ pagerSize = 10
   identifier = 'courses'
   name = '🎓 课程'
   url = '/courses/'
-  weight = 15
+  weight = 20
+
+[[menu.main]]
+  identifier = 'projects'
+  name = '🚀 项目'
+  url = '/projects/'
+  weight = 30
 
 [[menu.main]]
   identifier = 'posts'
   name = '📝 文章'
   url = '/posts/'
-  weight = 20
+  weight = 40
 
 [[menu.main]]
   identifier = 'archives'
   name = '📚 归档'
   url = '/archives/'
-  weight = 30
+  weight = 50
 
 [[menu.main]]
   identifier = 'tags'
   name = '🏷️ 标签'
-  weight = 40
+  weight = 60
   url = '/tags/'
 
 [[menu.main]]
   identifier = 'search'
   name = '🔍 搜索'
   url = '/search/'
-  weight = 50
+  weight = 70
 
 [[menu.main]]
   identifier = 'about'
   name = '📮 关于'
   url = '/about/'
-  weight = 60
+  weight = 80
 
 # ============================================
 # 代码高亮
