@@ -56,6 +56,7 @@ my-blog/
 │   ├── courses/<课程>/        # 一门课程：_index.md 主页 + <chapter-0N>/（notes/、homework/，见第 5 节）
 │   ├── projects/_index.md     # 项目 section 列表页（url: /projects/）
 │   ├── projects/<项目>/index.md # 一个项目（平铺单页，与课程的多层结构不同）
+│   ├── projects/CMC2026/      # 例外：带子项目的项目（_index.md 项目主页 + 分析思路/ 子项目 + 其下思路文档）
 │   └── posts/<slug>/index.md  # 文章用 Page Bundle（cover 图放同目录）
 ├── static/
 │   ├── images/avatar.jpg      # 首页头像 240×240（profileMode 引用）
@@ -133,12 +134,13 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 - `katex.min.css` 用**相对路径** `fonts/...` 引用字体，因此它必须与 `fonts/` 同级；只装了 `woff2`（现代浏览器均支持，CSS 中排第一位，`woff`/`ttf` 回退不会被请求）
 - 课程材料页由课程主页 `_index.md` 的 `cascade: {math: true}` 统一继承；课程主页与章节入口页显式 `math: false` 覆盖，避免白加载约 300KB
 
-**⑦ 项目展示（平铺：列表 → 详情）** — `content/projects/` + `layouts/_partials/project-meta.html` + `05-project.css`
+**⑦ 项目展示（列表 → 详情，默认平铺）** — `content/projects/` + `layouts/_partials/project-meta.html` + `05-project.css`
 - **与课程的关键差异**：项目是**平铺单页**（没有「章」这一层，也**没有**笔记/作业拆分，**没有**附件下载区）；每个项目 = `content/projects/<项目>/index.md` 一个页面，正文即项目介绍
 - **列表页** `/projects/` 由 `content/projects/_index.md` 提供，走主题 `list.html`，因此**没有**任何自定义模板（课程主页/章节页则各有一个自定义模板）
 - **详情页**走主题 `single.html`，由 `extend_post_content.html` 在 `Type == "projects"` 时注入 `project-meta.html`（正文之后、footer 之前），渲染「技术栈标签 + 查看源码按钮」
 - 元信息由 front matter 的 `tags`（技术栈，用标准 tags 分类法）与 `repo`（仓库地址）驱动，**两者都为空时面板完全不输出**；技术栈标签渲染为指向 `/tags/<词条>/` 的链接，因此项目与标签体系双向联动（项目页 → 词条页，词条页也会列出该项目）
 - 文案走 `i18n/zh.toml` 的 `project*` keys；样式在 `05-project.css`（只复用主题变量，变量本身随 `.dark` 切换，故无需额外暗色规则）
+- **例外：带子项目的项目**（目前只有 `CMC2026`）。leaf bundle **不能**包含子页面，所以「项目 → 子项目 → 文档」只能用 **branch bundle / section** 实现：`content/projects/CMC2026/_index.md`（项目主页）+ `CMC2026/分析思路/_index.md`（子项目）+ 其下若干普通 `.md` 文档。三级都走主题 `list.html`——它取 `union .RegularPages .Sections` 渲染卡片，因此嵌套 section 也会被列出来，**依然没有自定义模板**。三点代价：① section 页不走 `single.html`，所以这类项目页**不会**出现「技术栈 + 查看源码」面板；② 这里没有 `cascade`，文档页要渲染公式必须**逐页写 `math: true`**；③ 给 section 页写 `categories` 是**无效的**（主题词条页取 `.RegularPages`，section 不属于 regular page，实测不会出现在 `/categories/` 下），所以不要写
 
 **⑧ 词条筛选框（标签 / 分类 / 系列总览页）** — `assets/js/terms-filter.js` + `06-terms-filter.css`
 - 在 `/tags/`、`/categories/`、`/series/` 的词条列表上方注入一个输入框，输入即过滤下方词条（纯前端 DOM 过滤，不依赖搜索索引、不引入第三方库）
@@ -172,7 +174,8 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
      - 附件直接与各自 `index.md` 同目录（除图片外的任意文件），会出现在该页「📎 附件下载」区；**不需要文件名前缀**
    - 分区单位由课程主页的 `unit` 决定；章节只写 `weight`，显示名自动拼成「第 N 章」
    - 课程主页与章节入口页由 `layouts/courses/*.html` 依 `layout` 显式命中，其他 section 不受影响
-8. **项目结构与文章、课程都不同**：一个项目 = `content/projects/<项目>/index.md`（leaf bundle，**平铺单页**，不要再往下分层）。front matter 用 `title` / `date` / `description` / `tags`（技术栈也走 tags，不另设字段，这样能进 `/tags/` 词条页）/ `repo`（仓库地址）/ `categories: ["项目"]`，骨架见 `archetypes/projects.md`。项目页复用主题 `single.html`，技术栈与仓库链接由 `project-meta.html` 自动追加到正文下方，**不需要写 layout**
+8. **项目默认是平铺单页**：一个项目 = `content/projects/<项目>/index.md`（leaf bundle，不要再往下分层）。front matter 用 `title` / `date` / `description` / `tags`（技术栈也走 tags，不另设字段，这样能进 `/tags/` 词条页）/ `repo`（仓库地址）/ `categories: ["项目"]`，骨架见 `archetypes/projects.md`。项目页复用主题 `single.html`，技术栈与仓库链接由 `project-meta.html` 自动追加到正文下方，**不需要写 layout**
+   - **只有项目里确实还要放子项目时**（如 `CMC2026/分析思路/`）才改成分层：项目和子项目都用 `_index.md`（**branch bundle / section**），文档用其下的普通 `.md`（front matter 至少 `title` / `date` / `draft` / `description`，文档权重用 `weight` 排序）。此时项目页与子项目页都走主题 `list.html` 自动列出下级，**没有**技术栈/仓库面板；文档页有公式的必须逐页写 `math: true`（这一层没有 `cascade`）
 9. URL 变更需谨慎：permalinks 和 `mapping='title'` 的 giscus 都对路径/标题敏感，改名会丢评论关联
 10. `themes/PaperMod/` 不直接改；如需扩展主题行为，优先用 hook，其次在 `hugo.toml` 找开关
 11. 涉及 `baseURL` 的资源引用用 Hugo 的 `absURL`/relref 或相对路径，勿硬编码域名（站点在 `/my-blog/` 子路径下）
@@ -201,8 +204,8 @@ hugo --minify --gc    # 生产构建，输出到 public/
 - 课程主页与章节入口页要显式 `math: false` 覆盖 `cascade`，否则这些没有公式的页面也会白白加载约 300KB 的 KaTeX
 - 课程材料页的附件**不用文件名前缀**：内容页 bundle 里除图片外的资源都会列进下载区（图片会按图片过滤掉，不会出现在下载列表）
 - 课程各页 URL 由目录名决定（`/courses/<课程>/<chapter-0N>/notes/` 等），改名即改 URL；课程主页 URL（`/courses/<课程>/`）保持不变
-- 项目页同样由目录名决定 URL（`/projects/<项目>/`），改名即改 URL 并丢评论关联
-- 项目页与课程页都**不在**归档页与首页列表中（`mainSections=['posts']` 只放行文章），但**都会**进搜索引擎索引（`site.RegularPages`）、`sitemap.xml` 与 `/categories/`（项目用 `categories: ["项目"]`）
+- 项目页同样由目录名决定 URL（`/projects/<项目>/`），改名即改 URL 并丢评论关联；分层项目再多一层（`/projects/cmc2026/分析思路/<文档名>/`），中文目录名在链接里会被百分号编码（站内既有中文 URL 同样如此）
+- 项目页与课程页都**不在**归档页与首页列表中（`mainSections=['posts']` 只放行文章），但**都会**进搜索引擎索引（`site.RegularPages`）、`sitemap.xml` 与 `/categories/`（项目用 `categories: ["项目"]`）。注意 `categories` 只对 leaf bundle 形式的项目页（如 `my-blog`）生效，section 形式的项目（`CMC2026`）不在词条页里
 - 明暗相关代码一律走 `data-theme` 属性（见第 4.1 节），不要写 `.dark` class 或监听 `class` 变化，那永远不会触发
 - `/tags/`、`/categories/`、`/series/` 三个总览页的标题由 `content/<taxonomy>/_index.md` 提供。**不要**再新建 `content/tags.md` 之类带 `url` 的普通页面去覆盖它们——那会把 `kind=taxonomy` 的列表页顶替成普通文章页（曾因此让「标签」入口整页空白）
 - 站点图标是 `static/` 下的静态文件，没有内容指纹；换 logo 后访客可能需要强刷才能看到新图标
