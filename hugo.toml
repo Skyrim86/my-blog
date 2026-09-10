@@ -83,7 +83,7 @@ pagerSize = 10
   ShowShareButtons = false
 
   # 默认 Open Graph 图片（分享时显示）
-  images = ['images/site-cover.png']
+  images = ['images/site-cover.jpg']
 
   # 日期格式
   DateFormat = '2006年1月2日'
