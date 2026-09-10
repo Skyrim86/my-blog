@@ -1,9 +1,9 @@
-# Hugo 构建产物
+# Hugo 鏋勫缓浜х墿
 public/
 resources/
 .hugo_build.lock
 
-# 系统文件
+# 绯荤粺鏂囦欢
 Thumbs.db
 .DS_Store
 .zcode/

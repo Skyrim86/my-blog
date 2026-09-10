@@ -21,6 +21,7 @@ defaults:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,10 +43,13 @@ jobs:
           path: ./public
 
   deploy:
+    # 只在 main 上部署：workflow_dispatch 可从任意分支手动触发，避免把非 main 的内容发到 Pages
+    if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: build
     steps:
       - name: Deploy to GitHub Pages
