@@ -61,7 +61,7 @@ my-blog/
 | `[params]` | `env='production'`、`defaultTheme='auto'`（跟随系统明暗）、开启阅读时间/TOC(默认展开)/面包屑/上下篇/代码复制/RSS 按钮；分享按钮关闭；`images=['images/site-cover.png']` 为默认 OG 图；`DateFormat='2006年1月2日'` |
 | `[params.cover]` | `responsiveImages`、`linkFullImages`（点击封面看原图）开启 |
 | `[params.giscus]` | 评论系统全部参数；`mapping='title'` 按文章标题关联 Discussion（非 pathname）；`theme='light'` 是初始值，实际由同步脚本动态切换 |
-| `[params.profileMode]` | **首页是 Profile Mode**（个人名片 + 3 个按钮：文章/标签/关于），不是普通文章列表 |
+| `[params.profileMode]` | **首页是 Profile Mode**（个人名片：头像 + 标题 + 副标题，无按钮，需加按钮时用 `[[params.profileMode.buttons]]`） |
 | `[params.fuseOpts]` | Fuse.js 搜索权重：`['title','permalink','summary','content']` |
 | `[[menu.main]]` | 7 个导航项：首页(10)/**课程(15)**/文章(20)/归档(30)/标签(40)/搜索(50)/关于(60) |
 | `[markup.highlight]` | monokai 主题，行号开启 |
@@ -129,7 +129,7 @@ hugo --minify --gc    # 生产构建，输出到 public/
 ## 7. 已知事项 / 陷阱
 
 - Giscus 用 `mapping='title'`：**改文章标题 = 丢评论**；换回 pathname 前需权衡
-- 首页是 Profile Mode，改首页布局要去 `[params.profileMode]`，不是普通 list 模板
+- 首页是 Profile Mode，改首页布局要去 `[params.profileMode]`，不是普通 list 模板；按钮已移除，入口统一走顶部导航菜单
 - 搜索依赖首页 JSON 输出（`[outputs] home` 的 `'JSON'`），删掉即搜索失效
 - `enableGitInfo` 依赖完整 git 历史（CI 的 `fetch-depth: 0` 勿删）
 - 旧 git 历史中部分中文 commit message 是 GBK 编码（显示乱码），仅影响历史可读性；新提交请保持 UTF-8

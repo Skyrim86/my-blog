@@ -122,17 +122,6 @@ pagerSize = 10
   imageWidth = 120
   imageHeight = 120
 
-  # 首页按钮
-  [[params.profileMode.buttons]]
-    name = '📖 文章'
-    url = '/posts/'
-  [[params.profileMode.buttons]]
-    name = '🏷️ 标签'
-    url = '/tags/'
-  [[params.profileMode.buttons]]
-    name = '📮 关于'
-    url = '/about/'
-
 # ============================================
 # 搜索功能配置（Fuse.js）
 # ============================================
