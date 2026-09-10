@@ -1,11 +1,18 @@
 {{- /* 自定义 JS 统一放 assets/js/，此处只做接线：minify + fingerprint（内容 hash 自动 cache-bust） */ -}}
-{{- $backToTop := resources.Get "js/back-to-top.js" | minify | fingerprint }}
-<script defer src="{{ $backToTop.RelPermalink }}" integrity="{{ $backToTop.Data.Integrity }}" crossorigin="anonymous"></script>
 
+{{- /* 404 页：主题模板无条件输出 index,follow，这里补一条更严格的 noindex（不复制主题模板） */ -}}
+{{- if eq .Kind "404" }}
+<meta name="robots" content="noindex">
+{{- end }}
+
+{{- /* Giscus 主题跟随：只在本页真正有评论区时加载，无评论区的页面不做无效轮询 */ -}}
+{{- if (.Param "comments") }}
 {{- $giscusSync := resources.Get "js/giscus-theme-sync.js" | minify | fingerprint }}
 <script defer src="{{ $giscusSync.RelPermalink }}" integrity="{{ $giscusSync.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}
 
-{{- /* 数学公式（KaTeX）：站点 params.math 或页面 front matter math: true 时按需加载。
+{{- /* 数学公式（KaTeX）：页面 front matter 写 math: true 时按需加载（站点未设 params.math；
+       若将来想全站开启，在 hugo.toml 的 [params] 加 math = true 即可）。
        资源自托管在 static/katex/（katex.min.css 用相对路径 fonts/ 引用同目录字体），
        因此静态目录结构不能改：katex.min.css 必须与 fonts/ 同级。
 

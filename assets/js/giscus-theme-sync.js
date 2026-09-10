@@ -1,16 +1,14 @@
 // Giscus 主题跟随 PaperMod 明暗切换
-// 由 layouts/_partials/extend_head.html 以 defer 方式加载（执行时 body 已存在）
+// 由 layouts/_partials/extend_head.html 仅在有评论区的页面以 defer 加载（执行时 DOM 已就绪）
+//
+// PaperMod 的明暗机制：<html data-theme="light|dark">。主题在页面加载时就把 auto 解析成
+// light/dark，切换按钮改的也是这个属性，CSS 用 :root[data-theme="dark"] 匹配。
+// 因此这里只判断该属性，与 CSS 保持完全一致。
 (function () {
   'use strict';
 
-  // 信号源优先级：PaperMod 存的用户偏好 → body/html 的 dark class（auto 模式）→ 系统偏好
-  function isDark() {
-    var pref = localStorage.getItem('pref-theme');
-    if (pref === 'dark')  return true;
-    if (pref === 'light') return false;
-    return (document.body && document.body.classList.contains('dark')) ||
-           document.documentElement.classList.contains('dark') ||
-           window.matchMedia('(prefers-color-scheme: dark)').matches;
+  function currentTheme() {
+    return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
   }
 
   function send(theme) {
@@ -24,37 +22,30 @@
     } catch (e) { /* iframe 跨域或未就绪，忽略 */ }
   }
 
+  // 发两次：首次可能被 iframe 加载竞态吞掉
   function sync() {
-    var theme = isDark() ? 'dark' : 'light';
+    var theme = currentTheme();
     send(theme);
-    // 同步可能被 iframe 加载竞态吞掉，600ms 后重发一次兜底
     setTimeout(function () { send(theme); }, 600);
   }
 
-  // PaperMod 切换主题时给 body/html 加 class
-  var observer = new MutationObserver(sync);
-  observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-  // 兜底：主题按钮点击后延迟同步（等 class 落盘）
-  document.addEventListener('click', function (e) {
-    if (e.target.closest('#theme-toggle, .theme-toggle, [id*="theme"]')) {
-      setTimeout(sync, 50);
-    }
+  // 主题切换：PaperMod 改的是 html 的 data-theme 属性
+  new MutationObserver(sync).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme']
   });
 
-  // Giscus 懒加载：轮询等 iframe 出现，加载完成后同步初始主题（最多等 30 秒）
+  // Giscus 是懒加载 iframe，轮询等它出现（最多 30 秒），出现后每次加载都同步主题
   var tries = 0;
   var timer = setInterval(function () {
     tries++;
     var iframe = document.querySelector('iframe.giscus-frame');
     if (iframe) {
-      iframe.addEventListener('load', function () {
-        send(isDark() ? 'dark' : 'light');
-      });
+      iframe.addEventListener('load', sync);
+      sync();
       clearInterval(timer);
     } else if (tries > 100) {
-      clearInterval(timer); // 页面可能没有评论区，放弃
+      clearInterval(timer);
     }
   }, 300);
 })();

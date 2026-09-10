@@ -1,38 +1,6 @@
 /* ============================================
-   返回顶部按钮（JS 见 assets/js/back-to-top.js）
-   ============================================ */
-#back-to-top {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--theme);
-  color: var(--content);
-  font-size: 18px;
-  line-height: 40px;
-  text-align: center;
-  cursor: pointer;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(10px);
-  transition: opacity .3s, transform .3s, visibility .3s;
-  z-index: 999;
-  user-select: none;
-}
-#back-to-top.visible {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-#back-to-top:hover {
-  border-color: var(--secondary);
-}
-
-/* ============================================
    系列文章导航（模板见 layouts/_partials/series-posts.html）
+   返回顶部按钮由主题内置提供（#top-link），无需自定义样式
    ============================================ */
 .post-series {
   margin: 2rem 0;
