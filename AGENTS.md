@@ -135,7 +135,7 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 - **与课程的关键差异**：项目是**平铺单页**（没有「章」这一层，也**没有**笔记/作业拆分，**没有**附件下载区）；每个项目 = `content/projects/<项目>/index.md` 一个页面，正文即项目介绍
 - **列表页** `/projects/` 由 `content/projects/_index.md` 提供，走主题 `list.html`，因此**没有**任何自定义模板（课程主页/章节页则各有一个自定义模板）
 - **详情页**走主题 `single.html`，由 `extend_post_content.html` 在 `Type == "projects"` 时注入 `project-meta.html`（正文之后、footer 之前），渲染「技术栈标签 + 查看源码按钮」
-- 元信息只有两个自定义 front matter 字段：`tech`（数组，技术栈标签）与 `repo`（字符串，仓库地址）；**两者都为空时面板完全不输出**
+- 元信息由 front matter 的 `tags`（技术栈，用标准 tags 分类法）与 `repo`（仓库地址）驱动，**两者都为空时面板完全不输出**；技术栈标签渲染为指向 `/tags/<词条>/` 的链接，因此项目与标签体系双向联动（项目页 → 词条页，词条页也会列出该项目）
 - 文案走 `i18n/zh.toml` 的 `project*` keys；样式在 `05-project.css`（只复用主题变量，变量本身随 `.dark` 切换，故无需额外暗色规则）
 
 ## 5. 约定（添加新功能必读）
@@ -162,7 +162,7 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
      - 附件直接与各自 `index.md` 同目录（除图片外的任意文件），会出现在该页「📎 附件下载」区；**不需要文件名前缀**
    - 分区单位由课程主页的 `unit` 决定；章节只写 `weight`，显示名自动拼成「第 N 章」
    - 课程主页与章节入口页由 `layouts/courses/*.html` 依 `layout` 显式命中，其他 section 不受影响
-8. **项目结构与文章、课程都不同**：一个项目 = `content/projects/<项目>/index.md`（leaf bundle，**平铺单页**，不要再往下分层）。front matter 用 `title` / `date` / `description` / `tech`（技术栈数组）/ `repo`（仓库地址）/ `categories: ["项目"]`，骨架见 `archetypes/projects.md`。项目页复用主题 `single.html`，技术栈与仓库链接由 `project-meta.html` 自动追加到正文下方，**不需要写 layout**
+8. **项目结构与文章、课程都不同**：一个项目 = `content/projects/<项目>/index.md`（leaf bundle，**平铺单页**，不要再往下分层）。front matter 用 `title` / `date` / `description` / `tags`（技术栈也走 tags，不另设字段，这样能进 `/tags/` 词条页）/ `repo`（仓库地址）/ `categories: ["项目"]`，骨架见 `archetypes/projects.md`。项目页复用主题 `single.html`，技术栈与仓库链接由 `project-meta.html` 自动追加到正文下方，**不需要写 layout**
 9. URL 变更需谨慎：permalinks 和 `mapping='title'` 的 giscus 都对路径/标题敏感，改名会丢评论关联
 10. `themes/PaperMod/` 不直接改；如需扩展主题行为，优先用 hook，其次在 `hugo.toml` 找开关
 11. 涉及 `baseURL` 的资源引用用 Hugo 的 `absURL`/relref 或相对路径，勿硬编码域名（站点在 `/my-blog/` 子路径下）

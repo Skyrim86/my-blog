@@ -46,6 +46,16 @@
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 999px;
+  transition: border-color 0.2s;
+}
+
+.project-tech-tag:hover {
+  border-color: var(--secondary);
+}
+
+.project-tech-tag a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .project-repo-link {

@@ -3,7 +3,7 @@ title: "本博客"
 date: 2026-09-10
 draft: false
 description: "用 Hugo + PaperMod 搭建的静态博客：课程、项目、系列文章与自托管 KaTeX"
-tech: ["Hugo", "Go Template", "CSS", "GitHub Actions"]
+tags: ["Hugo", "Go Template", "CSS", "GitHub Actions"]
 repo: "https://github.com/Skyrim86/my-blog"
 categories: ["项目"]
 ---

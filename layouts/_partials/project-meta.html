@@ -1,13 +1,15 @@
-{{- /* 项目详情页元信息：技术栈标签 + 仓库链接。两者都没填时不输出任何内容。
-       由 extend_post_content.html 在 Type == "projects" 时注入（正文之后）。 */ -}}
-{{- if or .Params.tech .Params.repo }}
+{{- /* 项目详情页元信息：技术栈 + 仓库链接。由 extend_post_content.html 在 Type == "projects" 时注入。
+       技术栈直接用 tags 分类法（不再另设 tech 字段），因此标签可点进 /tags/ 词条页，
+       而 /tags/ 词条页也会列出该项目——项目与标签体系双向联动。 */ -}}
+{{- $tags := .GetTerms "tags" }}
+{{- if or $tags .Params.repo }}
 <div class="project-meta">
-  {{- with .Params.tech }}
+  {{- with $tags }}
   <div class="project-tech">
     <span class="project-tech-label">{{ i18n "projectTechStack" }}</span>
     <ul class="project-tech-list">
       {{- range . }}
-      <li class="project-tech-tag">{{ . }}</li>
+      <li class="project-tech-tag"><a href="{{ .Permalink }}">{{ .LinkTitle }}</a></li>
       {{- end }}
     </ul>
   </div>
