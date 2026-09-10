@@ -1,0 +1,228 @@
+/* ============================================
+   课程结构：章节目录 / 章节页双面板 / 附件下载
+   模板见 layouts/courses/course.html、
+        layouts/_partials/course-index.html、course-panels.html
+   ============================================ */
+
+/* ---------- 课程主页 ---------- */
+.course-home-meta {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--secondary);
+}
+
+.course-index {
+  margin: 1.5rem 0 2rem;
+}
+
+.course-index-heading {
+  font-size: 1.15rem;
+  margin-bottom: 0.85rem;
+}
+
+.course-index-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.course-index-item {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--entry);
+  transition: border-color 0.2s;
+}
+
+.course-index-item:hover {
+  border-color: var(--secondary);
+}
+
+.course-index-link {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.course-index-num {
+  flex: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--secondary);
+  white-space: nowrap;
+}
+
+.course-index-title {
+  font-size: 1.05rem;
+}
+
+.course-index-desc {
+  margin: 0.4rem 0 0;
+  font-size: 0.92rem;
+  color: var(--secondary);
+}
+
+.course-index-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.55rem;
+}
+
+.course-badge {
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* ---------- 章节页：双面板 ---------- */
+.course-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin: 1.5rem 0;
+}
+
+.course-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--entry);
+  overflow: hidden;
+}
+
+.course-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0.85rem 1.1rem;
+  font-weight: 600;
+  font-size: 1.05rem;
+  background: var(--code-bg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.course-panel-title::after {
+  content: "▾";
+  flex: none;
+  color: var(--secondary);
+  transition: transform 0.2s;
+}
+
+.course-panel:not([open]) .course-panel-title::after {
+  transform: rotate(-90deg);
+}
+
+.course-panel-body {
+  padding: 1.1rem;
+}
+
+.course-panel-content > :first-child {
+  margin-top: 0;
+}
+
+.course-panel-content > :last-child {
+  margin-bottom: 0;
+}
+
+.course-panel-empty,
+.course-downloads-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--secondary);
+}
+
+.course-panel-empty + .course-downloads-empty,
+.course-panel-empty + .course-downloads {
+  margin-top: 1rem;
+}
+
+/* ---------- 附件下载 ---------- */
+.course-downloads {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed var(--border);
+}
+
+.course-downloads-heading {
+  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--secondary);
+}
+
+.course-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.course-file-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.92rem;
+  color: var(--content);
+  text-decoration: none;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.2s;
+}
+
+.course-file-link:hover {
+  border-color: var(--secondary);
+}
+
+.course-file-icon {
+  flex: none;
+}
+
+.course-file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.course-file-type {
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--secondary);
+}
+
+.course-file-action {
+  flex: none;
+  padding: 0 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+@media (max-width: 640px) {
+  .course-file-type {
+    display: none;
+  }
+
+  .course-index-link {
+    flex-direction: column;
+    gap: 2px;
+  }
+}

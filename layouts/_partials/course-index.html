@@ -1,0 +1,31 @@
+{{- /* 章节目录：课程主页（layout: course）下按 weight 列出各章/周，并标出材料可用情况 */ -}}
+{{- $unit := .Params.unit | default "章" }}
+{{- $chapters := union .RegularPages .Sections }}
+{{- $chapters = $chapters.ByWeight }}
+{{- if $chapters }}
+<nav class="course-index">
+  <h2 class="course-index-heading">{{ i18n "courseIndex" }}</h2>
+  <ol class="course-index-list">
+    {{- range $i, $chapter := $chapters }}
+    {{- $num := $chapter.Params.weight | default (add $i 1) }}
+    <li class="course-index-item">
+      <a class="course-index-link" href="{{ $chapter.RelPermalink }}">
+        <span class="course-index-num">{{ i18n "courseUnitLabel" (dict "num" $num "unit" $unit) }}</span>
+        <span class="course-index-title">{{ $chapter.Title }}</span>
+      </a>
+      {{- with $chapter.Description }}
+      <p class="course-index-desc">{{ . }}</p>
+      {{- end }}
+      <div class="course-index-badges">
+        {{- with $chapter.Resources.Get "notes.md" }}
+        <span class="course-badge">{{ i18n "courseNotesBadge" }}</span>
+        {{- end }}
+        {{- with $chapter.Resources.Get "homework.md" }}
+        <span class="course-badge">{{ i18n "courseHomeworkBadge" }}</span>
+        {{- end }}
+      </div>
+    </li>
+    {{- end }}
+  </ol>
+</nav>
+{{- end }}

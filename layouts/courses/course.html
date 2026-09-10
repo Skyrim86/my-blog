@@ -1,0 +1,26 @@
+{{- /* 课程主页模板：仅当课程 _index.md 设置 layout: "course" 时命中（见模板查找规则）。
+     不复用主题 list.html，因为需要自动章节目录——列表页没有 hook 可用。 */ -}}
+{{- define "main" }}
+
+<article class="course-home">
+  <header class="page-header">
+    {{- partial "breadcrumbs.html" . }}
+    <h1>{{ .Title }}</h1>
+    {{- with .Description }}
+    <div class="post-description">{{ . | markdownify }}</div>
+    {{- end }}
+    {{- with .Params.unit }}
+    <div class="course-home-meta">{{ i18n "courseOrganizedBy" (dict "unit" .) }}</div>
+    {{- end }}
+  </header>
+
+  {{- partial "course-index.html" . }}
+
+  {{- if .Content }}
+  <div class="post-content md-content">
+    {{- partial "anchored_headings.html" .Content }}
+  </div>
+  {{- end }}
+</article>
+
+{{- end }}{{/* end main */}}

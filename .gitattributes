@@ -1,0 +1,13 @@
+# 附件类文件不做换行符转换。
+# 课程章节里的 PDF 等文件会随页面发布，若被当作文本做 LF/CRLF 转换，
+# 会改变字节长度并破坏 PDF 内部的 xref 偏移，导致下载后无法打开。
+*.pdf   binary
+*.zip   binary
+*.docx  binary
+*.pptx  binary
+*.xlsx  binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary

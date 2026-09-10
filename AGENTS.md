@@ -1,7 +1,7 @@
 # Skyrim 的博客 — 项目架构文档（供 AI 助手阅读）
 
 > 本文档面向 AI 编码助手：当你被要求为本博客添加新功能时，先读完本文，按文中"约定"一节动手，不要重新发明已有机制。
-> 最后更新：2026-09-09
+> 最后更新：2026-09-10
 
 ## 1. 项目概览
 
@@ -16,27 +16,35 @@
 ```
 my-blog/
 ├── hugo.toml                  # 唯一配置文件（无 config/ 目录分段）
-├── archetypes/default.md      # 新文章 front matter 模板（含注释掉的 series 字段）
+├── archetypes/
+│   ├── default.md             # 新文章 front matter 模板（含注释掉的 series 字段）
+│   └── courses.md             # 课程章节页骨架（hugo new content courses/...）
 ├── assets/
 │   ├── css/extended/          # 自定义 CSS（主题自动 Concat + minify，按文件名排序）
 │   │   ├── 01-cards.css       #   文章列表卡片
 │   │   ├── 02-typography.css  #   中文排版
-│   │   └── 03-widgets.css     #   返回顶部 + 系列导航
+│   │   ├── 03-widgets.css     #   返回顶部 + 系列导航
+│   │   └── 04-course.css      #   课程章节目录 + 双面板 + 附件下载
 │   └── js/                    # 自定义 JS 源码（经 extend_head.html minify+fingerprint 后外链）
 │       ├── back-to-top.js     #   返回顶部按钮
 │       └── giscus-theme-sync.js # Giscus 主题跟随
 ├── i18n/zh.toml               # 站点级 UI 文案（与主题 i18n 合并，同名覆盖）
-├── layouts/_partials/         # 全部自定义模板（注意是 _partials 带下划线）
-│   ├── extend_head.html       # 覆盖主题 hook：仅做 JS 资产接线，不含逻辑
-│   ├── extend_post_content.html # 覆盖主题 hook：注入系列文章导航
-│   ├── series-posts.html      # 系列文章导航组件（文案走 i18n）
-│   └── comments.html          # Giscus 评论组件（覆盖主题同名 partial）
+├── layouts/
+│   ├── courses/course.html    # 课程主页模板（仅 front matter layout: course 命中，自绘章节目录）
+│   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
+│       ├── extend_head.html   # 覆盖主题 hook：仅做 JS 资产接线，不含逻辑
+│       ├── extend_post_content.html # 覆盖主题 hook：系列导航 + 课程章节双面板
+│       ├── series-posts.html  # 系列文章导航组件（文案走 i18n）
+│       ├── course-index.html  # 课程主页的章节目录组件
+│       ├── course-panels.html # 章节页「学习笔记 / 作业」双面板 + 附件下载
+│       └── comments.html      # Giscus 评论组件（覆盖主题同名 partial）
 ├── content/
 │   ├── about.md               # 关于页（url: /about/）
 │   ├── archives.md            # 归档页（layout: archives）
 │   ├── search.md              # 搜索页（layout: search, url: /search/）
 │   ├── tags.md                # 标签页（layout: tags, url: /tags/）
 │   ├── courses/_index.md      # 课程 section 列表页（url: /courses/）
+│   ├── courses/<课程>/        # 一门课程：_index.md 主页 + <chapter-0N>/ 章节（见第 5 节约定）
 │   └── posts/<slug>/index.md  # 文章用 Page Bundle（cover 图放同目录）
 ├── static/
 │   ├── images/avatar.png      # 首页头像（profileMode 引用）
@@ -47,7 +55,7 @@ my-blog/
 └── themes/PaperMod/           # vendored 主题，不要直接修改
 ```
 
-`public/`（构建产物）、`resources/`（Hugo 缓存）、`.hugo_build.lock` 均不入库；`data/`、`i18n/` 目前不存在（Hugo 允许缺失）。
+`public/`（构建产物）、`resources/`（Hugo 缓存）、`.hugo_build.lock` 均不入库；`data/` 目前不存在（Hugo 允许缺失）。
 
 ## 3. hugo.toml 配置要点
 
@@ -58,7 +66,7 @@ my-blog/
 | `[taxonomies]` | 三套分类法：`tags`、`categories`、**`series`（自定义，支撑系列导航功能）** |
 | `[outputs]` | 首页输出 `HTML + RSS + JSON`，**JSON 索引供 Fuse.js 搜索使用**，勿删 |
 | `[permalinks]` | 文章 URL 格式 `/:year/:month/:slug/`（如 `/2026/09/我的第一篇文章/`）；改动会破坏已发布链接 |
-| `[params]` | `env='production'`、`defaultTheme='auto'`（跟随系统明暗）、开启阅读时间/TOC(默认展开)/面包屑/上下篇/代码复制/RSS 按钮；分享按钮关闭；`images=['images/site-cover.png']` 为默认 OG 图；`DateFormat='2006年1月2日'` |
+| `[params]` | `env='production'`、`mainSections=['posts']`（首页列表/归档/上下篇只统计文章，课程章节不混入）、`defaultTheme='auto'`（跟随系统明暗）、开启阅读时间/TOC(默认展开)/面包屑/上下篇/代码复制/RSS 按钮；分享按钮关闭；`images=['images/site-cover.png']` 为默认 OG 图；`DateFormat='2006年1月2日'` |
 | `[params.cover]` | `responsiveImages`、`linkFullImages`（点击封面看原图）开启 |
 | `[params.giscus]` | 评论系统全部参数；`mapping='title'` 按文章标题关联 Discussion（非 pathname）；`theme='light'` 是初始值，实际由同步脚本动态切换 |
 | `[params.profileMode]` | **首页是 Profile Mode**（个人名片：头像 + 标题 + 副标题，无按钮，需加按钮时用 `[[params.profileMode.buttons]]`） |
@@ -98,6 +106,12 @@ my-blog/
 
 **⑤ 列表卡片化** — `01-cards.css`：文章列表项圆角+阴影+悬浮上浮，含暗色模式适配
 
+**⑥ 课程结构（周/章 → 双面板 + 下载）** — `layouts/courses/course.html` + `course-index.html` + `course-panels.html`
+- 课程主页（`content/courses/<课程>/_index.md`，`layout: "course"`）由 `layouts/courses/course.html` 渲染：面包屑 + 标题 + `unit` 说明 + **自动章节目录**（`course-index.html`：按 `weight` 排序，显示「第 N 章」、📖/📝 材料可用标记）+ 大纲正文
+- 章节目录页（`content/courses/<课程>/<chapter-0N>/index.md`）走主题 `single.html`，由 `extend_post_content.html` 注入 `course-panels.html`：两个 `<details open>` 面板「📖 学习笔记」「📝 作业」，分别渲染 `notes.md` / `homework.md` 的 `.Content`（页面资源的 markdown 内容），并各自列出 `notes-*` / `hw-*` 附件（文件名 + 大小 + 下载链接）
+- 附件是章节目录内的 bundle 资源，Hugo 随页面发布，`.RelPermalink` 即下载地址；`.md` 正文作为页面资源**不会**被发布成页面
+- 文案全部走 `i18n/zh.toml` 的 `course*` keys；样式在 `04-course.css`
+
 ## 5. 约定（添加新功能必读）
 
 1. **永远不要整份复制主题模板来覆盖**（如 copy `single.html`）。PaperMod 提供的 hook（覆盖 `layouts/_partials/` 下同名文件即可生效）：
@@ -112,10 +126,19 @@ my-blog/
 4. **面向访客的 UI 文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}` 引用；不要在模板里硬编码中文文案
 5. **复用主题 CSS 变量**（`--theme`/`--border`/`--secondary` 等），并始终为 `.dark` 写暗色适配——站点 `defaultTheme='auto'`
 6. **配置一律进 `hugo.toml`**，模板里通过 `site.Params.xxx` 读取，不要在模板中硬编码
-7. 文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录；新文章从 `archetypes/default.md` 的结构复制 front matter。**课程与文章结构相同**，放 `content/courses/<slug>/index.md`（`content/courses/_index.md` 是列表页本身）
+7. 文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录；新文章从 `archetypes/default.md` 的结构复制 front matter。**课程结构与文章不同**，务必按下面建：
+   - 一门课程 = `content/courses/<课程>/_index.md`（**branch bundle**），front matter 必须有 `layout: "course"` 与 `unit: "章"`（或 `"周"`）
+   - 每个章/周 = `content/courses/<课程>/<chapter-0N>/`（**leaf bundle**），其中：
+     - `index.md` — 章节页 front matter（`title` / `weight` / `description`），正文可选（写章节导语）
+     - `notes.md` — 📖「学习笔记」面板正文；`homework.md` — 📝「作业」面板正文
+     - `notes-*` 与 `hw-*` 前缀的附件 → 分别归入两个面板的下载区（如 `notes-01-slides.pdf`、`hw-01-solution.pdf`）
+   - 分区单位由课程主页的 `unit` 决定；章节只写 `weight`，显示名自动拼成「第 N 章」
+   - 附件与正文同级放在章节目录内即是下载文件（Hugo 会随页面发布；`.md` 正文本身不会被发布）
+   - 章节页的 `ShowToc` / `comments` 已由课程主页 `_index.md` 的 `cascade` 关闭，不要在章节页重复设置
 8. URL 变更需谨慎：permalinks 和 `mapping='title'` 的 giscus 都对路径/标题敏感，改名会丢评论关联
 9. `themes/PaperMod/` 不直接改；如需扩展主题行为，优先用 hook，其次在 `hugo.toml` 找开关
 10. 涉及 `baseURL` 的资源引用用 Hugo 的 `absURL`/relref 或相对路径，勿硬编码域名（站点在 `/my-blog/` 子路径下）
+11. **课程主页用了自定义 section 模板** `layouts/courses/course.html`（只有 front matter `layout: "course"` 的页面命中）。这是对第 1 条「不整份复制主题模板」的**有意例外**：列表页没有任何 hook，而课程主页需要自动章节目录。该模板很小，只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`），不影响 `/courses/` 列表页与文章页。改课程主页外观请优先改 `04-course.css`，不要改动模板结构
 
 ## 6. 本地开发与部署
 
@@ -132,4 +155,8 @@ hugo --minify --gc    # 生产构建，输出到 public/
 - 首页是 Profile Mode，改首页布局要去 `[params.profileMode]`，不是普通 list 模板；按钮已移除，入口统一走顶部导航菜单
 - 搜索依赖首页 JSON 输出（`[outputs] home` 的 `'JSON'`），删掉即搜索失效
 - `enableGitInfo` 依赖完整 git 历史（CI 的 `fetch-depth: 0` 勿删）
+- **主题不支持数学公式**：vendored PaperMod 里没有 KaTeX/MathJax（`head.html` 无相关代码）。课程/文章里的公式请用行内代码、代码块或 Unicode 符号书写；直接写 `$...$` / `$$...$$` 会原样显示成源码。若要真正的 LaTeX 渲染，需在 `extend_head.html` 自行注入 KaTeX（会引入外部 CDN 依赖），属于未决事项
+- 课程附件的归属靠**文件名前缀**（`notes-*` / `hw-*`），改前缀会让附件从面板下载区消失；面板正文固定为 `notes.md` / `homework.md`
+- 课程章节目录里的 `.md`（`notes.md`/`homework.md`）是**页面资源**，不会被渲染成独立页面、也不会发布为 `.md` 文件——这是有意设计，别当 bug 排查
+- 课程章节页的 URL 由目录名决定（`/courses/<课程>/<chapter-0N>/`），改名即改 URL；课程主页 URL（`/courses/<课程>/`）在 `index.md`→`_index.md` 迁移后保持不变
 - 旧 git 历史中部分中文 commit message 是 GBK 编码（显示乱码），仅影响历史可读性；新提交请保持 UTF-8

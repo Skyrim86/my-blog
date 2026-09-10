@@ -1,1 +1,5 @@
 {{- partial "series-posts.html" . }}
+{{- /* 课程章节页（section= courses 的普通页）：追加「学习笔记 / 作业」双面板 */ -}}
+{{- if eq .Type "courses" }}
+{{- partial "course-panels.html" . }}
+{{- end }}

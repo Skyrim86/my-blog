@@ -46,6 +46,10 @@ pagerSize = 10
 # 核心参数配置
 # ============================================
 [params]
+  # 主内容区：首页列表、归档、上下篇导航只统计这些 section。
+  # 不把 courses 放进来，避免课程章节混进博客归档与上下篇导航。
+  mainSections = ['posts']
+
   # 启用 OG/twitter meta 的开关
   env = 'production'
 
