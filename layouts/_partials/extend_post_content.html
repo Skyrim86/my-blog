@@ -1,5 +1,5 @@
 {{- partial "series-posts.html" . }}
-{{- /* 课程章节页（section= courses 的普通页）：追加「学习笔记 / 作业」双面板 */ -}}
+{{- /* 课程材料页（学习笔记 / 作业）：正文之后追加附件下载区 */ -}}
 {{- if eq .Type "courses" }}
-{{- partial "course-panels.html" . }}
+{{- partial "course-downloads.html" . }}
 {{- end }}

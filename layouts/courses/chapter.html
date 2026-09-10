@@ -1,0 +1,48 @@
+{{- /* 章节目录页：列出本章可进入的内容（学习笔记 / 作业 等子页面）。
+     仅当章节 _index.md 设置 layout: "chapter" 时命中。 */ -}}
+{{- define "main" }}
+
+<article class="course-chapter">
+  <header class="page-header">
+    {{- partial "breadcrumbs.html" . }}
+    <h1>{{ .Title }}</h1>
+    {{- with .Description }}
+    <div class="post-description">{{ . | markdownify }}</div>
+    {{- end }}
+  </header>
+
+  {{- $materials := .RegularPages.ByWeight }}
+  {{- with $materials }}
+  <nav class="course-entries">
+    <h2 class="course-entries-heading">{{ i18n "courseMaterials" }}</h2>
+    <ul class="course-entry-list">
+      {{- range . }}
+      {{- $count := len (where .Resources "MediaType.MainType" "!=" "image") }}
+      <li class="course-entry">
+        <a class="course-entry-link" href="{{ .RelPermalink }}">
+          <span class="course-entry-icon" aria-hidden="true">{{ .Params.icon | default "📄" }}</span>
+          <span class="course-entry-main">
+            <span class="course-entry-title">{{ .Title }}</span>
+            {{- with .Description }}
+            <span class="course-entry-desc">{{ . }}</span>
+            {{- end }}
+            {{- if gt $count 0 }}
+            <span class="course-entry-meta">{{ i18n "courseAttachmentCount" (dict "count" $count) }}</span>
+            {{- end }}
+          </span>
+          <span class="course-entry-arrow" aria-hidden="true">→</span>
+        </a>
+      </li>
+      {{- end }}
+    </ul>
+  </nav>
+  {{- end }}
+
+  {{- if .Content }}
+  <div class="post-content md-content">
+    {{- partial "anchored_headings.html" .Content }}
+  </div>
+  {{- end }}
+</article>
+
+{{- end }}{{/* end main */}}

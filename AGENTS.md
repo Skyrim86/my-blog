@@ -24,19 +24,22 @@ my-blog/
 │   │   ├── 01-cards.css       #   文章列表卡片
 │   │   ├── 02-typography.css  #   中文排版
 │   │   ├── 03-widgets.css     #   返回顶部 + 系列导航
-│   │   └── 04-course.css      #   课程章节目录 + 双面板 + 附件下载
+│   │   └── 04-course.css      #   课程章节目录 + 章节入口 + 附件下载
 │   └── js/                    # 自定义 JS 源码（经 extend_head.html minify+fingerprint 后外链）
 │       ├── back-to-top.js     #   返回顶部按钮
-│       └── giscus-theme-sync.js # Giscus 主题跟随
+│       ├── giscus-theme-sync.js # Giscus 主题跟随
+│       └── katex-render.js    # KaTeX 公式渲染（按需加载，见 extend_head.html）
 ├── i18n/zh.toml               # 站点级 UI 文案（与主题 i18n 合并，同名覆盖）
 ├── layouts/
-│   ├── courses/course.html    # 课程主页模板（仅 front matter layout: course 命中，自绘章节目录）
+│   ├── courses/               # 课程专用模板（由 front matter layout 显式命中，不影响其他 section）
+│   │   ├── course.html        #   课程主页：自绘章节目录
+│   │   └── chapter.html       #   章节入口页：学习笔记 / 作业 二选一
 │   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
-│       ├── extend_head.html   # 覆盖主题 hook：仅做 JS 资产接线，不含逻辑
-│       ├── extend_post_content.html # 覆盖主题 hook：系列导航 + 课程章节双面板
+│       ├── extend_head.html   # 覆盖主题 hook：JS 资产接线 + KaTeX 按需加载
+│       ├── extend_post_content.html # 覆盖主题 hook：系列导航 + 课程材料页附件下载
 │       ├── series-posts.html  # 系列文章导航组件（文案走 i18n）
 │       ├── course-index.html  # 课程主页的章节目录组件
-│       ├── course-panels.html # 章节页「学习笔记 / 作业」双面板 + 附件下载
+│       ├── course-downloads.html # 课程材料页（笔记/作业）附件下载组件
 │       └── comments.html      # Giscus 评论组件（覆盖主题同名 partial）
 ├── content/
 │   ├── about.md               # 关于页（url: /about/）
@@ -44,11 +47,12 @@ my-blog/
 │   ├── search.md              # 搜索页（layout: search, url: /search/）
 │   ├── tags.md                # 标签页（layout: tags, url: /tags/）
 │   ├── courses/_index.md      # 课程 section 列表页（url: /courses/）
-│   ├── courses/<课程>/        # 一门课程：_index.md 主页 + <chapter-0N>/ 章节（见第 5 节约定）
+│   ├── courses/<课程>/        # 一门课程：_index.md 主页 + <chapter-0N>/（notes/、homework/，见第 5 节）
 │   └── posts/<slug>/index.md  # 文章用 Page Bundle（cover 图放同目录）
 ├── static/
 │   ├── images/avatar.png      # 首页头像（profileMode 引用）
 │   ├── images/site-cover.png  # 默认 OG 分享图（params.images 引用）
+│   ├── katex/                 # 自托管 KaTeX：katex.min.css + katex.min.js + auto-render.min.js + fonts/*.woff2
 │   ├── BingSiteAuth.xml       # Bing 站长验证
 │   └── googledfe2280ece06bc5c.html  # Google Search Console 验证
 ├── .github/workflows/deploy.yml  # GitHub Actions 部署
@@ -84,6 +88,7 @@ my-blog/
 - TOC、面包屑、上下篇导航、代码复制按钮、阅读时间
 - SEO：Open Graph/Twitter meta、`templates/schema_json.html`（JSON-LD）、hreflang
 - `robots.txt` 与 `sitemap.xml` 生成（`hugo.IsProduction` 判断，生产环境不 Disallow）
+- **数学公式**：主题本身不带 KaTeX/MathJax，由本项目在 `extend_head.html` 里按需从 CDN 加载（见 4.2 ⑦）
 
 ### 4.2 自定义功能
 
@@ -106,11 +111,19 @@ my-blog/
 
 **⑤ 列表卡片化** — `01-cards.css`：文章列表项圆角+阴影+悬浮上浮，含暗色模式适配
 
-**⑥ 课程结构（周/章 → 双面板 + 下载）** — `layouts/courses/course.html` + `course-index.html` + `course-panels.html`
-- 课程主页（`content/courses/<课程>/_index.md`，`layout: "course"`）由 `layouts/courses/course.html` 渲染：面包屑 + 标题 + `unit` 说明 + **自动章节目录**（`course-index.html`：按 `weight` 排序，显示「第 N 章」、📖/📝 材料可用标记）+ 大纲正文
-- 章节目录页（`content/courses/<课程>/<chapter-0N>/index.md`）走主题 `single.html`，由 `extend_post_content.html` 注入 `course-panels.html`：两个 `<details open>` 面板「📖 学习笔记」「📝 作业」，分别渲染 `notes.md` / `homework.md` 的 `.Content`（页面资源的 markdown 内容），并各自列出 `notes-*` / `hw-*` 附件（文件名 + 大小 + 下载链接）
-- 附件是章节目录内的 bundle 资源，Hugo 随页面发布，`.RelPermalink` 即下载地址；`.md` 正文作为页面资源**不会**被发布成页面
-- 文案全部走 `i18n/zh.toml` 的 `course*` keys；样式在 `04-course.css`
+**⑥ 课程结构（课程 → 周/章 → 笔记 / 作业）** — `layouts/courses/course.html`、`chapter.html` + `course-index.html`、`course-downloads.html`
+- **课程主页**（`content/courses/<课程>/_index.md`，`layout: "course"`）由 `course.html` 渲染：面包屑 + 标题 + `unit` 说明（「本课程按章组织」）+ **自动章节目录**（`course-index.html` 按 `weight` 排序，显示「第 N 章」与各章可进入内容的徽标）+ 大纲正文
+- **章节入口页**（`<chapter-0N>/_index.md`，`layout: "chapter"`）由 `chapter.html` 渲染：把本章子页面列成入口卡片（📖 学习笔记 / 📝 作业，图标取子页面 front matter 的 `icon`）并显示附件数量。**笔记与作业不堆在同一页**，必须从这里分开进入
+- **材料页**（`<chapter-0N>/notes/index.md`、`homework/index.md`）走主题 `single.html`：正文即内容（可写 KaTeX 公式），`extend_post_content.html` 注入 `course-downloads.html` 列出该页的附件
+- 附件 = 与 `index.md` 同目录的任意非图片资源（PDF/zip…），Hugo 随页面发布，`.RelPermalink` 即下载地址，**无需文件名前缀**
+- 文案走 `i18n/zh.toml` 的 `course*` keys；样式在 `04-course.css`
+
+**⑦ 数学公式（KaTeX，自托管）** — `static/katex/` + `layouts/_partials/extend_head.html` + `assets/js/katex-render.js`
+- 主题不带 KaTeX。资源**自托管**在 `static/katex/`：`katex.min.css`、`katex.min.js`、`auto-render.min.js`、`fonts/*.woff2`（20 个，约 300KB）。**不依赖任何外部 CDN**
+- 站点 `params.math = true` **或**页面 front matter `math: true` 时，`extend_head.html` 用 `relURL` 引入上述三个文件（自动带 `/my-blog/` 子路径），再加载 `katex-render.js`
+- `katex-render.js` 调用 `renderMathInElement` 渲染 `$...$`、`$$...$$`、`\(...\)`、`\[...\]`；`ignoredTags` 排除 `pre`/`code`，代码块里的 `$` 不会被误渲染
+- `katex.min.css` 用**相对路径** `fonts/...` 引用字体，因此它必须与 `fonts/` 同级；只装了 `woff2`（现代浏览器均支持，CSS 中排第一位，`woff`/`ttf` 回退不会被请求）
+- 课程材料页由课程主页 `_index.md` 的 `cascade: {math: true}` 统一继承；课程主页与章节入口页显式 `math: false` 覆盖，避免白加载约 300KB
 
 ## 5. 约定（添加新功能必读）
 
@@ -127,18 +140,19 @@ my-blog/
 5. **复用主题 CSS 变量**（`--theme`/`--border`/`--secondary` 等），并始终为 `.dark` 写暗色适配——站点 `defaultTheme='auto'`
 6. **配置一律进 `hugo.toml`**，模板里通过 `site.Params.xxx` 读取，不要在模板中硬编码
 7. 文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录；新文章从 `archetypes/default.md` 的结构复制 front matter。**课程结构与文章不同**，务必按下面建：
-   - 一门课程 = `content/courses/<课程>/_index.md`（**branch bundle**），front matter 必须有 `layout: "course"` 与 `unit: "章"`（或 `"周"`）
-   - 每个章/周 = `content/courses/<课程>/<chapter-0N>/`（**leaf bundle**），其中：
-     - `index.md` — 章节页 front matter（`title` / `weight` / `description`），正文可选（写章节导语）
-     - `notes.md` — 📖「学习笔记」面板正文；`homework.md` — 📝「作业」面板正文
-     - `notes-*` 与 `hw-*` 前缀的附件 → 分别归入两个面板的下载区（如 `notes-01-slides.pdf`、`hw-01-solution.pdf`）
+   - 一门课程 = `content/courses/<课程>/_index.md`（**branch bundle**），front matter 必须有 `layout: "course"` 与 `unit: "章"`（或 `"周"`），并带 `cascade`（`comments: false` + `math: true`）；它自身另写 `math: false`，避免首页白加载 KaTeX
+   - 每个章/周 = `content/courses/<课程>/<chapter-0N>/_index.md`（**branch bundle / section**），front matter 需 `layout: "chapter"`、`weight`、`title`、`description`，并写 `math: false`（入口页无公式）
+   - 章下的两块内容各是一个 **leaf bundle**：
+     - `<chapter-0N>/notes/index.md` — 📖 学习笔记（正文 = 课堂内容）
+     - `<chapter-0N>/homework/index.md` — 📝 作业（正文 = 作业解法）
+     - 两者 front matter 用 `title` / `weight` / `icon`（如 `📖`、`📝`）/ `description`
+     - 附件直接与各自 `index.md` 同目录（除图片外的任意文件），会出现在该页「📎 附件下载」区；**不需要文件名前缀**
    - 分区单位由课程主页的 `unit` 决定；章节只写 `weight`，显示名自动拼成「第 N 章」
-   - 附件与正文同级放在章节目录内即是下载文件（Hugo 会随页面发布；`.md` 正文本身不会被发布）
-   - 章节页的 `ShowToc` / `comments` 已由课程主页 `_index.md` 的 `cascade` 关闭，不要在章节页重复设置
+   - 课程主页与章节入口页由 `layouts/courses/*.html` 依 `layout` 显式命中，其他 section 不受影响
 8. URL 变更需谨慎：permalinks 和 `mapping='title'` 的 giscus 都对路径/标题敏感，改名会丢评论关联
 9. `themes/PaperMod/` 不直接改；如需扩展主题行为，优先用 hook，其次在 `hugo.toml` 找开关
 10. 涉及 `baseURL` 的资源引用用 Hugo 的 `absURL`/relref 或相对路径，勿硬编码域名（站点在 `/my-blog/` 子路径下）
-11. **课程主页用了自定义 section 模板** `layouts/courses/course.html`（只有 front matter `layout: "course"` 的页面命中）。这是对第 1 条「不整份复制主题模板」的**有意例外**：列表页没有任何 hook，而课程主页需要自动章节目录。该模板很小，只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`），不影响 `/courses/` 列表页与文章页。改课程主页外观请优先改 `04-course.css`，不要改动模板结构
+11. **课程主页与章节入口页各用一个自定义 section 模板**：`layouts/courses/course.html`（`layout: "course"`）与 `layouts/courses/chapter.html`（`layout: "chapter"`）。这是对第 1 条「不整份复制主题模板」的**有意例外**：列表页没有任何 hook，而这两页分别需要自动章节目录与入口卡片。两个模板都很小、只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`），且只有显式写了 `layout` 的页面才命中，不影响 `/courses/` 列表页与文章页。改外观请优先改 `04-course.css`
 
 ## 6. 本地开发与部署
 
@@ -155,8 +169,11 @@ hugo --minify --gc    # 生产构建，输出到 public/
 - 首页是 Profile Mode，改首页布局要去 `[params.profileMode]`，不是普通 list 模板；按钮已移除，入口统一走顶部导航菜单
 - 搜索依赖首页 JSON 输出（`[outputs] home` 的 `'JSON'`），删掉即搜索失效
 - `enableGitInfo` 依赖完整 git 历史（CI 的 `fetch-depth: 0` 勿删）
-- **主题不支持数学公式**：vendored PaperMod 里没有 KaTeX/MathJax（`head.html` 无相关代码）。课程/文章里的公式请用行内代码、代码块或 Unicode 符号书写；直接写 `$...$` / `$$...$$` 会原样显示成源码。若要真正的 LaTeX 渲染，需在 `extend_head.html` 自行注入 KaTeX（会引入外部 CDN 依赖），属于未决事项
-- 课程附件的归属靠**文件名前缀**（`notes-*` / `hw-*`），改前缀会让附件从面板下载区消失；面板正文固定为 `notes.md` / `homework.md`
-- 课程章节目录里的 `.md`（`notes.md`/`homework.md`）是**页面资源**，不会被渲染成独立页面、也不会发布为 `.md` 文件——这是有意设计，别当 bug 排查
-- 课程章节页的 URL 由目录名决定（`/courses/<课程>/<chapter-0N>/`），改名即改 URL；课程主页 URL（`/courses/<课程>/`）在 `index.md`→`_index.md` 迁移后保持不变
+- 课程里的公式要真正渲染，**该页必须 `math: true`**（材料页由课程主页 `cascade` 自动继承；新建材料页时确认一下）。`math` 为假时 `$...$` 会原样显示成源码
+- KaTeX 已**自托管**（`static/katex/`），不依赖 CDN。升级时用 npm 包 `dist/` 下的 `katex.min.css`、`katex.min.js`、`contrib/auto-render.min.js` 与 `dist/fonts/*.woff2` 覆盖同名文件，并更新 `extend_head.html` 注释里的版本号。这些静态文件**没有内容指纹**，升级后可能需要强刷清缓存
+- 不要把 `katex.min.css` 与 `fonts/` 分到不同目录：CSS 用相对路径找字体，挪动会让公式变成方框。字体已在 `.gitattributes` 里标为 binary，避免换行符转换损坏
+- `katex-render.js` 的 `ignoredTags` 含 `pre`/`code`，代码块里的 `$` 不会被渲染；但正文里裸写的 `$`（例如价格）可能被当成公式起始符，必要时用 `\$` 转义
+- 课程主页与章节入口页要显式 `math: false` 覆盖 `cascade`，否则这些没有公式的页面也会白白加载约 300KB 的 KaTeX
+- 课程材料页的附件**不用文件名前缀**：内容页 bundle 里除图片外的资源都会列进下载区（图片会按图片过滤掉，不会出现在下载列表）
+- 课程各页 URL 由目录名决定（`/courses/<课程>/<chapter-0N>/notes/` 等），改名即改 URL；课程主页 URL（`/courses/<课程>/`）保持不变
 - 旧 git 历史中部分中文 commit message 是 GBK 编码（显示乱码），仅影响历史可读性；新提交请保持 UTF-8

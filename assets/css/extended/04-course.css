@@ -1,7 +1,7 @@
 /* ============================================
-   课程结构：章节目录 / 章节页双面板 / 附件下载
-   模板见 layouts/courses/course.html、
-        layouts/_partials/course-index.html、course-panels.html
+   课程结构：章节目录 / 章节入口 / 附件下载
+   模板见 layouts/courses/course.html、chapter.html
+        layouts/_partials/course-index.html、course-downloads.html
    ============================================ */
 
 /* ---------- 课程主页 ---------- */
@@ -84,81 +84,99 @@
   border-radius: 999px;
 }
 
-/* ---------- 章节页：双面板 ---------- */
-.course-panels {
+/* ---------- 章节入口页（学习笔记 / 作业） ---------- */
+.course-entries {
+  margin: 1.5rem 0 2rem;
+}
+
+.course-entries-heading {
+  font-size: 1.15rem;
+  margin-bottom: 0.85rem;
+}
+
+.course-entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  margin: 1.5rem 0;
+  gap: 12px;
 }
 
-.course-panel {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--entry);
-  overflow: hidden;
-}
-
-.course-panel-title {
+.course-entry-link {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0.85rem 1.1rem;
-  font-weight: 600;
-  font-size: 1.05rem;
-  background: var(--code-bg);
-  cursor: pointer;
-  user-select: none;
+  gap: 14px;
+  padding: 16px 18px;
+  color: var(--content);
+  text-decoration: none;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, transform 0.2s;
 }
 
-.course-panel-title::after {
-  content: "▾";
+.course-entry-link:hover {
+  border-color: var(--secondary);
+  transform: translateY(-2px);
+}
+
+.course-entry-icon {
   flex: none;
-  color: var(--secondary);
-  transition: transform 0.2s;
+  font-size: 1.6rem;
+  line-height: 1;
 }
 
-.course-panel:not([open]) .course-panel-title::after {
-  transform: rotate(-90deg);
+.course-entry-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.course-panel-body {
-  padding: 1.1rem;
+.course-entry-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary);
 }
 
-.course-panel-content > :first-child {
-  margin-top: 0;
-}
-
-.course-panel-content > :last-child {
-  margin-bottom: 0;
-}
-
-.course-panel-empty,
-.course-downloads-empty {
-  margin: 0;
+.course-entry-desc {
   font-size: 0.9rem;
   color: var(--secondary);
 }
 
-.course-panel-empty + .course-downloads-empty,
-.course-panel-empty + .course-downloads {
-  margin-top: 1rem;
+.course-entry-meta {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--secondary);
+}
+
+.course-entry-arrow {
+  flex: none;
+  font-size: 1.1rem;
+  color: var(--secondary);
+  transition: transform 0.2s;
+}
+
+.course-entry-link:hover .course-entry-arrow {
+  transform: translateX(3px);
 }
 
 /* ---------- 附件下载 ---------- */
 .course-downloads {
-  margin-top: 1.1rem;
-  padding-top: 0.9rem;
-  border-top: 1px dashed var(--border);
+  margin: 2rem 0;
+  padding: 1rem 1.1rem;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .course-downloads-heading {
-  margin-bottom: 0.6rem;
-  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--secondary);
+  color: var(--primary);
 }
 
 .course-file-list {

@@ -4,3 +4,18 @@
 
 {{- $giscusSync := resources.Get "js/giscus-theme-sync.js" | minify | fingerprint }}
 <script defer src="{{ $giscusSync.RelPermalink }}" integrity="{{ $giscusSync.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* 数学公式（KaTeX）：站点 params.math 或页面 front matter math: true 时按需加载。
+       资源自托管在 static/katex/（katex.min.css 用相对路径 fonts/ 引用同目录字体），
+       因此静态目录结构不能改：katex.min.css 必须与 fonts/ 同级。
+
+       升级 KaTeX：下载对应版本的 npm 包，用 dist/katex.min.css、dist/katex.min.js、
+       dist/contrib/auto-render.min.js 与 dist/fonts/*.woff2 覆盖 static/katex/ 下的同名文件。
+       文件没有内容指纹，升级后可能需要强刷（Ctrl+F5）清缓存。当前版本：0.18.7。 */ -}}
+{{- if or site.Params.math (.Params.math) }}
+<link rel="stylesheet" href="{{ "katex/katex.min.css" | relURL }}">
+<script defer src="{{ "katex/katex.min.js" | relURL }}"></script>
+<script defer src="{{ "katex/auto-render.min.js" | relURL }}"></script>
+{{- $katexRender := resources.Get "js/katex-render.js" | minify | fingerprint }}
+<script defer src="{{ $katexRender.RelPermalink }}" integrity="{{ $katexRender.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}

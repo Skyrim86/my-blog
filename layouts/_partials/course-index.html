@@ -16,14 +16,13 @@
       {{- with $chapter.Description }}
       <p class="course-index-desc">{{ . }}</p>
       {{- end }}
+      {{- with $chapter.RegularPages }}
       <div class="course-index-badges">
-        {{- with $chapter.Resources.Get "notes.md" }}
-        <span class="course-badge">{{ i18n "courseNotesBadge" }}</span>
-        {{- end }}
-        {{- with $chapter.Resources.Get "homework.md" }}
-        <span class="course-badge">{{ i18n "courseHomeworkBadge" }}</span>
+        {{- range . }}
+        <span class="course-badge">{{ .Title }}</span>
         {{- end }}
       </div>
+      {{- end }}
     </li>
     {{- end }}
   </ol>

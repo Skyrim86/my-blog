@@ -4,7 +4,7 @@
 [seriesTitle]
 other = "📚 系列文章：{{ .name }}"
 
-# ---------- 课程结构（见 layouts/courses/course.html） ----------
+# ---------- 课程结构（见 layouts/courses/） ----------
 # 课程主页的章节目录标题
 [courseIndex]
 other = "课程目录"
@@ -17,19 +17,13 @@ other = "第 {{ .num }} {{ .unit }}"
 [courseOrganizedBy]
 other = "本课程按{{ .unit }}组织"
 
-# 章节页两个面板的标题
-[courseNotes]
-other = "📖 学习笔记"
+# 章节入口页（选择进入学习笔记 / 作业）的标题
+[courseMaterials]
+other = "本章内容"
 
-[courseHomework]
-other = "📝 作业"
-
-# 章节目录上的材料可用标记
-[courseNotesBadge]
-other = "笔记"
-
-[courseHomeworkBadge]
-other = "作业"
+# 入口卡片上的附件数量
+[courseAttachmentCount]
+other = "{{ .count }} 个附件"
 
 # 附件下载区
 [courseDownloads]
@@ -37,10 +31,3 @@ other = "📎 附件下载"
 
 [courseDownloadAction]
 other = "下载"
-
-[courseNoAttachments]
-other = "暂无附件"
-
-# 面板正文缺失时的占位文案
-[courseEmpty]
-other = "内容整理中"

@@ -11,3 +11,8 @@
 *.jpeg  binary
 *.gif   binary
 *.webp  binary
+# 自托管字体（static/katex/fonts，KaTeX 公式用）同样不能做换行符转换
+*.woff2 binary
+*.woff  binary
+*.ttf   binary
+*.eot   binary

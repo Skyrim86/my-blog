@@ -1,0 +1,20 @@
+{{- /* 课程材料页（学习笔记 / 作业）：把本页 bundle 内的非图片资源列为下载附件。
+     附件与 index.md 同目录即可，无需前缀；正文由 index.md 自身内容渲染。 */ -}}
+{{- $files := where .Resources "MediaType.MainType" "!=" "image" }}
+{{- with $files }}
+<div class="course-downloads">
+  <h2 class="course-downloads-heading">{{ i18n "courseDownloads" }}</h2>
+  <ul class="course-file-list">
+    {{- range . }}
+    <li class="course-file">
+      <a class="course-file-link" href="{{ .RelPermalink }}" download>
+        <span class="course-file-icon" aria-hidden="true">📄</span>
+        <span class="course-file-name">{{ .Name }}</span>
+        <span class="course-file-type">{{ replace (path.Ext .Name) "." "" | upper }}</span>
+        <span class="course-file-action">{{ i18n "courseDownloadAction" }}</span>
+      </a>
+    </li>
+    {{- end }}
+  </ul>
+</div>
+{{- end }}
