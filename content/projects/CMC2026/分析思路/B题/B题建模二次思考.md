@@ -1,5 +1,5 @@
 ---
-title: "B 题 建模全程思路"
+title: "B 题 建模二次思考"
 date: 2026-09-10
 draft: false
 weight: 3
