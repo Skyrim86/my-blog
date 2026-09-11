@@ -1,7 +1,7 @@
 # Skyrim 的博客 — 项目架构文档（供 AI 助手阅读）
 
 > 本文档面向 AI 编码助手：当你被要求为本博客添加新功能时，先读完本文，按文中"约定"一节动手，不要重新发明已有机制。
-> 最后更新：2026-09-10
+> 最后更新：2026-09-11
 
 ## 1. 项目概览
 
@@ -66,6 +66,8 @@ my-blog/
 │   ├── BingSiteAuth.xml       # Bing 站长验证
 │   └── googledfe2280ece06bc5c.html  # Google Search Console 验证
 ├── .github/workflows/deploy.yml  # GitHub Actions 部署
+├── scripts/push-blog.sh       # 一键构建 + 提交 + 推送（见第 6 节）
+├── .agents/commands/push-blog.md # /push-blog 命令（放 .agents/ 才入库，.zcode/ 被 gitignore）
 └── themes/PaperMod/           # vendored 主题，不要直接修改
 ```
 
@@ -131,6 +133,7 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 - 主题不带 KaTeX。资源**自托管**在 `static/katex/`：`katex.min.css`、`katex.min.js`、`auto-render.min.js`、`fonts/*.woff2`（20 个，约 300KB）。**不依赖任何外部 CDN**
 - **站点目前没有 `params.math`**，所以只有页面 front matter 写 `math: true` 才加载；若将来想全站开启，在 `hugo.toml` 的 `[params]` 加 `math = true` 即可（`extend_head.html` 的 `or site.Params.math (.Params.math)` 已经支持）。加载时用 `relURL` 引入上述三个文件（自动带 `/my-blog/` 子路径），再加载 `katex-render.js`
 - `katex-render.js` 调用 `renderMathInElement` 渲染 `$...$`、`$$...$$`、`\(...\)`、`\[...\]`；`ignoredTags` 排除 `pre`/`code`，代码块里的 `$` 不会被误渲染
+- **公式源文必须先被 markdown「放过」**：`hugo.toml` 已开启 `[markup.goldmark.extensions.passthrough]`（`block` = `$$`/`\[ \]`，`inline` = `$`/`\( \)`，**单 `$` 必须显式写，passthrough 默认不含它**），goldmark 在解析阶段整体跳过公式，源文原样交给浏览器端的 KaTeX。这是必需的：否则 `R^*` 的 `*` 会被当作强调符与同行的 `**` 配对、注入 `<em>` 把文本节点切开，而 auto-render **只在单个文本节点内配对定界符**，`$...$` 便配不上而原样显示；`\{`、`\}`、`\%`、`\!`、`\,` 这类由标点构成的 LaTeX 命令也会被 CommonMark 的转义规则吃掉反斜杠。**改定界符时 `hugo.toml` 与 `katex-render.js` 两处必须同步**
 - `katex.min.css` 用**相对路径** `fonts/...` 引用字体，因此它必须与 `fonts/` 同级；只装了 `woff2`（现代浏览器均支持，CSS 中排第一位，`woff`/`ttf` 回退不会被请求）
 - 课程材料页由课程主页 `_index.md` 的 `cascade: {math: true}` 统一继承；课程主页与章节入口页显式 `math: false` 覆盖，避免白加载约 300KB
 
@@ -191,6 +194,16 @@ hugo --minify --gc    # 生产构建，输出到 public/
 
 部署全自动：push 到 `main` → GitHub Actions（`deploy.yml`）→ checkout(fetch-depth:0，GitInfo 需要) → Setup Hugo 0.165.0 extended → `hugo --minify --gc` → 上传 artifact → `actions/deploy-pages@v4`。无手动步骤。
 
+### 推送（固定入口，勿为此重新探查仓库）
+
+内容改完后推送，直接跑脚本，不要在对话里重新摸仓库结构：
+
+```bash
+scripts/push-blog.sh "feat: 说明"     # 或在对话里用 /push-blog
+```
+
+脚本自己完成：分支校验（必须是 `main`，否则退出）→ `hugo --minify --gc` 构建校验（**失败即中止，不推**）→ `git add -A`（含删除）→ `git commit` → `git push origin main`，最后若 `gh` 已安装并登录，附上最近一次 Actions 结果。工作区无改动但领先 origin 时只推送；两者都没有则打印提示并正常退出。不传说明时用 `chore: 更新博客内容`。
+
 ## 7. 已知事项 / 陷阱
 
 - Giscus 用 `mapping='title'`：**改文章标题 = 丢评论**；换回 pathname 前需权衡
@@ -198,6 +211,7 @@ hugo --minify --gc    # 生产构建，输出到 public/
 - 搜索依赖首页 JSON 输出（`[outputs] home` 的 `'JSON'`），删掉即搜索失效
 - `enableGitInfo` 依赖完整 git 历史（CI 的 `fetch-depth: 0` 勿删）
 - 课程里的公式要真正渲染，**该页必须 `math: true`**（材料页由课程主页 `cascade` 自动继承；新建材料页时确认一下）。`math` 为假时 `$...$` 会原样显示成源码
+- 公式里的 `*`、`\{`、`\%`、`\!`、`\,` **靠 goldmark passthrough 保护**（见 4.2⑥），所以正文里正常写 `R^*`、`\Big\{`、`\%` 即可，**不要**改成 markdown 转义写法。反过来说：一旦有人关掉 passthrough，`R^*` 会立刻退化成原样输出的 `$R^*$` 并可能把相邻文字斜体化
 - KaTeX 已**自托管**（`static/katex/`），不依赖 CDN。升级时用 npm 包 `dist/` 下的 `katex.min.css`、`katex.min.js`、`contrib/auto-render.min.js` 与 `dist/fonts/*.woff2` 覆盖同名文件，并更新 `extend_head.html` 注释里的版本号。这些静态文件**没有内容指纹**，升级后可能需要强刷清缓存
 - 不要把 `katex.min.css` 与 `fonts/` 分到不同目录：CSS 用相对路径找字体，挪动会让公式变成方框。字体已在 `.gitattributes` 里标为 binary，避免换行符转换损坏
 - `katex-render.js` 的 `ignoredTags` 含 `pre`/`code`，代码块里的 `$` 不会被渲染；但正文里裸写的 `$`（例如价格）可能被当成公式起始符，必要时用 `\$` 转义
