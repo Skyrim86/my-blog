@@ -199,7 +199,7 @@ hugo --minify --gc    # 生产构建，输出到 public/
 内容改完后推送，直接跑脚本，不要在对话里重新摸仓库结构：
 
 ```bash
-scripts/push-blog.sh "feat: 说明"     # 或在对话里用 /push-blog
+bash scripts/push-blog.sh "feat: 说明"     # 或在对话里用 /push-blog
 ```
 
 脚本自己完成：分支校验（必须是 `main`，否则退出）→ `hugo --minify --gc` 构建校验（**失败即中止，不推**）→ `git add -A`（含删除）→ `git commit` → `git push origin main`，最后若 `gh` 已安装并登录，附上最近一次 Actions 结果。工作区无改动但领先 origin 时只推送；两者都没有则打印提示并正常退出。不传说明时用 `chore: 更新博客内容`。
