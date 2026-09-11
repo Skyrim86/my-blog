@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>博客管理页</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">博客管理</div>
+  <div id="chips" class="chips"></div>
+  <nav class="tabs" id="tabs">
+    <button type="button" data-tab="create" class="active">新建</button>
+    <button type="button" data-tab="edit">编辑</button>
+    <button type="button" data-tab="publish">发布</button>
+  </nav>
+  <button type="button" id="preview-toggle" class="ghost">隐藏预览</button>
+</header>
+
+<main id="main">
+  <div class="workspace">
+
+    <!-- ============ 新建 ============ -->
+    <section class="panel active" id="panel-create">
+      <h2>新建内容</h2>
+      <p class="muted">
+        所有文件都由 <code>scripts/new-content.sh</code> 生成，front matter 来自
+        <code>archetypes/</code>，标签来自 <code>data/taxonomy.yaml</code>，不会出现手抄漂移。
+      </p>
+
+      <div class="kind-picker" id="kind-picker"></div>
+
+      <form id="create-form" autocomplete="off">
+        <div id="create-fields" class="fields"></div>
+
+        <div class="field" id="create-tags-wrap">
+          <label>标签<span class="hint">勾选即用；词表里没有的词请在下面新增</span></label>
+          <input type="search" id="tag-search" placeholder="筛选标签…">
+          <div class="chips selectable" id="tag-chips"></div>
+          <div class="inline">
+            <input type="text" id="new-tag-input" placeholder="新标签，如：最优化">
+            <button type="button" class="ghost" id="new-tag-btn">加入词表</button>
+          </div>
+          <p class="hint">
+            勾选后仍可留空标签；新词会先写进词表再建内容，写入前会校验格式。
+          </p>
+        </div>
+
+        <div class="field" id="create-cats-wrap">
+          <label>分类<span class="hint">词表里只有 <span id="cat-hint"></span></span></label>
+          <div class="chips selectable" id="cat-chips"></div>
+        </div>
+
+        <div class="field" id="create-series-wrap">
+          <label for="create-series">系列<span class="hint">填了会自动生成同系列导航；多个系列用逗号分隔</span></label>
+          <input type="text" id="create-series">
+        </div>
+
+        <label class="check"><input type="checkbox" id="create-publish"> 直接发布（<code>draft: false</code>），不勾则先当草稿</label>
+
+        <div class="actions">
+          <button type="submit" class="primary">创建</button>
+          <span class="muted" id="create-pending"></span>
+        </div>
+      </form>
+
+      <div id="create-log" class="log" hidden></div>
+
+      <details class="vocab">
+        <summary>标签词表（data/taxonomy.yaml）</summary>
+        <div id="vocab-body" class="vocab-body"></div>
+      </details>
+    </section>
+
+    <!-- ============ 编辑 ============ -->
+    <section class="panel" id="panel-edit">
+      <h2>编辑内容</h2>
+      <div class="edit-layout">
+        <aside class="tree">
+          <input type="search" id="tree-search" placeholder="搜索标题或路径…">
+          <div id="tree-body" class="tree-body"><p class="muted">载入中…</p></div>
+        </aside>
+
+        <div class="editor" id="editor">
+          <p class="muted">从左侧选一个文件开始编辑。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 发布 ============ -->
+    <section class="panel" id="panel-publish">
+      <h2>发布</h2>
+      <p class="muted">
+        走 <code>scripts/push-blog.sh</code>：先校验分支必须是 main → <code>hugo --minify --gc</code>
+        构建校验 → 提醒仍是草稿的内容与词表外的标签 → <code>git add -A</code> / commit / push → 显示 CI 状态。
+        构建失败会中止，不提交也不推送。
+      </p>
+
+      <div class="field">
+        <label>本次改动<span class="hint">发布时会 <code>git add -A</code>，包含删除与新增文件</span></label>
+        <div id="changes" class="changes"></div>
+      </div>
+
+      <div class="field">
+        <label for="commit-msg">提交说明</label>
+        <input type="text" id="commit-msg" placeholder="feat: 新增一篇文章">
+      </div>
+
+      <div class="actions">
+        <button type="button" id="publish-btn" class="primary">发布到 origin/main</button>
+        <span class="muted" id="publish-hint"></span>
+      </div>
+
+      <div id="preview-diff-wrap" class="field" hidden>
+        <label>改动预览<span class="hint">点某个文件看它的 diff</span></label>
+        <pre id="diff-view" class="diff"></pre>
+      </div>
+
+      <div id="publish-log" class="log" hidden></div>
+    </section>
+
+  </div>
+
+  <!-- ============ 预览 ============ -->
+  <aside class="preview" id="preview-pane">
+    <div class="preview-head">
+      <span id="preview-status" class="muted">预览</span>
+      <div class="preview-actions">
+        <button type="button" class="ghost" id="preview-reload">刷新</button>
+        <button type="button" class="ghost" id="preview-restart">重启</button>
+        <a id="preview-open" href="#" target="_blank" rel="noopener">新标签打开</a>
+      </div>
+    </div>
+    <iframe id="preview-frame" title="预览"></iframe>
+  </aside>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>

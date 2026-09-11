@@ -22,3 +22,8 @@
 *.sh    text eol=lf
 *.yaml  text eol=lf
 *.yml   text eol=lf
+
+# Windows 双击启动的批处理反过来必须保持 CRLF：cmd 解析只有 LF 的 .bat 时，
+# label/goto 之类按行定位的语法会出问题。同理它必须是无 BOM 的 UTF-8，
+# 有 BOM 的话第一行 @echo off 就会被当成命令报错（见 AGENTS.md 4.2⑬）。
+*.bat   text eol=crlf

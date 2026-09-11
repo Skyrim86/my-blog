@@ -1,7 +1,7 @@
 # Skyrim 的博客 — 项目架构文档（供 AI 助手阅读）
 
 > 本文档面向 AI 编码助手：当你被要求为本博客添加新功能时，先读完本文，按文中"约定"一节动手，不要重新发明已有机制。
-> 最后更新：2026-09-11
+> 最后更新：2026-09-12
 
 ## 1. 项目概览
 
@@ -84,12 +84,18 @@ my-blog/
 │   ├── new-content.sh         # 新内容脚手架：文章/课程/章/项目/文档（见 4.2⑫）
 │   ├── check-tags.sh          # 标签词表校验（push-blog 会调用，只警告）
 │   ├── preview.sh             # 本地预览（hugo server -D）
-│   └── push-blog.sh           # 一键构建 + 提交 + 推送（见第 6 节）
+│   ├── push-blog.sh           # 一键构建 + 提交 + 推送（见第 6 节）
+│   ├── admin.sh               # 本地管理页启动器（见 4.2⑬）
+│   └── admin/                 # 本地管理页：零依赖 Node 服务 + 原生前端（不参与 Hugo 构建）
+│       ├── server.mjs         #   HTTP 服务：静态页 + JSON API（新建/编辑/词表/git/发布）
+│       ├── lib/               #   业务模块：content / frontmatter / taxonomy / git / hugo / exec
+│       └── ui/                #   index.html + app.js + style.css
 ├── .agents/commands/          # 斜杠命令（放 .agents/ 才入库，.zcode/ 被 gitignore）
 │   ├── push-blog.md           #   /push-blog
 │   ├── new-post.md            #   /new-post
 │   ├── new-course.md          #   /new-course
 │   ├── new-project.md         #   /new-project
+│   ├── admin.md               #   /admin
 │   └── preview.md             #   /preview
 └── themes/PaperMod/           # vendored 主题，不要直接修改
 ```
@@ -102,7 +108,7 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 
 | 配置段 | 说明 |
 |---|---|
-| 全局 | `baseURL` 带 `/my-blog/` 子路径；`hasCJKLanguage = true`（中日韩分词，影响摘要与字数统计）；`enableEmoji`、`enableRobotsTXT`、`enableGitInfo`（文章显示 Git 最后修改时间）均开启 |
+| 全局 | **`timeZone = 'Asia/Shanghai'` 必须保留**（否则当天发布的文章当天不会上线，见 4.2⑬与第 7 节）；`baseURL` 带 `/my-blog/` 子路径；`hasCJKLanguage = true`（中日韩分词，影响摘要与字数统计）；`enableEmoji`、`enableRobotsTXT`、`enableGitInfo`（文章显示 Git 最后修改时间）均开启 |
 | `[frontmatter]` | `lastmod` 优先取 Git 提交时间 |
 | `[taxonomies]` | 三套分类法：`tags`、`categories`、**`series`（自定义，支撑系列导航功能）** |
 | `[outputs]` | 首页输出 `HTML + RSS + JSON`，**JSON 索引供 Fuse.js 搜索使用**，勿删（索引内容与字段由 `layouts/index.json` 决定，见 4.2⑪） |
@@ -222,6 +228,17 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 - 建文件前先 `[ -f ]` 判存在（`hugo new content` 冲突时退出码也是 1，无法区分原因）；**标签校验在任何建文件动作之前完成**，避免校验失败留下半成品文件
 - 默认 `draft: true`（与 archetype 一致），`--publish` 才写 `false`
 
+**⑬ 本地管理页（可交互的写作/发布界面）** — `scripts/admin.sh` + `scripts/admin/`
+- 入口：`bash scripts/admin.sh`（或对话里 `/admin`）。它在本机起一个零依赖的 Node 服务（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，四块功能：**新建**（六种内容类型的表单 + 词表 chips 选标签）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条）、**发布**（git 改动清单 + diff + 提交说明 + 流式日志）、**同屏 iframe 预览**
+- **它是现有脚本的界面外壳，不是替代品**：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制
+- **架构红线做成了界面约束**：`content/courses/**/notes|homework`、章节入口页、子项目页、各类 section/列表页的 tags 字段在界面上**隐藏并禁用**（理由同 4.2⑨：section 写 tags 只会让计数虚高；材料页写了会整体丢掉 cascade 下发的标签）；分层项目的文档页写 tags 会给出「会丢掉项目级标签」的提示。服务端也会忽略不属于该类型 schema 的字段——实测在材料页硬塞 tags 不会写进文件
+- **新标签先入词表、再建内容**：界面上勾的新词会先经 `/api/taxonomy/add` 写进 `data/taxonomy.yaml`（写后立刻用 `new-content.sh tags` 复核，复核不过就回滚原文件），全部校验通过才建文件——沿用 new-content.sh「校验早于建文件」的原则
+- **URL 与预览**：预览由内置的 `hugo server -D -F --disableFastRender` 提供，iframe 指向 `http://127.0.0.1:<预览端口>/my-blog/<页面路径>/`，保存后 livereload 自动刷新。页面路径推导里有两条容易错的规则：① Hugo 默认 `pathToLower`，URL 里的 ASCII 全小写（`CMC2026` → `cmc2026`）；② **文章的 `:slug` 取标题而不是目录名**（所以 `content/posts/my-first-post/` 的 URL 是 `/2026/09/我的第一篇文章/`），界面上因此提供了 `slug` 字段用于固定 URL
+- **两个 hugo server 的坑，都在代码里处理掉了**：`--disableFastRender` 不能省（Fast Render 模式下新建的文件不会真正出现在站点里）；`-F` 不能省（否则看不到日期写在未来的排期稿）。另外 hugo server 不会把「保存后固定链接变了」的页面注册到新地址上（改 date/title/slug 触发），所以界面在这三种字段被改动且预览在跑时会自动重启预览
+- 安全边界（因为这个服务能执行 shell）：默认只绑 `127.0.0.1`；校验 `Host` 白名单（防 DNS rebinding，外来域名解析到 127.0.0.1 也会被拒）；所有写操作要求自定义头 `X-Admin-Request: 1`（防其他网页对本地端口发跨站 POST）；所有 `path` 参数限制在 `content/` 内、拒绝 `..`；`--host 0.0.0.0` 只在显式传参时生效并打印风险提示
+- **界面资源绝不能放进 `assets/js/` 或 `assets/css/extended/`**：那两个目录会被主题合并进公开站点资源，等于把管理界面发到线上。所以它们放在 `scripts/admin/ui/`，由 Node 服务直接提供
+- 已知限制：只在本机可用（不做在线后台）；`data/taxonomy.yaml` 的**追加**逻辑在 Node 侧是第二份实现（`new-content.sh` 没有「只加词条」的入口），因此额外带了写后复核与失败回滚；幂等性没做文件锁，不要同时开两个管理页改同一批文件
+
 ## 5. 约定（添加新功能必读）
 
 1. **永远不要整份复制主题模板来覆盖**（如 copy `single.html`）。PaperMod 提供的 hook（覆盖 `layouts/_partials/` 下同名文件即可生效）：
@@ -236,7 +253,7 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 4. **面向访客的 UI 文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}` 引用；不要在模板里硬编码中文文案。**JS 里的文案**让脚本读自己 `<script>` 标签的 `data-*` 属性（模板侧用 `i18n` 填值），`terms-filter.js` 就是这么做的
 5. **复用主题 CSS 变量**（`--theme`/`--border`/`--secondary` 等）。暗色适配请用 **`[data-theme="dark"]`**（主题的机制），写 `.dark` 是无效的——站点 `defaultTheme='auto'`
 6. **配置一律进 `hugo.toml`**，模板里通过 `site.Params.xxx` 读取，不要在模板中硬编码
-7. **新建内容一律走脚手架**：`bash scripts/new-content.sh <post|course|chapter|project|sub|doc>`，或在对话里用 `/new-post`、`/new-course`、`/new-project`。它会依 `archetypes/` 生成正确的 front matter、自动排章号与权重、并从词表里选标签。**不要用 Write 直接创建内容文件、也不要手抄 front matter**——`archetypes/` 是唯一事实源，手抄必然漂移（`archetypes/default.md` 的 `cover.relative` 就曾长期是错的）。字段与多文件结构见 4.2⑫。文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录
+7. **新建内容一律走脚手架**：`bash scripts/new-content.sh <post|course|chapter|project|sub|doc>`，或在对话里用 `/new-post`、`/new-course`、`/new-project`，或打开管理页 `bash scripts/admin.sh` 用表单建（它转交的也是这个脚本，见 4.2⑬）。它会依 `archetypes/` 生成正确的 front matter、自动排章号与权重、并从词表里选标签。**不要用 Write 直接创建内容文件、也不要手抄 front matter**——`archetypes/` 是唯一事实源，手抄必然漂移（`archetypes/default.md` 的 `cover.relative` 就曾长期是错的）。字段与多文件结构见 4.2⑫。文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录
    - **课程结构与文章不同**，务必按下面建：
    - 一门课程 = `content/courses/<课程>/_index.md`（**branch bundle**），front matter 必须有 `layout: "course"` 与 `unit: "章"`（或 `"周"`），并带 `cascade`：一条 `target: {kind: page}` 下发 `tags`/`categories`（见 4.2⑨），一条 `comments: false` + `math: true`；它自身另写 `math: false`（省下约 23KB 的 KaTeX 样式）。**课程标签只写在这个 `cascade` 里**——课程主页是 section，自己写 `tags` 只会让 `/tags/` 计数虚高而词条页里不出现
    - 每个章/周 = `content/courses/<课程>/<chapter-0N>/_index.md`（**branch bundle / section**），front matter 需 `layout: "chapter"`、`weight`、`title`、`description`，并写 `math: false`（入口页无公式；**若导语里确实写了公式就改成 `math: true`**）
@@ -256,14 +273,18 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 12. **课程主页与章节入口页各用一个自定义 section 模板**：`layouts/courses/course.html`（`layout: "course"`）与 `layouts/courses/chapter.html`（`layout: "chapter"`）。这是对第 1 条「不整份复制主题模板」的**有意例外**：列表页没有任何 hook，而这两页分别需要自动章节目录与入口卡片。两个模板都很小、只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`，页头共用 `course-header.html`），且只有显式写了 `layout` 的页面才命中，不影响 `/courses/` 列表页与文章页。改外观请优先改 `04-course.css`。**同类例外还有 `layouts/index.json`**（搜索索引：该模板无 hook 可挂，而正文截断无法从配置实现，见 4.2⑪）
 13. **能用主题内置的就不要自己写**（曾自建过返回顶部按钮，与主题 `#top-link` 重复，已删除）。判断某个功能主题是否已提供，先 grep `themes/PaperMod/layouts/` 与 `themes/PaperMod/assets/css/`
 14. **标签只从 `data/taxonomy.yaml` 词表里取**（见 4.2⑨）：用脚本或命令选词，不要手打；确实要新词就加 `--new-tag`（脚本会自动写进词表）。两条红线：**section 页不要写 `tags`**（只会让计数虚高、词条页里不出现）；**被 cascade 覆盖的子孙页不要写 `tags`**（cascade 只填空不合并，写了会整体丢掉继承来的标签）
+15. **管理页（`scripts/admin/`）同样受这些约定约束**（见 4.2⑬）：它的资源只能放 `scripts/admin/ui/`（`assets/**` 会被打包进公开站点）；它写盘一律转交 `new-content.sh`/`push-blog.sh`，不要在 Node 里另写一套 front matter 或发布逻辑；护栏（哪些页面禁止写 tags、裸 `$` 提示、排期提醒）要随约定一起改，别让界面和后端规则分叉
 
 ## 6. 本地开发与部署
 
 ```bash
-bash scripts/preview.sh   # 本地预览（含草稿），http://localhost:1313/my-blog/；也可用 /preview
+bash scripts/admin.sh     # 本地管理页（推荐日常用）：新建/编辑/看改动/一键发布 + 内嵌预览，见 4.2⑬
+bash scripts/preview.sh   # 纯本地预览（含草稿），http://localhost:1313/my-blog/；也可用 /preview
 hugo server -D            # 同上，手敲版
 hugo --minify --gc        # 生产构建，输出到 public/
 ```
+
+管理页会自己带起 `hugo server`，所以日常写作不必再另开预览；需要干净的预览环境时用 `scripts/preview.sh`。
 
 部署全自动：push 到 `main` → GitHub Actions（`deploy.yml`）→ checkout(fetch-depth:0，GitInfo 需要) → Setup Hugo 0.165.0 extended → `hugo --minify --gc` → 上传 artifact → `actions/deploy-pages@v4`。无手动步骤。
 
@@ -277,9 +298,14 @@ bash scripts/push-blog.sh "feat: 说明"     # 或在对话里用 /push-blog
 
 脚本自己完成：分支校验（必须是 `main`，否则退出）→ `hugo --minify --gc` 构建校验（**失败即中止，不推**）→ **两条只警告不阻断的提醒**（① 列出仍为 `draft: true` 的内容页——archetype 默认草稿而 CI 不构建草稿，草稿会被静默推上去却不上线；② 调用 `check-tags.sh` 报告词表外的标签）→ `git add -A`（含删除）→ `git commit` → `git push origin main`，最后若 `gh` 已安装并登录，附上最近一次 Actions 结果。工作区无改动但领先 origin 时只推送；两者都没有则打印提示并正常退出。不传说明时用 `chore: 更新博客内容`。
 
+管理页（`bash scripts/admin.sh`，见 4.2⑬）提供同一套流程的图形入口：它调用的是同一个 `push-blog.sh`，日志原样流式显示，构建失败同样中止且不推送。
+
 ## 7. 已知事项 / 陷阱
 
-- Giscus 用 `mapping='title'`：**改文章标题 = 丢评论**；换回 pathname 前需权衡
+- **`timeZone` 不设会让「当天发布的文章」当天不上线**（本仓库踩过）：`archetypes/` 写的是 `date: {{ now.Format "2006-01-02" }}`，只有日期没有时刻，Hugo 按 UTC 零点解析；在东八区它就成了「未来 8 小时」的内容，而 Hugo 默认 `buildFuture = false`，于是 CI 的 `hugo --minify --gc` 会**静默跳过**它，直到次日 UTC 跨过该日期才出现。修法是 `hugo.toml` 顶层的 `timeZone = 'Asia/Shanghai'`（已加，别删）。实测对照：不设时 `hugo --minify --gc` 不产出当天日期的文章，设了就产出。管理页对「date 排在未来」的已发布页面也会单独提醒（`/api/state` 的 `futureDated`）
+- **hugo server 不会把「保存后固定链接变了」的页面挂到新地址上**：改 `date` / `title` / `slug` 会让文章换 URL，dev server 仍按旧地址提供，表现为预览 404。管理页在这三个字段被改动且预览在跑时会自动重启预览（重启即可复现正常）。顺带记下：**文章的 `:slug` 取自标题**，不是目录名——`content/posts/my-first-post/` 的实际 URL 是 `/2026/09/我的第一篇文章/`（`hugo list drafts` 打印的 permalink 可直接核对）
+- 管理页的 `assets/` 禁令：界面用的 JS/CSS 只能放 `scripts/admin/ui/`，**放进 `assets/js/` 或 `assets/css/extended/` 会被主题合并进公开站点资源**，等于把管理界面发到线上（见 4.2⑬）
+- Giscus 用 `mapping='title'`：**改文章标题 = 丢评论**；换回 pathname 前需权衡。另外改标题还会改文章 URL（见上一条），外部链接会一起失效，管理页因此提供了 `slug` 字段用于把 URL 固定下来
 - 首页是 Profile Mode，改首页布局要去 `[params.profileMode]`，不是普通 list 模板；按钮已移除，入口统一走顶部导航菜单
 - 搜索依赖首页 JSON 输出（`[outputs] home` 的 `'JSON'`），删掉即搜索失效
 - `enableGitInfo` 依赖完整 git 历史（CI 的 `fetch-depth: 0` 勿删）

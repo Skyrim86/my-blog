@@ -1,3 +1,11 @@
+# 站点时区。必须设置，否则「今天发布的文章」当天不会上线：
+# archetypes/ 写的是 date: {{ now.Format "2006-01-02" }}（只有日期，没有时刻），
+# Hugo 把这种 date 按 UTC 零点解析；在东八区，它就成了「未来 8 小时」的页面，
+# 而 Hugo 默认不构建未来日期的内容（buildFuture = false）——
+# 于是当天新建并发布的文章会被 CI 静默跳过，直到次日 UTC 跨过该日期才出现。
+# 实测：不设此项时 `hugo --minify --gc` 不产出当天日期的文章；设了就会有。
+timeZone = 'Asia/Shanghai'
+
 baseURL = 'https://skyrim86.github.io/my-blog/'
 defaultContentLanguage = 'zh'
 title = 'Skyrim'
