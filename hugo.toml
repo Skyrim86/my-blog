@@ -190,6 +190,20 @@ pagerSize = 10
   weight = 80
 
 # ============================================
+# Markdown 解析
+# ============================================
+# 开启 goldmark passthrough：公式在 markdown 解析阶段被整体跳过，源文原样送到浏览器端的
+# KaTeX。否则 goldmark 会先改坏公式——正文里 R^* 的 * 会被当作强调符（与同行的 ** 配对）
+# 并注入 <em>，把文本节点切开，导致 $...$ 无法配对而原样显示；\{ \} \% \! \, 这类由标点
+# 构成的 LaTeX 命令也会被 CommonMark 的反斜杠转义规则吃掉反斜杠。
+# 定界符必须显式写全，passthrough 默认不含单 $；KaTeX 仍按页面 front matter 的 math: true 加载。
+[markup.goldmark.extensions.passthrough]
+  enable = true
+  [markup.goldmark.extensions.passthrough.delimiters]
+    block = [['\[', '\]'], ['$$', '$$']]
+    inline = [['\(', '\)'], ['$', '$']]
+
+# ============================================
 # 代码高亮
 # ============================================
 [markup.highlight]
