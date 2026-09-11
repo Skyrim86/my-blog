@@ -3,7 +3,12 @@
 {{- if eq .Type "courses" }}
 {{- partial "course-downloads.html" . }}
 {{- end }}
-{{- /* 项目详情页：正文之后追加技术栈与仓库链接 */ -}}
-{{- if eq .Type "projects" }}
+{{- /* 项目详情页：正文之后追加技术栈与仓库链接。
+       必须限定 .BundleType == "leaf"：只有平铺单页项目是 leaf bundle（content/projects/<项目>/index.md）。
+       分层项目下的文档页 .Type 同样是 "projects"，它们现在由项目主页的 cascade 拿到标签，
+       不加这个限定就会在每篇文档页上错误地渲染出「技术栈」面板（把主题标签当技术栈显示）。 */ -}}
+{{- if and (eq .Type "projects") (eq .BundleType "leaf") }}
 {{- partial "project-meta.html" . }}
 {{- end }}
+{{- /* 相关内容：按共享标签 / 系列把文章、课程、项目互相串联（见 related-content.html） */ -}}
+{{- partial "related-content.html" . }}

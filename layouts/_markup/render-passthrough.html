@@ -1,0 +1,19 @@
+{{- /* 公式在构建期用 KaTeX 渲染（Hugo 内置的 transform.ToMath，KaTeX 以 WASM 形式内嵌），
+      不再往浏览器送 katex.min.js / auto-render.min.js / katex-render.js。
+
+   为什么能这样做：hugo.toml 已开启 [markup.goldmark.extensions.passthrough]，goldmark 会把
+   $...$ / $$...$$ / \(...\) / \[...\] 整体跳过 markdown 解析，原样交给渲染钩子——正是这里。
+   （这也是必须开 passthrough 的原因：否则 R^* 的 * 会被当强调符、\{ \% 会被吃掉反斜杠。）
+
+   output 必须与改造前的客户端 KaTeX 保持一致：KaTeX 默认输出 "htmlAndMathml"，
+   即 HTML 排版 + 隐藏的 MathML（无障碍）。改成纯 "mathml" 会变成浏览器原生渲染，
+   外观与现在不同。客户端因此仍然需要 katex.min.css 与 fonts/，但不再需要任何 JS。
+
+   throwOnError = true（Hugo 默认）：公式有语法错误时**构建失败**并报出位置，
+   比"静默渲染成一团红字、推送后才发现"更好。若要放宽，把它改成 false 并配 errorColor。 */ -}}
+{{- $opts := dict
+    "displayMode" (eq .Type "block")
+    "output" "htmlAndMathml"
+    "throwOnError" true
+-}}
+{{- transform.ToMath .Inner $opts -}}

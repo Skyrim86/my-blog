@@ -41,6 +41,22 @@ if [ -n "$dirty" ]; then
   rm -f "$build_log"
   echo "  ✓ 构建通过"
 
+  # 草稿提醒：archetype 默认 draft: true，而 CI 不构建草稿，
+  # 草稿会被静默提交推送、然后悄悄不上线（最容易踩的坑）。这里只提醒，不阻断。
+  drafts="$(grep -rl --include='*.md' '^draft:[[:space:]]*true' content 2>/dev/null || true)"
+  if [ -n "$drafts" ]; then
+    echo "  ⚠ 以下内容仍是草稿（draft: true），本次推送后 CI 不会发布它们："
+    printf '%s\n' "$drafts" | tr '\\' '/' | sed 's/^/      /'
+  fi
+
+  # 标签词表校验：提醒拼写漂移（同名标签写错会分裂出两个词条页）。只提醒，不阻断。
+  if [ -f scripts/check-tags.sh ]; then
+    if ! tag_log="$(bash scripts/check-tags.sh 2>&1)"; then
+      echo "  ⚠ 标签词表校验未通过："
+      printf '%s\n' "$tag_log" | sed 's/^/      /'
+    fi
+  fi
+
   # 过滤 git 的 CRLF 提示，其余 stderr 保留
   git add -A 2> >(grep -v 'LF will be replaced by CRLF' >&2 || true)
   git commit -q -m "$msg"

@@ -2,6 +2,9 @@
    课程结构：章节目录 / 章节入口 / 附件下载
    模板见 layouts/courses/course.html、chapter.html
         layouts/_partials/course-index.html、course-downloads.html
+
+   注：模板里的 .course-home / .course-chapter 是 article 上的页面级钩子类，目前没有对应样式——
+   它们是有意保留的（用来区分课程主页与章节入口页），不是漏写的死代码。
    ============================================ */
 
 /* ---------- 课程主页 ---------- */

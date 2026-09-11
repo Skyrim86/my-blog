@@ -6,8 +6,9 @@
 #
 # 注意：技术栈就用 tags 分类法（不是另设的字段），所以标签既能点进 /tags/ 词条页，
 # 也会让 /tags/ 的对应词条页列出这个项目。
+# 日常新建请优先用 scripts/new-content.sh project（--layered 可建分层项目）。
 title: "{{ replace .Name "-" " " | title }}"
-date: {{ .Date }}
+date: {{ now.Format "2006-01-02" }}
 draft: true
 description: ""
 # 技术栈标签；填了才显示（每个都会链接到 /tags/ 对应词条页）

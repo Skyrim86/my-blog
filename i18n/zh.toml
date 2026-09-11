@@ -48,3 +48,21 @@ other = "在{{ .name }}中筛选…"
 
 [termsFilterEmpty]
 other = "没有匹配的词条"
+
+# ---------- 相关内容区块（见 layouts/_partials/related-content.html） ----------
+# 按共享标签 / 系列把文章、课程、项目互相串联
+[relatedTitle]
+other = "🔗 相关内容"
+
+# 列表项前的类型徽标
+[relatedTypePost]
+other = "文章"
+
+[relatedTypeCourse]
+other = "课程"
+
+[relatedTypeProject]
+other = "项目"
+
+[relatedTypePage]
+other = "页面"

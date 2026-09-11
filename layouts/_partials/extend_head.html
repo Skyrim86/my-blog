@@ -20,18 +20,24 @@
         data-empty="{{ i18n "termsFilterEmpty" }}"></script>
 {{- end }}
 
-{{- /* 数学公式（KaTeX）：页面 front matter 写 math: true 时按需加载（站点未设 params.math；
-       若将来想全站开启，在 hugo.toml 的 [params] 加 math = true 即可）。
-       资源自托管在 static/katex/（katex.min.css 用相对路径 fonts/ 引用同目录字体），
-       因此静态目录结构不能改：katex.min.css 必须与 fonts/ 同级。
+{{- /* 数学公式（KaTeX）：公式已在**构建期**由 layouts/_markup/render-passthrough.html 渲染成
+       KaTeX 的 HTML 标记，浏览器端因此不再需要 katex.min.js / auto-render.min.js / katex-render.js，
+       只需要 katex.min.css 与同目录的 fonts/（公式的排版规则与字形）。
+       资源仍自托管在 static/katex/，katex.min.css 用相对路径 fonts/ 引用字体，所以静态目录结构不能改。
 
-       升级 KaTeX：下载对应版本的 npm 包，用 dist/katex.min.css、dist/katex.min.js、
-       dist/contrib/auto-render.min.js 与 dist/fonts/*.woff2 覆盖 static/katex/ 下的同名文件。
-       文件没有内容指纹，升级后可能需要强刷（Ctrl+F5）清缓存。当前版本：0.18.7。 */ -}}
-{{- if or site.Params.math (.Params.math) }}
+       加载条件三项取或：
+         1. site.Params.math      —— 全站开启（hugo.toml 的 [params]，目前没有设）
+         2. .Params.math          —— 页面显式声明（课程材料页由课程主页 cascade 继承）
+         3. 页面里确实出现了公式 —— 兜底：构建期渲染是无条件的，若某页忘了写 math: true，
+            公式标记照样会生成，没有 CSS 就会排成一团，这里靠检测公式的 class 把样式补上。
+            必须匹配 "class=\"katex" 而不是裸词 katex：后者会被正文里提到「KaTeX」一词误命中
+            （关于页就中过招，白白多加载 25KB CSS）。
+
+       升级 KaTeX：用 npm 包的 dist/katex.min.css 与 dist/fonts/*.woff2 覆盖同名文件即可
+       （不再需要 dist/katex.min.js 与 contrib/auto-render.min.js）。这些静态文件没有内容指纹，
+       升级后访客可能需要强刷。当前版本：0.18.7 —— 注意它必须与 Hugo 内嵌的 KaTeX 兼容，
+       换 Hugo 大版本后建议抽查一个公式页的排版。 */ -}}
+{{- $needsMath := or site.Params.math (.Params.math) (strings.Contains (string .Content) "class=\"katex") -}}
+{{- if $needsMath }}
 <link rel="stylesheet" href="{{ "katex/katex.min.css" | relURL }}">
-<script defer src="{{ "katex/katex.min.js" | relURL }}"></script>
-<script defer src="{{ "katex/auto-render.min.js" | relURL }}"></script>
-{{- $katexRender := resources.Get "js/katex-render.js" | minify | fingerprint }}
-<script defer src="{{ $katexRender.RelPermalink }}" integrity="{{ $katexRender.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}

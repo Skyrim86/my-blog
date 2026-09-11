@@ -6,7 +6,7 @@
   <h2 class="course-downloads-heading">{{ i18n "courseDownloads" }}</h2>
   <ul class="course-file-list">
     {{- range . }}
-    <li class="course-file">
+    <li>
       <a class="course-file-link" href="{{ .RelPermalink }}" download>
         <span class="course-file-icon" aria-hidden="true">📄</span>
         <span class="course-file-name">{{ .Name }}</span>

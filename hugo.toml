@@ -56,9 +56,6 @@ pagerSize = 10
   #站点介绍
   description = 'Skyrim 的技术与生活博客'
 
-  # 默认主题：auto 跟随系统 / light / dark
-  defaultTheme = 'auto'
-
   # 显示阅读时间
   ShowReadingTime = true
 
@@ -79,17 +76,11 @@ pagerSize = 10
   # 显示 RSS 订阅按钮
   ShowRssButtonInSectionTermList = true
 
-  # 分享按钮按需开启
-  ShowShareButtons = false
-
   # 默认 Open Graph 图片（分享时显示）
   images = ['images/site-cover.jpg']
 
   # 日期格式
   DateFormat = '2006年1月2日'
-
-  # 禁用主题切换动画（可选，觉得切换卡顿可以开）
-  disableThemeToggle = false
 
   # 作者信息
   author = 'Skyrim'
@@ -129,6 +120,8 @@ pagerSize = 10
 # ============================================
 # 搜索功能配置（Fuse.js）
 # ============================================
+# 注意：索引由 layouts/index.json 生成（覆盖了主题模板，把正文截断到 400 字）。
+# 这里 keys 里出现的内容，索引模板必须实际输出同名字段，否则该项搜索无效。
 [params.fuseOpts]
   isCaseSensitive = false
   shouldSort = true
@@ -136,7 +129,7 @@ pagerSize = 10
   distance = 1000
   threshold = 0.4
   minMatchCharLength = 1
-  keys = ['title', 'permalink', 'summary', 'content']
+  keys = ['title', 'permalink', 'summary', 'tags', 'content']
 
 # ============================================
 # 导航菜单

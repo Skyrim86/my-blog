@@ -7,14 +7,19 @@ draft: false
 unit: "章"
 description: "数值分析课程笔记：从误差分析与数值稳定性出发，覆盖方程求根、线性方程组、特征值、插值逼近、数值积分与常微分方程数值解。"
 summary: "按章整理的学习笔记与作业解法：笔记是课堂内容，作业是作业解法，两者均可下载。"
-tags: ["数值分析", "数学", "科学计算"]
-categories: ["课程"]
 # 课程主页自身没有公式；公式渲染由下面的 cascade 传给各章节材料页
 math: false
-# 章节页继承以下设置：关闭评论；开启数学公式渲染（KaTeX，见 extend_head.html）
+# 本课程的分类法只在这里写一次，由 cascade 下发给各章材料页。
+# 注意 target.kind: page —— 只发给 regular page（笔记 / 作业）。课程主页与章节入口页
+# 都是 section，即便带上标签也只会让 /tags/ 的计数虚高、词条页里并不出现（见 AGENTS.md）。
 cascade:
-  comments: false
-  math: true
+  - target:
+      kind: page
+    tags: ["数值分析", "数学", "科学计算"]
+    categories: ["课程"]
+  # 章节目录下的所有页面：关闭评论；开启数学公式渲染（KaTeX，见 extend_head.html）
+  - comments: false
+    math: true
 ---
 
 数值分析研究如何用计算机求解数学问题：在有限精度、有限步数下给出可用的近似解，并回答「这个近似到底有多好」。

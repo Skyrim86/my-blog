@@ -1,0 +1,16 @@
+{{- /* 课程主页与章节入口页共用的页头：面包屑 + 标题 + 描述（+ 可选的 unit 说明）。
+       这两种页的这部分 markup 原本逐字重复，抽出来避免以后改一处漏一处。
+       调用方：layouts/courses/course.html（传 unit）、layouts/courses/chapter.html（不传 unit）。
+       参数：page = 当前页；unit = 课程主页的 unit 字段（可选，只有课程主页有）。 */ -}}
+{{- $page := .page -}}
+{{- $unit := .unit -}}
+<header class="page-header">
+  {{- partial "breadcrumbs.html" $page }}
+  <h1>{{ $page.Title }}</h1>
+  {{- with $page.Description }}
+  <div class="post-description">{{ . | markdownify }}</div>
+  {{- end }}
+  {{- with $unit }}
+  <div class="course-home-meta">{{ i18n "courseOrganizedBy" (dict "unit" .) }}</div>
+  {{- end }}
+</header>

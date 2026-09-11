@@ -32,10 +32,12 @@ body {
 .post-content li {
   line-height: 1.85;
 }
+/* 引用块：边框与字色是有意覆盖（主题 .md-content blockquote 用的是
+   border-inline-start: 0.3rem solid var(--content)，这里换成更细更淡的 --secondary）；
+   行高、不斜体是主题没有的。左侧内边距沿用主题的 padding-inline-start: 1rem，故不再重复声明。 */
 .post-content blockquote {
   line-height: 1.8;
   border-left: 3px solid var(--secondary);
-  padding-left: 1em;
   color: var(--secondary);
   font-style: normal;   /* 中文不适合斜体 */
 }

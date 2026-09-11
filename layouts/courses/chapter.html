@@ -3,13 +3,7 @@
 {{- define "main" }}
 
 <article class="course-chapter">
-  <header class="page-header">
-    {{- partial "breadcrumbs.html" . }}
-    <h1>{{ .Title }}</h1>
-    {{- with .Description }}
-    <div class="post-description">{{ . | markdownify }}</div>
-    {{- end }}
-  </header>
+  {{- partial "course-header.html" (dict "page" .) }}
 
   {{- $materials := .RegularPages.ByWeight }}
   {{- with $materials }}

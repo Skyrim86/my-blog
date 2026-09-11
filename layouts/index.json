@@ -1,0 +1,28 @@
+{{- /* 搜索索引 —— 覆盖主题 themes/PaperMod/layouts/index.json。
+
+   与主题原版的三处差异：
+   1. content 从「每页 .Plain 全文」改为截断 400 字。主题原版会把 CMC2026 那些长文档
+      整篇塞进索引，本站 index.json 因此有 148 KB；截断后约 17 KB。
+      代价：正文只能匹配每页前 400 字（标题 / 摘要 / 标签仍是全量匹配）。
+   2. summary 做 plainify + 截断 150 字。这一条是配合构建期公式渲染的必需处理：
+      没有显式写 summary 的页面（课程材料页就是），Hugo 会从 .Content 自动截取，
+      而公式现在渲染成了大段 KaTeX 标记，自动摘要会变成 5000+ 字的 HTML（含完整 MathML），
+      把索引从 17 KB 撑到 49 KB，检索结果里也会混进标记。plainify 后只剩纯文本。
+   3. 新增 tags 字段，让标签也能被搜到（hugo.toml 的 fuseOpts.keys 已同步加上 'tags'）。
+
+   其余逻辑（searchHidden、archives/search 页排除）沿用主题，未改动。
+   这是继 layouts/courses/*.html 之后第二处有意的主题模板覆盖：主题该模板没有 hook 可挂，
+   而截断逻辑无法从外部配置实现。改索引字段时记得同步 hugo.toml 的 fuseOpts.keys。 */ -}}
+{{- $.Scratch.Add "index" slice -}}
+{{- range site.RegularPages -}}
+    {{- if and (not .Params.searchHidden) (ne .Layout `archives`) (ne .Layout `search`) }}
+    {{- $.Scratch.Add "index" (dict
+        "title" .Title
+        "content" (.Plain | truncate 400)
+        "permalink" .Permalink
+        "summary" (.Summary | plainify | htmlUnescape | truncate 150)
+        "tags" (.Params.tags | default slice)) -}}
+    {{- end -}}
+{{- end -}}
+{{- $.Scratch.Get "index" | jsonify -}}
+

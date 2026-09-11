@@ -1,0 +1,61 @@
+{{- /* 相关内容：按共享标签 / 系列，把 文章 ↔ 课程 ↔ 项目 互相串联起来。
+       为什么自己算而不用 Hugo 的 .Related：.Related 只在 regular page 之间比较，
+       课程主页与分层项目主页是 section，用 .Related 会永远关联不到它们。
+
+       本 partial 由 extend_post_content.html 注入，走主题 single.html，
+       因此只在 regular page（文章 / 平铺项目页 / 课程材料页 / 项目文档页）上出现。
+       section 页走主题 list.html，没有 hook，所以课程主页/项目主页只是「能被别人关联到」，
+       自身不显示这个区块——这是不覆盖主题模板的必然取舍。 */ -}}
+
+{{- $cur := . -}}
+{{- $myTags := $cur.Params.tags | default slice -}}
+{{- $mySeries := $cur.Params.series | default slice -}}
+
+{{- $scored := slice -}}
+{{- if or $myTags $mySeries -}}
+  {{- range site.Pages -}}
+    {{- $p := . -}}
+    {{- $skip := or
+          (eq $p.RelPermalink $cur.RelPermalink)
+          $p.Params.searchHidden
+          (in (slice "home" "taxonomy" "term") $p.Kind)
+          (in (slice "archives" "search") $p.Layout) -}}
+    {{- if not $skip -}}
+      {{- $pTags := $p.Params.tags | default slice -}}
+      {{- /* 课程主页 / 项目主页这类 section 自己不写 tags（写了只会让词条计数虚高），
+             所以它们的有效标签由子孙 regular page 聚合而来。
+             判据：层级上「上一级是顶层列表 section」——即祖先里只有一个 section。
+             这样能排除 /courses/、/projects/ 这类列表页（祖先里没有 section），
+             也能排除「分析思路」「A 题」这类更深的纯导航 section（祖先里有两个以上 section），
+             否则它们会和真正的文档同分，把列表挤满。 */ -}}
+      {{- if and (not $pTags) (eq $p.Kind "section") (eq (len (where $p.Ancestors "Kind" "section")) 1) -}}
+        {{- $acc := slice -}}
+        {{- range site.RegularPages -}}
+          {{- if hasPrefix .RelPermalink $p.RelPermalink -}}
+            {{- range .Params.tags -}}{{- $acc = $acc | append . -}}{{- end -}}
+          {{- end -}}
+        {{- end -}}
+        {{- $pTags = uniq $acc -}}
+      {{- end -}}
+      {{- $score := add (mul (len (intersect $myTags $pTags)) 10) (mul (len (intersect $mySeries ($p.Params.series | default slice))) 6) -}}
+      {{- if gt $score 0 -}}
+        {{- $scored = $scored | append (dict "page" $p "score" $score) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $typeKeys := dict "posts" "relatedTypePost" "courses" "relatedTypeCourse" "projects" "relatedTypeProject" -}}
+{{- with first 5 (sort $scored "score" "desc") -}}
+<div class="related-content">
+  <h2 class="related-heading">{{ i18n "relatedTitle" }}</h2>
+  <ul class="related-list">
+    {{- range . -}}
+    {{- $p := .page -}}
+    <li class="related-item">
+      <a class="related-link" href="{{ $p.RelPermalink }}"><span class="related-type">{{ i18n (index $typeKeys $p.Type | default "relatedTypePage") }}</span><span class="related-title">{{ $p.LinkTitle }}</span></a>
+    </li>
+    {{- end -}}
+  </ul>
+</div>
+{{- end -}}

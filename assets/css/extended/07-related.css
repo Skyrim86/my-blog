@@ -1,0 +1,44 @@
+/* ============================================
+   相关内容区块（文章 ↔ 课程 ↔ 项目，按共享标签 / 系列关联）
+   模板见 layouts/_partials/related-content.html
+   只复用主题 CSS 变量，变量本身随 [data-theme="dark"] 切换，故无需额外暗色规则
+   ============================================ */
+.related-content {
+  margin: 2rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.related-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+.related-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.related-item + .related-item {
+  margin-top: 0.5rem;
+}
+.related-link {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+/* 类型徽标：文章 / 课程 / 项目 */
+.related-type {
+  flex: none;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--secondary);
+}
+.related-title {
+  color: var(--primary);
+}
+.related-link:hover .related-title {
+  text-decoration: underline;
+}

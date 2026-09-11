@@ -16,3 +16,9 @@
 *.woff  binary
 *.ttf   binary
 *.eot   binary
+
+# 脚本与词表强制 LF。本机 core.autocrlf=true，若不做声明，全新 checkout 会把它们变成
+# CRLF：bash 脚本会报 $'\r': command not found；词表被脚本按行解析时也会带上 \r。
+*.sh    text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf

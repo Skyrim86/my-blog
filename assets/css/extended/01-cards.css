@@ -1,6 +1,12 @@
 /* ============================================
    文章列表卡片：圆角 + 阴影
    暗色适配用 [data-theme="dark"]（PaperMod 通过 html 的 data-theme 属性切换，不是 .dark class）
+
+   注意：下面 post-entry 的每条声明都是对主题 post-entry.css 的**有意覆盖**，值不同、别当成冗余删掉——
+   border-radius 12px（主题 var(--radius)）、padding 20px 24px、margin-bottom 20px、
+   background var(--code-bg)（主题 var(--entry)，这里故意用更暗的底色）、
+   transition 里额外加了 box-shadow（主题只过渡 transform）、以及主题完全没有的 box-shadow。
+   主题 head.html 把 extended.css 拼在 core.css 之后，所以同权重下这里生效。
    ============================================ */
 article.post-entry {
   border-radius: 12px;
