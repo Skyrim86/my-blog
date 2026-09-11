@@ -45,6 +45,13 @@ if not defined BASH_EXE (
   exit /b 1
 )
 
+rem Make sure Git's own tools are reachable from the shell we are about to start.
+rem scripts/admin.sh needs cygpath / curl / sed, which live in Git's cmd and usr\bin.
+rem Without this, a machine where Git was installed WITHOUT "add to PATH" would
+rem fail even though we located bash.exe by its absolute path.
+for %%i in ("%BASH_EXE%") do for %%j in ("%%~dpi..") do set "GIT_ROOT=%%~fj"
+set "PATH=%GIT_ROOT%\cmd;%GIT_ROOT%\usr\bin;%PATH%"
+
 "%BASH_EXE%" scripts/admin.sh %*
 set "ADMIN_EXIT=%ERRORLEVEL%"
 

@@ -15,6 +15,7 @@
 
 ```
 my-blog/
+├── 启动管理页.bat              # 双击入口：打开本地管理页（见 4.2⑬；必须纯 ASCII + CRLF）
 ├── hugo.toml                  # 唯一配置文件（无 config/ 目录分段）
 ├── archetypes/                # front matter 的唯一事实源（scripts/new-content.sh 也调用它们）
 │   ├── default.md             # 文章骨架（posts/ 下没有 posts.md，故回退到此文件）
@@ -228,9 +229,12 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 - 建文件前先 `[ -f ]` 判存在（`hugo new content` 冲突时退出码也是 1，无法区分原因）；**标签校验在任何建文件动作之前完成**，避免校验失败留下半成品文件
 - 默认 `draft: true`（与 archetype 一致），`--publish` 才写 `false`
 
-**⑬ 本地管理页（可交互的写作/发布界面）** — `scripts/admin.sh` + `scripts/admin/`
-- 入口：`bash scripts/admin.sh`（或对话里 `/admin`）。它在本机起一个零依赖的 Node 服务（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，四块功能：**新建**（六种内容类型的表单 + 词表 chips 选标签）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条）、**发布**（git 改动清单 + diff + 提交说明 + 流式日志）、**同屏 iframe 预览**
-- **它是现有脚本的界面外壳，不是替代品**：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制
+**⑬ 本地管理页（可交互的写作/发布界面）** — `scripts/admin.sh` + `scripts/admin/` + `启动管理页.bat`
+- 入口有两个，等价：**双击仓库根目录的 `启动管理页.bat`**（不用开终端，桌面快捷方式也指向它），或命令行 `bash scripts/admin.sh`（对话里用 `/admin`）。双击后它会自动打开浏览器、并顺手带起 `hugo server` 预览
+- 它在本机起一个零依赖的 Node 服务（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，四块功能：**新建**（六种内容类型的表单 + 词表 chips 选标签）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条）、**发布**（git 改动清单 + diff + 提交说明 + 流式日志）、**同屏 iframe 预览**
+- **`启动管理页.bat` 必须保持纯 ASCII + CRLF**，这是一条硬约束，不是风格偏好：批处理里一旦有中文，`chcp 65001` 之后 cmd.exe 会按错误的字节偏移重读文件、把半行当命令执行（实测症状是 `'会自动打开' is not recognized as an internal or external command`，同时服务仍能起来，很容易被忽略）。所以**面向用户的中文提示全部由 `scripts/admin.sh` 打印**（bash 写 UTF-8，配合启动器的 chcp 65001 显示正常），.bat 里只留英文注释与英文错误。`.gitattributes` 里 `*.bat text eol=crlf` 就是为此加的（只有 LF 的 .bat 会让 label/goto 之类按行定位的语法出问题）
+- 启动器找 bash 的顺序刻意**先查 Git for Windows 的安装位置、再退回 PATH**：`C:\Windows\System32\bash.exe` 是 WSL 的 bash，用它跑这个脚本路径会全错。顺序为 `ADMIN_BASH` → `%ProgramFiles%\Git\bin\bash.exe` → `%ProgramFiles(x86)%\...` → `%LOCALAPPDATA%\Programs\Git\...` → 从 `where git` 反推 `..\bin\bash.exe`。找不到就打印 Git 下载地址并 `pause`，参数原样透传（`启动管理页.bat --port 1415` 可用）
+- 它是现有脚本的界面外壳，不是替代品：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制
 - **架构红线做成了界面约束**：`content/courses/**/notes|homework`、章节入口页、子项目页、各类 section/列表页的 tags 字段在界面上**隐藏并禁用**（理由同 4.2⑨：section 写 tags 只会让计数虚高；材料页写了会整体丢掉 cascade 下发的标签）；分层项目的文档页写 tags 会给出「会丢掉项目级标签」的提示。服务端也会忽略不属于该类型 schema 的字段——实测在材料页硬塞 tags 不会写进文件
 - **新标签先入词表、再建内容**：界面上勾的新词会先经 `/api/taxonomy/add` 写进 `data/taxonomy.yaml`（写后立刻用 `new-content.sh tags` 复核，复核不过就回滚原文件），全部校验通过才建文件——沿用 new-content.sh「校验早于建文件」的原则
 - **URL 与预览**：预览由内置的 `hugo server -D -F --disableFastRender` 提供，iframe 指向 `http://127.0.0.1:<预览端口>/my-blog/<页面路径>/`，保存后 livereload 自动刷新。页面路径推导里有两条容易错的规则：① Hugo 默认 `pathToLower`，URL 里的 ASCII 全小写（`CMC2026` → `cmc2026`）；② **文章的 `:slug` 取标题而不是目录名**（所以 `content/posts/my-first-post/` 的 URL 是 `/2026/09/我的第一篇文章/`），界面上因此提供了 `slug` 字段用于固定 URL
@@ -279,6 +283,7 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 
 ```bash
 bash scripts/admin.sh     # 本地管理页（推荐日常用）：新建/编辑/看改动/一键发布 + 内嵌预览，见 4.2⑬
+                          # 或者直接双击仓库根目录的「启动管理页.bat」，等价、不用开终端
 bash scripts/preview.sh   # 纯本地预览（含草稿），http://localhost:1313/my-blog/；也可用 /preview
 hugo server -D            # 同上，手敲版
 hugo --minify --gc        # 生产构建，输出到 public/
@@ -305,6 +310,7 @@ bash scripts/push-blog.sh "feat: 说明"     # 或在对话里用 /push-blog
 - **`timeZone` 不设会让「当天发布的文章」当天不上线**（本仓库踩过）：`archetypes/` 写的是 `date: {{ now.Format "2006-01-02" }}`，只有日期没有时刻，Hugo 按 UTC 零点解析；在东八区它就成了「未来 8 小时」的内容，而 Hugo 默认 `buildFuture = false`，于是 CI 的 `hugo --minify --gc` 会**静默跳过**它，直到次日 UTC 跨过该日期才出现。修法是 `hugo.toml` 顶层的 `timeZone = 'Asia/Shanghai'`（已加，别删）。实测对照：不设时 `hugo --minify --gc` 不产出当天日期的文章，设了就产出。管理页对「date 排在未来」的已发布页面也会单独提醒（`/api/state` 的 `futureDated`）
 - **hugo server 不会把「保存后固定链接变了」的页面挂到新地址上**：改 `date` / `title` / `slug` 会让文章换 URL，dev server 仍按旧地址提供，表现为预览 404。管理页在这三个字段被改动且预览在跑时会自动重启预览（重启即可复现正常）。顺带记下：**文章的 `:slug` 取自标题**，不是目录名——`content/posts/my-first-post/` 的实际 URL 是 `/2026/09/我的第一篇文章/`（`hugo list drafts` 打印的 permalink 可直接核对）
 - 管理页的 `assets/` 禁令：界面用的 JS/CSS 只能放 `scripts/admin/ui/`，**放进 `assets/js/` 或 `assets/css/extended/` 会被主题合并进公开站点资源**，等于把管理界面发到线上（见 4.2⑬）
+- **`.bat` 里不要写中文**（`启动管理页.bat` 现在一个非 ASCII 字节都没有，请保持）：`chcp 65001` 之后含中文的批处理会让 cmd.exe 按错字节偏移重读自己、把半行当命令执行。实测症状很有迷惑性——窗口里出现 `'会自动打开' is not recognized as an internal or external command`，但服务其实照常起来了，所以只看到"能跑"就以为没事。面向用户的中文一律由 `scripts/admin.sh` 打印。同理 `.bat` 必须 CRLF（`.gitattributes` 已钉住），无 BOM
 - Giscus 用 `mapping='title'`：**改文章标题 = 丢评论**；换回 pathname 前需权衡。另外改标题还会改文章 URL（见上一条），外部链接会一起失效，管理页因此提供了 `slug` 字段用于把 URL 固定下来
 - 首页是 Profile Mode，改首页布局要去 `[params.profileMode]`，不是普通 list 模板；按钮已移除，入口统一走顶部导航菜单
 - 搜索依赖首页 JSON 输出（`[outputs] home` 的 `'JSON'`），删掉即搜索失效
