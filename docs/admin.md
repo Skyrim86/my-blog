@@ -76,6 +76,8 @@ tools/admin/
 
 所以**没有**做「按 archetype 机械生成表单」——那会把 `layout`/`date` 顶进表单、丢掉 `slug`、并改掉每个类型的字段顺序，是行为回归。取而代之的是 `scripts/check-editor-schema.mjs`：archetype 里出现了既没被 UI 暴露、也不在它 `hidden` 列表里的键就报警，把**静默分叉**变成可见提醒。（这个检查在 `push-blog.sh` 与 CI 里跑，**只警告不阻断**。）
 
+**列表页（section 的入口页）是一族类型**：`posts-list`（`content/posts/_index.md`）、`courses-list`、`projects-list`、`taxonomy-page`，加上兜底的 `section-list` —— 任何没被上面认领的 `_index.md` 都归到它（脚手架的 `section` 子命令能建任意路径的列表页；没有兜底的话这些文件会掉进「其他」，用错字段表与 tags 规则）。这五类共用同一份字段表（`title`/`description`/`summary`/`draft`，**不含** `date`/`weight`/`math`），骨架统一是 `archetypes/section.md`（`check-editor-schema.mjs` 的 `MAP` 里五类都指向它）。
+
 ## 5. 架构红线做成了界面约束
 
 `content/courses/**/notes|homework|lab`、章节入口页、子项目页、各类 section/列表页的 **tags 字段在界面上隐藏并禁用**（理由见 [`content.md` 第 4 节](content.md#4-cascade-的三条硬规矩)：section 写 tags 只会让计数虚高；材料页写了会整体丢掉 cascade 下发的标签）。分层项目的文档页写 tags 会给出「会丢掉项目级标签」的提示。
@@ -111,7 +113,7 @@ tools/admin/
 
 **为什么 `date` 必须暴露给这三类**：`check-frontmatter.sh` 要求 `material` / `project` / `project-doc` 必有 `date`，而这三个类型的 `editorSchema` 原先隐藏了 `date` —— 于是「文件没有 front matter」时界面只提示日期、却给不出可改的输入框，补全后仍然过不了校验（`content/projects/CMC2026/problem-0{3,4}/*.md` 就是这种文件）。所以规则是：**check-frontmatter 要求 `date` 的类型，编辑器就必须能改 `date`**（`post` 本来就有）；`scripts/check-editor-schema.mjs` 的 `hidden` 列表同步去掉了这三个类型的 `date`。
 
-section 页（课程主页 / 章节 / 分层项目主页 / 子项目页 / 列表页）缺 front matter 时不重建 `layout`/`cascade`/`weight` 这些结构键 —— 那是骨架的职责，界面只提示用「新建」面板按类型重建。
+section 页（课程主页 / 章节 / 分层项目主页 / 子项目页 / 列表页）缺 front matter 时不重建 `layout`/`cascade`/`weight` 这些结构键 —— 那是骨架的职责，界面只提示重建。**列表页的提示指向 CLI**（`bash scripts/new-content.sh section <路径> --title 标题`）：新建面板里的 kind 一一对应 `new-content.sh` 的子命令，而列表页走的是 `section` 子命令，面板里并没有这个入口（`app.js` 的 `LIST_TYPES` 就是用来区分这两种提示的）。
 
 ## 7. 写入收敛
 

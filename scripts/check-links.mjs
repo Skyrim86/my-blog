@@ -6,6 +6,14 @@
 // 那条放在 .github/workflows/links.yml 里按周跑（见 AGENTS）。本站已有 Node 依赖（管理页），
 // 所以这里不引入任何新依赖、也不引入第三方 Action 的供应链面。
 //
+// 站内链接有两种形态，都要查：
+//   · 不带 scheme 的 `/foo/`（正文里手写的绝对链接、模板里的 relURL）
+//   · **同源**的绝对链接 `https://<本站域名>/my-blog/foo/` —— 导航栏、canonical、og:url、
+//     RSS、站点图标全是这个形态。早期版本把所有带 scheme 的 URL 一律当外链跳过，
+//     于是「导航栏指向的页面压根没生成」这种事故全绿通过（实测：content/posts/ 缺 _index.md
+//     时 /posts/ 整个消失，导航栏「文章」404，而没有任何检查发现）。现在同源 URL 会剥掉
+//     origin 后走下面同一套站内逻辑，只有异源 / mailto: / data: 才真的跳过。
+//
 // 用法：node scripts/check-links.mjs [输出目录] [--no-anchors]
 //   默认输出目录 public。--no-anchors 只查文件是否存在，跳过锚点校验。
 // 退出码：0 = 无坏链；1 = 有坏链（锚点问题只警告，不阻断）
@@ -21,13 +29,23 @@ if (!existsSync(OUT)) {
   process.exit(1);
 }
 
-// baseURL 的子路径（本站是 /my-blog/）：站内绝对链接都带这个前缀，
-// 访问者从 /foo/ 这种不带前缀的绝对链接会 404，所以也要报出来。
+// baseURL 的两个用途：
+//   · basePath（本站是 /my-blog）：站内绝对链接都带这个前缀，
+//     访问者从 /foo/ 这种不带前缀的绝对链接会 404，所以也要报出来。
+//   · baseOrigin（scheme + host）：判断带 scheme 的绝对链接是不是**本站**的 —— 同源按站内链接查。
 let basePath = '';
+let baseOrigin = '';
 try {
   const cfg = readFileSync('hugo.toml', 'utf8');
   const m = cfg.match(/^baseURL\s*=\s*['"]([^'"]+)['"]/m);
-  if (m) basePath = m[1].replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/+$/, '');
+  if (m) {
+    basePath = m[1].replace(/^[a-z]+:\/\/[^/]+/i, '').replace(/\/+$/, '');
+    try {
+      baseOrigin = new URL(m[1]).origin;
+    } catch {
+      /* baseURL 不是合法绝对 URL（相对路径）就不做同源判定，带 scheme 的一律按外链 */
+    }
+  }
 } catch {
   /* 没有 hugo.toml 就按根路径处理 */
 }
@@ -91,6 +109,7 @@ const badAnchors = [];
 const badAbsolute = [];
 let checked = 0;
 let external = 0;
+let sameOrigin = 0;
 
 for (const page of pages) {
   const raw = readFileSync(page, 'utf8');
@@ -102,11 +121,26 @@ for (const page of pages) {
   const pageRel = relative(OUT, page).split(sep).join('/');
 
   for (const m of html.matchAll(/\s(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)) {
-    const url = (m[1] ?? m[2] ?? m[3] ?? '').trim();
+    let url = (m[1] ?? m[2] ?? m[3] ?? '').trim();
     if (!url) continue;
     if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(url)) {
-      external++;
-      continue;
+      // 带 scheme 或协议相对的绝对链接：同源的剥掉 origin 当站内链接继续查，异源的才是外链
+      let same = null;
+      if (baseOrigin) {
+        try {
+          same = new URL(url, baseOrigin);
+        } catch {
+          same = null;
+        }
+      }
+      if (!same || same.origin !== baseOrigin) {
+        external++;
+        continue;
+      }
+      sameOrigin++;
+      // 丢掉 query（?utm_source=… 之类不影响目标文件在不在），保留 #锚点
+      url = same.pathname + same.hash;
+      if (!url) continue;
     }
     if (url.startsWith('#')) {
       const frag = decode(url.slice(1));
@@ -166,7 +200,10 @@ const show = (list, limit = 40) => {
   if (list.length > limit) console.log(`     … 另有 ${list.length - limit} 处`);
 };
 
-console.log(`▸ 内部链接检查：${pages.length} 个页面，检查 ${checked} 条站内链接（跳过外链 ${external} 条）`);
+console.log(
+  `▸ 内部链接检查：${pages.length} 个页面，检查 ${checked} 条站内链接` +
+    `（其中同站绝对链接 ${sameOrigin} 条；跳过外链 ${external} 条）`
+);
 
 if (badAbsolute.length) {
   console.log(`\n  ✗ ${badAbsolute.length} 条绝对链接缺少 baseURL 子路径「${basePath}」，部署后会 404：`);

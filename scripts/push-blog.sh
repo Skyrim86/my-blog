@@ -9,7 +9,7 @@
 #   2. 自动修复公式转义（`\*` → `*`，见 docs/formulas.md 第 3 节）：这是**写操作**，
 #      修完再判断工作区是否有改动，所以修出来的改动会进入同一次 commit、一起校验与构建
 #   3. 工作区有改动时，按「先快后慢」的顺序跑校验，任何**阻断项**失败即中止、不提交不推送：
-#        front matter 校验（阻断）→ 标签词表（只警告）→ 草稿提醒（只警告）
+#        section 结构校验（阻断）→ front matter 校验（阻断）→ 标签词表（只警告）→ 草稿提醒（只警告）
 #        → hugo 构建（阻断）→ KaTeX 配对（阻断）→ 站内链接（阻断）→ 体积预算（阻断）
 #      这套校验与 CI 的 .github/actions/validate 同源，所以本地过了 CI 基本就过。
 #   4. git add -A（含删除）→ git commit
@@ -58,6 +58,21 @@ dirty="$(git status --porcelain -uall)"
 ahead="$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)"
 
 if [ -n "$dirty" ]; then
+  # section 结构校验：**阻断**。每个 section 目录都必须有 _index.md（它的列表页）——
+  # 缺了它，分区会退化成「隐式 section」，子页面一删空，/posts/ 这类页面连同导航栏、首页
+  # 指向它的入口一起 404（实测踩过）。下面的 front matter 校验只遍历**已存在的** .md 文件，
+  # 看不见「文件缺失」，所以这条必须单列。只扫 content/，不需要先构建。
+  if [ -f scripts/check-sections.sh ]; then
+    echo "▸ section 结构校验"
+    if st_log="$(bash scripts/check-sections.sh 2>&1)"; then
+      printf '%s\n' "$st_log" | tail -1 | sed 's/^/  /'
+    else
+      printf '%s\n' "$st_log" | sed 's/^/  /'
+      echo "✗ section 结构校验未通过，已中止（未提交、未推送）。"
+      exit 1
+    fi
+  fi
+
   # front matter 校验：**阻断**。这一项专门拦「构建能过、页面其实是坏的」——
   # 例如整页没有 front matter（标题会变成站点名）、section 页写了 tags（计数虚高）。
   if [ -f scripts/check-frontmatter.sh ]; then

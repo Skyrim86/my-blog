@@ -89,7 +89,7 @@ cascade:
 
 ## 6. 脚手架：`scripts/new-content.sh`
 
-一个入口覆盖文章 / 课程主页 / 章节（可含材料页）/ 三个材料子命令 / 平铺项目 / 分层项目 / 分层项目文档 / **删除**。**多文件结构是 `hugo new` 做不到的部分**（一章一次生成 `chapter-0N/_index.md` + 勾选的材料页，章号自动递增）。
+一个入口覆盖文章 / 课程主页 / 章节（可含材料页）/ 三个材料子命令 / 平铺项目 / 分层项目 / 分层项目文档 / **section 列表页** / **删除**。**多文件结构是 `hugo new` 做不到的部分**（一章一次生成 `chapter-0N/_index.md` + 勾选的材料页，章号自动递增）。
 
 实现要点：
 
@@ -109,6 +109,7 @@ bash scripts/new-content.sh notes|homework|lab <课程> <章节> [--dir 目录�
 bash scripts/new-content.sh project  <项目> --tags A,B [--repo URL] [--layered]
 bash scripts/new-content.sh sub      <项目> <子项目>
 bash scripts/new-content.sh doc      <项目>/<子项目> <文档名> [--no-math]
+bash scripts/new-content.sh section  <路径> --title 标题 [--description 描述]
 bash scripts/new-content.sh remove   <content 路径> [--with-bundle] [--dry-run]
 ```
 
@@ -116,8 +117,23 @@ bash scripts/new-content.sh remove   <content 路径> [--with-bundle] [--dry-run
 - `chapter --materials` 决定一并建哪些材料页，**默认 `notes,homework`**，`none` 只建入口页；漏掉的材料之后用子命令单独补
 - 补材料时 `<章节>` 填**章节目录名**（如 `chapter-01`），不是章节标题
 - **`next_material_weight()` 与 `next_weight()` 是两个函数**：后者数的是 `*/_index.md` 与 `*.md`（`sub`/`doc` 用），材料页是 `*/index.md`，用它会永远得 1 —— 这个错误实测出现过，`--dir lab-02` 因此拿到 weight 1 与笔记撞号
+- **`section` 建的是「分区的列表页」**（`content/<路径>/_index.md`）：路径相对 `content/` 写（`posts`、`projects/CMC2026/approach`），`--title` **必填**（列表页标题会显示在导航与页面上，不填就会静默留下目录名）；骨架 `archetypes/section.md` 只有 `title` + `description`，**没有** `tags`/`date`/`draft`（与现有那些列表页一致，传 `--publish`/`--date` 只提示忽略）。它拒绝带 `content/` 前缀的路径、拒绝 leaf bundle 目录、要求目录已存在——职责是「补列表页」，不是「开新分区」
 
-**`remove` 是删除的唯一实现**（管理页也调它）：只接受 `content/` 内的 `.md`、拒绝 `..`、拒绝删 `content/` 本身；`--with-bundle` 时 `index.md` 删所在 leaf bundle 目录（含附件）、`_index.md` 删所在 branch 目录，但**直接位于 `content/` 下的 section 根一律拒绝**（否则一键就能清空 `content/courses`）。先打印将删除的文件清单再动手，`--dry-run` 到此为止。
+**`remove` 是删除的唯一实现**（管理页也调它）：只接受 `content/` 内的 `.md`、拒绝 `..`、拒绝删 `content/` 本身；`--with-bundle` 时 `index.md` 删所在 leaf bundle 目录（含附件）、`_index.md` 删所在 branch 目录，但**直接位于 `content/` 下的 section 根一律拒绝**（否则一键就能清空 `content/courses`）。先打印将删除的文件清单再动手，`--dry-run` 到此为止。另外**`_index.md` 不允许单独删除**（不带 `--with-bundle` 直接拒绝）：它是分区的列表页，删掉后整个分区就没有入口页了。
+
+### 每个 section 目录都必须有 `_index.md`
+
+「列表页」= 分区的入口页：`/posts/`、`/courses/`、`/projects/`、`/tags/` 这些 URL 都靠 `content/<分区>/_index.md` 存在。没有它，Hugo 只会给一个**隐式 section**——页面能不能存在取决于下面还有没有子页面；最后一个子页面被删空时，列表页本身与所有指向它的入口（导航栏、首页、正文链接）会一起 404。`content/posts/` 曾经就是靠一篇占位文章撑着的，文章一删 `/posts/` 整个消失，而当时没有任何校验发现。
+
+这条不变量由三处一起守：
+
+| 环节 | 在哪 | 拦什么 |
+|---|---|---|
+| 结构校验（阻断） | `scripts/check-sections.sh` | 有子页面却没有 `_index.md` 的目录；`index.md` 与 `_index.md` 同时存在的目录 |
+| 链接校验（阻断） | `scripts/check-links.mjs` | 列表页真的没了时，导航栏/首页/正文里指向它的链接（同站绝对链接也在检查范围内） |
+| 删除护栏 | `scripts/new-content.sh remove` | `_index.md` 不能单独删；一级分区的整目录删除一律拒绝 |
+
+补一个列表页：`bash scripts/new-content.sh section <路径> --title 标题`。
 
 ## 7. 在对话里建内容
 

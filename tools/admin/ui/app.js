@@ -749,12 +749,15 @@ function renderEditor() {
   // 已经填进 changed（拖入导入或点了「按默认值补全」）的不再算缺：否则填完了还在喊缺
   const missingRemaining = missing.filter((k) => !p.changed.has(k));
   const needsArchetype = !p.hasFrontMatter && SECTION_TYPES.has(p.type);
+  const archetypeHint = LIST_TYPES.has(p.type)
+    ? '这是列表页（分区的入口页）：title / description 之外的键不在这里重建。页面整个不见了就用 <code>bash scripts/new-content.sh section &lt;路径&gt; --title 标题</code> 补回来。'
+    : '这是 section 页：它的 layout / cascade 等结构键不在这里重建，若页面渲染不对，请用「新建」面板按类型重建。';
   const dirtyWarn = missingRemaining.length
     ? `<div class="notice error"><strong>缺必填的 front matter：</strong>${missingRemaining.map((k) => esc(FRONTMATTER_LABEL[k] ?? k)).join('、')}
         —— 这样的文件 <code>scripts/check-frontmatter.sh</code> 会以硬错误拦下推送。
         <div class="inline" style="margin-top:6px"><button type="button" class="ghost" id="ed-repair">按默认值补全</button>
         <span class="hint">标题取正文第一个 # 标题、日期用站点今天、草稿状态保持「仍是草稿」；补完仍需点「保存」。</span></div>
-        ${needsArchetype ? '<div class="hint" style="margin-top:6px">这是 section 页：它的 layout / cascade 等结构键不在这里重建，若页面渲染不对，请用「新建」面板按类型重建。</div>' : ''}
+        ${needsArchetype ? `<div class="hint" style="margin-top:6px">${archetypeHint}</div>` : ''}
       </div>`
     : '';
   const warn =
@@ -1007,8 +1010,12 @@ async function saveEditor() {
 const IMPORT_MAX_BYTES = 4 * 1024 * 1024;
 // 缺必填 front matter 时给用户看的字段名
 const FRONTMATTER_LABEL = { title: '标题 title', date: '日期 date', draft: '草稿状态 draft' };
-// section 页的 layout / cascade 等结构键不在编辑器里重建，只能提示用「新建」面板重做
-const SECTION_TYPES = new Set(['course-home', 'chapter', 'project-home', 'project-section', 'courses-list', 'projects-list', 'taxonomy-page']);
+// section 页的 layout / cascade 等结构键不在编辑器里重建，只能提示重做
+const SECTION_TYPES = new Set(['course-home', 'chapter', 'project-home', 'project-section', 'courses-list', 'projects-list', 'posts-list', 'section-list', 'taxonomy-page']);
+// 列表页（分区的入口页：/posts/、/courses/、/tags/ 这些）没有对应的「新建」面板类型 ——
+// 面板里的 kind 一一对应 new-content.sh 的子命令，而列表页走的是 section 子命令。
+// 所以它们的修复提示要指向 CLI，不能把人送到一个不存在的按钮上。
+const LIST_TYPES = new Set(['courses-list', 'projects-list', 'posts-list', 'section-list', 'taxonomy-page']);
 
 let importOverwrite = false; // 编辑面板：是否用文件里的值覆盖已有字段（默认只补空缺）
 

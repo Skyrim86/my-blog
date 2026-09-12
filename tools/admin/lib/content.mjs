@@ -55,6 +55,7 @@ export function classify(relPath) {
   const p = relPath.replace(/\\/g, '/').replace(/^content\//, '');
   const seg = p.split('/');
   if (seg.length === 3 && seg[0] === 'posts' && seg[2] === 'index.md') return 'post';
+  if (seg.length === 2 && seg[0] === 'posts' && seg[1] === '_index.md') return 'posts-list';
   if (seg[0] === 'courses') {
     if (seg.length === 2 && seg[1] === '_index.md') return 'courses-list';
     if (seg.length === 3 && seg[2] === '_index.md') return 'course-home';
@@ -76,11 +77,16 @@ export function classify(relPath) {
     return 'taxonomy-page';
   }
   if (seg.length === 1) return 'page';
+  // 上面没有认领的 _index.md 一律是「某个分区的列表页」：脚手架的 section 子命令能建任意路径的
+  // 列表页（content/posts/_index.md、自定义分区的 _index.md）。归到通用类型比掉进「其他」好
+  // —— 列表页的字段表与 tags 规则跟上面那些命名类型完全一样，掉进「其他」会让编辑与补全用错规则。
+  if (seg[seg.length - 1] === '_index.md') return 'section-list';
   return 'other';
 }
 
 const TYPE_LABEL = {
   post: '文章',
+  'posts-list': '文章列表页',
   'courses-list': '课程列表页',
   'course-home': '课程主页',
   chapter: '章节入口页',
@@ -91,6 +97,7 @@ const TYPE_LABEL = {
   'project-section': '子项目页',
   'project-doc': '项目文档页',
   'taxonomy-page': '词条总览页',
+  'section-list': '列表页',
   page: '单页',
   other: '其他',
 };
@@ -230,6 +237,8 @@ export function editorSchema(type) {
       };
     case 'courses-list':
     case 'projects-list':
+    case 'posts-list':
+    case 'section-list':
     case 'taxonomy-page':
       return {
         fields: [base.title, base.description, base.summary, base.draft],
@@ -523,7 +532,7 @@ export async function listContent(repoRoot) {
     });
   }
   // 文章按日期倒序，其余按类型分组后按 weight、路径排。
-  const order = ['post', 'course-home', 'chapter', 'material', 'project', 'project-home', 'project-section', 'project-doc', 'page', 'taxonomy-page', 'courses-list', 'projects-list', 'other'];
+  const order = ['post', 'course-home', 'chapter', 'material', 'project', 'project-home', 'project-section', 'project-doc', 'page', 'taxonomy-page', 'courses-list', 'projects-list', 'posts-list', 'section-list', 'other'];
   items.sort((a, b) => {
     const d = order.indexOf(a.type) - order.indexOf(b.type);
     if (d !== 0) return d;

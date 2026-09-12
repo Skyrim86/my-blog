@@ -34,6 +34,14 @@ const MAP = {
   'project-home': { archetypes: ['project-home'], hidden: ['date', 'cascade.target', 'cascade.kind'] },
   'project-section': { archetypes: ['project-section'], hidden: ['date'] },
   'project-doc': { archetypes: ['project-doc'], hidden: [] },
+  // section 列表页（/posts/、/courses/、/projects/、/tags/ 这类分区的入口页）：五种类型共用
+  // content.mjs 里同一个 editorSchema 分支，骨架都是 archetypes/section.md（只有 title + description）。
+  // 以前这几类根本不在 MAP 里 —— 骨架不过这条检查，就等于新旧两处事实源又分一次家。
+  'posts-list': { archetypes: ['section'], hidden: [] },
+  'courses-list': { archetypes: ['section'], hidden: [] },
+  'projects-list': { archetypes: ['section'], hidden: [] },
+  'taxonomy-page': { archetypes: ['section'], hidden: [] },
+  'section-list': { archetypes: ['section'], hidden: [] },
 };
 
 // 取 front matter 里的键路径。只认「顶层键 + 其下第一层子键」：

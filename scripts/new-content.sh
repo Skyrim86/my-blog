@@ -11,13 +11,15 @@
 #   bash scripts/new-content.sh project <项目> [--title 标题] [--tags A,B] [--repo URL] [--layered] [--publish]
 #   bash scripts/new-content.sh sub     <项目> <子项目> [--title 标题] [--publish]
 #   bash scripts/new-content.sh doc     <项目路径> <文档名> [--title 标题] [--tags A,B] [--no-math] [--publish]
+#   bash scripts/new-content.sh section <路径> --title 标题 [--description 描述]
+#                                                       建 section 列表页（content/<路径>/_index.md）
 #   bash scripts/new-content.sh remove  <content 路径> [--with-bundle] [--dry-run]
 #                                                       删除一个页面；index.md/_index.md 可连整个目录删
 #   bash scripts/new-content.sh tags                     列出标签 / 分类词表
 #   bash scripts/new-content.sh add-term <tags|categories> <词条> [--check]
 #                                                        只往词表加词条（不建内容）；--check 只校验不写
 #
-# 通用选项（除 remove / tags / add-term 外都接受）：
+# 通用选项（除 remove / tags / add-term / section 外都接受；section 只认 --title 与 --description）：
 #   --date YYYY-MM-DD    覆盖骨架里的 date（默认今天，由 archetype 写入）
 #   --description 文本   覆盖骨架里的 description
 #   --body-stdin         正文从标准输入读入，整体替换骨架的占位正文（管理页拖入 .md 用）。
@@ -34,6 +36,7 @@
 #   - 标签只从 data/taxonomy.yaml 里选；要新词必须显式加 --new-tag，脚本会把它写进词表。
 #   - 默认 draft: true（与 archetype 一致）；确认写完后用 --publish 或手工改 false。
 #   - 删除也只在这里实现（管理页调 `remove`），Node 侧不另写一套路径规则。
+#   - section 列表页（_index.md）不允许单独删除：它一没，整个分区的列表页就没了（见 remove 的护栏）。
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -58,6 +61,9 @@ usage() {
   new-content.sh project <项目> [--title 标题] [--tags A,B] [--repo URL] [--layered] [--publish]
   new-content.sh sub     <项目> <子项目> [--title 标题] [--publish]
   new-content.sh doc     <项目路径> <文档名> [--title 标题] [--tags A,B] [--no-math] [--publish]
+  new-content.sh section <路径> --title 标题 [--description 描述]
+                                          建 section 列表页（content/<路径>/_index.md）；
+                                          路径相对 content/，如 posts 或 projects/CMC2026/approach
   new-content.sh remove  <content 路径> [--with-bundle] [--dry-run]
   new-content.sh tags                     列出标签 / 分类词表
   new-content.sh add-term <tags|categories> <词条> [--check]
@@ -516,11 +522,54 @@ cmd_doc() {
   return 0
 }
 
+# ---------- section 列表页 ----------
+#
+# 建的是「分区的入口页」：/posts/、/courses/、/projects/、/tags/ 这类 URL 都靠 content/<路径>/_index.md 存在。
+# 为什么必须有这个子命令：这类页面此前没有任何入口能建（只能手写），而它一旦缺失，该分区就退化成
+# 「隐式 section」—— 页面能不能存在取决于下面还有没有子页面；最后一个子页面被删空时，列表页与所有
+# 指向它的入口（导航栏、首页、正文链接）会一起 404。判据与修法见 scripts/check-sections.sh 与 docs/traps.md。
+# 骨架是 archetypes/section.md，只有 title + description（不写 tags / date / draft，与现有列表页一致）。
+cmd_section() {
+  [ "$#" -ge 1 ] || die "用法：new-content.sh section <路径> --title 标题 [--description 描述]"
+  local path="${1%/}"
+  case "$path" in
+    "") die "路径不能为空。用法：section <路径> --title 标题，如 section posts --title 文章" ;;
+    "$CONTENT_DIR"/*) die "路径相对 $CONTENT_DIR/ 写，不要带 $CONTENT_DIR/ 前缀：section ${path#"$CONTENT_DIR"/} --title 标题" ;;
+    /*) die "路径必须是相对 $CONTENT_DIR/ 的路径（如 posts），不能是绝对路径：$path" ;;
+  esac
+  case "$path" in *..*) die "路径里不能出现 ..：$path" ;; esac
+  case "$path" in *.md) die "这里填的是 section 目录，不是文件：$path" ;; esac
+  if [ ! -d "$CONTENT_DIR/$path" ]; then
+    die "找不到目录：$CONTENT_DIR/$path（本子命令只补列表页；要开新分区请先 mkdir -p 那个目录）"
+  fi
+  if [ -f "$CONTENT_DIR/$path/index.md" ]; then
+    die "$CONTENT_DIR/$path 是 leaf bundle（单页 + 附件），不该有列表页：$CONTENT_DIR/$path/index.md"
+  fi
+  # 列表页的标题是给访客看的（「文章」而不是「posts」），不强制就会静默留下目录名
+  [ -n "$TITLE" ] || die "缺 --title：section 列表页的标题会显示在导航与列表页上，如 section posts --title 文章"
+
+  new_file "$path/_index.md" section
+  local f="$LAST_FILE"
+  fm_set "$f" '^title: ' "title: $(yaml_str "$TITLE")"
+  if [ -n "$DESC" ]; then fm_set "$f" '^description: ' "description: $(yaml_str "$DESC")"; fi
+  if [ "$PUBLISH" = "1" ] || [ -n "$NEWDATE" ]; then
+    warn "--publish / --date 对列表页没有意义（骨架里没有 draft 与 date），已忽略"
+  fi
+  info "列表页没有 draft，已即时生效；它是否存在由 scripts/check-sections.sh 把关"
+  return 0
+}
+
 # ---------- 删除 ----------
 #
 # 删除只在这里实现：管理页的「删除」按钮调的就是它（先 `remove --dry-run` 拿清单、确认后再真删），
 # Node 侧不另写一套路径规则（与 add-term 同样的分工）。
 # 不做撤销/回收站：文件都在 git 里，`git checkout -- <路径>` 就能找回已提交过的内容。
+#
+# 护栏（都是「删了会静默坏掉」的那类）：
+#   · 两处路径卫生：必须在 content/ 下、不许出现 ..
+#   · 只支持 .md
+#   · _index.md 不能单独删（它是 section 的列表页，删掉分区就没入口页了）→ 必须 --with-bundle
+#   · content/ 下一级分区的整目录删除一律拒绝（否则一键清空 content/courses）
 cmd_remove() {
   [ "$#" -ge 1 ] || die "用法：new-content.sh remove <content 路径> [--with-bundle] [--dry-run]"
   local target="${1%/}"
@@ -533,6 +582,13 @@ cmd_remove() {
   [ -e "$target" ] || die "找不到：$target"
   [ -f "$target" ] || die "只支持删除 .md 文件（或它所在的整个目录）：$target"
   case "$target" in *.md) ;; *) die "只支持删除 .md 文件：$target" ;; esac
+
+  # section 的列表页不能单独删：它一没，整个分区就退化成「隐式 section」——页面能不能存在
+  # 取决于下面还有没有子页面，子页面一删空，导航栏/首页指向它的入口全部 404（实测踩过）。
+  # 要删就 --with-bundle 连目录一起删；一级分区的整目录删除下面还有一道护栏接着拦。
+  if [ "$(basename "$target")" = "_index.md" ] && [ "$BUNDLE" != "1" ]; then
+    die "_index.md 是 section 的列表页，不能单独删：删掉后这个分区就没有入口页了，导航栏/首页指向它的链接会 404。要删就连目录一起删：remove $target --with-bundle"
+  fi
 
   local dir rm_dir=""
   dir="$(dirname "$target")"
@@ -748,6 +804,7 @@ case "$cmd" in
   project) cmd_project ${POS[@]+"${POS[@]}"} ;;
   sub)     cmd_sub     ${POS[@]+"${POS[@]}"} ;;
   doc)     cmd_doc     ${POS[@]+"${POS[@]}"} ;;
+  section) cmd_section ${POS[@]+"${POS[@]}"} ;;
   tags)    cmd_tags ;;
   remove)  cmd_remove  ${POS[@]+"${POS[@]}"}; exit 0 ;;
   add-term) cmd_add_term ${POS[@]+"${POS[@]}"}; exit 0 ;;

@@ -65,10 +65,11 @@ my-blog/
 ├── scripts/                   # 内容与 CI 工具（bash / Node，零依赖）
 │   ├── new-content.sh         # 新内容脚手架 + 删除（唯一实现）
 │   ├── check-frontmatter.sh   # 阻断：front matter 与 section/material 的 tags 规则
+│   ├── check-sections.sh      # 阻断：每个 section 目录必须有 _index.md（列表页）
 │   ├── fix-math-escapes.mjs   # 公式转义（\* → *）：默认只检查（阻断），--fix 自动修正
 │   ├── check-tags.sh          # 只警告：标签词表比对
 │   ├── check-katex-pairing.sh # 阻断：KaTeX 样式与 Hugo 内嵌版本是否配对
-│   ├── check-links.mjs        # 阻断：站内链接与锚点
+│   ├── check-links.mjs        # 阻断：站内链接与锚点（同站绝对链接也在内）
 │   ├── check-editor-schema.mjs# 只警告：archetypes 与管理页字段表的漂移
 │   ├── report-size.sh         # 阻断：页面体积预算（--fresh 消除 public/ 陈旧产物影响）
 │   ├── push-blog.sh           # 一键公式转义自动修复 + 构建 + 校验 + 提交 + 推送
@@ -144,7 +145,9 @@ hugo --minify --gc --cleanDestinationDir   # 生产构建
 
 因为工作流是**直推 main**，只挂在 PR 上的校验根本不会生效，所以校验必须进 `deploy.yml`。
 
-复合动作里的顺序是「先快后慢」：标签词表（警告）→ front matter（阻断）→ 公式转义（阻断）→ 编辑器字段表漂移（警告）→ 构建 → KaTeX 配对（阻断）→ 体积预算（阻断）→ 站内链接（阻断）。
+复合动作里的顺序是「先快后慢」：标签词表（警告）→ front matter（阻断）→ section 结构（阻断）→ 公式转义（阻断）→ 编辑器字段表漂移（警告）→ 构建 → KaTeX 配对（阻断）→ 体积预算（阻断）→ 站内链接（阻断）。
+
+其中 **section 结构校验**（`check-sections.sh`）断言每个 section 目录都有 `_index.md`：列表页缺了的话，该分区的入口页（`/posts/` 这类）会在最后一个子页面被删空时静默消失，导航栏与首页指向它的链接跟着 404。判据与修法见 [`content.md`](content.md)。
 
 **公式转义这一项本地会自动修**：`scripts/push-blog.sh` 在算「工作区是否有改动」之前先跑 `node scripts/fix-math-escapes.mjs --fix`（写操作），所以管理页的「发布」与命令行发布都不会被 `\*` 拦住；CI 只检查不修改，用来兜住绕过这两条入口的提交。详见 [`formulas.md`](formulas.md) 第 3 节。
 

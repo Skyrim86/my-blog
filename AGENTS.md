@@ -12,7 +12,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 
 ## 2. 硬规则
 
-1. **内容一律走脚手架**：`bash scripts/new-content.sh <post|course|chapter|notes|homework|lab|project|sub|doc|remove>`，或用 `/new-post`、`/new-course`、`/new-project`、`/admin`，或双击 `启动管理页.bat`。**不要用 Write 直接创建内容文件、不要手抄 front matter**——`archetypes/` 是唯一事实源，手抄必然漂移。**删除也走 `remove`**（它有 bundle 与 section 根的护栏），不要手敲 `rm`
+1. **内容一律走脚手架**：`bash scripts/new-content.sh <post|course|chapter|notes|homework|lab|project|sub|doc|section|remove>`，或用 `/new-post`、`/new-course`、`/new-project`、`/admin`，或双击 `启动管理页.bat`。**不要用 Write 直接创建内容文件、不要手抄 front matter**——`archetypes/` 是唯一事实源，手抄必然漂移。**删除也走 `remove`**（它有 bundle、section 根与 `_index.md` 的护栏：section 列表页不能单独删），不要手敲 `rm`
 2. **标签只从 `data/taxonomy.yaml` 取**，不要手打；新词加 `--new-tag`（脚本自动写回词表）。词表格式被 shell grep 解析，**不要改成嵌套 YAML**
 3. **标签只打在 regular page 上**：section 页（课程主页、章节入口页、项目页、子项目页）写 `tags`/`categories` 是**无效且有害**的（`/tags/` 计数虚高、词条页里却不出现）。课程/项目的标签写在主页的 `cascade` 里并加 `target: {kind: page}`；写作用范围用 **`target`**，不要用已弃用的 `_target`
 4. **`cascade` 只填空、不合并**：子孙页一旦自己写了 `tags`（**空数组也算「已定义」**），继承来的标签会被**整体丢弃**。所以课程材料页与分层项目的子项目页/文档页**不要写 tags**
@@ -70,7 +70,7 @@ bash scripts/push-blog.sh "feat: 说明"     # 公式转义自动修复 → 校�
 bash scripts/upgrade-hugo.sh <版本>        # 同步升级 Hugo + 配对的 KaTeX 样式
 ```
 
-跑完构建后单独校验：`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`。
+跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`。
 
 ## 6. 别做
 

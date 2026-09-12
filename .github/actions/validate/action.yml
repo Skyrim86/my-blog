@@ -25,6 +25,15 @@ runs:
       shell: bash
       run: bash scripts/check-frontmatter.sh
 
+    # section 结构：阻断。断言每个 section 目录都有 _index.md（列表页）。
+    # 缺了它，该分区会退化成「隐式 section」——页面能不能存在取决于下面还有没有子页面，
+    # 子页面一删空，/posts/ 这类列表页就连同导航栏、首页指向它的入口一起 404。
+    # 上面那条 front matter 检查只遍历**已存在的** .md 文件，看不见「文件缺失」，所以单列一条。
+    # 只扫 content/、不依赖构建产物，所以和上面两条一样排在快校验里。
+    - name: section 结构校验（阻断）
+      shell: bash
+      run: bash scripts/check-sections.sh
+
     # 公式里的 `\*` 不是 KaTeX 命令（KaTeX 只认裸 `*`），一处就能让整站构建失败，
     # 因为渲染钩子是 throwOnError=true。这里**只检查不修改**（CI 不该改内容）；
     # 本地 push-blog.sh 与管理页保存/新建会调同一个脚本自动修好。
