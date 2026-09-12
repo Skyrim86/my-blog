@@ -26,6 +26,7 @@ import {
   editorSchema,
   layeredProjectDirs,
   listContent,
+  invalidatePermalinks,
   parseFrontMatter,
   previewUrl,
   projectDirs,
@@ -33,7 +34,7 @@ import {
   relFromRoot,
   resolveContentPath,
 } from './lib/content.mjs';
-import { addTerm, readTaxonomy, validateTerm } from './lib/taxonomy.mjs';
+import { addTerm, checkTerm, readTaxonomy } from './lib/taxonomy.mjs';
 import * as gitlib from './lib/git.mjs';
 import { HugoPreview } from './lib/hugo.mjs';
 import { resolveBash, runScript, git } from './lib/exec.mjs';
@@ -154,8 +155,11 @@ async function listContentCached(force = false) {
   listCache = { at: Date.now(), value };
   return value;
 }
+// 内容变化后要失效的缓存：文件清单，以及由 `hugo list all` 得来的 permalink 表
+// （新建/保存会改变页面 URL，尤其是改 date / title / slug 时）。
 function invalidateList() {
   listCache = { at: 0, value: null };
+  invalidatePermalinks();
 }
 
 // ---------------- HTTP 工具 ----------------
@@ -248,7 +252,14 @@ async function handleCreate(body) {
     const current = await readTaxonomy(REPO_ROOT);
     const known = new Set(current.tags.map((t) => t.toLowerCase()));
     const unknown = requested.filter((t) => !known.has(t.toLowerCase()));
-    const invalid = unknown.map((t) => ({ term: t, error: validateTerm(t) })).filter((x) => x.error);
+    // 校验规则只有一份（在 new-content.sh 的 validate_term 里），这里只是先问一遍，
+    // 好在建文件之前把不合格的新词一次性报出来。
+    const invalid = [];
+    for (const t of unknown) {
+      // eslint-disable-next-line no-await-in-loop
+      const error = await checkTerm(REPO_ROOT, 'tags', t);
+      if (error) invalid.push({ term: t, error });
+    }
     if (invalid.length > 0) {
       return {
         ok: false,
@@ -356,23 +367,23 @@ async function handleSave(body) {
   };
 }
 
-function handlePreviewUrl(query) {
+async function handlePreviewUrl(query) {
   const rel = query.get('path');
   if (!rel) throw Object.assign(new Error('缺少 path 参数'), { status: 400 });
   const abs = resolveContentPath(REPO_ROOT, rel);
-  return fs.readFile(abs, 'utf8').then((text) => {
-    const { values } = parseFrontMatter(text);
-    const st = preview.status();
-    const computed = previewUrl(BASE_PATH, rel, values);
-    return {
-      ...computed,
-      previewRunning: st.running,
-      previewReady: st.ready,
-      previewPort: st.port,
-      // hugo server 在 localhost 上仍然按 baseURL 的子路径提供服务，所以直接把同一路径换个 origin。
-      href: st.running && st.port ? `http://127.0.0.1:${st.port}${computed.url}` : null,
-    };
-  });
+  const text = await fs.readFile(abs, 'utf8');
+  const { values } = parseFrontMatter(text);
+  const st = preview.status();
+  // 地址由 Hugo 说了算（hugo list all 的 permalink）；列不到这一页时才退回启发式。
+  const computed = await previewUrl(REPO_ROOT, BASE_PATH, rel, values);
+  return {
+    ...computed,
+    previewRunning: st.running,
+    previewReady: st.ready,
+    previewPort: st.port,
+    // hugo server 在 localhost 上仍然按 baseURL 的子路径提供服务，所以直接把同一路径换个 origin。
+    href: st.running && st.port ? `http://127.0.0.1:${st.port}${computed.url}` : null,
+  };
 }
 
 // ---------------- 发布（SSE 流式） ----------------

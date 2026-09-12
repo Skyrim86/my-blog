@@ -1,0 +1,40 @@
+name: External link check
+
+# 周检线上站点的**外链**。站内链接与锚点由 scripts/check-links.mjs 在每次构建时阻断检查
+# （见 .github/actions/validate），这里不重复做。
+#
+# 为什么查线上而不是构建产物：周检要回答的是「读者点到的外链还有效吗」，
+# 而线上才是读者看到的那一份。
+#
+# 非阻断（fail: false）：外站 403/429/超时是常态，不该让别人的站点把自己的 CI 弄红。
+on:
+  schedule:
+    # 每周一 01:00 UTC = 09:00（东八区）
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: lychee 外链检查（非阻断）
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --config .lychee.toml
+            --no-progress
+            --verbose
+            https://skyrim86.github.io/my-blog/
+          # 结果只看日志/摘要，不让它把 CI 变成红的
+          fail: false

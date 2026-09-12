@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # Actions 已按 commit SHA 固定（见 scripts/pin-actions.sh）。固定之后必须有更新通道，
+  # 否则就是「假安全」：SHA 会被永久冻在旧版本上。dependabot 会在**保持 SHA 固定**的前提下
+  # 同时更新 SHA 与后面那行版本注释。
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
+    labels: ["dependencies"]
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # 复合动作里的 uses 不在 / 目录的扫描范围内，这里单独指一次
+  # （Hugo 版本钉就写在 .github/actions/validate/action.yml 里）。
+  - package-ecosystem: github-actions
+    directory: /.github/actions/validate
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
+    labels: ["dependencies"]

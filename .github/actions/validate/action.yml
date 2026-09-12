@@ -1,0 +1,49 @@
+name: Validate and build
+description: >-
+  跑全部校验并构建站点。checks.yml（PR/分支）与 deploy.yml（push main）共用这一个动作，
+  这样「同一套校验」不会两边漂移；校验不过就不会产出 public/，也就不会部署。
+
+runs:
+  using: composite
+  steps:
+    # Hugo 版本钉的**唯一事实源**。升级请跑 scripts/upgrade-hugo.sh <版本>，
+    # 它会把这里、static/katex 的 CSS/fonts 与注释一起改掉并自校验（配对坑见 AGENTS 第 7 节）。
+    - name: Setup Hugo
+      uses: peaceiris/actions-hugo@2752ce1d29631191ea3f27c23495fa06139a5b78 # v3.2.1
+      with:
+        hugo-version: '0.165.0'
+        extended: true
+
+    # 标签词表：只警告不阻断（沿用 push-blog.sh 的语义，拼错会分裂出两个词条页，值得看见）
+    - name: 标签词表校验（只警告）
+      shell: bash
+      run: bash scripts/check-tags.sh || echo "::warning title=标签词表::有未登记的标签，详见日志"
+
+    # front matter：阻断。能拦住「整页没有 front matter」「缺 title/date/draft」
+    # 「section 页写了 tags」这一类构建能过、页面其实是坏的问题。
+    - name: front matter 校验（阻断）
+      shell: bash
+      run: bash scripts/check-frontmatter.sh
+
+    # archetypes 与管理页字段表是否分叉：只警告不阻断（内部一致性问题，不该拦内容发布）
+    - name: 编辑器字段表漂移检查（只警告）
+      shell: bash
+      run: node scripts/check-editor-schema.mjs || echo "::warning title=编辑器字段表::archetypes 与管理页字段表已分叉，详见日志"
+
+    - name: 构建
+      shell: bash
+      run: hugo --minify --gc --cleanDestinationDir
+
+    # 公式本体的排版正确性只取决于「CSS 与 Hugo 内嵌 KaTeX 是否同套类名」，
+    # 而这件事只有拿真实 Hugo 构建完才知道 —— 所以这条只能在构建后跑。
+    - name: KaTeX 与 Hugo 版本配对校验（阻断）
+      shell: bash
+      run: bash scripts/check-katex-pairing.sh
+
+    - name: 体积报告与预算（阻断）
+      shell: bash
+      run: bash scripts/report-size.sh
+
+    - name: 站内链接与锚点检查（阻断）
+      shell: bash
+      run: node scripts/check-links.mjs

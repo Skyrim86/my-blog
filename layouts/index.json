@@ -13,10 +13,10 @@
    其余逻辑（searchHidden、archives/search 页排除）沿用主题，未改动。
    这是继 layouts/courses/*.html 之后第二处有意的主题模板覆盖：主题该模板没有 hook 可挂，
    而截断逻辑无法从外部配置实现。改索引字段时记得同步 hugo.toml 的 fuseOpts.keys。 */ -}}
-{{- $.Scratch.Add "index" slice -}}
+{{- $index := slice -}}
 {{- range site.RegularPages -}}
     {{- if and (not .Params.searchHidden) (ne .Layout `archives`) (ne .Layout `search`) }}
-    {{- $.Scratch.Add "index" (dict
+    {{- $index = $index | append (dict
         "title" .Title
         "content" (.Plain | truncate 400)
         "permalink" .Permalink
@@ -24,5 +24,5 @@
         "tags" (.Params.tags | default slice)) -}}
     {{- end -}}
 {{- end -}}
-{{- $.Scratch.Get "index" | jsonify -}}
+{{- $index | jsonify -}}
 

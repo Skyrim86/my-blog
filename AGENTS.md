@@ -83,14 +83,22 @@ my-blog/
 ├── .github/workflows/deploy.yml  # GitHub Actions 部署
 ├── scripts/
 │   ├── new-content.sh         # 新内容脚手架：文章/课程/章/项目/文档（见 4.2⑫）
-│   ├── check-tags.sh          # 标签词表校验（push-blog 会调用，只警告）
+│   ├── check-tags.sh          # 标签词表校验（只警告）
+│   ├── check-frontmatter.sh   # front matter 校验（**阻断**：无 FM / 缺 title,date,draft / section 页写 tags）
+│   ├── check-katex-pairing.sh # KaTeX 样式与 Hugo 内嵌版本是否配对（**阻断**，见 4.2⑥）
+│   ├── check-links.mjs        # 站内链接与锚点检查（**阻断**；零依赖 Node，见第 6 节）
+│   ├── check-editor-schema.mjs# archetypes 与管理页字段表的漂移检查（只警告，见 4.2⑬）
+│   ├── report-size.sh         # 页面体积报告 + 预算（**阻断**；--fresh 消除 public 陈旧产物影响）
+│   ├── upgrade-hugo.sh        # Hugo + KaTeX 一键同步升级（见第 6 节）
+│   ├── pin-actions.mjs        # 把 Actions 的 uses 从可变标签改成 commit SHA 固定
 │   ├── preview.sh             # 本地预览（hugo server -D）
-│   ├── push-blog.sh           # 一键构建 + 提交 + 推送（见第 6 节）
+│   ├── push-blog.sh           # 一键构建 + 校验 + 提交 + 推送（见第 6 节）
 │   ├── admin.sh               # 本地管理页启动器（见 4.2⑬）
 │   └── admin/                 # 本地管理页：零依赖 Node 服务 + 原生前端（不参与 Hugo 构建）
 │       ├── server.mjs         #   HTTP 服务：静态页 + JSON API（新建/编辑/词表/git/发布）
 │       ├── lib/               #   业务模块：content / frontmatter / taxonomy / git / hugo / exec
 │       └── ui/                #   index.html + app.js + style.css
+├── .lychee.toml               # 外链检查配置（周检、非阻断；站内链接由 check-links.mjs 负责）
 ├── .agents/commands/          # 斜杠命令（放 .agents/ 才入库，.zcode/ 被 gitignore）
 │   ├── push-blog.md           #   /push-blog
 │   ├── new-post.md            #   /new-post
@@ -98,12 +106,26 @@ my-blog/
 │   ├── new-project.md         #   /new-project
 │   ├── admin.md               #   /admin
 │   └── preview.md             #   /preview
-└── themes/PaperMod/           # vendored 主题，不要直接修改
+├── .github/
+│   ├── actions/validate/action.yml # 校验+构建的**唯一定义**（checks.yml 与 deploy.yml 共用）
+│   ├── workflows/deploy.yml   # push main：校验 → 构建 → 部署 Pages（校验不过就不部署）
+│   ├── workflows/checks.yml   # PR / 非 main 分支：只校验，不部署
+│   ├── workflows/links.yml    # 每周外链检查（lychee，非阻断，查线上站点）
+│   └── dependabot.yml         # 给已固定 SHA 的 Actions 留更新通道
+└── themes/PaperMod/           # vendored 主题（**已剪裁**，见第 2 节末；不要直接修改）
 ```
 
 `public/`（构建产物）、`resources/`（Hugo 缓存）、`.hugo_build.lock` 均不入库。`data/taxonomy.yaml` 是标签词表，**要入库**。
 
 favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 `theme-color` 同色）；换真实 logo 时直接覆盖 `static/` 下 `favicon.ico`、`favicon-16x16.png`、`favicon-32x32.png`、`apple-touch-icon.png`、`safari-pinned-tab.svg` 这 5 个文件即可，无需改代码。
+
+### 2.1 主题剪裁记录（2026-09-12）
+
+`themes/PaperMod/` 从 125 个入库文件 / 756 KB 剪到 **72 个 / 478 KB**，删的都是与本站构建无关的东西：`images/`（screenshot.png + tn.png，157 KB，只供上游主题画廊用 —— `theme.toml` 里没有 `screenshot` 键，已核对）、`.github/`（上游 issue/PR 模板与上游 workflow，25 KB）、`i18n/` 里 **43 个用不到的语言包**（保留 `en.yaml`/`zh.yaml`/`zh-tw.yaml`；站点单语言 `zh`，locale `zh-CN` 的查找链 `zh-CN → zh → en` 全覆盖，留 en 是兜底防键名直出）、`README.md`、以及 **`go.mod`**（主题并不通过 Hugo Modules 加载，那个文件会诱导后人去 `hugo mod` 它）。保留 `LICENSE`（MIT 署名）与 `theme.toml`。
+
+**`themes/PaperMod/layouts/` 与 `assets/` 刻意没有剪**，这不是偷懒而是结论：**Hugo 会静默容忍缺失的 partial** —— 主题 `_partials/head.html` 无条件调用的 `google_analytics.html` 在站点与主题里**都不存在**，而 og:/JSON-LD 照常渲染、构建一直是绿的。既然构建成功无法证明删模板文件安全，而 `layouts/` 里那些死文件（`share_icons.html`、`home_info.html`、`llms.txt`、8 个 shortcode、被站点覆盖的 `index.json`）总共不到 40 KB，就不值得为它承担"某条只走一次的渲染路径被删掉、且没人发现"的风险。**要再剪主题，只能按引用分析逐个确认，不能靠"构建还过"来验证。**
+
+同步主题时的注意：升级上游后这些被删的文件会重新出现，需要按本节的清单再剪一次。
 
 ## 3. hugo.toml 配置要点
 
@@ -140,7 +162,11 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 **① Giscus 评论** — `layouts/_partials/comments.html`（覆盖主题同名 partial）
 - 参数全部读自 `hugo.toml [params.giscus]`，由 `params.comments=true` 全局启用
 - **主题同步机制**（`assets/js/giscus-theme-sync.js`）：Giscus iframe 的主题不会自动跟随站点。脚本用 `MutationObserver` 观察 `<html>` 的 `data-theme` 属性变化（与主题的切换机制一致），并在懒加载 iframe 出现时同步一次初始主题；每次同步向 `https://giscus.app` postMessage `setConfig`，600ms 后重发一次兜底
-- 该脚本**只在有评论区的页面加载**（`extend_head.html` 里用 `if (.Param "comments")` 判断），无评论区页面不做无效轮询
+- 该脚本**只在真正渲染评论区的页面加载**。判据是三个条件同时成立（`extend_head.html`）：
+  1. `.Param "comments"` —— 与主题 `single.html` 的判据一致（课程材料页由 cascade 关掉）；
+  2. `.Kind == "page"` —— 少了这条会回落到全站 `params.comments = true`，把首页/列表页/词条页一起命中；
+  3. 排除 `archives` / `search` 两个 layout —— 它们是 regular page 但各有独立模板，不走 `single.html`（`layouts/index.json` 里也是这么排的）。
+  实测（干净构建、65 页）：**修之前 37 个页面加载它、真正有评论区的只有 10 个**；收窄后两者都是 10，零浪费
 
 **② 系列文章导航** — `layouts/_partials/series-posts.html` + `extend_post_content.html`
 - 文章 front matter 写 `series: ['系列名']` 即生效
@@ -167,7 +193,12 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
   - Hugo **≤ 0.165** 内嵌 KaTeX **0.16.22**，内部 class **无前缀**（`base`、`strut`、`sizing`）→ 必须配 **katex@0.16.x** 的 CSS
   - Hugo **≥ 0.166** 内嵌 KaTeX **0.18.4+**，改成**带前缀**（`katex-base`、`katex-strut`、`katex-sizing`）→ 必须配 **katex@0.18.4+** 的 CSS
   - 配错的表现是公式排版错乱（上下标错位、分数塌陷）。**升级 Hugo 时必须同步替换 `katex.min.css` 与 `fonts/`**，这是升级 Hugo 的强制动作
-  - 站内当前是 `katex@0.16.22` 的 `katex.min.css` + `fonts/*.woff2`（20 个），与 Hugo 0.165 精确配对
+  - 站内当前是 `katex@0.16.x` 的 `katex.min.css` + `fonts/*.woff2`（20 个），与 Hugo 0.165 精确配对
+  - **判据只认类名是否带前缀，`katex-base` 是唯一可靠的判别符**（`katex-display`/`katex-html` 两套都有）。自查：
+    `grep -c 'katex-base' static/katex/katex.min.css` → **0 = 0.16.x（无前缀）**，非 0 = 0.18.4+
+  - 这条判据已用 npm 上的包实测过：`katex@0.16.47` 是 `.base{}`/`.strut{}`、无 `katex-base`；`katex@0.18.7` 反之；两者都带 20 个 woff2 字体
+  - **升级不要再手动换文件**：跑 `bash scripts/upgrade-hugo.sh <版本>`（见第 6 节），它按上面的配对表选 KaTeX 版本、改版本钉、换 CSS/fonts，并在写坏时自动回滚
+  - **每次构建都有 CI 兜底**：`scripts/check-katex-pairing.sh` 拿真实 Hugo 构建产物比对类名方案（取样"公式最多"的那一页），配错直接判失败 —— 因为只有拿真 Hugo 构建完才知道它内嵌的是哪一套
 - **公式源文必须先被 markdown「放过」**：`hugo.toml` 已开启 `[markup.goldmark.extensions.passthrough]`（`block` = `$$`/`\[ \]`，`inline` = `$`/`\( \)`，**单 `$` 必须显式写，passthrough 默认不含它**），goldmark 在解析阶段整体跳过公式，源文原样交给上面那个渲染钩子。这是必需的：否则 `R^*` 的 `*` 会被当作强调符与同行的 `**` 配对、注入 `<em>` 把文本节点切开；`\{`、`\}`、`\%`、`\!`、`\,` 这类由标点构成的 LaTeX 命令也会被 CommonMark 的转义规则吃掉反斜杠。**改定界符时 `hugo.toml` 与 `render-passthrough.html`（以及 `output` 之外的选项）要一起看**
 - 渲染钩子里 `throwOnError = true`（Hugo 默认）：公式有语法错误会**让构建失败并报出位置**，比静默渲染成一团红字更好。想让个别错误不阻断构建，把它改成 `false` 并配 `errorColor`
 - `output` 必须是 `htmlAndMathml`（与改造前的浏览器端 KaTeX 一致：HTML 排版 + 隐藏的 MathML 供无障碍）。改成纯 `mathml` 会变成浏览器原生渲染，外观不同，同时也就不再需要 `katex.min.css`
@@ -236,12 +267,14 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 - 启动器找 bash 的顺序刻意**先查 Git for Windows 的安装位置、再退回 PATH**：`C:\Windows\System32\bash.exe` 是 WSL 的 bash，用它跑这个脚本路径会全错。顺序为 `ADMIN_BASH` → `%ProgramFiles%\Git\bin\bash.exe` → `%ProgramFiles(x86)%\...` → `%LOCALAPPDATA%\Programs\Git\...` → 从 `where git` 反推 `..\bin\bash.exe`。找不到就打印 Git 下载地址并 `pause`，参数原样透传（`启动管理页.bat --port 1415` 可用）
 - 它是现有脚本的界面外壳，不是替代品：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制
 - **架构红线做成了界面约束**：`content/courses/**/notes|homework`、章节入口页、子项目页、各类 section/列表页的 tags 字段在界面上**隐藏并禁用**（理由同 4.2⑨：section 写 tags 只会让计数虚高；材料页写了会整体丢掉 cascade 下发的标签）；分层项目的文档页写 tags 会给出「会丢掉项目级标签」的提示。服务端也会忽略不属于该类型 schema 的字段——实测在材料页硬塞 tags 不会写进文件
-- **新标签先入词表、再建内容**：界面上勾的新词会先经 `/api/taxonomy/add` 写进 `data/taxonomy.yaml`（写后立刻用 `new-content.sh tags` 复核，复核不过就回滚原文件），全部校验通过才建文件——沿用 new-content.sh「校验早于建文件」的原则
-- **URL 与预览**：预览由内置的 `hugo server -D -F --disableFastRender` 提供，iframe 指向 `http://127.0.0.1:<预览端口>/my-blog/<页面路径>/`，保存后 livereload 自动刷新。页面路径推导里有两条容易错的规则：① Hugo 默认 `pathToLower`，URL 里的 ASCII 全小写（`CMC2026` → `cmc2026`）；② **文章的 `:slug` 取标题而不是目录名**（所以 `content/posts/my-first-post/` 的 URL 是 `/2026/09/我的第一篇文章/`），界面上因此提供了 `slug` 字段用于固定 URL
+- **新标签先入词表、再建内容**：界面上勾的新词会先经 `/api/taxonomy/add` 写进 `data/taxonomy.yaml`（写后立刻用 `new-content.sh tags` 复核，复核不过就回滚原文件），全部校验通过才建文件——沿用 new-content.sh「校验早于建文件」的原则。建内容前的预检走 `new-content.sh add-term --check`，**校验规则也只有 shell 那一份**
+- **URL 与预览**：预览由内置的 `hugo server -D -F --disableFastRender` 提供，iframe 指向 `http://127.0.0.1:<预览端口>/my-blog/<页面路径>/`，保存后 livereload 自动刷新。**页面路径不再由 Node 自己算，而是问 Hugo**：`hugo list all` 输出每页的 `path,permalink`（`content.mjs` 的 `previewUrl` 读它，缓存 5s，保存/新建时失效）。所以 `permalinks` 规则、`pathToLower`（`CMC2026` → `cmc2026`）、front matter 的 `url`、中文的百分号编码都由 Hugo 说了算，配置改了不会与界面分叉；只有「Hugo 列不到这一页」（刚新建还没落盘、或 hugo 不可用）时才退回原来的启发式，并标 `source: 'heuristic'`
+- **编辑器字段表与 archetypes 是策展关系，不是副本**：字段表是 archetype 的**子集 + 补充**（实测差异：只给 UI 的 `post.slug`、`material.math`、`project-doc.tags` 在 archetype 里没有；而有意不暴露的 `layout`、`date`、`cover.relative` 等又在 archetype 里有）。所以**没有**做「按 archetype 机械生成表单」——那会把 `layout`/`date` 顶进表单、丢掉 `slug`、并改掉每个类型的字段顺序，是行为回归。取而代之的是 `scripts/check-editor-schema.mjs`：archetype 里出现了既没被 UI 暴露、也不在它 `hidden` 列表里的键就报警，把**静默分叉**变成可见提醒
 - **两个 hugo server 的坑，都在代码里处理掉了**：`--disableFastRender` 不能省（Fast Render 模式下新建的文件不会真正出现在站点里）；`-F` 不能省（否则看不到日期写在未来的排期稿）。另外 hugo server 不会把「保存后固定链接变了」的页面注册到新地址上（改 date/title/slug 触发），所以界面在这三种字段被改动且预览在跑时会自动重启预览
 - 安全边界（因为这个服务能执行 shell）：默认只绑 `127.0.0.1`；校验 `Host` 白名单（防 DNS rebinding，外来域名解析到 127.0.0.1 也会被拒）；所有写操作要求自定义头 `X-Admin-Request: 1`（防其他网页对本地端口发跨站 POST）；所有 `path` 参数限制在 `content/` 内、拒绝 `..`；`--host 0.0.0.0` 只在显式传参时生效并打印风险提示
 - **界面资源绝不能放进 `assets/js/` 或 `assets/css/extended/`**：那两个目录会被主题合并进公开站点资源，等于把管理界面发到线上。所以它们放在 `scripts/admin/ui/`，由 Node 服务直接提供
-- 已知限制：只在本机可用（不做在线后台）；`data/taxonomy.yaml` 的**追加**逻辑在 Node 侧是第二份实现（`new-content.sh` 没有「只加词条」的入口），因此额外带了写后复核与失败回滚；幂等性没做文件锁，不要同时开两个管理页改同一批文件
+- 已知限制：只在本机可用（不做在线后台）；幂等性没做文件锁，不要同时开两个管理页改同一批文件
+- **写入收敛（2026-09-12）**：`data/taxonomy.yaml` 的追加不再由 Node 自己拼 YAML —— `new-content.sh` 新增了 `add-term <tags|categories> <词条>` 子命令（`--check` 只校验），界面只是调它。原先 Node 侧那份 `insertTerm`/`validateTerm` 已删除，词表的读、写、校验现在都只有 shell 一份实现（这也是 `scripts/check-editor-schema.mjs` 之外的另一处去重）
 
 ## 5. 约定（添加新功能必读）
 
@@ -278,6 +311,8 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 13. **能用主题内置的就不要自己写**（曾自建过返回顶部按钮，与主题 `#top-link` 重复，已删除）。判断某个功能主题是否已提供，先 grep `themes/PaperMod/layouts/` 与 `themes/PaperMod/assets/css/`
 14. **标签只从 `data/taxonomy.yaml` 词表里取**（见 4.2⑨）：用脚本或命令选词，不要手打；确实要新词就加 `--new-tag`（脚本会自动写进词表）。两条红线：**section 页不要写 `tags`**（只会让计数虚高、词条页里不出现）；**被 cascade 覆盖的子孙页不要写 `tags`**（cascade 只填空不合并，写了会整体丢掉继承来的标签）
 15. **管理页（`scripts/admin/`）同样受这些约定约束**（见 4.2⑬）：它的资源只能放 `scripts/admin/ui/`（`assets/**` 会被打包进公开站点）；它写盘一律转交 `new-content.sh`/`push-blog.sh`，不要在 Node 里另写一套 front matter 或发布逻辑；护栏（哪些页面禁止写 tags、裸 `$` 提示、排期提醒）要随约定一起改，别让界面和后端规则分叉
+16. **新增校验一律加进出 `.github/actions/validate/action.yml`**（不要在某个 workflow 里单独写），否则 `checks.yml` 与 `deploy.yml` 会分叉；同时想清楚它是**阻断**还是**只警告**：内容正确性问题（缺 front matter、坏链、公式错版）阻断；内部一致性与拼写问题（词表、编辑器字段表）只警告，别让它们拦住发布
+17. **能问工具的就不要自己实现**：页面 URL 问 `hugo list all`（4.2⑬），front matter 模板认 `archetypes/`，词表格式认 `data/taxonomy.yaml`。这轮删掉的两处重复实现（Node 拼词表、Node 算 URL）都是因为"自己又写了一遍"而必然腐化的
 
 ## 6. 本地开发与部署
 
@@ -291,7 +326,26 @@ hugo --minify --gc        # 生产构建，输出到 public/
 
 管理页会自己带起 `hugo server`，所以日常写作不必再另开预览；需要干净的预览环境时用 `scripts/preview.sh`。
 
-部署全自动：push 到 `main` → GitHub Actions（`deploy.yml`）→ checkout(fetch-depth:0，GitInfo 需要) → Setup Hugo 0.165.0 extended → `hugo --minify --gc` → 上传 artifact → `actions/deploy-pages@v4`。无手动步骤。
+部署全自动：push 到 `main` → GitHub Actions（`deploy.yml`）→ checkout(fetch-depth:0，GitInfo 需要) → **`./.github/actions/validate`（校验 + 构建）** → 上传 artifact → `actions/deploy-pages@v4`。无手动步骤。
+
+**CI 结构（2026-09-12 起）**：校验与构建的**唯一定义**在 `.github/actions/validate/action.yml`（复合动作），三个 workflow 共用它：
+
+| workflow | 触发 | 作用 |
+|---|---|---|
+| `deploy.yml` | push `main` | 校验 → 构建 → 部署。**校验不过就拿不到 `public/`，不会部署** |
+| `checks.yml` | PR / 非 main 分支 / 手动 | 只校验，不部署（权限只读） |
+| `links.yml` | 每周一 09:00（东八区）/ 手动 | lychee 查**线上站点**的外链，**非阻断** |
+
+直推 main 的工作流意味着校验必须进 `deploy.yml`——只挂在 PR 上是不会生效的。复合动作里的顺序是「先快后慢」：标签词表（警告）→ front matter（阻断）→ 编辑器字段表漂移（警告）→ 构建 → KaTeX 配对（阻断）→ 体积预算（阻断）→ 站内链接（阻断）。
+
+**Hugo 版本钉的唯一事实源现在是 `.github/actions/validate/action.yml` 的 `hugo-version`**（不再是 `deploy.yml`）。升级走脚本：
+
+```bash
+bash scripts/upgrade-hugo.sh --dry-run 0.166.0   # 演练：解析版本、下载、校验方案，不写文件
+bash scripts/upgrade-hugo.sh 0.166.0             # 实际改：版本钉 + static/katex 的 CSS/fonts + 注释
+```
+
+它按 KaTeX 配对表选版本（≤0.165 → katex 0.16.x 无前缀；≥0.166 → katex 0.18.4+ 带前缀），校验通过才写、失败自动回滚。**权威校验仍在 CI**：本地没装新版本 Hugo 时，只有 CI 能拿真实 Hugo 构建产物比对类名方案。
 
 ### 推送（固定入口，勿为此重新探查仓库）
 
@@ -301,7 +355,11 @@ hugo --minify --gc        # 生产构建，输出到 public/
 bash scripts/push-blog.sh "feat: 说明"     # 或在对话里用 /push-blog
 ```
 
-脚本自己完成：分支校验（必须是 `main`，否则退出）→ `hugo --minify --gc` 构建校验（**失败即中止，不推**）→ **两条只警告不阻断的提醒**（① 列出仍为 `draft: true` 的内容页——archetype 默认草稿而 CI 不构建草稿，草稿会被静默推上去却不上线；② 调用 `check-tags.sh` 报告词表外的标签）→ `git add -A`（含删除）→ `git commit` → `git push origin main`，最后若 `gh` 已安装并登录，附上最近一次 Actions 结果。工作区无改动但领先 origin 时只推送；两者都没有则打印提示并正常退出。不传说明时用 `chore: 更新博客内容`。
+脚本自己完成（顺序即「先快后慢」）：分支校验（必须是 `main`，否则退出）→ **`check-frontmatter.sh`（阻断）** → **`check-tags.sh`（只警告）** → **编辑器字段表漂移检查（只警告）** → **草稿提醒（只警告）** → `hugo --minify --gc --cleanDestinationDir` 构建校验（**失败即中止，不推**）→ **KaTeX 配对（阻断）** → **站内链接与锚点（阻断）** → **体积预算（阻断，通过时只打印 3 行结论）** → `git add -A`（含删除）→ `git commit` → `git push origin main`，最后若 `gh` 已安装并登录，附上最近一次 Actions 结果。工作区无改动但领先 origin 时只推送；两者都没有则打印提示并正常退出。不传说明时用 `chore: 更新博客内容`。
+
+**阻断项在本地就拦住，不会推到 CI 才红**：这套校验与 CI 的复合动作同源。`check-frontmatter.sh` 拦的是「构建能过但页面其实是坏的」那一类——整页没有 front matter（标题会退化成站点名）、缺 `title`/`date`/`draft`、section 页写了顶层 `tags`、课程材料页写了 `tags`、`draft: false` 却把 `date` 写在未来；这些都是 `hugo --minify --gc` **不会**报错的。
+
+**`--cleanDestinationDir` 不能省**：Hugo 默认不清空目标目录（`hugo --minify --gc` 的 `Cleaned` 恒为 0），所以只要曾经跑过 `hugo -D`，`public/` 里就会留下草稿页等陈旧产物，后面链接/体积两项量的就是错的东西，本地的页数也会虚高（实测虚高 5 页）。同理 `bash scripts/report-size.sh --fresh` 会构建到临时目录再量，避免这个偏差。
 
 管理页（`bash scripts/admin.sh`，见 4.2⑬）提供同一套流程的图形入口：它调用的是同一个 `push-blog.sh`，日志原样流式显示，构建失败同样中止且不推送。
 
@@ -337,3 +395,11 @@ bash scripts/push-blog.sh "feat: 说明"     # 或在对话里用 /push-blog
 - 明暗相关代码一律走 `data-theme` 属性（见第 4.1 节），不要写 `.dark` class 或监听 `class` 变化，那永远不会触发
 - `/tags/`、`/categories/`、`/series/` 三个总览页的标题由 `content/<taxonomy>/_index.md` 提供。**不要**再新建 `content/tags.md` 之类带 `url` 的普通页面去覆盖它们——那会把 `kind=taxonomy` 的列表页顶替成普通文章页（曾因此让「标签」入口整页空白）
 - 站点图标是 `static/` 下的静态文件，没有内容指纹；换 logo 后访客可能需要强刷才能看到新图标
+
+### 7.1 2026-09-12 这轮排查新增的坑
+
+- **加粗收尾紧接中文会无法闭合**（`**…**` 写在中文前）。已实测两种写法：`**附录 2（测向机原理与交会定位法**）建立模型` 能渲染（但 `）` 落在加粗外面），改成 `**附录 2（…）**建立模型` 反而**闭不上**、页面上直接显示 `**`。原因是 CommonMark 的 flanking 规则：闭合的 `**` 前面是标点（`）`）**且**后面是普通字符（`建`）时不算 right-flanking，无法收尾。修法是让闭合 `**` 后面跟标点/空白（例如补一个 `，`），或者让加粗范围不包含结尾的 `）`。**排查方法**：`grep -o '<strong>[^<]*</strong>'` 看渲染结果，或在构建产物里搜残留的 `\*\*`
+- **`public/` 不会被自动清空**（见第 6 节）：本地量页数与体积前必须用 `--cleanDestinationDir`，否则会把以前 `hugo -D` 留下的草稿页算进去。这轮实测就踩到过：页数虚高 5 页，giscus 脚本的"加载页面数"也被这 5 个陈旧页面污染
+- **主题模板里调用了不存在的 partial 也不会报错**：`themes/PaperMod/layouts/_partials/head.html` 在生产分支里调用 `google_analytics.html`，而这个文件在站点与主题里都不存在；构建依旧是绿的（og:/JSON-LD 照常输出）。**含义**：不能用"构建还过"来判断删主题文件是否安全（这也是第 2.1 节不剪 `layouts/` 的理由）。真要启用 GA，得自己补这个 partial
+- **KaTeX 版本注释曾把警告说反**：`extend_head.html` 里原本写着"当前版本：0.18.7"，而实际是 **0.16.x（无前缀）**。照那行注释去换 0.18.x 的 CSS 会让全站公式错版。判据与自查命令见 4.2⑥，现已改成实测口径
+- **`hugo list all` 是页面 URL 的权威来源**（`path,slug,title,date,…,permalink,kind,section`）。任何需要"这一页最终 URL 是什么"的地方都应该问它，别再自己实现 slugify + permalinks + pathToLower——那正是管理页原先的第二份实现，现已删除（见 4.2⑬）。注意解析它输出的两个坑：标题里可能有逗号（不能按逗号朴素切分），顶层页面的 `section` 是**空字符串**

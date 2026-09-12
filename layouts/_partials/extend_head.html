@@ -5,8 +5,14 @@
 <meta name="robots" content="noindex">
 {{- end }}
 
-{{- /* Giscus 主题跟随：只在本页真正有评论区时加载，无评论区的页面不做无效轮询 */ -}}
-{{- if (.Param "comments") }}
+{{- /* Giscus 主题跟随：只在本页真正有评论区时加载，无评论区的页面不做无效轮询。
+       三个条件缺一不可：
+         1. .Param "comments"     —— 与主题 single.html:62 的判据一致（课程材料页由 cascade 关掉）；
+         2. .Kind == "page"       —— 评论区只在 single.html 里渲染。缺这条会回落到全站
+                                     params.comments = true，把首页/列表页/词条页一起命中；
+         3. 排除 archives/search  —— archives.md 与 search.md 虽是 regular page，但各自有独立
+                                     layout，不走 single.html。layouts/index.json 里也是这么排的。 */ -}}
+{{- if and (.Param "comments") (eq .Kind "page") (not (in (slice "archives" "search") .Layout)) }}
 {{- $giscusSync := resources.Get "js/giscus-theme-sync.js" | minify | fingerprint }}
 <script defer src="{{ $giscusSync.RelPermalink }}" integrity="{{ $giscusSync.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
@@ -35,8 +41,17 @@
 
        升级 KaTeX：用 npm 包的 dist/katex.min.css 与 dist/fonts/*.woff2 覆盖同名文件即可
        （不再需要 dist/katex.min.js 与 contrib/auto-render.min.js）。这些静态文件没有内容指纹，
-       升级后访客可能需要强刷。当前版本：0.18.7 —— 注意它必须与 Hugo 内嵌的 KaTeX 兼容，
-       换 Hugo 大版本后建议抽查一个公式页的排版。 */ -}}
+       升级后访客可能需要强刷。
+
+       当前 CSS 是 **0.16.x**（与 Hugo 0.165 内嵌的 KaTeX 同版），特征是类名**无前缀**：
+       `.base{}` 与 `.strut{}` 存在，而 `katex-base` 不出现。Hugo ≥ 0.166 内嵌 KaTeX 0.18.4+
+       改成了**带前缀**的类名（`katex-base`），两者不能混用——配错的表现是公式上下标错位、
+       分数塌陷。所以换 Hugo 大版本时必须同步换这里的 CSS 与 fonts/，先按下面的命令自查：
+
+         grep -c 'katex-base' static/katex/katex.min.css   # 0 = 无前缀(0.16.x)，非 0 = 带前缀(0.18+)
+
+       一次做完「改版本钉 + 换 CSS/fonts + 校验类名方案」用 scripts/upgrade-hugo.sh。
+       CI 里也有一条校验：用真实 Hugo 构建后比对页面类名与 CSS 方案是否一致。 */ -}}
 {{- $needsMath := or site.Params.math (.Params.math) (strings.Contains (string .Content) "class=\"katex") -}}
 {{- if $needsMath }}
 <link rel="stylesheet" href="{{ "katex/katex.min.css" | relURL }}">

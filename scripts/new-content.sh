@@ -9,6 +9,8 @@
 #   bash scripts/new-content.sh sub     <项目> <子项目> [--title 标题] [--publish]
 #   bash scripts/new-content.sh doc     <项目路径> <文档名> [--title 标题] [--tags A,B] [--no-math] [--publish]
 #   bash scripts/new-content.sh tags                     列出标签 / 分类词表
+#   bash scripts/new-content.sh add-term <tags|categories> <词条> [--check]
+#                                                        只往词表加词条（不建内容）；--check 只校验不写
 #
 # 设计要点：
 #   - front matter 的唯一事实源是 archetypes/：本脚本只调用 `hugo new content --kind`，
@@ -38,10 +40,13 @@ usage() {
   new-content.sh sub     <项目> <子项目> [--title 标题] [--publish]
   new-content.sh doc     <项目路径> <文档名> [--title 标题] [--tags A,B] [--no-math] [--publish]
   new-content.sh tags                     列出标签 / 分类词表
+  new-content.sh add-term <tags|categories> <词条> [--check]
+                                          只往词表加词条（不建内容）；--check 只校验不写
 
 说明：
   --tags       逗号分隔，必须来自 data/taxonomy.yaml；拼写会自动按词表规范化
   --new-tag    允许词表里没有的新标签，并自动追加进词表
+  --check      配合 add-term：只做校验（含重名/大小写检查），不写词表
   --publish    直接 draft: false（默认仍是草稿）
   不带 --tags 且在终端里运行时，会列出词表让你按编号挑
 EOF
@@ -346,6 +351,70 @@ cmd_tags() {
   return 0
 }
 
+# 词条校验：插进词条的必须是能按「  - 词条」形式解析的纯文本。
+validate_term() { # $1 = 词条；不合法就 die
+  local t="$1"
+  [ -n "$t" ] || die "词条不能为空"
+  [ "$t" = "$(printf '%s' "$t" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')" ] || die "词条首尾不能有空格"
+  [ "${#t}" -le 60 ] || die "词条太长了（超过 60 字符）"
+  case "$t" in
+    *,*) die "词条不能包含逗号（词表用逗号拼成 --tags A,B）" ;;
+    *'#'*) die "词条不能包含 #（词表里的 # 会被当成行内注释）" ;;
+    -*) die "词条不能以 - 开头（会和词表列表项符号混淆）" ;;
+    '"'*|"'"*) die "词条不要加引号（见 $TAXONOMY 的格式约定）" ;;
+  esac
+  case "$t" in
+    *$'\n'*|*$'\r'*|*$'\t'*) die "词条不能包含换行、回车或制表符" ;;
+  esac
+  if printf '%s' "$t" | grep -qE '^[A-Za-z_]+:$'; then
+    die "词条不能写成 key: 形式"
+  fi
+  return 0
+}
+
+# 只往词表加一个词条，不建任何内容文件。
+# 存在的理由：管理页要「先入词表、再建内容」，而 --new-tag 只是建内容时的副作用。
+# 有了这个入口，写词表就只有 add_term 这一份实现（Node 侧不再自己拼 YAML）；
+# --check 让调用方能只校验、不动文件。
+cmd_add_term() { # $1 = tags|categories, $2 = 词条
+  local section="${1:-}" term="${2:-}"
+  [ -n "$section" ] && [ -n "$term" ] || die "用法：new-content.sh add-term <tags|categories> <词条> [--check]"
+  case "$section" in
+    tags|categories) ;;
+    *) die "未知分节：$section（只支持 tags / categories）" ;;
+  esac
+  validate_term "$term"
+
+  # 精确命中 → 幂等成功（管理页重复提交同一批标签是正常操作）
+  if list_terms "$section" | grep -Fxq -- "$term"; then
+    echo "· 词条「$term」已在 $section 里，未改动"
+    return 0
+  fi
+  # 大小写不同视为同一个词条：词表刻意只保留一种拼写，否则会分裂出两个词条页
+  local ci
+  ci="$(list_terms "$section" | awk -v t="$term" 'tolower($0) == tolower(t) { print; exit }')"
+  [ -z "$ci" ] || die "词表里已有「$ci」（大小写不同就是同一个词条，请直接用它）"
+
+  if [ "$CHECKONLY" = "1" ]; then
+    echo "  ✓ 词条「$term」可加入 $section"
+    return 0
+  fi
+
+  # 写入 → 写后复核 → 失败回滚。词表被脚本 grep 依赖，不允许悄悄写坏。
+  local backup
+  backup="$(mktemp)"
+  cp "$TAXONOMY" "$backup"
+  add_term "$term" "$section"
+  if ! list_terms "$section" | grep -Fxq -- "$term"; then
+    cp "$backup" "$TAXONOMY"
+    rm -f "$backup"
+    die "写入后复核失败，已恢复原词表：$TAXONOMY"
+  fi
+  rm -f "$backup"
+  ok "已把「$term」加入 $section（$TAXONOMY）"
+  return 0
+}
+
 # ---------- 入口 ----------
 cmd="${1:-}"
 if [ -z "$cmd" ]; then usage; exit 1; fi
@@ -360,7 +429,7 @@ command -v hugo >/dev/null 2>&1 || die "找不到 hugo，无法生成内容"
 
 POS=()
 TAGS=""; TITLE=""; SERIES=""; CATS=""; UNIT="章"; REPO=""
-LAYERED=0; PUBLISH=0; NEWTAG=0; MATH=1
+LAYERED=0; PUBLISH=0; NEWTAG=0; MATH=1; CHECKONLY=0
 INTERACTIVE=0
 if [ -t 0 ]; then INTERACTIVE=1; fi
 
@@ -378,6 +447,7 @@ while [ "$#" -gt 0 ]; do
     --publish) PUBLISH=1; shift ;;
     --new-tag) NEWTAG=1; shift ;;
     --no-math) MATH=0; shift ;;
+    --check) CHECKONLY=1; shift ;;
     -h|--help) usage; exit 0 ;;
     -*) die "未知选项：$1（用 --help 看用法）" ;;
     *) POS+=("$1"); shift ;;
@@ -406,6 +476,7 @@ case "$cmd" in
   sub)     cmd_sub     ${POS[@]+"${POS[@]}"} ;;
   doc)     cmd_doc     ${POS[@]+"${POS[@]}"} ;;
   tags)    cmd_tags ;;
+  add-term) cmd_add_term ${POS[@]+"${POS[@]}"}; exit 0 ;;
   *) usage; die "未知子命令：$cmd" ;;
 esac
 

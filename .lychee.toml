@@ -1,0 +1,24 @@
+# lychee 配置 —— 只管**外链**。
+#
+# 站内链接由 scripts/check-links.mjs 负责：它能本地验证、能查锚点、而且是阻断项。
+# 外链交给 lychee，按周跑、非阻断（见 .github/workflows/links.yml）：
+# 外站返回 403/429 或临时超时是常态，把它做成阻断等于让别人的站点决定你的 CI 颜色。
+
+max_retries = 3
+retry_wait_time = 5
+timeout = 30
+
+# 403/429 多半是反爬而非链接失效，接受它们，避免每周都有噪音告警
+accept = [200, 206, 301, 302, 303, 307, 308, 403, 429]
+
+exclude = [
+  # 本站自身的绝对 URL：新页面要等这次部署完成才存在，
+  # 不排除的话每次内容更新都会被记成「404」。
+  "^https?://skyrim86\\.github\\.io/my-blog/",
+  # 评论区 iframe 与本地开发地址无需检查
+  "^https?://giscus\\.app/",
+  "^https?://localhost",
+  "^https?://127\\.0\\.0\\.1",
+]
+
+exclude_path = ["public/404.html"]

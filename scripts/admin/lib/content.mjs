@@ -7,6 +7,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { run } from './exec.mjs';
 import {
   splitFrontMatter,
   getField,
@@ -400,7 +401,8 @@ export function hugoSlug(text) {
 }
 
 // Hugo 默认 pathToLower 生效：URL 里的 ASCII 会全部变成小写（CMC2026 → cmc2026）。
-export function previewUrl(basePath, relPath, values) {
+// 这只是**兜底**：权威做法是问 Hugo（见下面的 previewUrl）。
+function previewUrlHeuristic(basePath, relPath, values) {
   const base = basePath.endsWith('/') ? basePath : `${basePath}/`;
   const p = relPath.replace(/\\/g, '/').replace(/^content\//, '');
 
@@ -426,6 +428,57 @@ export function previewUrl(basePath, relPath, values) {
     return { url: `${base}${lowerSegments(segments.join('/'))}/`, exact: false, note: 'front matter 里没有可解析的 date，预览地址是猜的' };
   }
   return { url: `${base}${lowerSegments(segments.join('/'))}/`, exact: true };
+}
+
+// ---------- 预览 URL（问 Hugo，别自己算） ----------
+//
+// `hugo list all` 直接给出每页的源文件路径与最终 permalink，permalinks 规则、pathToLower、
+// front matter 的 url、中文的百分号编码全都在里面。早先这里自己实现了一遍 slugify +
+// permalinks + pathToLower，任何一处配置改动都得记着同步改过来 —— 那是第二份事实源。
+// 现在只在「Hugo 列不到这一页」（刚新建还没落盘、或 hugo 不可用）时才退回上面的启发式。
+let permalinkCache = { at: 0, map: new Map() };
+const PERMALINK_TTL_MS = 5000;
+
+export function invalidatePermalinks() {
+  permalinkCache = { at: 0, map: new Map() };
+}
+
+async function permalinkIndex(repoRoot) {
+  const now = Date.now();
+  if (permalinkCache.map.size > 0 && now - permalinkCache.at < PERMALINK_TTL_MS) {
+    return permalinkCache.map;
+  }
+  const map = new Map();
+  try {
+    const { code, stdout } = await run('hugo', ['list', 'all'], { cwd: repoRoot, timeoutMs: 60000 });
+    if (code === 0) {
+      for (const line of stdout.split(/\r?\n/)) {
+        // 首列是源文件路径，末三列是 permalink,kind,section。
+        // ① 从行尾锚定 permalink——标题里可能有逗号，不能按逗号朴素切分；
+        // ② section 对顶层页面（about 这类）是空字符串，所以最后一组必须允许为空。
+        const m = /^([^,]+),.*,(https?:\/\/\S+),([a-z]+),([a-z]*)$/.exec(line.trim());
+        if (!m) continue;
+        map.set(m[1].replace(/\\/g, '/'), m[2]);
+      }
+    }
+  } catch {
+    // hugo 不可用（或没装）→ 整表退回启发式
+  }
+  permalinkCache = { at: now, map };
+  return map;
+}
+
+// permalink 是绝对地址（含 baseURL 子路径）；预览只是换个 origin，所以去掉 scheme 与 host。
+function sitePathOf(permalink) {
+  return permalink.replace(/^https?:\/\/[^/]+/i, '');
+}
+
+export async function previewUrl(repoRoot, basePath, relPath, values) {
+  const rel = relPath.replace(/\\/g, '/');
+  const map = await permalinkIndex(repoRoot);
+  const hit = map.get(rel);
+  if (hit) return { url: sitePathOf(hit), exact: true, source: 'hugo' };
+  return { ...previewUrlHeuristic(basePath, relPath, values), source: 'heuristic' };
 }
 
 // ---------- 新建参数拼装 ----------
