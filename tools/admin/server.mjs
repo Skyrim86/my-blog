@@ -45,6 +45,9 @@ import * as gitlib from './lib/git.mjs';
 import { HugoPreview } from './lib/hugo.mjs';
 import { resolveBash, runScript, git } from './lib/exec.mjs';
 import { splitFrontMatter, setField, setChildField, yamlList, yamlStr } from './lib/frontmatter.mjs';
+// 公式里的 `\*` 不是 KaTeX 命令，一处就能让整站构建失败（见 docs/formulas.md 第 3 节）。
+// 扫描与修法只有 scripts/fix-math-escapes.mjs 那一份实现，这里与 CLI、push-blog.sh 共用。
+import { fixMathEscapes } from '../../scripts/fix-math-escapes.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const UI_DIR = path.join(HERE, 'ui');
@@ -291,7 +294,9 @@ async function handleCreate(body) {
   // 日志里显示的也就是真正需要的那条命令。
   // 拖入 .md 的正文不进 argv（可能很大、含任意字符）：argv 里只有 --body-stdin 开关，
   // 文本本身作为 stdin 喂给脚本，由 new-content.sh 写进该子命令创建的主页面。
-  const stdin = typeof body.body === 'string' && body.body !== '' ? body.body : null;
+  // 正文里的 `\*` 公式转义会让构建失败（KaTeX 无此命令），落盘前先过一遍同一份修法。
+  const mathFix = fixMathEscapes(typeof body.body === 'string' ? body.body : '');
+  const stdin = mathFix.text === '' ? null : mathFix.text;
   let result;
   try {
     result = await runScript(REPO_ROOT, 'scripts/new-content.sh', argv, { input: stdin });
@@ -307,6 +312,7 @@ async function handleCreate(body) {
     files: createdFiles(result.stdout),
     addedTerms,
     kind: body.kind,
+    mathFix: { count: mathFix.count, fixes: mathFix.fixes },
   };
 }
 
@@ -378,14 +384,17 @@ async function handleSave(body) {
     text = setChildField(text, 'cover', change.child, change.value ?? '', { childIndent: '  ' });
   }
 
-  if (typeof body.body === 'string') {
-    const doc = splitFrontMatter(text);
-    const currentBody = doc.hasFm ? doc.body.join(doc.eol) : text;
-    if (currentBody !== body.body) {
-      const bodyLines = body.body.split(/\r\n|\n/);
-      const lines = doc.hasFm ? doc.lines.slice(0, doc.fmEnd + 1).concat(bodyLines) : bodyLines;
-      text = lines.join(doc.eol);
-    }
+  // 正文里的 `\*` 公式转义会让整站构建失败（KaTeX 无此命令）。这里对「即将写入的正文」
+  // 统一过一遍同一份修法——哪怕编辑器只是打开文件后原样保存，也顺手把坏的地方修掉。
+  const doc = splitFrontMatter(text);
+  const currentBody = doc.hasFm ? doc.body.join(doc.eol) : text;
+  const incomingBody = typeof body.body === 'string' ? body.body : currentBody;
+  const mathFix = fixMathEscapes(incomingBody);
+  const nextBody = mathFix.text;
+  if (nextBody !== currentBody) {
+    const bodyLines = nextBody.split(/\r\n|\n/);
+    const lines = doc.hasFm ? doc.lines.slice(0, doc.fmEnd + 1).concat(bodyLines) : bodyLines;
+    text = lines.join(doc.eol);
   }
 
   if (text !== before) {
@@ -398,6 +407,9 @@ async function handleSave(body) {
     path: rel,
     changed: text !== before,
     hasFrontMatter: finalDoc.hasFm,
+    mathFix: { count: mathFix.count, fixes: mathFix.fixes },
+    // 只在真的改了正文时回传修正后的正文，让编辑器同步过来（否则下次保存又会写回坏文本）
+    ...(mathFix.count > 0 ? { body: nextBody } : {}),
   };
 }
 

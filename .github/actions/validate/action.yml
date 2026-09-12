@@ -25,6 +25,14 @@ runs:
       shell: bash
       run: bash scripts/check-frontmatter.sh
 
+    # 公式里的 `\*` 不是 KaTeX 命令（KaTeX 只认裸 `*`），一处就能让整站构建失败，
+    # 因为渲染钩子是 throwOnError=true。这里**只检查不修改**（CI 不该改内容）；
+    # 本地 push-blog.sh 与管理页保存/新建会调同一个脚本自动修好。
+    # 单独一步的价值：把「Hugo 一长串 template 报错」变成带 文件:行:列 的干净提示。
+    - name: 公式转义检查（阻断）
+      shell: bash
+      run: node scripts/fix-math-escapes.mjs
+
     # archetypes 与管理页字段表是否分叉：只警告不阻断（内部一致性问题，不该拦内容发布）
     - name: 编辑器字段表漂移检查（只警告）
       shell: bash

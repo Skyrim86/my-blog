@@ -6,13 +6,15 @@
 #
 # 行为：
 #   1. 所在分支必须是 main，否则中止（避免误推）
-#   2. 工作区有改动时，按「先快后慢」的顺序跑校验，任何**阻断项**失败即中止、不提交不推送：
+#   2. 自动修复公式转义（`\*` → `*`，见 docs/formulas.md 第 3 节）：这是**写操作**，
+#      修完再判断工作区是否有改动，所以修出来的改动会进入同一次 commit、一起校验与构建
+#   3. 工作区有改动时，按「先快后慢」的顺序跑校验，任何**阻断项**失败即中止、不提交不推送：
 #        front matter 校验（阻断）→ 标签词表（只警告）→ 草稿提醒（只警告）
 #        → hugo 构建（阻断）→ KaTeX 配对（阻断）→ 站内链接（阻断）→ 体积预算（阻断）
 #      这套校验与 CI 的 .github/actions/validate 同源，所以本地过了 CI 基本就过。
-#   3. git add -A（含删除）→ git commit
-#   4. git push origin main
-#   5. 若 gh 已安装并登录，打印最近一次 Actions 结果；否则提示去 Actions 页面看
+#   4. git add -A（含删除）→ git commit
+#   5. git push origin main
+#   6. 若 gh 已安装并登录，打印最近一次 Actions 结果；否则提示去 Actions 页面看
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -26,6 +28,29 @@ fi
 if ! command -v hugo >/dev/null 2>&1; then
   echo "✗ 找不到 hugo，无法做构建校验。已中止。"
   exit 1
+fi
+
+# 公式转义自动修复：`\*` 不是 KaTeX 命令，一处就能让整站构建失败。
+# 必须在算 dirty **之前**跑：① 修出来的改动才会进入这次 commit；
+# ② 「已提交但仍是坏的」（工作区干净、只待 push）也会被修出来走完整校验，而不是直接推给 CI 去炸。
+# 修法与校验只有 scripts/fix-math-escapes.mjs 一份实现（管理页的保存/新建也调它）。
+if [ -f scripts/fix-math-escapes.mjs ]; then
+  if command -v node >/dev/null 2>&1; then
+    echo "▸ 公式转义自动修复（\\* → *）"
+    if fix_log="$(node scripts/fix-math-escapes.mjs --fix 2>&1)"; then
+      if printf '%s' "$fix_log" | grep -q '自动修复：'; then
+        printf '%s\n' "$fix_log" | sed 's/^/  /'
+      else
+        printf '%s\n' "$fix_log" | tail -1 | sed 's/^/  /'
+      fi
+    else
+      printf '%s\n' "$fix_log" | sed 's/^/  /'
+      echo "✗ 公式转义自动修复失败，已中止（未提交、未推送）。"
+      exit 1
+    fi
+  else
+    echo "  ⚠ 找不到 node，跳过公式转义自动修复（CI 仍会检查）"
+  fi
 fi
 
 msg="${*:-chore: 更新博客内容}"
