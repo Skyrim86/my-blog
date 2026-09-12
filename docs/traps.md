@@ -11,7 +11,7 @@
 | 公式排版错乱（上下标错位、分数塌陷） | KaTeX 样式与 Hugo 内嵌版本不配对 | 见 [`formulas.md` 第 5 节](formulas.md#5-katex-样式版本必须与-hugo-内嵌版本配对-) |
 | 构建失败，报 `KaTeX parse error: … Unicode text character "到" used in math mode` | 正文里裸写了 `$`（两个 `$` 之间的内容被当成公式） | 写成 `\$`；行内代码与代码块里的 `$` 是安全的。见 [`formulas.md` 第 4 节](formulas.md#4-裸--会让构建失败) |
 | 构建失败，报 `Undefined control sequence: \*` | 公式里用了 KaTeX 不认的写法：`L^\*`、`R^\*_2` 这类（AI 生成的公式里常见）。`\*` 在 LaTeX 里也不是星号的正规写法 | 改成 `^*`（`L^*`、`R^*_2`），渲染结果一致 |
-| 构建失败，报 `Unrecognized Unicode character "①"` | 数学模式里写了圈号 `①②③`。KaTeX 严格模式（Hugo 默认 `strict: 'error'`）只认它符号表里的字符，`①`（U+2460）不在其中，**即使包在 `\text{}` 里也会报错**（中文能过是因为在符号表内） | 数学模式里别用圈号：写成 `\text{(1) …}`；正文（公式外）的 `①` 不受影响 |
+| 构建失败，报 `Unrecognized Unicode character "①"` | 数学模式里直接写了圈号 `①②③`。KaTeX 严格模式（Hugo 默认 `strict: 'error'`）只认它符号表里的字符，`①`（U+2460）不在其中，**即使包在 `\text{}` 里也会报错**（中文能过是因为在符号表内） | 用 LaTeX 的圈号命令：`\text{\textcircled{1} …}`（实测渲染正确，见第 2 节）。正文（公式外）的 `①` 不受影响 |
 | 页面上直接显示 `**` 或公式源码 | 见第 2 节 | 见第 2 节 |
 | 本地量页面数/体积总是偏大 | `public/` 不会自动清空 | 构建加 `--cleanDestinationDir`；或用 `report-size.sh --fresh` |
 | 词条页（`/tags/xxx/`）计数比列表条数多 | 给 section 页写了 `tags` | 见 [`content.md` 第 4 节](content.md#4-cascade-的三条硬规矩) |
@@ -37,7 +37,7 @@
 - **section 页写了顶层 `tags`**：计数虚高、词条页里不出现
 - **`draft: false` 却把 `date` 写在未来**：CI 直接不构建它
 - **两个页面 title 完全相同**：giscus 用 `mapping='title'` 关联 Discussion，会并成同一条评论串（`check-frontmatter.sh` 会警告）
-- **`\textcircled{1}` 构建通过但圈号是错的**：它不会报错，可是 `static/katex/katex.min.css`（0.16.x）里**没有 `.textcircled` 规则**，KaTeX 的 HTML 输出就把 `◯` 当成 accent 压在数字**上方**。实测量过几何位置：圆心比数字中心高 27px、偏左 66px，不是「数字在圈里」。要圈号就别指望它，数学模式里写 `(1)`，或把 `①` 留在公式外的正文里
+- **`\textcircled{1}` 在这套环境下渲染是**对的**，别因为 CSS 里搜不到 `.textcircled` 就以为它坏了**：`static/katex/katex.min.css` 里确实没有 `circled`/`enclose` 规则，但圈的定位是 KaTeX 生成的 vlist **内联**布局，不依赖那条 CSS。实测（`content/projects/CMC2026/problem-01/solution.md` 里那 5 处）：圈 20×23px、数字 10×23px，**中心偏移 (0, 0)**，数字正好在圈里。教训是**不要用「CSS 里搜不到类名」推断渲染坏掉**；真要量就量**同一构造内**配对的元素——第一次量出「圈浮在数字上方 27px」是因为把相邻构造的数字和圈配到了一起
 
 ### 加粗收尾紧接中文会无法闭合
 
@@ -56,7 +56,7 @@
 
 - **`public/` 不会被自动清空**：Hugo 默认不清目标目录（`Cleaned` 恒为 0），所以只要跑过一次 `hugo -D`，`public/` 里就会留下草稿页等陈旧产物。本地量页数与体积前**必须**用 `--cleanDestinationDir`，否则量的是错的东西（实测页数虚高 5 页，giscus 脚本的「加载页面数」也被这 5 个陈旧页面污染）
 - **不能用「构建还过」来判断删主题文件是否安全**：主题 `_partials/head.html` 无条件调用的 `google_analytics.html` 在站点与主题里**都不存在**，而 og:/JSON-LD 照常渲染、构建一直是绿的。**Hugo 会静默容忍缺失的 partial。** 详见 [`architecture.md` 第 5 节](architecture.md#5-主题剪裁记录2026-09-12)
-- **`hugo server` 会改写 `public/`**（管理页的预览就是它）：实测在干净构建后 public 里有 16 个带 `class=katex` 的页面，一启动 `hugo server` 就变成 0（而 public 里仍有 78 个 html，说明确实被写过）。于是所有**读 public/** 的校验会给出假结果——`check-katex-pairing.sh` 报「没有找到含公式的页面」、`check-links.mjs` 报坏链、`report-size.sh` 量到别的页数。所以：**跑构建/校验前先停掉管理页预览（或 `hugo server`）**，校验失败时也先确认没有预览在跑
+- **`hugo server` 会改写 `public/`**（管理页的预览就是它）：实测在干净构建后 public 里有 16 个带 `class=katex` 的页面，一启动 `hugo server` 就变成 0（而 public 里仍有 78 个 html，说明确实被写过）。于是**读 `public/` 的校验会给出假结果**——`check-katex-pairing.sh` 报「没有找到含公式的页面」、`check-links.mjs` 报坏链、`report-size.sh` 量到别的页数。注意 CI 与 `push-blog.sh` **不受影响**：`.github/actions/validate/action.yml` 里这三个检查都排在「构建」之后，构建会先把 public 刷新一遍。只有**手动**跑这些校验时要保证前面刚构建过；校验失败时先确认没有预览在跑
 
 ## 4. 工具与脚本
 
