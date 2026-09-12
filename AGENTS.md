@@ -54,6 +54,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 数学公式（构建期 KaTeX） | `layouts/_markup/render-passthrough.html`、`static/katex/` | [`docs/formulas.md`](docs/formulas.md) |
 | 公式转义（`\*` → `*`）自动修复 | `scripts/fix-math-escapes.mjs`（管理页保存/新建与 `push-blog.sh` 都调它） | 同上 |
 | 公式内容预检（嵌套 `$`、行内 `$` 数为奇数、`§`、圈号） | `scripts/check-math-syntax.mjs`（CI 与 `push-blog.sh` 都跑，阻断） | 同上（第 4 节） |
+| 公式真检（Hugo 内嵌 KaTeX 逐条试渲染，覆盖全部语法错误） | `scripts/check-math-katex.mjs`（CI 与 `push-blog.sh` 都跑，阻断；`--selftest` 自测机制本身） | 同上（第 4 节） |
 | 新内容脚手架 / 删除 | `scripts/new-content.sh` | [`docs/content.md`](docs/content.md) |
 | 标签词表 | `data/taxonomy.yaml`、`scripts/check-tags.sh` | 同上 |
 | 本地管理页 | `tools/admin/`（`start.sh`/`server.mjs`/`lib/`/`ui/`） | [`docs/admin.md`](docs/admin.md) |
@@ -71,7 +72,7 @@ bash scripts/push-blog.sh "feat: 说明"     # 公式转义自动修复 → 校�
 bash scripts/upgrade-hugo.sh <版本>        # 同步升级 Hugo + 配对的 KaTeX 样式
 ```
 
-跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`；公式内容预检在**构建前**跑：`node scripts/check-math-syntax.mjs`。
+跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`；公式两道预检在**构建前**跑：`node scripts/check-math-syntax.mjs`（快检）、`node scripts/check-math-katex.mjs`（真检，`--selftest` 可自测机制）。
 
 ## 6. 别做
 

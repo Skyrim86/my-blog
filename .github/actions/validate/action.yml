@@ -52,6 +52,16 @@ runs:
       shell: bash
       run: node scripts/check-math-syntax.mjs
 
+    # 公式真检：阻断。快检只认已知的几类写法，这一步把每个数学区**逐条交给 Hugo 内嵌的 KaTeX**
+    # 试渲染，覆盖全部语法错误（缺参数、环境没闭合、\left 没 \right、命令拼错…）。机制是模板里的
+    # `try (transform.ToMath …)`（Hugo ≥ 0.141）：临时站点建在系统临时目录、用 --renderToMemory，
+    # 既不写也不读仓库里的东西，用的 KaTeX 与线上完全同一套。
+    # 先跑 --selftest 是有意的：真检的设计是「机制跑不起来只警告」（诊断工具坏了不该拦住发布），
+    # 代价是机制静默失效也会退 0，所以在 CI（Hugo 版本钉死在这里）用自测把这件事盯住。
+    - name: 公式真检（阻断：机制自测 + 逐条渲染）
+      shell: bash
+      run: node scripts/check-math-katex.mjs --selftest && node scripts/check-math-katex.mjs
+
     # archetypes 与管理页字段表是否分叉：只警告不阻断（内部一致性问题，不该拦内容发布）
     - name: 编辑器字段表漂移检查（只警告）
       shell: bash

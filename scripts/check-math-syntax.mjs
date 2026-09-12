@@ -7,15 +7,16 @@
 // 退出码：0 = 通过；1 = 发现问题 / 读写失败
 //
 // 为什么需要它：渲染钩子是 throwOnError = true，下面几类写法一处就让整站构建中止；而 Hugo 为这类
-// 错误报出的 `文件:行:列` 是**模板渲染位置、不是公式位置**——实测问题二/问题三两页都报 19:13，
-// 真缺陷在 107 行与 160 行，定位成本全落在人身上。本脚本给的是公式本体的行列号。
+// 错误报出的 `文件:行:列` 是**模板渲染位置、不是公式位置**——实测三个坏页都报 19:13，真缺陷在
+// 107/109/160 行，定位成本全落在人身上。本脚本给的是公式本体的行列号；它只覆盖下面四类，
+// **全部语法错误由 check-math-katex.mjs（真检）兜底**。
 //
 // 检查项（都会让构建失败，所以阻断；都不做自动修改，因为语义上无法机械替换）：
 //   ① 数学区里 { } 不配对 —— 几乎总是「公式里又写了一个 $」把区域提前截断的指纹
 //   ② 一行里 $ 的个数是奇数而该行又有数学区 —— 同样指向「数学区里嵌了 $」
 //   ③ 数学区里出现 §      —— §(U+00A7) 不在 KaTeX 符号表内，包在 \text{} 里也照样报错
 //   ④ 数学区里出现圈号 ①–⑳ —— 同上，要写成 \textcircled{N}
-// 区域识别与遮罩（围栏代码块、行内代码）复用 scripts/fix-math-escapes.mjs，不再写第二套。
+// 区域识别、遮罩与行列号换算复用 scripts/fix-math-escapes.mjs，不再写第二套。
 //
 // 已知不覆盖：$ 出现在别处的畸形写法（例如 `$$\text{a$b}$$` 里那个多余的 $）、四空格缩进代码块。
 
@@ -23,7 +24,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
-import { maskCode, mathRegions, walkMarkdown } from './fix-math-escapes.mjs';
+import {
+  lineStartsOf,
+  maskCode,
+  maskFrontMatter,
+  mathRegions,
+  positionOf,
+  regionSnippet,
+  walkMarkdown,
+} from './fix-math-escapes.mjs';
 
 const CIRCLED = /[\u2460-\u2473]/; // ①…⑳
 
@@ -41,23 +50,6 @@ function braceBalance(region) {
   return bal;
 }
 
-function lineStartsOf(text) {
-  const out = [0];
-  for (let i = 0; i < text.length; i++) if (text[i] === '\n') out.push(i + 1);
-  return out;
-}
-
-function positionOf(lineStarts, index) {
-  let line = lineStarts.length - 1;
-  while (line > 0 && lineStarts[line] > index) line--;
-  return { line: line + 1, col: index - lineStarts[line] + 1 };
-}
-
-function snippet(region) {
-  const s = region.replace(/\s+/g, ' ').trim();
-  return s.length > 72 ? `${s.slice(0, 72)}…` : s;
-}
-
 /**
  * 只扫描不修改。
  * @param {string} text 正文（可含 front matter，只有数学区域会被检查）
@@ -67,7 +59,7 @@ export function scanMathSyntax(text) {
   const src = text == null ? '' : String(text);
   if (!src.includes('$') && !src.includes('\\(') && !src.includes('\\[')) return [];
 
-  const masked = maskCode(src);
+  const masked = maskCode(maskFrontMatter(src));
   const lineStarts = lineStartsOf(src);
   const findings = [];
 
@@ -83,7 +75,7 @@ export function scanMathSyntax(text) {
         ...positionOf(lineStarts, start),
         kind: 'brace',
         message: `数学区里 { } 不配对（差 ${bal}）——最常见的原因是公式里又写了一个 $，把区域提前截断了`,
-        region: snippet(region),
+        region: regionSnippet(region),
       });
     }
 
@@ -95,7 +87,7 @@ export function scanMathSyntax(text) {
           ...positionOf(lineStarts, start + i),
           kind: 'section',
           message: '数学区里不能写 §（不在 KaTeX 符号表内，包在 \\text{} 里也会报错）：移到公式外，或写成「第 3.4 节」',
-          region: snippet(region),
+          region: regionSnippet(region),
         });
       } else if (CIRCLED.test(ch)) {
         findings.push({
@@ -103,28 +95,28 @@ export function scanMathSyntax(text) {
           ...positionOf(lineStarts, start + i),
           kind: 'circled',
           message: `数学区里不能写圈号 ${ch}（不在 KaTeX 符号表内）：写成 \\textcircled{${ch.codePointAt(0) - 0x2460 + 1}}`,
-          region: snippet(region),
+          region: regionSnippet(region),
         });
       }
     }
   }
 
   // 逐行数未转义的 $（在遮罩后的文本上数，所以代码块/行内代码里的 $ 不算）。
+  // 行号一律用 positionOf(index) 推，不要另外手数 \n——两份计数一旦不同步就会报出偏移的行号
+  // （曾经踩过：遮罩把换行涂掉之后，手数的行号与下标推的行号差了两行）。
   // 只有「该行确实有数学区」时才看奇偶，避免把 front matter 或散文里的单个 $ 误报。
   const dollarsOnLine = new Map();
-  let lineNo = 1;
   for (let i = 0; i < masked.length; i++) {
     const c = masked[i];
-    if (c === '\n') {
-      lineNo += 1;
-      continue;
-    }
     if (c === '\\') {
       const next = masked[i + 1];
       if (next !== undefined && next !== '\n') i += 1;
       continue;
     }
-    if (c === '$') dollarsOnLine.set(lineNo, (dollarsOnLine.get(lineNo) || 0) + 1);
+    if (c === '$') {
+      const { line } = positionOf(lineStarts, i);
+      dollarsOnLine.set(line, (dollarsOnLine.get(line) || 0) + 1);
+    }
   }
   const braceLines = new Set(findings.filter((f) => f.kind === 'brace').map((f) => f.line));
   for (const [line, count] of dollarsOnLine) {

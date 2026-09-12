@@ -10,7 +10,7 @@
 #      修完再判断工作区是否有改动，所以修出来的改动会进入同一次 commit、一起校验与构建
 #   3. 工作区有改动时，按「先快后慢」的顺序跑校验，任何**阻断项**失败即中止、不提交不推送：
 #        section 结构校验（阻断）→ front matter 校验（阻断）→ 公式内容预检（阻断）
-#        → 标签词表（只警告）→ 草稿提醒（只警告）
+#        → 公式真检（阻断）→ 标签词表（只警告）→ 草稿提醒（只警告）
 #        → hugo 构建（阻断）→ KaTeX 配对（阻断）→ 站内链接（阻断）→ 体积预算（阻断）
 #      这套校验与 CI 的 .github/actions/validate 同源，所以本地过了 CI 基本就过。
 #   4. git add -A（含删除）→ git commit
@@ -99,6 +99,20 @@ if [ -n "$dirty" ]; then
       exit 1
     fi
     printf '%s\n' "$ms_log" | sed 's/^/  /'
+  fi
+
+  # 公式真检：**阻断**。快检只认已知几类写法，这一步把每个数学区逐条交给 Hugo 内嵌的 KaTeX
+  # 试渲染，覆盖全部语法错误（缺参数、环境没闭合、命令拼错…）；临时站点建在系统临时目录 +
+  # --renderToMemory，不写仓库任何东西。这里不跑 --selftest：真检跑不起来时只警告（诊断工具坏了
+  # 不该拦住发布），机制是否还有效由 CI 的自测盯住。
+  if [ -f scripts/check-math-katex.mjs ]; then
+    echo "▸ 公式真检（逐条交给 Hugo 的 KaTeX）"
+    if ! mk_log="$(node scripts/check-math-katex.mjs 2>&1)"; then
+      printf '%s\n' "$mk_log" | sed 's/^/  /'
+      echo "✗ 公式真检未通过，已中止（未提交、未推送）。"
+      exit 1
+    fi
+    printf '%s\n' "$mk_log" | sed 's/^/  /'
   fi
 
   # 标签词表校验：提醒拼写漂移（同名标签写错会分裂出两个词条页）。只警告，不阻断。

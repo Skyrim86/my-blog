@@ -92,9 +92,35 @@ export function maskCode(text) {
   return out.join('');
 }
 
-// 在遮罩后的文本里找数学区域，返回 [start, end) 列表（不含定界符本身）。
+// 把 front matter（文件开头的 --- 块）替换成等长空格。
+// YAML 不走 markdown 管线，所以里面的 $ 不该被当成公式、\* 也不该被当成数学区里的误转义。
+// **长度不变、换行保留**：前者保证下标仍对得上，后者保证「数 \n」得到的行号也还准
+// （曾经漏了后者：换行一起被涂成空格，于是按行计数的检查报出了偏移的行号）。
+export function maskFrontMatter(text) {
+  const firstNl = text.indexOf('\n');
+  const firstLine = (firstNl === -1 ? text : text.slice(0, firstNl)).replace(/^\uFEFF/, '').trim();
+  if (firstLine !== '---') return text;
+
+  const out = text.split('');
+  let offset = firstNl + 1;
+  while (offset <= text.length) {
+    const nl = text.indexOf('\n', offset);
+    const lineEnd = nl === -1 ? text.length : nl;
+    const line = text.slice(offset, lineEnd).trim();
+    if (line === '---' || line === '...') {
+      for (let i = 0; i < lineEnd; i++) if (out[i] !== '\n') out[i] = ' ';
+      return out.join('');
+    }
+    if (nl === -1) break;
+    offset = nl + 1;
+  }
+  return text; // 没找到结束行：不遮罩，交给 Hugo 去报错
+}
+
+// 在遮罩后的文本里找数学区域，返回 [start, end, block] 列表（不含定界符本身）。
 // 定界符与 hugo.toml 的 passthrough 配置一致：$$…$$（可跨行）、$…$（同行）、
-// \(…\)（同行）、\[…\]（可跨行）。
+// \(…\)（同行）、\[…\]（可跨行）。block 表示「display 模式」：渲染钩子按它设 displayMode，
+// 真 KaTeX 预检（check-math-katex.mjs）也必须跟着设，否则个别命令（如 \tag）的合法性会判错。
 export function mathRegions(masked) {
   const regions = [];
   const n = masked.length;
@@ -111,7 +137,7 @@ export function mathRegions(masked) {
       if (d === '[') {
         const end = masked.indexOf('\\]', i + 2);
         if (end !== -1) {
-          regions.push([i + 2, end]);
+          regions.push([i + 2, end, true]);
           i = end + 2;
           continue;
         }
@@ -120,7 +146,7 @@ export function mathRegions(masked) {
         const end = masked.indexOf('\\)', i + 2);
         const nl = masked.indexOf('\n', i + 2);
         if (end !== -1 && (nl === -1 || end < nl)) {
-          regions.push([i + 2, end]);
+          regions.push([i + 2, end, false]);
           i = end + 2;
           continue;
         }
@@ -133,7 +159,7 @@ export function mathRegions(masked) {
       if (d === '$') {
         const end = masked.indexOf('$$', i + 2);
         if (end !== -1) {
-          regions.push([i + 2, end]);
+          regions.push([i + 2, end, true]);
           i = end + 2;
           continue;
         }
@@ -154,7 +180,7 @@ export function mathRegions(masked) {
         j++;
       }
       if (close !== -1) {
-        regions.push([i + 1, close]);
+        regions.push([i + 1, close, false]);
         i = close + 1;
         continue;
       }
@@ -165,6 +191,26 @@ export function mathRegions(masked) {
     i += 1;
   }
   return regions;
+}
+
+// 行首下标表，供 O(1) 换算行列号（三个公式脚本共用这一份实现）。
+export function lineStartsOf(text) {
+  const out = [0];
+  for (let i = 0; i < text.length; i++) if (text[i] === '\n') out.push(i + 1);
+  return out;
+}
+
+// 把字符下标换算成 1-based 的行列号。
+export function positionOf(lineStarts, index) {
+  let line = lineStarts.length - 1;
+  while (line > 0 && lineStarts[line] > index) line--;
+  return { line: line + 1, col: index - lineStarts[line] + 1 };
+}
+
+// 数学区域的一行摘要，报错时让人认得出是哪一处公式。
+export function regionSnippet(region, max = 72) {
+  const s = region.replace(/\s+/g, ' ').trim();
+  return s.length > max ? `${s.slice(0, max)}…` : s;
 }
 
 // 区域内所有「该改的」反斜杠位置：FIX_FROM 的第一个字符的下标。
@@ -192,23 +238,16 @@ function badEscapesIn(masked, start, end) {
 export function scanMathEscapes(text) {
   const src = text == null ? '' : String(text);
   if (!src.includes(FIX_FROM)) return [];
-  const masked = maskCode(src);
-
-  // 行首下标表，供 O(1) 换算行列号
-  const lineStarts = [0];
-  for (let i = 0; i < src.length; i++) if (src[i] === '\n') lineStarts.push(i + 1);
+  const masked = maskCode(maskFrontMatter(src));
+  const lineStarts = lineStartsOf(src);
 
   const fixes = [];
   for (const [start, end] of mathRegions(masked)) {
     for (const index of badEscapesIn(masked, start, end)) {
-      let line = lineStarts.length - 1;
-      while (line > 0 && lineStarts[line] > index) line--;
-      const region = src.slice(start, end).replace(/\s+/g, ' ').trim();
       fixes.push({
         index,
-        line: line + 1,
-        col: index - lineStarts[line] + 1,
-        region: region.length > 72 ? `${region.slice(0, 72)}…` : region,
+        ...positionOf(lineStarts, index),
+        region: regionSnippet(src.slice(start, end)),
       });
     }
   }
