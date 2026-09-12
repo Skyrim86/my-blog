@@ -12,6 +12,7 @@
 | 构建失败，报 `KaTeX parse error: … Unicode text character "到" used in math mode` | 正文里裸写了 `$`（两个 `$` 之间的内容被当成公式） | 写成 `\$`；行内代码与代码块里的 `$` 是安全的。见 [`formulas.md` 第 4 节](formulas.md#4-裸--会让构建失败) |
 | 构建失败，报 `Undefined control sequence: \*` | 公式里用了 KaTeX 不认的写法：`L^\*`、`R^\*_2` 这类（AI 生成的公式里常见）。`\*` 在 LaTeX 里也不是星号的正规写法 | 改成 `^*`（`L^*`、`R^*_2`），渲染结果一致 |
 | 构建失败，报 `Unrecognized Unicode character "①"` | 数学模式里直接写了圈号 `①②③`。KaTeX 严格模式（Hugo 默认 `strict: 'error'`）只认它符号表里的字符，`①`（U+2460）不在其中，**即使包在 `\text{}` 里也会报错**（中文能过是因为在符号表内） | 用 LaTeX 的圈号命令：`\text{\textcircled{1} …}`（实测渲染正确，见第 2 节）。正文（公式外）的 `①` 不受影响 |
+| 构建失败，报 `Unexpected end of input in a macro argument, expected '}'` 或 `Unrecognized Unicode character "§"` | ① **公式里又写了一个 `$`**（如 `$\text{$r$ 步 $5$ m}`、`环内移到 \rho=1028$ 后`）：`$…$` 是「遇到下一个 `$` 就收」，多写一个就把区域**提前截断**，KaTeX 收到半截公式；② 数学区里写了 **`§`**（和圈号一样不在 KaTeX 符号表内，**包在 `\text{}` 里也报错**） | ① 数学区里不要再写 `$`（已经在数学模式里，`r` 本来就是斜体）：改成 `$=(r\text{ 步 }5\text{ m})$`、`$\rho=1028$`；② `§` 移到公式外，或写成「第 3.4 节」，圈号写 `\textcircled{1}`。这类错误**别靠 Hugo 的行号定位**——它报的是模板渲染位置（实测三个坏页全报 `19:13`，真缺陷在 107/109/160 行），用 `node scripts/check-math-syntax.mjs`。详见 [`formulas.md` 第 4 节](formulas.md#4-裸--会让构建失败) |
 | 页面上直接显示 `**` 或公式源码 | 见第 2 节 | 见第 2 节 |
 | 本地量页面数/体积总是偏大 | `public/` 不会自动清空 | 构建加 `--cleanDestinationDir`；或用 `report-size.sh --fresh` |
 | 词条页（`/tags/xxx/`）计数比列表条数多 | 给 section 页写了 `tags` | 见 [`content.md` 第 4 节](content.md#4-cascade-的三条硬规矩) |
@@ -59,6 +60,7 @@
 - **`public/` 不会被自动清空**：Hugo 默认不清目标目录（`Cleaned` 恒为 0），所以只要跑过一次 `hugo -D`，`public/` 里就会留下草稿页等陈旧产物。本地量页数与体积前**必须**用 `--cleanDestinationDir`，否则量的是错的东西（实测页数虚高 5 页，giscus 脚本的「加载页面数」也被这 5 个陈旧页面污染）
 - **不能用「构建还过」来判断删主题文件是否安全**：主题 `_partials/head.html` 无条件调用的 `google_analytics.html` 在站点与主题里**都不存在**，而 og:/JSON-LD 照常渲染、构建一直是绿的。**Hugo 会静默容忍缺失的 partial。** 详见 [`architecture.md` 第 5 节](architecture.md#5-主题剪裁记录2026-09-12)
 - **`hugo server` 会改写 `public/`**（管理页的预览就是它）：实测在干净构建后 public 里有 16 个带 `class=katex` 的页面，一启动 `hugo server` 就变成 0（而 public 里仍有 78 个 html，说明确实被写过）。于是**读 `public/` 的校验会给出假结果**——`check-katex-pairing.sh` 报「没有找到含公式的页面」、`check-links.mjs` 报坏链、`report-size.sh` 量到别的页数。注意 CI 与 `push-blog.sh` **不受影响**：`.github/actions/validate/action.yml` 里这三个检查都排在「构建」之后，构建会先把 public 刷新一遍。只有**手动**跑这些校验时要保证前面刚构建过；校验失败时先确认没有预览在跑
+- **Hugo 报公式渲染错误时会「取消剩下的页面」，所以它列出的坏页可能不全**：实测一次推送里其实有 **3** 个坏页（`问题二_证明笔记.md` 107 行的嵌套 `$`、`问题三_小证明.md` 109 行多出来的 `$`、`问题三_证明_下界.md` 160 行的 `§`），而 `hugo` 只报出前两个——渲染是并行的，报错即取消未完成的任务。**所以「修完报出来的错误」不等于构建就能过**，必须重新构建到绿；`node scripts/check-math-syntax.mjs` 能一次扫全（上面那个第三个坏页就是它抓到的）
 
 ## 4. 工具与脚本
 

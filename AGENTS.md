@@ -53,6 +53,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 搜索索引 | `layouts/index.json` + `hugo.toml` 的 `fuseOpts.keys`（**改一处必须同步另一处**） | 同上 |
 | 数学公式（构建期 KaTeX） | `layouts/_markup/render-passthrough.html`、`static/katex/` | [`docs/formulas.md`](docs/formulas.md) |
 | 公式转义（`\*` → `*`）自动修复 | `scripts/fix-math-escapes.mjs`（管理页保存/新建与 `push-blog.sh` 都调它） | 同上 |
+| 公式内容预检（嵌套 `$`、行内 `$` 数为奇数、`§`、圈号） | `scripts/check-math-syntax.mjs`（CI 与 `push-blog.sh` 都跑，阻断） | 同上（第 4 节） |
 | 新内容脚手架 / 删除 | `scripts/new-content.sh` | [`docs/content.md`](docs/content.md) |
 | 标签词表 | `data/taxonomy.yaml`、`scripts/check-tags.sh` | 同上 |
 | 本地管理页 | `tools/admin/`（`start.sh`/`server.mjs`/`lib/`/`ui/`） | [`docs/admin.md`](docs/admin.md) |
@@ -70,7 +71,7 @@ bash scripts/push-blog.sh "feat: 说明"     # 公式转义自动修复 → 校�
 bash scripts/upgrade-hugo.sh <版本>        # 同步升级 Hugo + 配对的 KaTeX 样式
 ```
 
-跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`。
+跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`；公式内容预检在**构建前**跑：`node scripts/check-math-syntax.mjs`。
 
 ## 6. 别做
 
@@ -81,8 +82,8 @@ bash scripts/upgrade-hugo.sh <版本>        # 同步升级 Hugo + 配对的 KaT
 - 不要新建 `content/tags.md` 之类带 `url` 的普通页去覆盖 taxonomy 总览页
 - 不要 `rm` 内容文件、不要手写 front matter、不要在模板里硬编码中文文案或域名
 - `scripts/*.sh` 与 `data/*.yaml` 必须保持 **LF**（`.gitattributes` 已钉住）；内容 `.md` 允许 CRLF
-- 不要把裸 `$` 写进正文（会被当公式、构建直接失败），详见 [`docs/formulas.md`](docs/formulas.md)
-- 数学里写裸 `*`（如 `$R^*$`），**不要**写成 `\*`：KaTeX 没这个命令，一处就让构建失败（散文里的 `\*` 转义不受影响；发布与管理页保存会自动修，见 [`docs/formulas.md`](docs/formulas.md) 第 3 节）
+- 不要把裸 `$` 写进正文（会被当公式、构建直接失败），**也不要在数学区里再写 `$`**（`$…$` 遇到下一个 `$` 就收，会把区域截断），详见 [`docs/formulas.md`](docs/formulas.md)
+- 数学里写裸 `*`（如 `$R^*$`），**不要**写成 `\*`：KaTeX 没这个命令，一处就让构建失败（散文里的 `\*` 转义不受影响；发布与管理页保存会自动修，见 [`docs/formulas.md`](docs/formulas.md) 第 3 节）。数学区里同样不要写 `§` 与圈号 `①②③`（不在 KaTeX 符号表内，`\text{}` 也包不住），见同文件第 4 节
 
 ## 7. 文档索引：改 X 前先读 Y
 

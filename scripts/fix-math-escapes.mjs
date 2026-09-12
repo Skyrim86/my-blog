@@ -30,7 +30,7 @@ const FIX_TO = '*';
 
 // 把围栏代码块与行内代码替换成等长空格。
 // 长度不变 → 行列号仍然准；变成空格 → 后面的扫描看不见里面的 $ 与 \*。
-function maskCode(text) {
+export function maskCode(text) {
   const out = text.split('');
 
   // 围栏代码块：整行（含围栏标记行）都遮掉
@@ -95,7 +95,7 @@ function maskCode(text) {
 // 在遮罩后的文本里找数学区域，返回 [start, end) 列表（不含定界符本身）。
 // 定界符与 hugo.toml 的 passthrough 配置一致：$$…$$（可跨行）、$…$（同行）、
 // \(…\)（同行）、\[…\]（可跨行）。
-function mathRegions(masked) {
+export function mathRegions(masked) {
   const regions = [];
   const n = masked.length;
   let i = 0;
@@ -235,7 +235,7 @@ export function fixMathEscapes(text) {
 
 // ---------------- CLI ----------------
 
-function walkMarkdown(dir) {
+export function walkMarkdown(dir) {
   const out = [];
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, ent.name);
