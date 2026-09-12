@@ -3,6 +3,7 @@
 //
 // 它是现有脚本的「界面外壳」，不是替代品：
 //   新建内容 → scripts/new-content.sh（front matter 来自 archetypes/，标签来自 data/taxonomy.yaml）
+//   删除内容 → scripts/new-content.sh remove（能删什么、能不能连目录删，规则都在那边）
 //   读词表   → scripts/new-content.sh tags
 //   发布     → scripts/push-blog.sh（分支校验、构建校验、草稿与词表警告、commit、push、CI 状态）
 //
@@ -20,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
   buildCreateArgs,
+  buildRemoveArgs,
+  chaptersByCourse,
   classify,
   courseDirs,
   createdFiles,
@@ -28,10 +31,12 @@ import {
   listContent,
   invalidatePermalinks,
   parseFrontMatter,
+  planFiles,
   previewUrl,
   projectDirs,
   readContentFile,
   relFromRoot,
+  removedFiles,
   resolveContentPath,
 } from './lib/content.mjs';
 import { addTerm, checkTerm, readTaxonomy } from './lib/taxonomy.mjs';
@@ -301,6 +306,31 @@ async function handleCreate(body) {
   };
 }
 
+// 删除：规则（能删什么、能不能连目录删）都在 cmd_remove 里，这里只拼参数。
+// dryRun=1 时脚本只列出会删掉哪些文件 —— 前端靠它做「先看清单、再确认」那一步。
+async function handleDelete(body) {
+  if (!bashInfo.ok) throw Object.assign(new Error(bashInfo.error), { status: 500 });
+  const argv = buildRemoveArgs(body);
+  let result;
+  try {
+    result = await runScript(REPO_ROOT, 'scripts/new-content.sh', argv);
+  } finally {
+    invalidateList();
+    invalidatePermalinks();
+  }
+  return {
+    ok: result.code === 0,
+    code: result.code,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    scriptArgs: argv,
+    plan: planFiles(result.stdout),
+    removed: removedFiles(result.stdout),
+    dryRun: Boolean(body.dryRun),
+    path: argv[1],
+  };
+}
+
 // 保存：只写「客户端声明改过」的字段，行级替换，其余内容（含注释、缩进）原样保留。
 async function handleSave(body) {
   const abs = resolveContentPath(REPO_ROOT, body.path);
@@ -515,12 +545,13 @@ const server = http.createServer(async (req, res) => {
       }
       case 'GET /api/content/list': {
         const items = await listContentCached(true);
-        // 表单里「所属课程 / 所属项目 / 所属目录」的下拉选项由服务端算好一起下发，
+        // 表单里「所属课程 / 所属章节 / 所属项目 / 所属目录」的下拉选项由服务端算好一起下发，
         // 免得前端再实现一遍路径推导（两处实现必然漂移）。
         json(res, 200, {
           items,
           options: {
             courses: courseDirs(items),
+            chapters: chaptersByCourse(items),
             projectHomes: layeredProjectDirs(items),
             projectDirs: projectDirs(items),
           },
@@ -538,6 +569,9 @@ const server = http.createServer(async (req, res) => {
         return;
       case 'POST /api/content':
         json(res, 200, await handleCreate(await readJsonBody(req)));
+        return;
+      case 'POST /api/content/delete':
+        json(res, 200, await handleDelete(await readJsonBody(req)));
         return;
       case 'GET /api/git/diff': {
         const rel = searchParams.get('path');

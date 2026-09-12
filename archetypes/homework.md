@@ -1,5 +1,6 @@
 ---
-# 作业（课程章下的 leaf bundle）：scripts/new-content.sh chapter 自动生成
+# 作业（课程章下的 leaf bundle）：scripts/new-content.sh homework，
+# 或 chapter 子命令的 --materials homework 生成。
 # 与 notes.md 同理，不要在这里写 tags / categories（见该文件说明）。
 title: "作业"
 weight: 2

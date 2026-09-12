@@ -1,4 +1,4 @@
-{{- /* 课程材料页（学习笔记 / 作业）：把本页 bundle 内的非图片资源列为下载附件。
+{{- /* 课程材料页（学习笔记 / 作业 / 实验）：把本页 bundle 内的非图片资源列为下载附件。
      附件与 index.md 同目录即可，无需前缀；正文由 index.md 自身内容渲染。 */ -}}
 {{- $files := where .Resources "MediaType.MainType" "!=" "image" }}
 {{- with $files }}

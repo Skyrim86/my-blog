@@ -1,5 +1,5 @@
 {{- partial "series-posts.html" . }}
-{{- /* 课程材料页（学习笔记 / 作业）：正文之后追加附件下载区 */ -}}
+{{- /* 课程材料页（学习笔记 / 作业 / 实验）：正文之后追加附件下载区 */ -}}
 {{- if eq .Type "courses" }}
 {{- partial "course-downloads.html" . }}
 {{- end }}

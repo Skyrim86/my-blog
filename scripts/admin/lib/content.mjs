@@ -2,7 +2,7 @@
 //
 // 这里集中了「哪些字段能改、tags 能不能写」的知识，它对应 AGENTS.md 第 5 节的三条硬红线：
 //   - section 页（课程主页 / 章节入口页 / 分层项目主页 / 子项目页 / 列表页）不写 tags
-//   - 被 cascade 覆盖的子孙页（课程笔记、作业）不写 tags
+//   - 被 cascade 覆盖的子孙页（课程笔记、作业、实验）不写 tags
 //   - cascade 只填空不合并，所以分层项目的文档页写 tags 会整体丢掉项目级标签
 
 import fs from 'node:fs/promises';
@@ -59,7 +59,9 @@ export function classify(relPath) {
     if (seg.length === 2 && seg[1] === '_index.md') return 'courses-list';
     if (seg.length === 3 && seg[2] === '_index.md') return 'course-home';
     if (seg.length === 4 && seg[3] === '_index.md') return 'chapter';
-    if (seg.length === 5 && seg[4] === 'index.md' && (seg[3] === 'notes' || seg[3] === 'homework')) {
+    // 章目录下的 leaf bundle 一律是材料页。不写死 notes/homework：
+    // 材料类型可以再扩展（lab、用 --dir 建出的 lab-02…），模板本身也只认「章下面的 regular page」。
+    if (seg.length === 5 && seg[4] === 'index.md' && /^chapter-/.test(seg[2])) {
       return 'material';
     }
   }
@@ -149,7 +151,7 @@ export function editorSchema(type) {
           { key: 'unit', label: '分区单位', kind: 'select', options: ['章', '周'] },
           base.draft,
           base.math,
-          listField('tags', '课程标签（写在 cascade 里）', '    ', { hint: '只下发给笔记/作业这些 regular page' }),
+          listField('tags', '课程标签（写在 cascade 里）', '    ', { hint: '只下发给笔记/作业/实验这些 regular page' }),
           listField('categories', '分类（写在 cascade 里）', '    '),
         ],
         tagsPolicy: 'editable',
@@ -166,7 +168,7 @@ export function editorSchema(type) {
           base.title,
           base.description,
           base.weight,
-          { key: 'icon', label: '图标', kind: 'text', hint: '📖 学习笔记 / 📝 作业' },
+          { key: 'icon', label: '图标', kind: 'text', hint: '📖 学习笔记 / 📝 作业 / 🧪 实验' },
           base.draft,
           base.math,
         ],
@@ -250,6 +252,26 @@ export function courseDirs(items) {
         .map((i) => i.path.slice(prefix.length).replace(/\/_index\.md$/, ''))
     ),
   ].sort((a, b) => a.localeCompare(b, 'zh'));
+}
+
+// 课程 → 已有章节目录（chapter-01…）。给「给已有章节补材料」的下拉用：
+// 章节是 branch bundle（section），不是 regular page，所以前端不能从 item.type 自己推，
+// 这里算好一起下发（与上面几个 options 同样的理由，见 server.mjs 的注释）。
+export function chaptersByCourse(items) {
+  const prefix = `${CONTENT_DIR}/courses/`;
+  const map = {};
+  for (const item of items) {
+    if (item.type !== 'chapter' || !item.path.startsWith(prefix)) continue;
+    const parts = item.path.slice(prefix.length).split('/');
+    // <课程>/<章>/_index.md
+    if (parts.length !== 3) continue;
+    const [course, chapter] = parts;
+    if (!course || !chapter) continue;
+    if (!map[course]) map[course] = [];
+    if (!map[course].includes(chapter)) map[course].push(chapter);
+  }
+  for (const course of Object.keys(map)) map[course].sort((a, b) => a.localeCompare(b, 'zh'));
+  return map;
 }
 
 export function layeredProjectDirs(items) {
@@ -484,10 +506,14 @@ export async function previewUrl(repoRoot, basePath, relPath, values) {
 // ---------- 新建参数拼装 ----------
 //
 // 严格对齐 scripts/new-content.sh 的签名与选项；值为空的选项一律不传。
+// 除 add-term 之外，kind 的取值与脚本的子命令名一一对应（notes/homework/lab 各是一个子命令），
+// 所以日志里显示的命令就是真正跑的那条。
+
+const MATERIAL_KINDS = ['notes', 'homework', 'lab'];
 
 export function buildCreateArgs(form) {
   const kind = String(form.kind ?? '');
-  const KINDS = ['post', 'course', 'chapter', 'project', 'sub', 'doc'];
+  const KINDS = ['post', 'course', 'chapter', 'project', 'sub', 'doc', ...MATERIAL_KINDS];
   if (!KINDS.includes(kind)) {
     throw Object.assign(new Error(`未知内容类型：${kind || '(空)'}`), { status: 400 });
   }
@@ -525,8 +551,24 @@ export function buildCreateArgs(form) {
       bool('--publish', publish);
       bool('--new-tag', allowNewTags);
       break;
-    case 'chapter':
+    case 'chapter': {
       args.push(String(form.course ?? '').trim(), String(form.title ?? '').trim());
+      // materials 缺省（老客户端 / 手敲的请求）时不传，交给脚本的默认值；
+      // 明确传了空数组就说明用户在界面上取消了全部勾选 → `none`（只建入口页）。
+      if (Array.isArray(form.materials)) {
+        const picked = MATERIAL_KINDS.filter((m) => form.materials.includes(m));
+        args.push('--materials', picked.length ? picked.join(',') : 'none');
+      }
+      bool('--publish', publish);
+      break;
+    }
+    case 'notes':
+    case 'homework':
+    case 'lab':
+      // 材料页：<课程> <章节>，材料目录默认与类型同名
+      args.push(String(form.course ?? '').trim(), String(form.chapter ?? '').trim());
+      flag('--dir', form.dir);
+      flag('--title', form.title);
       bool('--publish', publish);
       break;
     case 'project':
@@ -565,11 +607,49 @@ export function buildCreateArgs(form) {
   return args;
 }
 
+// ---------- 删除参数拼装 ----------
+//
+// 规则（哪些路径能删、能不能连目录删）只有 scripts/new-content.sh 的 cmd_remove 一份实现；
+// 这里把「先 dry-run 拿清单、确认后再删」也交给同一个子命令，只做最小护栏。
+export function buildRemoveArgs(form) {
+  const rel = String(form.path ?? '').replace(/\\/g, '/').replace(/^\/+/, '');
+  if (rel === '') throw Object.assign(new Error('缺少 path 参数'), { status: 400 });
+  if (!rel.startsWith(`${CONTENT_DIR}/`)) {
+    throw Object.assign(new Error(`只允许删除 ${CONTENT_DIR}/ 内的内容：${rel}`), { status: 400 });
+  }
+  if (rel.split('/').includes('..')) {
+    throw Object.assign(new Error(`路径里不能出现 ..：${rel}`), { status: 400 });
+  }
+  const args = ['remove', rel];
+  if (form.withBundle) args.push('--with-bundle');
+  if (form.dryRun) args.push('--dry-run');
+  return args;
+}
+
 // 新建后从脚本输出里取出实际创建的文件（脚本对每个文件打印 `  ✓ content/...`）。
 export function createdFiles(stdout) {
   const out = [];
   for (const line of String(stdout ?? '').split(/\r?\n/)) {
     const m = /^\s*✓\s+(content\/.+?)\s*$/.exec(line);
+    if (m) out.push(m[1]);
+  }
+  return out;
+}
+
+// 删除时脚本先打印删除计划（`  - content/...`，dry-run 也有），删除后再逐条打印 `  ✓ 已删除 content/...`。
+export function planFiles(stdout) {
+  const out = [];
+  for (const line of String(stdout ?? '').split(/\r?\n/)) {
+    const m = /^\s*-\s+(content\/.+?)\s*$/.exec(line);
+    if (m) out.push(m[1]);
+  }
+  return out;
+}
+
+export function removedFiles(stdout) {
+  const out = [];
+  for (const line of String(stdout ?? '').split(/\r?\n/)) {
+    const m = /^\s*✓\s+已删除\s+(content\/.+?)\s*$/.exec(line);
     if (m) out.push(m[1]);
   }
   return out;

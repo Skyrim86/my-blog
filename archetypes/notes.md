@@ -1,5 +1,6 @@
 ---
-# 学习笔记（课程章下的 leaf bundle）：scripts/new-content.sh chapter 自动生成
+# 学习笔记（课程章下的 leaf bundle）：scripts/new-content.sh notes，
+# 或 chapter 子命令的 --materials notes 生成。
 # 不要在这里写 tags / categories —— 课程标签由课程主页 _index.md 的 cascade 下发，
 # 而 cascade 只填空：本页一旦自己写了 tags，就会整体丢掉继承来的课程标签。
 title: "学习笔记"

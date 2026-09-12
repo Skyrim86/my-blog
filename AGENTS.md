@@ -23,6 +23,7 @@ my-blog/
 │   ├── chapter.md             # 章节入口页骨架（layout: chapter，默认 math: false）
 │   ├── notes.md               # 学习笔记骨架（📖；刻意不写 tags，原因见 4.2⑨）
 │   ├── homework.md            # 作业骨架（📝；同上）
+│   ├── lab.md                 # 实验骨架（🧪；同上，键与 notes.md 完全一致，见 4.2⑤）
 │   ├── projects.md            # 平铺项目骨架（leaf bundle）
 │   ├── project-home.md        # 分层项目主页骨架（section + cascade 标签下发）
 │   ├── project-section.md     # 分层项目子项目骨架（section，刻意不写 tags）
@@ -47,7 +48,7 @@ my-blog/
 │   │   └── render-passthrough.html # 公式渲染钩子：构建期用 KaTeX 渲染成 HTML（见 4.2⑥）
 │   ├── courses/               # 课程专用模板（由 front matter layout 显式命中，不影响其他 section）
 │   │   ├── course.html        #   课程主页：自绘章节目录
-│   │   └── chapter.html       #   章节入口页：学习笔记 / 作业 二选一
+│   │   └── chapter.html       #   章节入口页：列出本章材料页（笔记 / 作业 / 实验）
 │   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
 │       ├── extend_head.html   # 覆盖主题 hook：JS 资产接线 + 公式样式按需加载
 │       ├── extend_post_content.html # 覆盖主题 hook：系列导航 + 课程附件 + 项目元信息 + 相关内容
@@ -55,7 +56,7 @@ my-blog/
 │       ├── related-content.html # 相关内容区块：按共享标签/系列串联 文章↔课程↔项目（见 4.2⑩）
 │       ├── course-index.html  # 课程主页的章节目录组件
 │       ├── course-header.html # 课程主页 / 章节入口页共用的页头（面包屑 + 标题 + 描述）
-│       ├── course-downloads.html # 课程材料页（笔记/作业）附件下载组件
+│       ├── course-downloads.html # 课程材料页（笔记/作业/实验）附件下载组件
 │       ├── project-meta.html  # 项目详情页的技术栈 + 仓库链接面板
 │       └── comments.html      # Giscus 评论组件（覆盖主题同名 partial）
 ├── content/
@@ -66,7 +67,7 @@ my-blog/
 │   ├── categories/_index.md   # 分类总览页标题（中文「分类」）
 │   ├── series/_index.md       # 系列总览页标题（中文「系列」）
 │   ├── courses/_index.md      # 课程 section 列表页（url: /courses/）
-│   ├── courses/<课程>/        # 一门课程：_index.md 主页 + <chapter-0N>/（notes/、homework/，见第 5 节）
+│   ├── courses/<课程>/        # 一门课程：_index.md 主页 + <chapter-0N>/（notes/、homework/、lab/，见第 5 节）
 │   ├── projects/_index.md     # 项目 section 列表页（url: /projects/）
 │   ├── projects/<项目>/index.md # 一个项目（平铺单页，与课程的多层结构不同）
 │   ├── projects/CMC2026/      # 例外：带子项目的项目（_index.md 项目主页 + 分析思路/ 子项目 + 其下思路文档）
@@ -82,9 +83,9 @@ my-blog/
 │   └── googledfe2280ece06bc5c.html  # Google Search Console 验证
 ├── .github/workflows/deploy.yml  # GitHub Actions 部署
 ├── scripts/
-│   ├── new-content.sh         # 新内容脚手架：文章/课程/章/项目/文档（见 4.2⑫）
+│   ├── new-content.sh         # 新内容脚手架：文章/课程/章/材料页(笔记·作业·实验)/项目/文档 + remove（见 4.2⑫）
 │   ├── check-tags.sh          # 标签词表校验（只警告）
-│   ├── check-frontmatter.sh   # front matter 校验（**阻断**：无 FM / 缺 title,date,draft / section 页写 tags）
+│   ├── check-frontmatter.sh   # front matter 校验（**阻断**：无 FM / 缺 title,date,draft / section 与材料页写 tags）
 │   ├── check-katex-pairing.sh # KaTeX 样式与 Hugo 内嵌版本是否配对（**阻断**，见 4.2⑥）
 │   ├── check-links.mjs        # 站内链接与锚点检查（**阻断**；零依赖 Node，见第 6 节）
 │   ├── check-editor-schema.mjs# archetypes 与管理页字段表的漂移检查（只警告，见 4.2⑬）
@@ -95,7 +96,7 @@ my-blog/
 │   ├── push-blog.sh           # 一键构建 + 校验 + 提交 + 推送（见第 6 节）
 │   ├── admin.sh               # 本地管理页启动器（见 4.2⑬）
 │   └── admin/                 # 本地管理页：零依赖 Node 服务 + 原生前端（不参与 Hugo 构建）
-│       ├── server.mjs         #   HTTP 服务：静态页 + JSON API（新建/编辑/词表/git/发布）
+│       ├── server.mjs         #   HTTP 服务：静态页 + JSON API（新建/删除/编辑/词表/git/发布）
 │       ├── lib/               #   业务模块：content / frontmatter / taxonomy / git / hugo / exec
 │       └── ui/                #   index.html + app.js + style.css
 ├── .lychee.toml               # 外链检查配置（周检、非阻断；站内链接由 check-links.mjs 负责）
@@ -178,10 +179,12 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 
 **④ 列表卡片化** — `01-cards.css`：文章列表项圆角+阴影+悬浮上浮，暗色适配用 `[data-theme="dark"]`
 
-**⑤ 课程结构（课程 → 周/章 → 笔记 / 作业）** — `layouts/courses/course.html`、`chapter.html` + `course-index.html`、`course-downloads.html`
+**⑤ 课程结构（课程 → 周/章 → 材料页：笔记 / 作业 / 实验）** — `layouts/courses/course.html`、`chapter.html` + `course-index.html`、`course-downloads.html`
 - **课程主页**（`content/courses/<课程>/_index.md`，`layout: "course"`）由 `course.html` 渲染：面包屑 + 标题 + `unit` 说明（「本课程按章组织」）+ **自动章节目录**（`course-index.html` 按 `weight` 排序，显示「第 N 章」与各章可进入内容的徽标）+ 大纲正文
-- **章节入口页**（`<chapter-0N>/_index.md`，`layout: "chapter"`）由 `chapter.html` 渲染：把本章子页面列成入口卡片（📖 学习笔记 / 📝 作业，图标取子页面 front matter 的 `icon`）并显示附件数量。**笔记与作业不堆在同一页**，必须从这里分开进入
-- **材料页**（`<chapter-0N>/notes/index.md`、`homework/index.md`）走主题 `single.html`：正文即内容（可写 KaTeX 公式），`extend_post_content.html` 注入 `course-downloads.html` 列出该页的附件
+- **章节入口页**（`<chapter-0N>/_index.md`，`layout: "chapter"`）由 `chapter.html` 渲染：把本章子页面列成入口卡片（📖 学习笔记 / 📝 作业 / 🧪 实验，图标取子页面 front matter 的 `icon`）并显示附件数量。**笔记、作业、实验不堆在同一页**，必须从这里分开进入
+- **材料页**（`<chapter-0N>/<材料>/index.md`）走主题 `single.html`：正文即内容（可写 KaTeX 公式），`extend_post_content.html` 注入 `course-downloads.html` 列出该页的附件
+- **模板不认目录名，只认「章下面的 regular page」**：`chapter.html` 是 `.RegularPages.ByWeight`，卡片上的名字取 `title`、图标取 `icon`、顺序取 `weight`。所以材料类型可以自由扩展（`lab`、用 `--dir lab-02` 建出的第二个实验…），**加材料页不需要改任何模板/CSS/i18n**。三种规范材料的骨架是 `archetypes/notes.md`(1,📖) / `homework.md`(2,📝) / `lab.md`(3,🧪)，三者的键必须保持一致（`check-editor-schema.mjs` 用一份字段表覆盖它们，见 4.2⑬）
+- **章 = 入口页 + 若干材料页的组合**由 `scripts/new-content.sh chapter --materials notes,homework,lab` 一次建好（默认 `notes,homework`；`none` 只建入口页）；漏掉的材料之后用 `new-content.sh notes|homework|lab <课程> <章节>` 单独补（见 4.2⑫）
 - 附件 = 与 `index.md` 同目录的任意非图片资源（PDF/zip…），Hugo 随页面发布，`.RelPermalink` 即下载地址，**无需文件名前缀**
 - 文案走 `i18n/zh.toml` 的 `course*` keys；样式在 `04-course.css`
 
@@ -254,19 +257,29 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 - 改索引字段时**必须同步 `fuseOpts.keys`**，否则多输出的字段搜不到、keys 里多写的字段则无效
 
 **⑫ 新内容脚手架** — `scripts/new-content.sh` + `.agents/commands/new-*.md`
-- 一个入口覆盖文章 / 课程主页 / 章节（含笔记+作业三件套）/ 平铺项目 / 分层项目 / 分层项目文档；**多文件结构是 `hugo new` 做不到的部分**（一章一次生成 `chapter-0N/_index.md` + `notes/index.md` + `homework/index.md`，章号自动递增）
+- 一个入口覆盖文章 / 课程主页 / 章节（可含材料页）/ 三个材料子命令 / 平铺项目 / 分层项目 / 分层项目文档 / **删除**；**多文件结构是 `hugo new` 做不到的部分**（一章一次生成 `chapter-0N/_index.md` + 勾选的材料页，章号自动递增）
+- 子命令与材料页：`notes` / `homework` / `lab` 分别建 `notes/`、`homework/`、`lab/` 三个 leaf bundle（`--dir` 可改目录名，用于同一章的第二个实验 `lab-02`；此时 weight 用 `next_material_weight()` 取同级最大值+1，规范目录名则沿用骨架里的固定 1/2/3）。`chapter --materials notes,homework,lab|none` 决定一并建哪些，**默认 `notes,homework`**（与改造前一致），`none` 只建入口页
+  - `next_material_weight()` 与 `next_weight()` 是**两个函数**：后者数的是 `*/_index.md` 与 `*.md`（`sub`/`doc` 用），材料页是 `*/index.md`，用它会永远得 1 —— 这个错误实测出现过，`--dir lab-02` 因此拿到 weight 1 与笔记撞号
+- `remove <content 路径> [--with-bundle] [--dry-run]` 是**删除的唯一实现**（管理页也调它，见 4.2⑬）：只接受 `content/` 内的 `.md`、拒绝 `..`、拒绝删 `content/` 本身；`--with-bundle` 时 `index.md` 删所在 leaf bundle 目录（含附件）、`_index.md` 删所在 branch 目录，但**直接位于 `content/` 下的 section 根一律拒绝**（否则一键就能清空 `content/courses`）。先打印将删除的文件清单（`  - <path>`）再动手，`--dry-run` 到此为止；`remove` 不要求 hugo 与词表存在
 - 实现要点：**front matter 的唯一事实源是 `archetypes/`**，脚本只调 `hugo new content <path> --kind <kind>`，不另抄一份模板（避免两处漂移）；之后用 awk 在首个 `---` 区块内做定向行替换，注入 `tags`/`title`/`weight`/`repo` 等
 - `--kind` 必须显式给：`notes/index.md` 的默认 kind 会取路径首段 `courses`，拿到的是错的骨架
-- 建文件前先 `[ -f ]` 判存在（`hugo new content` 冲突时退出码也是 1，无法区分原因）；**标签校验在任何建文件动作之前完成**，避免校验失败留下半成品文件
+- 建文件前先 `[ -f ]` 判存在（`hugo new content` 冲突时退出码也是 1，无法区分原因）；**标签与 `--materials` 校验都在任何建文件动作之前完成**，避免校验失败留下半成品文件
 - 默认 `draft: true`（与 archetype 一致），`--publish` 才写 `false`
 
 **⑬ 本地管理页（可交互的写作/发布界面）** — `scripts/admin.sh` + `scripts/admin/` + `启动管理页.bat`
 - 入口有两个，等价：**双击仓库根目录的 `启动管理页.bat`**（不用开终端，桌面快捷方式也指向它），或命令行 `bash scripts/admin.sh`（对话里用 `/admin`）。双击后它会自动打开浏览器、并顺手带起 `hugo server` 预览
-- 它在本机起一个零依赖的 Node 服务（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，四块功能：**新建**（六种内容类型的表单 + 词表 chips 选标签）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条）、**发布**（git 改动清单 + diff + 提交说明 + 流式日志）、**同屏 iframe 预览**
+- 它在本机起一个零依赖的 Node 服务（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，四块功能：**新建**（**九种内容类型**的表单 + 词表 chips 选标签）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条 + **删除**）、**发布**（git 改动清单 + diff + 提交说明 + 流式日志）、**同屏 iframe 预览**
 - **`启动管理页.bat` 必须保持纯 ASCII + CRLF**，这是一条硬约束，不是风格偏好：批处理里一旦有中文，`chcp 65001` 之后 cmd.exe 会按错误的字节偏移重读文件、把半行当命令执行（实测症状是 `'会自动打开' is not recognized as an internal or external command`，同时服务仍能起来，很容易被忽略）。所以**面向用户的中文提示全部由 `scripts/admin.sh` 打印**（bash 写 UTF-8，配合启动器的 chcp 65001 显示正常），.bat 里只留英文注释与英文错误。`.gitattributes` 里 `*.bat text eol=crlf` 就是为此加的（只有 LF 的 .bat 会让 label/goto 之类按行定位的语法出问题）
 - 启动器找 bash 的顺序刻意**先查 Git for Windows 的安装位置、再退回 PATH**：`C:\Windows\System32\bash.exe` 是 WSL 的 bash，用它跑这个脚本路径会全错。顺序为 `ADMIN_BASH` → `%ProgramFiles%\Git\bin\bash.exe` → `%ProgramFiles(x86)%\...` → `%LOCALAPPDATA%\Programs\Git\...` → 从 `where git` 反推 `..\bin\bash.exe`。找不到就打印 Git 下载地址并 `pause`，参数原样透传（`启动管理页.bat --port 1415` 可用）
-- 它是现有脚本的界面外壳，不是替代品：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制
-- **架构红线做成了界面约束**：`content/courses/**/notes|homework`、章节入口页、子项目页、各类 section/列表页的 tags 字段在界面上**隐藏并禁用**（理由同 4.2⑨：section 写 tags 只会让计数虚高；材料页写了会整体丢掉 cascade 下发的标签）；分层项目的文档页写 tags 会给出「会丢掉项目级标签」的提示。服务端也会忽略不属于该类型 schema 的字段——实测在材料页硬塞 tags 不会写进文件
+- 它是现有脚本的界面外壳，不是替代品：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），**删除调 `new-content.sh remove`**，读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制
+- **新建的九种类型**在 `app.js` 的 `KINDS` 里（唯一事实源）：文章 / 课程主页 / 章节 / **笔记 / 作业 / 实验** / 项目 / 子项目 / 项目文档。kind 的取值与 `new-content.sh` 的子命令名**一一对应**，所以日志里显示的命令就是真正跑的那条
+  - 「章节」表单带一个 `type: 'checks'` 的**材料多选**（`--materials`，默认勾笔记+作业），勾哪些建哪些、全不勾传 `none` 只建入口页
+  - 「笔记 / 作业 / 实验」三个独立按钮用来**给已有章节补材料**：它们的「所属章节」下拉是**唯一与其他字段有依赖的选项**，跟着「所属课程」联动（`fillChapterOptions()`，选项由服务端 `options.chapters` 下发，前端不推导路径）
+  - `checks` 是字段渲染器里新增的一种类型：同名 checkbox 共用 `data-field`、靠 `data-cvalue` 区分，所以 `snapshotCreateFields`/`restoreCreateFields`/提交收集三处都必须把它们聚合成数组 —— 按 `data-field` 直接赋值会让同组的多选框互相覆盖
+- **删除是「两步确认 + 预检」**：编辑器头部的「删除」按钮第一次点击先发 `POST /api/content/delete` 带 `dryRun: true`，`remove --dry-run` 把将删除的文件清单回报上来（渲染在 `#ed-delete-notice` 里，含文件数、未保存改动提醒、`git checkout --` 恢复命令），按钮转红变「确认删除」；第二次点击才真删。**判定规则不在 Node 里**：`buildRemoveArgs()` 只做「必须在 `content/` 内、不含 `..`」的最小护栏，其余（连不连目录删、section 根拒绝）全在 `cmd_remove`
+  - 删除成功后要一起做四件事：清空编辑器占位、`loadItems(true)` + `renderTree()`、`renderCreateFields()`（课程/章节下拉跟着变）、并把预览改指到仍然存在的最邻近祖先 `_index.md`（`nearestSurvivingIndex()`）——否则 iframe 会停在已删掉的地址上
+  - 重新渲染编辑器时必须 `resetDeleteArm()`：不解除武装的话，「确认删除」会落到下一个刚打开的页面上
+- **架构红线做成了界面约束**：`content/courses/**/notes|homework|lab`、章节入口页、子项目页、各类 section/列表页的 tags 字段在界面上**隐藏并禁用**（理由同 4.2⑨：section 写 tags 只会让计数虚高；材料页写了会整体丢掉 cascade 下发的标签）；分层项目的文档页写 tags 会给出「会丢掉项目级标签」的提示。服务端也会忽略不属于该类型 schema 的字段——实测在材料页硬塞 tags 不会写进文件
 - **新标签先入词表、再建内容**：界面上勾的新词会先经 `/api/taxonomy/add` 写进 `data/taxonomy.yaml`（写后立刻用 `new-content.sh tags` 复核，复核不过就回滚原文件），全部校验通过才建文件——沿用 new-content.sh「校验早于建文件」的原则。建内容前的预检走 `new-content.sh add-term --check`，**校验规则也只有 shell 那一份**
 - **URL 与预览**：预览由内置的 `hugo server -D -F --disableFastRender` 提供，iframe 指向 `http://127.0.0.1:<预览端口>/my-blog/<页面路径>/`，保存后 livereload 自动刷新。**页面路径不再由 Node 自己算，而是问 Hugo**：`hugo list all` 输出每页的 `path,permalink`（`content.mjs` 的 `previewUrl` 读它，缓存 5s，保存/新建时失效）。所以 `permalinks` 规则、`pathToLower`（`CMC2026` → `cmc2026`）、front matter 的 `url`、中文的百分号编码都由 Hugo 说了算，配置改了不会与界面分叉；只有「Hugo 列不到这一页」（刚新建还没落盘、或 hugo 不可用）时才退回原来的启发式，并标 `source: 'heuristic'`
 - **编辑器字段表与 archetypes 是策展关系，不是副本**：字段表是 archetype 的**子集 + 补充**（实测差异：只给 UI 的 `post.slug`、`material.math`、`project-doc.tags` 在 archetype 里没有；而有意不暴露的 `layout`、`date`、`cover.relative` 等又在 archetype 里有）。所以**没有**做「按 archetype 机械生成表单」——那会把 `layout`/`date` 顶进表单、丢掉 `slug`、并改掉每个类型的字段顺序，是行为回归。取而代之的是 `scripts/check-editor-schema.mjs`：archetype 里出现了既没被 UI 暴露、也不在它 `hidden` 列表里的键就报警，把**静默分叉**变成可见提醒
@@ -290,14 +303,16 @@ favicon 是生成的一次性静态文件（深色圆角方块 + 白色 S，与 
 4. **面向访客的 UI 文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}` 引用；不要在模板里硬编码中文文案。**JS 里的文案**让脚本读自己 `<script>` 标签的 `data-*` 属性（模板侧用 `i18n` 填值），`terms-filter.js` 就是这么做的
 5. **复用主题 CSS 变量**（`--theme`/`--border`/`--secondary` 等）。暗色适配请用 **`[data-theme="dark"]`**（主题的机制），写 `.dark` 是无效的——站点 `defaultTheme='auto'`
 6. **配置一律进 `hugo.toml`**，模板里通过 `site.Params.xxx` 读取，不要在模板中硬编码
-7. **新建内容一律走脚手架**：`bash scripts/new-content.sh <post|course|chapter|project|sub|doc>`，或在对话里用 `/new-post`、`/new-course`、`/new-project`，或打开管理页 `bash scripts/admin.sh` 用表单建（它转交的也是这个脚本，见 4.2⑬）。它会依 `archetypes/` 生成正确的 front matter、自动排章号与权重、并从词表里选标签。**不要用 Write 直接创建内容文件、也不要手抄 front matter**——`archetypes/` 是唯一事实源，手抄必然漂移（`archetypes/default.md` 的 `cover.relative` 就曾长期是错的）。字段与多文件结构见 4.2⑫。文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录
+7. **新建内容一律走脚手架**：`bash scripts/new-content.sh <post|course|chapter|notes|homework|lab|project|sub|doc|remove>`，或在对话里用 `/new-post`、`/new-course`、`/new-project`，或打开管理页 `bash scripts/admin.sh` 用表单建（它转交的也是这个脚本，见 4.2⑬）。它会依 `archetypes/` 生成正确的 front matter、自动排章号与权重、并从词表里选标签。**不要用 Write 直接创建内容文件、也不要手抄 front matter**——`archetypes/` 是唯一事实源，手抄必然漂移（`archetypes/default.md` 的 `cover.relative` 就曾长期是错的）。字段与多文件结构见 4.2⑫。文章放 `content/posts/<slug>/index.md`（Page Bundle），封面图 `cover.image` 放同目录。**删除内容也走脚手架**（`new-content.sh remove`，见 4.2⑫），不要在会话里手敲 `rm`
    - **课程结构与文章不同**，务必按下面建：
    - 一门课程 = `content/courses/<课程>/_index.md`（**branch bundle**），front matter 必须有 `layout: "course"` 与 `unit: "章"`（或 `"周"`），并带 `cascade`：一条 `target: {kind: page}` 下发 `tags`/`categories`（见 4.2⑨），一条 `comments: false` + `math: true`；它自身另写 `math: false`（省下约 23KB 的 KaTeX 样式）。**课程标签只写在这个 `cascade` 里**——课程主页是 section，自己写 `tags` 只会让 `/tags/` 计数虚高而词条页里不出现
    - 每个章/周 = `content/courses/<课程>/<chapter-0N>/_index.md`（**branch bundle / section**），front matter 需 `layout: "chapter"`、`weight`、`title`、`description`，并写 `math: false`（入口页无公式；**若导语里确实写了公式就改成 `math: true`**）
-   - 章下的两块内容各是一个 **leaf bundle**：
+   - 章下的材料页各是一个 **leaf bundle**（用 `chapter --materials` 一次建，或之后用对应的子命令补）：
      - `<chapter-0N>/notes/index.md` — 📖 学习笔记（正文 = 课堂内容）
      - `<chapter-0N>/homework/index.md` — 📝 作业（正文 = 作业解法）
-     - 两者 front matter 用 `title` / `weight` / `icon`（如 `📖`、`📝`）/ `description`，**不要写 `tags`**（会整体丢掉课程主页 cascade 下发的标签）
+     - `<chapter-0N>/lab/index.md` — 🧪 实验（正文 = 实验报告）；同一章要放第二个实验就用 `lab --dir lab-02`
+     - **目录名不重要**：入口页卡片的名字/图标/顺序来自 `title`/`icon`/`weight`，模板取的是 `.RegularPages.ByWeight`。所以新增材料类型（甚至临时加一页别的）不需要改任何模板
+     - 它们 front matter 用 `title` / `weight` / `icon`（如 `📖`、`📝`、`🧪`）/ `description`，**不要写 `tags`**（会整体丢掉课程主页 cascade 下发的标签）
      - 附件直接与各自 `index.md` 同目录（除图片外的任意文件），会出现在该页「📎 附件下载」区；**不需要文件名前缀**
    - 分区单位由课程主页的 `unit` 决定；章节只写 `weight`，显示名自动拼成「第 N 章」
    - 课程主页与章节入口页由 `layouts/courses/*.html` 依 `layout` 显式命中，其他 section 不受影响
@@ -382,6 +397,8 @@ bash scripts/push-blog.sh "feat: 说明"     # 或在对话里用 /push-blog
 - 课程主页要显式 `math: false` 覆盖 `cascade`；没有公式的章节入口页也写 `math: false`，省下约 23KB 的 `katex.min.css`。**入口页导语里确实有公式的（如 `chapter-02`）必须写 `math: true`**——它曾写成 `false`，那条公式长期在页面上原样显示成源码
 - 课程材料页的附件**不用文件名前缀**：内容页 bundle 里除图片外的资源都会列进下载区（图片会按图片过滤掉，不会出现在下载列表）
 - 课程各页 URL 由目录名决定（`/courses/<课程>/<chapter-0N>/notes/` 等），改名即改 URL；课程主页 URL（`/courses/<课程>/`）保持不变
+- **材料页的 weight 不能拿 `next_weight()` 算**：那个函数数的是 `*/_index.md` 与 `*.md`（`sub`/`doc` 用），而材料页是 `*/index.md`，永远数不到 → 结果恒为 1（实测踩过：`--dir lab-02` 与笔记撞成同一个 weight）。材料页用 `next_material_weight()`
+- **`check-frontmatter.sh` 的材料页规则是 `content/courses/*/*/index.md`**，不是写死的 `notes/`、`homework/`：shell `case` 的通配 `*` 会**跨 `/`**（这也是原来 `content/courses/*/notes/index.md` 能匹配到 `<课程>/<chapter-0N>/notes/index.md` 的原因）。所以新增材料目录（`lab/`、`lab-02/`）会自动被这条规则覆盖；反过来说，改这个模式时要意识到 `*` 不是「一层」
 - 项目页同样由目录名决定 URL（`/projects/<项目>/`），改名即改 URL 并丢评论关联；分层项目再多一层（`/projects/cmc2026/分析思路/<文档名>/`），中文目录名在链接里会被百分号编码（站内既有中文 URL 同样如此）
 - 项目页与课程页都**不在**归档页与首页列表中（`mainSections=['posts']` 只放行文章），但**都会**进搜索引擎索引（`site.RegularPages`）、`sitemap.xml` 与 `/categories/`。注意词条页只列 regular page：`my-blog` 这类平铺项目页正常出现；`CMC2026` 是 section 形式的项目，**它自己**不在词条页里，但它下面的文档页（regular page，靠 cascade 拿到标签）会正常出现
 - **给 section 页写 `tags`/`categories` 是无效的，而且有害**：它不会出现在词条页的列表里，却会让 `/tags/` 总览的计数 +1。实测过：课程主页带 `tags: ["数值分析"]` 时 `/tags/数值分析/` 计数显示 1、列表 0 条。正确做法是写在该 section 的 `cascade` 里并加 `target: {kind: page}`（见 4.2⑨）

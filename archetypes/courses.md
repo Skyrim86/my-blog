@@ -13,7 +13,7 @@ summary: ""
 # 课程主页自身没有公式；公式渲染由下面的 cascade 传给各章节材料页
 math: false
 # 分类法只在这里写一次，由 cascade 下发给各章材料页。
-# target.kind: page 表示只发给 regular page（笔记 / 作业）——课程主页与章节入口页都是
+# target.kind: page 表示只发给 regular page（笔记 / 作业 / 实验）——课程主页与章节入口页都是
 # section，即使带上标签也只会让 /tags/ 的计数虚高、词条页里并不出现（见 AGENTS.md）。
 # 注意 cascade 只填空、不合并：材料页自己写了 tags 就会整体丢掉这里下发的标签。
 cascade:

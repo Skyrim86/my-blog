@@ -146,6 +146,15 @@ h2 { margin: 0 0 8px; font-size: 17px; }
 .field { display: grid; gap: 6px; margin: 12px 0; }
 .field > label { font-weight: 600; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 
+/* 这几个块是靠 hidden 属性开关的（新建页的标签/分类/系列、编辑器里的「未保存」徽标），
+   而它们各自的 display（grid / inline-block）会压过 UA 的 [hidden] { display: none } ——
+   不显式补一条，「隐藏」就完全不生效（实测：章节类型的标签区、以及不脏时的未保存徽标都一直在）。
+   注意别把它写成 [hidden] 一条通用规则：主题的类名可能也需要那条 UA 规则。 */
+.field[hidden],
+.badge[hidden] {
+  display: none;
+}
+
 input[type="text"], input[type="search"], textarea, select {
   width: 100%;
   padding: 7px 9px;
@@ -188,6 +197,17 @@ button {
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
 button.ghost { background: transparent; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 删除：默认只是描边提醒，武装（已确认过一次）后才填实，避免误点 */
+button.danger { border-color: var(--danger); color: var(--danger); }
+button.danger.armed { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
+
+.checks { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.checks .check { margin: 0; }
+
+.notice-err { margin-top: 6px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; white-space: pre-wrap; }
+.notice ul { margin: 6px 0 0; padding-left: 20px; }
+.notice ul code { background: transparent; padding: 0; }
 
 .actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
 

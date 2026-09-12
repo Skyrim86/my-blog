@@ -45,7 +45,7 @@ const store = {
   state: null,
   taxonomy: { tags: [], categories: [] },
   items: [],
-  options: { courses: [], projectHomes: [], projectDirs: [] },
+  options: { courses: [], chapters: {}, projectHomes: [], projectDirs: [] },
   kind: 'post',
   createTags: new Set(),
   createCats: new Set(),
@@ -177,6 +177,15 @@ $('tabs').addEventListener('click', (ev) => {
 
 // ---------------- 新建 ----------------
 
+// 一章可以建哪些材料页。章目录下**任何** leaf bundle 都会被章入口页列为材料卡片
+// （标题、图标、顺序取自 front matter，与目录名无关），所以同一章可以有第二个实验 ——
+// 实验的表单里有「目录名」字段，填 lab-02 即可。
+const MATERIAL_CHOICES = [
+  { value: 'notes', label: '📖 学习笔记' },
+  { value: 'homework', label: '📝 作业' },
+  { value: 'lab', label: '🧪 实验' },
+];
+
 const KINDS = {
   post: {
     label: '文章',
@@ -199,12 +208,51 @@ const KINDS = {
     ],
   },
   chapter: {
-    label: '章节（笔记+作业）',
+    label: '章节',
     tags: false,
     cats: false,
     fields: [
       { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
       { k: 'title', label: '章节标题', required: true },
+      {
+        k: 'materials',
+        label: '本章材料',
+        type: 'checks',
+        options: MATERIAL_CHOICES,
+        default: ['notes', 'homework'],
+        hint: '勾哪些就建哪些；不勾则只建入口页，之后可用「笔记 / 作业 / 实验」单独补',
+      },
+    ],
+  },
+  notes: {
+    label: '笔记',
+    tags: false,
+    cats: false,
+    fields: [
+      { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
+      { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
+      { k: 'title', label: '标题', hint: '留空用骨架默认「学习笔记」' },
+    ],
+  },
+  homework: {
+    label: '作业',
+    tags: false,
+    cats: false,
+    fields: [
+      { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
+      { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
+      { k: 'title', label: '标题', hint: '留空用骨架默认「作业」' },
+    ],
+  },
+  lab: {
+    label: '实验',
+    tags: false,
+    cats: false,
+    fields: [
+      { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
+      { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
+      { k: 'dir', label: '目录名', hint: '留空 = lab；同一章要放第二个实验就填 lab-02（权重自动接着排）' },
+      { k: 'title', label: '标题', hint: '留空用骨架默认「实验」' },
     ],
   },
   project: {
@@ -242,8 +290,27 @@ const KINDS = {
 };
 
 // 下拉选项由服务端下发（见 GET /api/content/list 的 options），前端不重复实现路径推导。
-function sourceOptions(source) {
+// 「所属章节」是唯一有依赖的一项：它跟着「所属课程」变，所以要看快照里当前选中的课程。
+function sourceOptions(source, snap) {
+  if (source === 'chapters') return chaptersForCourse(snap?.course);
   return store.options[source] ?? [];
+}
+
+function chaptersForCourse(course) {
+  const c = course || (store.options.courses ?? [])[0] || '';
+  return (store.options.chapters ?? {})[c] ?? [];
+}
+
+// 换课程 → 重建章节下拉；原来的选择还在就留着
+function fillChapterOptions(course) {
+  const sel = $('cf-chapter');
+  if (!sel) return;
+  const prev = sel.value;
+  const list = chaptersForCourse(course);
+  sel.innerHTML = list.length
+    ? list.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join('')
+    : '<option value="">（这门课还没有章节，先用「章节」新建）</option>';
+  if (list.includes(prev)) sel.value = prev;
 }
 
 function renderKindPicker() {
@@ -263,9 +330,20 @@ function renderCreateFields() {
       if (f.type === 'bool') {
         return `<label class="check"><input type="checkbox" id="${id}" data-field="${f.k}"> ${esc(f.label)}${hint ? ` · ${hint}` : ''}</label>`;
       }
+      if (f.type === 'checks') {
+        const boxes = (f.options ?? [])
+          .map((o) => {
+            const value = typeof o === 'string' ? o : o.value;
+            const label = typeof o === 'string' ? o : o.label;
+            const on = (f.default ?? []).includes(value) ? ' checked' : '';
+            return `<label class="check"><input type="checkbox" data-field="${f.k}" data-cvalue="${esc(value)}"${on}> ${esc(label)}</label>`;
+          })
+          .join('');
+        return `<div class="field"><label>${esc(f.label)} ${hint}</label><div class="checks">${boxes}</div></div>`;
+      }
       if (f.type === 'select') {
         const opts = f.source
-          ? sourceOptions(f.source)
+          ? sourceOptions(f.source, snapshot)
           : f.options ?? [];
         const body = opts.length
           ? opts.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join('')
@@ -277,6 +355,10 @@ function renderCreateFields() {
     .join('');
   $('create-fields').innerHTML = html;
   restoreCreateFields(snapshot);
+  // 「所属章节」的选项依赖「所属课程」，所以换课程时要重算一次
+  if (spec.fields.some((f) => f.source === 'chapters')) {
+    $('cf-course')?.addEventListener('change', (ev) => fillChapterOptions(ev.target.value));
+  }
   $('create-tags-wrap').hidden = !spec.tags;
   $('create-cats-wrap').hidden = !spec.cats;
   $('create-series-wrap').hidden = !spec.series;
@@ -293,6 +375,13 @@ function renderCreateFields() {
 function snapshotCreateFields() {
   const snap = {};
   for (const el of document.querySelectorAll('#create-fields [data-field]')) {
+    // 多选框组（checks）：同名元素共用 data-field，靠 data-cvalue 区分，收集成数组
+    if (el.dataset.cvalue !== undefined) {
+      const arr = snap[el.dataset.field] ?? [];
+      if (el.checked) arr.push(el.dataset.cvalue);
+      snap[el.dataset.field] = arr;
+      continue;
+    }
     snap[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
   }
   return snap;
@@ -302,6 +391,10 @@ function restoreCreateFields(snap) {
   for (const el of document.querySelectorAll('#create-fields [data-field]')) {
     const v = snap[el.dataset.field];
     if (v === undefined) continue;
+    if (el.dataset.cvalue !== undefined) {
+      el.checked = Array.isArray(v) && v.includes(el.dataset.cvalue);
+      continue;
+    }
     if (el.type === 'checkbox') el.checked = Boolean(v);
     else if (!el.querySelector('option[value=""]')) el.value = v;
   }
@@ -372,6 +465,13 @@ $('create-form').addEventListener('submit', async (ev) => {
   const spec = KINDS[store.kind];
   const form = { kind: store.kind, publish: $('create-publish').checked };
   for (const el of $('create-fields').querySelectorAll('[data-field]')) {
+    // 多选框组（checks）收集成数组，交给服务端拼成 --materials
+    if (el.dataset.cvalue !== undefined) {
+      const arr = form[el.dataset.field] ?? [];
+      if (el.checked) arr.push(el.dataset.cvalue);
+      form[el.dataset.field] = arr;
+      continue;
+    }
     form[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value.trim();
   }
   const missing = spec.fields.filter((f) => f.required && !String(form[f.k] ?? '').trim());
@@ -604,11 +704,13 @@ function renderEditor() {
       <div class="preview-actions" style="margin-left:auto">
         <button type="button" class="ghost" id="ed-preview">预览</button>
         <button type="button" class="primary" id="ed-save">保存</button>
+        <button type="button" class="danger" id="ed-delete">删除</button>
       </div>
     </div>
     <p class="hint">${esc(p.path)}${p.hasFrontMatter ? '' : '　（这个文件原本没有 front matter，保存带字段的改动会自动补一个区块）'}</p>
     ${warn}
     ${futureNotice}
+    <div id="ed-delete-notice"></div>
     <div class="fields">${fieldHtml}</div>
     ${coverHtml}
     <div class="field">
@@ -671,7 +773,10 @@ function renderEditor() {
 
   $('ed-save').addEventListener('click', saveEditor);
   $('ed-preview').addEventListener('click', () => setPreviewFor(p.path));
+  $('ed-delete').addEventListener('click', onDeleteClick);
   $('md-toolbar').addEventListener('click', onToolbar);
+  // 重新渲染（换文件、保存后刷新）必须解除已武装的删除 —— 否则「确认删除」会落到另一个文件上
+  resetDeleteArm();
 }
 
 function chipsHtml(options, selected, filter) {
@@ -755,6 +860,127 @@ async function saveEditor() {
   } catch (err) {
     toast(`保存失败：${err.message}`, 'error');
   }
+}
+
+// ---------------- 删除 ----------------
+//
+// 两步走：第一次点击先让脚本「干跑」一遍（remove --dry-run），把会删掉的文件清单摆出来；
+// 第二次点击才真删。判定规则（哪些路径能删、能不能连目录删、section 根一律拒绝）只有
+// scripts/new-content.sh 的 cmd_remove 一份实现，前端不重写。
+
+let deleteArmed = false;
+let deleteTimer = null;
+
+function resetDeleteArm() {
+  deleteArmed = false;
+  clearTimeout(deleteTimer);
+  const btn = $('ed-delete');
+  if (btn) {
+    btn.textContent = '删除';
+    btn.classList.remove('armed');
+  }
+}
+
+function dirOf(relPath) {
+  const s = String(relPath);
+  const i = s.lastIndexOf('/');
+  return i > 0 ? s.slice(0, i) : s;
+}
+
+function deleteNoticeHtml(title, res, dirty) {
+  const rel = String(res.path ?? '');
+  const files = res.plan?.length ? res.plan : res.removed ?? [];
+  const wholeDir = /(^|\/)_index\.md$/.test(rel);
+  const err = res.stderr ? `<div class="notice-err">${esc(String(res.stderr).trim())}</div>` : '';
+  // 预检被拒时只说清「删不了、为什么」，不要去描述「本来会删掉什么」
+  if (!res.ok) {
+    return `<div class="notice error"><div><strong>${esc(title)}：</strong><code>${esc(rel)}</code></div>${err}</div>`;
+  }
+  const head = wholeDir
+    ? `这是 section 入口页，会连它所在的<b>整个目录</b>一起删（含附件与下级页面），共 ${files.length} 个文件`
+    : `会删除 ${files.length} 个文件`;
+  const list = files.length ? `<ul>${files.map((f) => `<li><code>${esc(f)}</code></li>`).join('')}</ul>` : '';
+  const unsaved = dirty ? '<div>⚠ 这个页面还有<b>未保存</b>的改动，会一起丢掉。</div>' : '';
+  return (
+    `<div class="notice error"><div><strong>${esc(title)}：</strong>${head}</div>` +
+    list +
+    err +
+    unsaved +
+    `<div class="hint">还没动手：再点一次「确认删除」才真的删。删除会出现在「发布」页签的改动清单里；` +
+    `已提交过的内容可以用 <code>git checkout -- ${esc(wholeDir ? dirOf(rel) : rel)}</code> 找回。</div></div>`
+  );
+}
+
+async function onDeleteClick() {
+  const p = pending;
+  if (!p) return;
+  const btn = $('ed-delete');
+  const dirty = p.changed.size > 0 || p.coverChanged.size > 0 || p.bodyDirty;
+  if (!deleteArmed) {
+    btn.disabled = true;
+    try {
+      const res = await api.send('POST', '/api/content/delete', { path: p.path, withBundle: true, dryRun: true });
+      if (!res.ok) {
+        $('ed-delete-notice').innerHTML = deleteNoticeHtml('不能删除', res, dirty);
+        toast('这个文件删不了，原因见编辑器里的提示', 'error');
+        return;
+      }
+      deleteArmed = true;
+      btn.textContent = '确认删除';
+      btn.classList.add('armed');
+      $('ed-delete-notice').innerHTML = deleteNoticeHtml('确认要删除吗', res, dirty);
+      clearTimeout(deleteTimer);
+      deleteTimer = setTimeout(resetDeleteArm, 20000);
+    } catch (err) {
+      toast(`删除预检失败：${err.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+    return;
+  }
+
+  resetDeleteArm();
+  btn.disabled = true;
+  try {
+    const res = await api.send('POST', '/api/content/delete', { path: p.path, withBundle: true });
+    if (!res.ok) {
+      $('ed-delete-notice').innerHTML = deleteNoticeHtml('删除失败', res, dirty);
+      toast('删除失败，原因见编辑器里的提示', 'error');
+      return;
+    }
+    await afterDelete(p.path, res);
+  } catch (err) {
+    toast(`删除失败：${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function afterDelete(relPath, res) {
+  const n = res.removed?.length ?? 0;
+  pending = null;
+  $('editor').innerHTML = '<p class="muted">文件已删除。从左侧选一个文件继续编辑。</p>';
+  await loadItems(true);
+  renderTree();
+  renderCreateFields(); // 课程 / 章节下拉要跟着更新
+  // 预览不该停在已经删掉的地址上：往上找最近一个还在的 _index.md
+  const next = nearestSurvivingIndex(relPath);
+  if (next) {
+    toast(`已删除 ${n} 个文件：${relPath}`, 'ok');
+    setPreviewFor(next);
+  } else {
+    toast(`已删除 ${n} 个文件：${relPath}（预览未改动，可从左侧选一个文件重新预览）`, 'ok');
+  }
+  refreshState();
+}
+
+function nearestSurvivingIndex(relPath) {
+  const parts = String(relPath).split('/');
+  for (let i = parts.length - 1; i > 0; i--) {
+    const candidate = `${parts.slice(0, i).join('/')}/_index.md`;
+    if (store.items.some((it) => it.path === candidate)) return candidate;
+  }
+  return '';
 }
 
 // Markdown 工具条：在选区两端插标记，或插入整块模板

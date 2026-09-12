@@ -18,16 +18,20 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 // 类型 → archetype。hidden 是**有意不暴露**的字段（dot path），不是遗漏。
+// archetypes 是数组：一个编辑器类型可能对应多个骨架（三种课程材料页共用 material 类型）。
 const MAP = {
-  post: { archetype: 'default', hidden: ['cover.relative', 'cover.hiddenInList', 'cover.hiddenInSingle'] },
-  'course-home': { archetype: 'courses', hidden: ['layout', 'date', 'cascade.target', 'cascade.kind', 'cascade.math'] },
-  chapter: { archetype: 'chapter', hidden: ['layout', 'date'] },
-  // notes.md 与 homework.md 的键完全一致，任取其一
-  material: { archetype: 'notes', hidden: ['date'] },
-  project: { archetype: 'projects', hidden: ['date'] },
-  'project-home': { archetype: 'project-home', hidden: ['date', 'cascade.target', 'cascade.kind'] },
-  'project-section': { archetype: 'project-section', hidden: ['date'] },
-  'project-doc': { archetype: 'project-doc', hidden: ['date'] },
+  post: { archetypes: ['default'], hidden: ['cover.relative', 'cover.hiddenInList', 'cover.hiddenInSingle'] },
+  'course-home': {
+    archetypes: ['courses'],
+    hidden: ['layout', 'date', 'cascade.target', 'cascade.kind', 'cascade.math'],
+  },
+  chapter: { archetypes: ['chapter'], hidden: ['layout', 'date'] },
+  // 三种材料页（笔记 / 作业 / 实验）共用一份字段表，键必须保持一致；逐个检查才不会漏掉新加的那个
+  material: { archetypes: ['notes', 'homework', 'lab'], hidden: ['date'] },
+  project: { archetypes: ['projects'], hidden: ['date'] },
+  'project-home': { archetypes: ['project-home'], hidden: ['date', 'cascade.target', 'cascade.kind'] },
+  'project-section': { archetypes: ['project-section'], hidden: ['date'] },
+  'project-doc': { archetypes: ['project-doc'], hidden: ['date'] },
 };
 
 // 取 front matter 里的键路径。只认「顶层键 + 其下第一层子键」：
@@ -64,9 +68,7 @@ const content = await import(pathToFileURL('scripts/admin/lib/content.mjs').href
 
 let drift = 0;
 const rows = [];
-for (const [type, { archetype, hidden }] of Object.entries(MAP)) {
-  const file = `archetypes/${archetype}.md`;
-  const keys = archetypeKeys(file);
+for (const [type, { archetypes, hidden }] of Object.entries(MAP)) {
   const schema = content.editorSchema(type);
   // 放宽匹配：字段表里 cascade 下的键写作 `tags`（靠 indent 表达层级），
   // 所以除了完整 dot path，也比对最后一段。
@@ -76,14 +78,18 @@ for (const [type, { archetype, hidden }] of Object.entries(MAP)) {
     exposed.add(String(f.key).split('.').pop());
   }
   const hiddenSet = new Set(hidden);
-  // 容器键（cover: / cascade:）本身不是字段，它的子键才是——所以只检查叶子键，
-  // 否则每次都会误报「cover 没暴露」。
-  const containers = new Set(keys.filter((k) => keys.some((o) => o.startsWith(`${k}.`))));
-  const missing = keys.filter(
-    (k) => !containers.has(k) && !exposed.has(k) && !exposed.has(k.split('.').pop()) && !hiddenSet.has(k)
-  );
-  rows.push({ type, archetype, keys: keys.length, fields: (schema.fields ?? []).length, missing });
-  drift += missing.length;
+  for (const archetype of archetypes) {
+    const file = `archetypes/${archetype}.md`;
+    const keys = archetypeKeys(file);
+    // 容器键（cover: / cascade:）本身不是字段，它的子键才是——所以只检查叶子键，
+    // 否则每次都会误报「cover 没暴露」。
+    const containers = new Set(keys.filter((k) => keys.some((o) => o.startsWith(`${k}.`))));
+    const missing = keys.filter(
+      (k) => !containers.has(k) && !exposed.has(k) && !exposed.has(k.split('.').pop()) && !hiddenSet.has(k)
+    );
+    rows.push({ type, archetype, keys: keys.length, fields: (schema.fields ?? []).length, missing });
+    drift += missing.length;
+  }
 }
 
 for (const r of rows) {

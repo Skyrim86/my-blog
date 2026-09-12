@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# 新内容脚手架：一次建好文章 / 课程章（含笔记+作业）/ 项目 / 分层项目文档。
+# 新内容脚手架：一次建好文章 / 课程章（含笔记/作业/实验）/ 项目 / 分层项目文档，并负责删除内容。
 #
 # 用法：
 #   bash scripts/new-content.sh post    <slug> [--title 标题] [--tags A,B] [--categories X] [--series Y] [--publish]
 #   bash scripts/new-content.sh course  <课程> [--title 标题] [--unit 章] [--tags A,B] [--categories X] [--publish]
-#   bash scripts/new-content.sh chapter <课程> <章节标题> [--publish]
+#   bash scripts/new-content.sh chapter <课程> <章节标题> [--materials notes,homework,lab|none] [--publish]
+#   bash scripts/new-content.sh notes    <课程> <章节> [--dir 目录名] [--title 标题] [--publish]
+#   bash scripts/new-content.sh homework <课程> <章节> [--dir 目录名] [--title 标题] [--publish]
+#   bash scripts/new-content.sh lab      <课程> <章节> [--dir 目录名] [--title 标题] [--publish]
 #   bash scripts/new-content.sh project <项目> [--title 标题] [--tags A,B] [--repo URL] [--layered] [--publish]
 #   bash scripts/new-content.sh sub     <项目> <子项目> [--title 标题] [--publish]
 #   bash scripts/new-content.sh doc     <项目路径> <文档名> [--title 标题] [--tags A,B] [--no-math] [--publish]
+#   bash scripts/new-content.sh remove  <content 路径> [--with-bundle] [--dry-run]
+#                                                       删除一个页面；index.md/_index.md 可连整个目录删
 #   bash scripts/new-content.sh tags                     列出标签 / 分类词表
 #   bash scripts/new-content.sh add-term <tags|categories> <词条> [--check]
 #                                                        只往词表加词条（不建内容）；--check 只校验不写
@@ -15,9 +20,13 @@
 # 设计要点：
 #   - front matter 的唯一事实源是 archetypes/：本脚本只调用 `hugo new content --kind`，
 #     不另抄一份 front matter 模板，避免两处漂移。
-#   - 多文件结构（一章 = _index.md + notes + homework，一次建好）是 hugo new 做不到的部分。
+#   - 多文件结构（一章 = _index.md + 若干材料页，一次建好）是 hugo new 做不到的部分。
+#   - 材料页有三种：笔记（notes）/ 作业（homework）/ 实验（lab）。章目录下的**任何** leaf bundle
+#     都会被 layouts/courses/chapter.html 当作材料列出（标题、图标、顺序取自 front matter，与目录名无关），
+#     所以同一章可以有第二个实验（--dir lab-02）。这里不做「章 = 固定两页」的假设。
 #   - 标签只从 data/taxonomy.yaml 里选；要新词必须显式加 --new-tag，脚本会把它写进词表。
 #   - 默认 draft: true（与 archetype 一致）；确认写完后用 --publish 或手工改 false。
+#   - 删除也只在这里实现（管理页调 `remove`），Node 侧不另写一套路径规则。
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -35,10 +44,14 @@ usage() {
 新内容脚手架。用法：
   new-content.sh post    <slug> [--title 标题] [--tags A,B] [--categories X] [--series Y] [--publish]
   new-content.sh course  <课程> [--title 标题] [--unit 章] [--tags A,B] [--categories X] [--publish]
-  new-content.sh chapter <课程> <章节标题> [--publish]
+  new-content.sh chapter <课程> <章节标题> [--materials notes,homework,lab|none] [--publish]
+  new-content.sh notes    <课程> <章节> [--dir 目录名] [--title 标题] [--publish]
+  new-content.sh homework <课程> <章节> [--dir 目录名] [--title 标题] [--publish]
+  new-content.sh lab      <课程> <章节> [--dir 目录名] [--title 标题] [--publish]
   new-content.sh project <项目> [--title 标题] [--tags A,B] [--repo URL] [--layered] [--publish]
   new-content.sh sub     <项目> <子项目> [--title 标题] [--publish]
   new-content.sh doc     <项目路径> <文档名> [--title 标题] [--tags A,B] [--no-math] [--publish]
+  new-content.sh remove  <content 路径> [--with-bundle] [--dry-run]
   new-content.sh tags                     列出标签 / 分类词表
   new-content.sh add-term <tags|categories> <词条> [--check]
                                           只往词表加词条（不建内容）；--check 只校验不写
@@ -48,6 +61,12 @@ usage() {
   --new-tag    允许词表里没有的新标签，并自动追加进词表
   --check      配合 add-term：只做校验（含重名/大小写检查），不写词表
   --publish    直接 draft: false（默认仍是草稿）
+  --materials  只给 chapter：要一并建哪些材料页，逗号分隔；默认 notes,homework；
+               none（或空）表示只建章节入口页，材料之后再单独补
+  --dir        只给 notes/homework/lab：材料页的目录名，默认与子命令同名；
+               同一章要加第二个实验时用 --dir lab-02
+  --with-bundle  只给 remove：路径是 index.md/_index.md 时连它所在的整个目录一起删
+  --dry-run      只给 remove：只列出会删掉哪些文件，不动磁盘
   不带 --tags 且在终端里运行时，会列出词表让你按编号挑
 EOF
 }
@@ -243,12 +262,88 @@ cmd_course() {
   return 0
 }
 
+# ---------- 课程材料页（笔记 / 作业 / 实验） ----------
+#
+# 三种材料共用一份实现。章目录下**任何** leaf bundle 都会被 layouts/courses/chapter.html
+# 按 weight 列成材料卡片，标题与图标取自 front matter，与目录名无关 —— 所以目录名只影响 URL。
+# --dir 因此可以给同一个章加第二个实验（lab-02），此时权重按同级最大值接着排。
+MATERIAL_KINDS="notes homework lab"
+
+is_material_kind() {
+  case " $MATERIAL_KINDS " in *" $1 "*) return 0 ;; *) return 1 ;; esac
+}
+
+# 材料页的权重：同级材料是 leaf bundle（<目录>/index.md），与 next_weight 认的
+# `*/_index.md`、`*.md` 不是一回事，所以必须单独数一遍。
+next_material_weight() { # $1 = 章节目录：同级材料页的最大 weight + 1
+  local d="$1" max=0 f w
+  for f in "$d"/*/index.md; do
+    [ -f "$f" ] || continue
+    w="$(sed -n 's/^weight:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$f" | head -1)"
+    if [ -n "$w" ] && [ "$w" -gt "$max" ]; then max="$w"; fi
+  done
+  echo $((max + 1))
+}
+
+# 规范化 --materials：认 none/空（= 不建材料页）、去重、按固定顺序输出到 stdout。
+# 非法类型直接 die。必须在建任何文件之前调用——校验失败要干净中止，不留半成品。
+normalize_materials() { # $1 = 逗号分隔
+  local raw="$1" norm="" m k
+  [ -n "$raw" ] || { echo ""; return 0; }
+  for m in $(printf '%s' "$raw" | tr ',' ' '); do
+    m="$(printf '%s' "$m" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [ -z "$m" ] && continue
+    if [ "$m" = "none" ]; then echo ""; return 0; fi
+    if ! is_material_kind "$m"; then
+      die "未知材料类型：$m（只支持 notes / homework / lab，或 none 表示不建材料页）"
+    fi
+    norm="${norm:+$norm,}$m"
+  done
+  local out=""
+  for k in $MATERIAL_KINDS; do
+    case ",$norm," in *",$k,"*) out="${out:+$out,}$k" ;; esac
+  done
+  echo "$out"
+}
+
+create_material() { # $1 = notes|homework|lab, $2 = 课程, $3 = 章节目录名
+  local kind="${1:-}" course="${2:-}" chapter="${3:-}"
+  [ -n "$kind" ] && [ -n "$course" ] && [ -n "$chapter" ] ||
+    die "用法：new-content.sh <notes|homework|lab> <课程> <章节> [--dir 目录名] [--title 标题] [--publish]"
+  local dir="${MATERIAL_DIR:-$kind}" w
+  if [ ! -f "$CONTENT_DIR/courses/$course/$chapter/_index.md" ]; then
+    die "找不到章节入口页：$CONTENT_DIR/courses/$course/$chapter/_index.md"
+  fi
+  case "$chapter" in */*|*..*) die "章节目录名不合法：$chapter" ;; esac
+  case "$dir" in */*|*..*) die "材料目录名不合法：$dir" ;; esac
+
+  new_file "courses/$course/$chapter/$dir/index.md" "$kind"
+  local f="$LAST_FILE"
+  # 与类型同名的规范目录用骨架里的固定权重（笔记 1 / 作业 2 / 实验 3）；
+  # 自定义目录名（第二个实验之类）按同级最大值接着排。
+  if [ "$dir" != "$kind" ]; then
+    w="$(next_material_weight "$CONTENT_DIR/courses/$course/$chapter")"
+    fm_set "$f" '^weight: ' "weight: $w"
+  fi
+  # 只认显式传进来的 --title；chapter 子命令会把 TITLE 临时清空，免得章节标题被套到材料页上
+  if [ -n "$TITLE" ]; then fm_set "$f" '^title: ' "title: $(yaml_str "$TITLE")"; fi
+  if [ "$PUBLISH" = "1" ]; then fm_set "$f" '^draft: ' 'draft: false'; fi
+  return 0
+}
+
+cmd_notes() { create_material notes "$@"; }
+cmd_homework() { create_material homework "$@"; }
+cmd_lab() { create_material lab "$@"; }
+
 cmd_chapter() {
-  [ "$#" -ge 2 ] || die "用法：new-content.sh chapter <课程> <章节标题> [--publish]"
+  [ "$#" -ge 2 ] || die "用法：new-content.sh chapter <课程> <章节标题> [--materials notes,homework,lab|none] [--publish]"
   local course="$1" title="$2"
   if [ ! -f "$CONTENT_DIR/courses/$course/_index.md" ]; then
     die "找不到课程主页：$CONTENT_DIR/courses/$course/_index.md（先用 course 子命令创建）"
   fi
+  # 材料列表先校验完再动文件（见 normalize_materials）
+  local mats
+  mats="$(normalize_materials "$CHAPTER_MATERIALS")"
   local num=1 dir n
   for dir in "$CONTENT_DIR/courses/$course"/chapter-*; do
     [ -d "$dir" ] || continue
@@ -264,12 +359,21 @@ cmd_chapter() {
   fm_set "$LAST_FILE" '^weight: ' "weight: $num"
   if [ "$PUBLISH" = "1" ]; then fm_set "$LAST_FILE" '^draft: ' 'draft: false'; fi
 
-  new_file "courses/$course/$ch/notes/index.md" notes
-  if [ "$PUBLISH" = "1" ]; then fm_set "$LAST_FILE" '^draft: ' 'draft: false'; fi
-  new_file "courses/$course/$ch/homework/index.md" homework
-  if [ "$PUBLISH" = "1" ]; then fm_set "$LAST_FILE" '^draft: ' 'draft: false'; fi
-
-  info "材料页不要手写 tags：课程标签由课程主页 cascade 下发，写了反而会整体丢掉"
+  if [ -n "$mats" ]; then
+    # 材料页不该继承章节的标题与目录名，这里临时清掉这两项
+    local saved_title="$TITLE" saved_dir="$MATERIAL_DIR" m
+    TITLE=""
+    MATERIAL_DIR=""
+    for m in $(printf '%s' "$mats" | tr ',' ' '); do
+      create_material "$m" "$course" "$ch"
+    done
+    TITLE="$saved_title"
+    MATERIAL_DIR="$saved_dir"
+    info "材料页不要手写 tags：课程标签由课程主页 cascade 下发，写了反而会整体丢掉"
+  else
+    info "本章暂时只有入口页（--materials none）"
+  fi
+  info "补材料：bash scripts/new-content.sh notes|homework|lab $course $ch"
   return 0
 }
 
@@ -339,6 +443,69 @@ cmd_doc() {
     warn "本页写了 tags，就不会再继承项目主页 cascade 下发的项目级标签（cascade 只填空、不合并）"
     warn "若要两者都有，请把项目级标签也一并写进 --tags"
   fi
+  return 0
+}
+
+# ---------- 删除 ----------
+#
+# 删除只在这里实现：管理页的「删除」按钮调的就是它（先 `remove --dry-run` 拿清单、确认后再真删），
+# Node 侧不另写一套路径规则（与 add-term 同样的分工）。
+# 不做撤销/回收站：文件都在 git 里，`git checkout -- <路径>` 就能找回已提交过的内容。
+cmd_remove() {
+  [ "$#" -ge 1 ] || die "用法：new-content.sh remove <content 路径> [--with-bundle] [--dry-run]"
+  local target="${1%/}"
+  case "$target" in
+    "$CONTENT_DIR"|"$CONTENT_DIR/") die "拒绝删除整个 $CONTENT_DIR 目录" ;;
+    "$CONTENT_DIR"/*) ;;
+    *) die "路径必须以 $CONTENT_DIR/ 开头（相对仓库根，如 content/posts/foo/index.md）：$target" ;;
+  esac
+  case "$target" in *..*) die "路径里不能出现 ..：$target" ;; esac
+  [ -e "$target" ] || die "找不到：$target"
+  [ -f "$target" ] || die "只支持删除 .md 文件（或它所在的整个目录）：$target"
+  case "$target" in *.md) ;; *) die "只支持删除 .md 文件：$target" ;; esac
+
+  local dir rm_dir=""
+  dir="$(dirname "$target")"
+  if [ "$BUNDLE" = "1" ]; then
+    case "$(basename "$target")" in
+      index.md|_index.md) rm_dir="$dir" ;;
+    esac
+  fi
+  # 删 section 根（content/courses、content/projects、词条页…）会把整个分区一锅端。
+  # 它们是站点结构而不是「一篇内容」，一律拒绝，让调用方逐个处理。
+  if [ -n "$rm_dir" ] && [ "$(dirname "$rm_dir")" = "$CONTENT_DIR" ]; then
+    die "拒绝整目录删除：$rm_dir 是 $CONTENT_DIR 下的 section 根目录，删掉会清空整个分区；请逐个删除它下面的内容"
+  fi
+
+  local victims=() f
+  if [ -n "$rm_dir" ]; then
+    while IFS= read -r f; do victims+=("$f"); done < <(find "$rm_dir" -type f | LC_ALL=C sort)
+  else
+    victims=("$target")
+  fi
+  [ "${#victims[@]}" -gt 0 ] || die "没有可删除的文件：$target"
+
+  if [ -n "$rm_dir" ]; then
+    info "将删除整个目录 $rm_dir 下的 ${#victims[@]} 个文件："
+  else
+    info "将删除 1 个文件："
+  fi
+  for f in "${victims[@]}"; do echo "  - $f"; done
+
+  if [ "$DRYRUN" = "1" ]; then
+    info "这是 --dry-run，未改动任何文件"
+    return 0
+  fi
+
+  if [ -n "$rm_dir" ]; then
+    rm -rf -- "$rm_dir"
+  else
+    rm -f -- "$target"
+    # 顺手清掉被删空的 leaf bundle 目录（非空时 rmdir 会失败，忽略）
+    rmdir -- "$dir" 2>/dev/null || true
+  fi
+  for f in "${victims[@]}"; do ok "已删除 $f"; done
+  info "文件仍在 git 历史里：git checkout -- ${rm_dir:-$target} 可恢复已提交过的内容"
   return 0
 }
 
@@ -424,12 +591,22 @@ case "$cmd" in
   help|-h|--help) usage; exit 0 ;;
 esac
 
-command -v hugo >/dev/null 2>&1 || die "找不到 hugo，无法生成内容"
-[ -f "$TAXONOMY" ] || die "找不到词表：$TAXONOMY"
+# remove 不需要 hugo，也不读词表：别让「hugo 不在 PATH」这种无关原因拦住删除动作
+case "$cmd" in
+  remove) ;;
+  *)
+    command -v hugo >/dev/null 2>&1 || die "找不到 hugo，无法生成内容"
+    [ -f "$TAXONOMY" ] || die "找不到词表：$TAXONOMY"
+    ;;
+esac
 
 POS=()
 TAGS=""; TITLE=""; SERIES=""; CATS=""; UNIT="章"; REPO=""
 LAYERED=0; PUBLISH=0; NEWTAG=0; MATH=1; CHECKONLY=0
+# chapter 默认仍建笔记+作业（与改造前的行为一致）；none 表示只建入口页
+CHAPTER_MATERIALS="notes,homework"
+MATERIAL_DIR=""
+BUNDLE=0; DRYRUN=0
 INTERACTIVE=0
 if [ -t 0 ]; then INTERACTIVE=1; fi
 
@@ -443,11 +620,17 @@ while [ "$#" -gt 0 ]; do
     --categories) CATS="${2:-}"; shift 2 || die "--categories 缺少值" ;;
     --unit) UNIT="${2:-}"; shift 2 || die "--unit 缺少值" ;;
     --repo) REPO="${2:-}"; shift 2 || die "--repo 缺少值" ;;
+    --materials) CHAPTER_MATERIALS="${2:-}"; shift 2 || die "--materials 缺少值" ;;
+    --materials=*) CHAPTER_MATERIALS="${1#*=}"; shift ;;
+    --dir) MATERIAL_DIR="${2:-}"; shift 2 || die "--dir 缺少值" ;;
+    --dir=*) MATERIAL_DIR="${1#*=}"; shift ;;
     --layered) LAYERED=1; shift ;;
     --publish) PUBLISH=1; shift ;;
     --new-tag) NEWTAG=1; shift ;;
     --no-math) MATH=0; shift ;;
     --check) CHECKONLY=1; shift ;;
+    --with-bundle) BUNDLE=1; shift ;;
+    --dry-run) DRYRUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     -*) die "未知选项：$1（用 --help 看用法）" ;;
     *) POS+=("$1"); shift ;;
@@ -472,10 +655,14 @@ case "$cmd" in
   post)    cmd_post    ${POS[@]+"${POS[@]}"} ;;
   course)  cmd_course  ${POS[@]+"${POS[@]}"} ;;
   chapter) cmd_chapter ${POS[@]+"${POS[@]}"} ;;
+  notes)    cmd_notes    ${POS[@]+"${POS[@]}"} ;;
+  homework) cmd_homework ${POS[@]+"${POS[@]}"} ;;
+  lab)      cmd_lab      ${POS[@]+"${POS[@]}"} ;;
   project) cmd_project ${POS[@]+"${POS[@]}"} ;;
   sub)     cmd_sub     ${POS[@]+"${POS[@]}"} ;;
   doc)     cmd_doc     ${POS[@]+"${POS[@]}"} ;;
   tags)    cmd_tags ;;
+  remove)  cmd_remove  ${POS[@]+"${POS[@]}"}; exit 0 ;;
   add-term) cmd_add_term ${POS[@]+"${POS[@]}"}; exit 0 ;;
   *) usage; die "未知子命令：$cmd" ;;
 esac

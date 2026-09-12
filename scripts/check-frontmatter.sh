@@ -11,7 +11,8 @@
 #   3. 文章/课程材料/项目文档（posts、courses、projects 下的非 _index.md）缺 date 或 draft
 #   4. date 不是 YYYY-MM-DD 开头
 #   5. section 页（_index.md）写了顶层 tags / categories —— 词条页不会列出它，却会让 /tags/ 计数虚高
-#   6. 课程材料页（notes/、homework/）写了顶层 tags —— cascade 只填空不合并，写了会整体丢掉课程标签
+#   6. 课程材料页（章目录下的 leaf bundle，如 notes/、homework/、lab/、lab-02/）写了顶层 tags
+#      —— cascade 只填空不合并，写了会整体丢掉课程标签
 #
 # 警告（可能是排期或笔误）：
 #   a. draft: false 但 date 在未来 —— Hugo 默认不构建未来内容，会静默不上线
@@ -124,8 +125,11 @@ while IFS= read -r f; do
   fi
 
   # 6) 课程材料页不许写顶层 tags/categories
+  #    匹配「章目录下的 leaf bundle」= content/courses/<课程>/<章>/<材料>/index.md。
+  #    shell case 的 * 会跨 /，所以三层通配正好覆盖这一步；不写死 notes/homework，
+  #    否则新增材料类型（lab、lab-02…）会悄悄绕过这条规则。
   case "$rel" in
-    content/courses/*/notes/index.md|content/courses/*/homework/index.md)
+    content/courses/*/*/index.md)
       for k in tags categories; do
         if has_key "$pairs" "$k"; then
           fail "$rel：课程材料页写了顶层 $k —— 会整体丢掉课程主页 cascade 下发的标签"
@@ -157,7 +161,7 @@ while IFS= read -r f; do
   #    所以课程材料页（cascade 关了 comments）与 archives/search（各有独立 layout）不参与查重。
   if [ "$is_index" -eq 0 ] && [ -n "$title" ]; then
     case "$rel" in
-      content/courses/*/notes/index.md|content/courses/*/homework/index.md) ;;
+      content/courses/*/*/index.md) ;;
       *)
         case "$(get_val "$pairs" layout)" in
           archives|search) ;;
