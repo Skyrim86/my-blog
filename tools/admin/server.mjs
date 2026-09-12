@@ -20,6 +20,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import {
+  analyzeImport,
   buildCreateArgs,
   buildRemoveArgs,
   chaptersByCourse,
@@ -288,9 +289,12 @@ async function handleCreate(body) {
   const argv = buildCreateArgs({ ...body, allowNewTags: false });
   // 上面已经把新词写进词表了，所以这里不再传 --new-tag：脚本不会遇到「词表外的标签」，
   // 日志里显示的也就是真正需要的那条命令。
+  // 拖入 .md 的正文不进 argv（可能很大、含任意字符）：argv 里只有 --body-stdin 开关，
+  // 文本本身作为 stdin 喂给脚本，由 new-content.sh 写进该子命令创建的主页面。
+  const stdin = typeof body.body === 'string' && body.body !== '' ? body.body : null;
   let result;
   try {
-    result = await runScript(REPO_ROOT, 'scripts/new-content.sh', argv);
+    result = await runScript(REPO_ROOT, 'scripts/new-content.sh', argv, { input: stdin });
   } finally {
     invalidateList();
   }
@@ -567,6 +571,22 @@ const server = http.createServer(async (req, res) => {
       case 'PUT /api/content/file':
         json(res, 200, await handleSave(await readJsonBody(req)));
         return;
+      case 'POST /api/content/analyze': {
+        // 拖入的 .md 只做解析，不落盘：前端拿到 values/body 后让用户确认，
+        // 再分别走 POST /api/content（新建）或 PUT /api/content/file（替换正文）。
+        const body = await readJsonBody(req);
+        if (typeof body.text !== 'string' || body.text === '') {
+          fail(res, 400, '缺少 text（要解析的 markdown 文本）');
+          return;
+        }
+        const filename = String(body.filename ?? '');
+        if (filename && !/\.md$/i.test(filename)) {
+          fail(res, 400, `只支持 .md 文件：${filename}`);
+          return;
+        }
+        json(res, 200, analyzeImport(body.text, filename, { today: todayInTz(SITE_TZ) }));
+        return;
+      }
       case 'POST /api/content':
         json(res, 200, await handleCreate(await readJsonBody(req)));
         return;

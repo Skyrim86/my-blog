@@ -51,6 +51,8 @@ const store = {
   lastKindByGroup: {},
   createTags: new Set(),
   createCats: new Set(),
+  // 拖入 .md 后暂存的导入结果：{ filename, body, analysis }；提交成功后清空
+  import: null,
   editing: null,
   publishing: false,
 };
@@ -197,6 +199,8 @@ const KINDS = {
     fields: [
       { k: 'slug', label: '目录名（slug）', required: true, hint: '英文短横线；决定 URL /:year/:month/:slug/' },
       { k: 'title', label: '标题' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea', hint: '列表页与摘要使用' },
     ],
   },
   course: {
@@ -207,6 +211,8 @@ const KINDS = {
       { k: 'name', label: '课程目录名', required: true, hint: '如 numerical-analysis' },
       { k: 'title', label: '课程名' },
       { k: 'unit', label: '分区单位', type: 'select', options: ['章', '周'] },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea' },
     ],
   },
   chapter: {
@@ -216,6 +222,8 @@ const KINDS = {
     fields: [
       { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
       { k: 'title', label: '章节标题', required: true },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea' },
       {
         k: 'materials',
         label: '本章材料',
@@ -234,6 +242,8 @@ const KINDS = {
       { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
       { k: 'title', label: '标题', hint: '留空用骨架默认「学习笔记」' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea' },
     ],
   },
   homework: {
@@ -244,6 +254,8 @@ const KINDS = {
       { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
       { k: 'title', label: '标题', hint: '留空用骨架默认「作业」' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea' },
     ],
   },
   lab: {
@@ -255,6 +267,8 @@ const KINDS = {
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
       { k: 'dir', label: '目录名', hint: '留空 = lab；同一章要放第二个实验就填 lab-02（权重自动接着排）' },
       { k: 'title', label: '标题', hint: '留空用骨架默认「实验」' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea' },
     ],
   },
   project: {
@@ -264,6 +278,8 @@ const KINDS = {
     fields: [
       { k: 'name', label: '项目目录名', required: true },
       { k: 'title', label: '项目名' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea' },
       { k: 'repo', label: '仓库地址' },
       { k: 'layered', label: '分层项目（下面还要放子项目）', type: 'bool' },
     ],
@@ -276,6 +292,8 @@ const KINDS = {
       { k: 'project', label: '所属项目（分层项目）', type: 'select', source: 'projectHomes', required: true },
       { k: 'name', label: '子项目目录名', required: true },
       { k: 'title', label: '子项目名' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea' },
     ],
   },
   doc: {
@@ -286,6 +304,8 @@ const KINDS = {
       { k: 'projectPath', label: '所属目录', type: 'select', source: 'projectDirs', required: true, hint: '可选项来自 content/projects 下已有的目录' },
       { k: 'name', label: '文档名', required: true, hint: '不要带 .md' },
       { k: 'title', label: '标题' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
+      { k: 'description', label: '描述', type: 'textarea' },
       { k: 'noMath', label: '纯文字（不加载 KaTeX 样式）', type: 'bool' },
     ],
   },
@@ -413,6 +433,9 @@ function renderCreateFields() {
           ? opts.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join('')
           : '<option value="">（没有可选项，请先创建上层内容）</option>';
         return `<div class="field"><label for="${id}">${esc(f.label)} ${req} ${hint}</label><select id="${id}" data-field="${f.k}">${body}</select></div>`;
+      }
+      if (f.type === 'textarea') {
+        return `<div class="field"><label for="${id}">${esc(f.label)} ${req} ${hint}</label><textarea id="${id}" data-field="${f.k}" rows="2"></textarea></div>`;
       }
       return `<div class="field"><label for="${id}">${esc(f.label)} ${req} ${hint}</label><input type="text" id="${id}" data-field="${f.k}"></div>`;
     })
@@ -555,6 +578,8 @@ $('create-form').addEventListener('submit', async (ev) => {
     if (series) form.series = series;
   }
   form.allowNewTags = spec.tags && store.createTags.size > 0;
+  // 拖入的 .md：正文由服务端通过 stdin 交给 new-content.sh，front matter 仍来自 archetypes/
+  if (store.import) form.body = store.import.body;
 
   $('create-pending').textContent = '正在创建…';
   $('create-log').hidden = false;
@@ -564,6 +589,9 @@ $('create-form').addEventListener('submit', async (ev) => {
     printScriptResult(res);
     if (res.ok) {
       toast('创建成功' + (form.publish ? '（已标记为发布）' : '（草稿）'), 'ok');
+      // 导入的正文已经落到新文件里了；留着会让下一次创建重复带上同一个正文
+      store.import = null;
+      renderImportNotice();
       await loadItems(true);
       renderCreateFields();
       $('create-publish').checked = false;
@@ -693,6 +721,10 @@ async function selectFile(relPath) {
       cover: data.cover ?? {},
       body: data.body,
       hasFrontMatter: data.hasFrontMatter,
+      // 缺哪些必填 front matter（服务端按 check-frontmatter.sh 的规则算好）：
+      // 用来提示、并让「按默认值补全」知道该补什么
+      missingRequired: data.missingRequired ?? [],
+      futureDate: Boolean(data.futureDate),
       changed: new Map(),
       coverChanged: new Map(),
       bodyDirty: false,
@@ -709,6 +741,21 @@ async function selectFile(relPath) {
 function renderEditor() {
   if (!pending) return;
   const p = pending;
+  // 未保存的改动优先：拖入导入后会重渲染，不能让 p.values 里的旧值把刚填的值盖回去。
+  const val = (key) => (p.changed.has(key) ? p.changed.get(key) : p.values[key]);
+  const isTrue = (key) => val(key) === true || val(key) === 'true';
+  const missing = p.missingRequired ?? [];
+  // 已经填进 changed（拖入导入或点了「按默认值补全」）的不再算缺：否则填完了还在喊缺
+  const missingRemaining = missing.filter((k) => !p.changed.has(k));
+  const needsArchetype = !p.hasFrontMatter && SECTION_TYPES.has(p.type);
+  const dirtyWarn = missingRemaining.length
+    ? `<div class="notice error"><strong>缺必填的 front matter：</strong>${missingRemaining.map((k) => esc(FRONTMATTER_LABEL[k] ?? k)).join('、')}
+        —— 这样的文件 <code>scripts/check-frontmatter.sh</code> 会以硬错误拦下推送。
+        <div class="inline" style="margin-top:6px"><button type="button" class="ghost" id="ed-repair">按默认值补全</button>
+        <span class="hint">标题取正文第一个 # 标题、日期用站点今天、草稿状态保持「仍是草稿」；补完仍需点「保存」。</span></div>
+        ${needsArchetype ? '<div class="hint" style="margin-top:6px">这是 section 页：它的 layout / cascade 等结构键不在这里重建，若页面渲染不对，请用「新建」面板按类型重建。</div>' : ''}
+      </div>`
+    : '';
   const warn =
     p.schema.tagsPolicy === 'forbidden'
       ? `<div class="notice"><strong>不要在这里写 tags：</strong>${esc(p.schema.tagsReason)}</div>`
@@ -728,7 +775,7 @@ function renderEditor() {
       const hint = f.hint ? `<span class="hint">${esc(f.hint)}</span>` : '';
       let control;
       if (f.kind === 'bool') {
-        control = `<label class="check"><input type="checkbox" id="${id}" data-ekey="${f.key}" data-kind="bool" ${p.values[f.key] === 'true' ? 'checked' : ''}> ${esc(f.label)}</label>`;
+        control = `<label class="check"><input type="checkbox" id="${id}" data-ekey="${f.key}" data-kind="bool" ${isTrue(f.key) ? 'checked' : ''}> ${esc(f.label)}</label>`;
         return control;
       }
       if (f.kind === 'list') {
@@ -741,15 +788,15 @@ function renderEditor() {
         if (f.key === 'categories') {
           return `<div class="field"><label>${esc(f.label)} ${hint}</label><div class="chips selectable" id="ef-cats"></div></div>`;
         }
-        control = `<input type="text" id="${id}" data-ekey="${f.key}" data-kind="list" value="${esc((p.values[f.key] ?? []).join(', '))}">`;
+        control = `<input type="text" id="${id}" data-ekey="${f.key}" data-kind="list" value="${esc((val(f.key) ?? []).join(', '))}">`;
         return `<div class="field"><label for="${id}">${esc(f.label)} ${hint}</label>${control}</div>`;
       }
       if (f.kind === 'select') {
-        control = `<select id="${id}" data-ekey="${f.key}" data-kind="text">${(f.options ?? []).map((o) => `<option ${p.values[f.key] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+        control = `<select id="${id}" data-ekey="${f.key}" data-kind="text">${(f.options ?? []).map((o) => `<option ${val(f.key) === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
         return `<div class="field"><label for="${id}">${esc(f.label)} ${hint}</label>${control}</div>`;
       }
       const type = f.kind === 'number' ? 'number' : 'text';
-      control = `<input type="${type}" id="${id}" data-ekey="${f.key}" data-kind="${f.kind}" value="${esc(p.values[f.key] ?? '')}">`;
+      control = `<input type="${type}" id="${id}" data-ekey="${f.key}" data-kind="${f.kind}" value="${esc(val(f.key) ?? '')}">`;
       return `<div class="field"><label for="${id}">${esc(f.label)} ${hint}</label>${control}</div>`;
     })
     .join('');
@@ -765,10 +812,10 @@ function renderEditor() {
 
   $('editor').innerHTML = `
     <div class="editor-head">
-      <h3>${esc(p.values.title || p.path)}</h3>
+      <h3>${esc(val('title') || p.path)}</h3>
       <span class="chip">${esc(p.typeLabel)}</span>
-      <span class="chip ${p.values.draft === 'true' ? 'warn' : 'ok'}">${p.values.draft === 'true' ? '草稿' : '已发布'}</span>
-      ${p.values.math === '' ? '<span class="chip">math 继承</span>' : ''}
+      <span class="chip ${isTrue('draft') ? 'warn' : 'ok'}">${isTrue('draft') ? '草稿' : '已发布'}</span>
+      ${val('math') === '' || val('math') === undefined ? '<span class="chip">math 继承</span>' : ''}
       <span class="badge" id="dirty-badge" hidden>未保存</span>
       <div class="preview-actions" style="margin-left:auto">
         <button type="button" class="ghost" id="ed-preview">预览</button>
@@ -776,7 +823,8 @@ function renderEditor() {
         <button type="button" class="danger" id="ed-delete">删除</button>
       </div>
     </div>
-    <p class="hint">${esc(p.path)}${p.hasFrontMatter ? '' : '　（这个文件原本没有 front matter，保存带字段的改动会自动补一个区块）'}</p>
+    <p class="hint">${esc(p.path)}${p.hasFrontMatter ? '' : '　（这个文件原本没有 front matter，保存带字段的改动会自动补一个区块）'}　<span class="hint">拖入 .md 可替换正文</span></p>
+    ${dirtyWarn}
     ${warn}
     ${futureNotice}
     <div id="ed-delete-notice"></div>
@@ -793,18 +841,21 @@ function renderEditor() {
         <button type="button" data-md="imath">行内公式</button>
         <button type="button" data-md="dmath">块级公式</button>
       </div>
+      <label class="check"><input type="checkbox" id="ed-import-overwrite" ${importOverwrite ? 'checked' : ''}> 拖入 .md 时用文件里的 front matter 覆盖已有字段（默认只补空缺）</label>
       <textarea id="ed-body" spellcheck="false"></textarea>
       <div id="ed-lint"></div>
-    </div>`;
+    </div>
+    <div id="ed-import-notice"></div>`;
 
   $('ed-body').value = p.body;
   $('ed-lint').innerHTML = lintHtml(p.body);
+  $('ed-repair')?.addEventListener('click', repairFrontMatter);
 
   // 标签 chips（可编辑策略）
   if (p.schema.tagsPolicy !== 'forbidden') {
     const tagsEl = $('ef-tags');
     if (tagsEl) {
-      const selected = new Set(p.values.tags);
+      const selected = new Set(Array.isArray(val('tags')) ? val('tags') : []);
       const draw = (kw = '') => {
         tagsEl.innerHTML = chipsHtml(store.taxonomy.tags, selected, kw);
       };
@@ -822,7 +873,7 @@ function renderEditor() {
     }
     const catsEl = $('ef-cats');
     if (catsEl) {
-      const selected = new Set(p.values.categories);
+      const selected = new Set(Array.isArray(val('categories')) ? val('categories') : []);
       const draw = () => {
         catsEl.innerHTML = chipsHtml(store.taxonomy.categories, selected, '');
       };
@@ -897,7 +948,10 @@ async function saveEditor() {
   for (const [key, value] of p.changed) {
     const field = p.schema.fields.find((f) => f.key === key);
     if (!field) continue;
-    const indent = key === 'tags' ? p.indents.tags : key === 'categories' ? p.indents.categories : field.indent ?? '';
+    // 文件里原本没有这个键时（p.indents 是空串）要退回 schema 声明的缩进：课程主页 / 分层
+    // 项目主页的 tags 写在 cascade 里（缩进 4 空格），写成顶层就会让 check-frontmatter 报错。
+    const existing = key === 'tags' ? p.indents.tags : key === 'categories' ? p.indents.categories : '';
+    const indent = existing || field.indent || '';
     changed.push({ key, kind: field.kind, value, indent });
   }
   const coverChanges = [...p.coverChanged.entries()].map(([child, value]) => ({ child, value }));
@@ -929,6 +983,326 @@ async function saveEditor() {
   } catch (err) {
     toast(`保存失败：${err.message}`, 'error');
   }
+}
+
+// ---------------- 拖入 .md 导入 ----------------
+//
+// 拖进来的文件只在浏览器里读成文本，POST /api/content/analyze 让服务端用 lib/frontmatter.mjs
+// 解析（不在前端重写一遍 YAML 解析）；用户确认后才走原有两条写盘路径：
+//   新建 → POST /api/content        正文走 stdin，front matter 仍由 archetypes/ 生成
+//   编辑 → PUT  /api/content/file   替换正文 + 只补空缺字段（勾选框打开才覆盖）
+//
+// 全局拦下 dragover/drop：不拦的话浏览器会直接用拖进来的文件替换整个页面。
+
+const IMPORT_MAX_BYTES = 4 * 1024 * 1024;
+// 缺必填 front matter 时给用户看的字段名
+const FRONTMATTER_LABEL = { title: '标题 title', date: '日期 date', draft: '草稿状态 draft' };
+// section 页的 layout / cascade 等结构键不在编辑器里重建，只能提示用「新建」面板重做
+const SECTION_TYPES = new Set(['course-home', 'chapter', 'project-home', 'project-section', 'courses-list', 'projects-list', 'taxonomy-page']);
+
+let importOverwrite = false; // 编辑面板：是否用文件里的值覆盖已有字段（默认只补空缺）
+
+document.addEventListener('dragover', (ev) => ev.preventDefault());
+document.addEventListener('drop', (ev) => ev.preventDefault());
+
+function fileFromDrop(ev) {
+  const files = [...(ev.dataTransfer?.files ?? [])];
+  if (files.length === 0) return null;
+  if (files.length > 1) toast('一次只处理一个文件，已取第一个', 'error');
+  return files[0];
+}
+
+// 中文 Windows 上导出的 .md 常见 GBK：先按 UTF-8 严格解码，失败再退回 GBK 并明确告知，
+// 免得整篇正文变成乱码而用户不知道发生了什么。
+async function readMarkdownFile(file) {
+  if (!/\.md$/i.test(file.name)) throw new Error(`只支持 .md 文件：${file.name}`);
+  if (file.size > IMPORT_MAX_BYTES) {
+    throw new Error(`文件太大（${Math.round(file.size / 1024)}KB），上限 ${IMPORT_MAX_BYTES / 1024 / 1024}MB`);
+  }
+  const buf = await file.arrayBuffer();
+  try {
+    return { text: new TextDecoder('utf-8', { fatal: true }).decode(buf), encoding: 'UTF-8' };
+  } catch {
+    return { text: new TextDecoder('gbk').decode(buf), encoding: 'GBK' };
+  }
+}
+
+async function analyzeFile(file) {
+  const { text, encoding } = await readMarkdownFile(file);
+  const info = await api.send('POST', '/api/content/analyze', { text, filename: file.name });
+  if (encoding !== 'UTF-8') {
+    info.warnings = [`文件不是 UTF-8（已按 ${encoding} 解码）；如有乱码请先转成 UTF-8。`, ...(info.warnings ?? [])];
+  }
+  return info;
+}
+
+// 拖放区：点击/回车也能选文件（拖放不是唯一入口）
+function bindDropZone(el, onFile) {
+  const input = el.querySelector('input[type=file]');
+  el.addEventListener('click', () => input?.click());
+  el.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      input?.click();
+    }
+  });
+  el.addEventListener('dragover', (ev) => {
+    ev.preventDefault();
+    el.classList.add('over');
+  });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', async (ev) => {
+    ev.preventDefault();
+    el.classList.remove('over');
+    const file = fileFromDrop(ev);
+    if (file) await onFile(file);
+  });
+  input?.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = ''; // 同一个文件连选两次也要能再次触发
+    if (file) await onFile(file);
+  });
+}
+
+function setCreateField(key, value) {
+  const el = document.querySelector(`#create-fields [data-field="${key}"]`);
+  if (!el || value === undefined || value === null || value === '') return false;
+  if (el.tagName === 'SELECT') {
+    // 只在选项里确实有该值时才选（如 unit 只允许「章 / 周」）
+    if (![...el.options].some((o) => o.value === String(value))) return false;
+    el.value = String(value);
+    return true;
+  }
+  if (el.type === 'checkbox') {
+    el.checked = value === true || value === 'true';
+    return true;
+  }
+  el.value = String(value);
+  return true;
+}
+
+// 把解析结果填进新建表单。只填「能从文件推出来」的字段：类型、目标目录、课程/章节这些
+// 仍然由用户在表单里选。标签/分类只勾选词表里已有的，词表外的留给用户在提示里处理。
+function applyImportToCreateForm(info) {
+  const fill = info.fill ?? {};
+  const stem = String(info.filename || '').replace(/\.md$/i, '');
+  const asciiStem = /^[A-Za-z0-9._-]+$/.test(stem) ? stem : '';
+  const kind = store.kind;
+
+  setCreateField('title', fill.title);
+  setCreateField('date', fill.date);
+  setCreateField('description', fill.description);
+  setCreateField('repo', fill.repo);
+  setCreateField('unit', fill.unit);
+  // 目录名类字段优先用 ASCII 文件名（中文目录名会让 URL 变成百分号编码），否则退回标题的 slug
+  const dirName = asciiStem || fill.slug || '';
+  if (kind === 'post') setCreateField('slug', dirName);
+  if (kind === 'course' || kind === 'project' || kind === 'sub') setCreateField('name', dirName);
+  // 文档名保留原始文件名（这个仓库的项目文档本来就是中文文件名），脚本会去掉 .md
+  if (kind === 'doc' && stem) setCreateField('name', stem);
+  if (kind === 'doc' && fill.math === 'false') setCreateField('noMath', true);
+  if (KINDS[kind]?.series && Array.isArray(fill.series) && fill.series.length) {
+    const el = $('create-series');
+    if (el) el.value = fill.series.join(', ');
+  }
+
+  const knownTags = new Set((store.taxonomy.tags ?? []).map((t) => t.toLowerCase()));
+  const knownCats = new Set((store.taxonomy.categories ?? []).map((c) => c.toLowerCase()));
+  store.createTags = new Set((fill.tags ?? []).filter((t) => knownTags.has(t.toLowerCase())));
+  store.createCats = new Set((fill.categories ?? []).filter((c) => knownCats.has(c.toLowerCase())));
+  renderChipsPicker('tag-chips', store.taxonomy.tags, store.createTags, $('tag-search').value);
+  renderChipsPicker('cat-chips', store.taxonomy.categories, store.createCats, '');
+}
+
+function importNoticeHtml(info) {
+  const knownTags = new Set((store.taxonomy.tags ?? []).map((t) => t.toLowerCase()));
+  const knownCats = new Set((store.taxonomy.categories ?? []).map((c) => c.toLowerCase()));
+  const tags = Array.isArray(info.values.tags) ? info.values.tags : [];
+  const cats = Array.isArray(info.values.categories) ? info.values.categories : [];
+  const unknown = [
+    ...tags.filter((t) => !knownTags.has(t.toLowerCase())),
+    ...cats.filter((c) => !knownCats.has(c.toLowerCase())),
+  ];
+  const rows = [
+    `<div><strong>已载入 ${esc(info.filename || '（无名文件）')}</strong>：正文 ${info.bodyLines} 行${
+      info.hasFrontMatter ? '' : '（文件里没有 front matter，标题与日期已按正文标题和今天推断）'
+    }。</div>`,
+  ];
+  const fields = Object.keys(info.values);
+  rows.push(`<div class="hint">文件里的字段：${fields.length ? esc(fields.join('、')) : '（没有可识别的字段）'}；已按文件里的值填进表单，可以再改。</div>`);
+  if (tags.length || cats.length) {
+    rows.push(
+      `<div class="hint">文件里的标签：${esc([...tags, ...cats].join('、'))}${
+        unknown.length ? `；其中 ${esc(unknown.join('、'))} 不在词表里，<b>没有</b>自动勾选（要加请用下面的「加入词表」）` : '（都在词表里，已自动勾选）'
+      }</div>`
+    );
+  }
+  if (info.notApplicable?.length) rows.push(`<div class="hint">这些键新建表单里没有对应输入，未导入：${esc(info.notApplicable.join('、'))}</div>`);
+  if (info.unknownKeys?.length) rows.push(`<div class="hint">不认识的键（已忽略）：${esc(info.unknownKeys.join('、'))}</div>`);
+  for (const w of info.warnings ?? []) rows.push(`<div class="hint">⚠ ${esc(w)}</div>`);
+  for (const problem of lintDollar(info.body)) rows.push(`<div class="hint err">⚠ ${esc(problem)}</div>`);
+  rows.push('<div class="inline" style="margin-top:6px"><button type="button" class="ghost" id="import-clear">移除导入</button></div>');
+  return rows.join('');
+}
+
+function renderImportNotice() {
+  const el = $('import-notice');
+  if (!el) return;
+  if (!store.import) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+  el.hidden = false;
+  el.innerHTML = importNoticeHtml(store.import.analysis);
+  $('import-clear')?.addEventListener('click', () => {
+    store.import = null;
+    renderImportNotice();
+    toast('已移除导入的正文（表单里已填的字段保留，可继续手填或再拖一个文件）');
+  });
+}
+
+async function onCreateDrop(file) {
+  try {
+    const info = await analyzeFile(file);
+    store.import = { filename: info.filename || file.name, body: info.body, analysis: info };
+    applyImportToCreateForm(info);
+    renderImportNotice();
+    toast(`已载入 ${store.import.filename}：正文 ${info.bodyLines} 行，尚未创建`, 'ok');
+  } catch (err) {
+    toast(`读取文件失败：${err.message}`, 'error');
+  }
+}
+
+// 编辑面板：只补空缺字段；overwrite 打开时才覆盖已有值。
+// draft 永远不在这里改（是否发布由用户决定），tags/categories 在禁止写标签的类型上跳过。
+function applyImportToEditor(info, overwrite) {
+  const p = pending;
+  if (!p) return [];
+  const fill = info.fill ?? {};
+  const knownTags = new Set((store.taxonomy.tags ?? []).map((t) => t.toLowerCase()));
+  const knownCats = new Set((store.taxonomy.categories ?? []).map((c) => c.toLowerCase()));
+  const applied = [];
+  for (const f of p.schema.fields) {
+    if (f.kind === 'child' || f.key === 'draft') continue;
+    if ((f.key === 'tags' || f.key === 'categories') && p.schema.tagsPolicy === 'forbidden') continue;
+    let value = fill[f.key];
+    if (f.key === 'tags') value = (fill.tags ?? []).filter((t) => knownTags.has(t.toLowerCase()));
+    if (f.key === 'categories') value = (fill.categories ?? []).filter((c) => knownCats.has(c.toLowerCase()));
+    if (value === undefined) continue;
+    if (f.kind === 'bool') value = value === true || value === 'true';
+    const cur = p.changed.has(f.key) ? p.changed.get(f.key) : p.values[f.key];
+    const emptyNow = f.kind === 'list' || Array.isArray(cur) ? !(Array.isArray(cur) && cur.length) : !String(cur ?? '').trim();
+    if (!overwrite && !emptyNow) continue;
+    p.values[f.key] = value;
+    p.changed.set(f.key, value);
+    applied.push(f.label ?? f.key);
+  }
+  return applied;
+}
+
+function renderEditorImportNotice(info, applied, overwrite) {
+  const el = $('ed-import-notice');
+  if (!el) return;
+  const knownTags = new Set((store.taxonomy.tags ?? []).map((t) => t.toLowerCase()));
+  const tags = Array.isArray(info.values.tags) ? info.values.tags : [];
+  const unknown = tags.filter((t) => !knownTags.has(t.toLowerCase()));
+  const rows = [
+    `<div class="hint"><strong>已用 ${esc(info.filename || '（无名文件）')} 替换正文</strong>（${info.bodyLines} 行）${
+      overwrite ? '，并按文件覆盖了已有字段' : '，front matter 只补了空缺字段'
+    }。</div>`,
+  ];
+  if (applied.length) rows.push(`<div class="hint">补上/覆盖的字段：${esc(applied.join('、'))}</div>`);
+  if (unknown.length) rows.push(`<div class="hint">词表外的标签没有写入：${esc(unknown.join('、'))}</div>`);
+  if (info.notApplicable?.length) rows.push(`<div class="hint">这些键本页编辑器没有对应输入，未处理：${esc(info.notApplicable.join('、'))}</div>`);
+  // draft: false 的提醒已经在 info.warnings 里（服务端统一生成），这里不再重复一遍
+  for (const w of info.warnings ?? []) rows.push(`<div class="hint">⚠ ${esc(w)}</div>`);
+  for (const problem of lintDollar(info.body)) rows.push(`<div class="hint err">⚠ ${esc(problem)}</div>`);
+  el.innerHTML = `<div class="import-notice">${rows.join('')}</div>`;
+}
+
+async function onEditorDrop(file) {
+  if (!pending) {
+    toast('先在左侧选一个要替换的文件，再拖入 .md', 'error');
+    return;
+  }
+  try {
+    const info = await analyzeFile(file);
+    const overwrite = Boolean($('ed-import-overwrite')?.checked);
+    if (pending.bodyDirty && !window.confirm(`当前正文有未保存的改动（${pending.path}）。\n确定用 ${info.filename || file.name} 的正文替换吗？`)) {
+      return;
+    }
+    pending.body = info.body;
+    pending.bodyDirty = pending.body !== pending.bodyOriginal;
+    const applied = applyImportToEditor(info, overwrite);
+    renderEditor();
+    markDirty();
+    renderEditorImportNotice(info, applied, overwrite);
+    toast(
+      `已用 ${info.filename || file.name} 替换正文（尚未保存）${applied.length ? `，补了 ${applied.length} 个字段` : ''}`,
+      'ok'
+    );
+  } catch (err) {
+    toast(`读取文件失败：${err.message}`, 'error');
+  }
+}
+
+// 文件没有 front matter / 缺必填键时的一键补全：只写 schema 里暴露的键，补完仍需点「保存」。
+// 值取正文第一个 # 标题、站点今天、draft: true（安全缺省）；section 页的 layout/cascade
+// 不在补全范围（那是骨架的职责），所以那种情况只提示用「新建」面板重建。
+function repairFrontMatter() {
+  const p = pending;
+  if (!p) return;
+  const missing = new Set(p.missingRequired ?? []);
+  const heading = (/^#[ \t]+(.+?)[ \t]*$/m.exec(p.body) ?? [])[1] ?? '';
+  const stem = String(p.path).split('/').pop().replace(/\.md$/i, '');
+  const defaults = {
+    title: p.values.title || heading || stem,
+    date: p.values.date || store.state?.siteToday || '',
+    draft: true,
+  };
+  if (!SECTION_TYPES.has(p.type) && !p.hasFrontMatter) {
+    defaults.weight = 1;
+    defaults.math = true;
+  }
+  const applied = [];
+  for (const f of p.schema.fields) {
+    if (f.kind === 'child' || f.key === 'tags' || f.key === 'categories') continue;
+    if (!(f.key in defaults)) continue;
+    const cur = p.changed.has(f.key) ? p.changed.get(f.key) : p.values[f.key];
+    const emptyNow = f.kind === 'bool' ? cur === undefined || cur === '' : !String(cur ?? '').trim();
+    if (!missing.has(f.key) && !(emptyNow && !p.hasFrontMatter)) continue;
+    const value = f.kind === 'bool' ? defaults[f.key] === true || defaults[f.key] === 'true' : String(defaults[f.key]);
+    if (value === '') continue;
+    p.values[f.key] = value;
+    p.changed.set(f.key, value);
+    applied.push(f.label ?? f.key);
+  }
+  if (applied.length === 0) {
+    toast('没有可自动补全的字段', 'error');
+    return;
+  }
+  renderEditor();
+  markDirty();
+  toast(`已补上：${applied.join('、')}（还要点「保存」才写盘）`, 'ok');
+}
+
+// 编辑面板整块都是拖放目标；遮罩用 pointer-events:none，不干扰拖放事件本身
+function bindEditorDropZone() {
+  const panel = $('panel-edit');
+  panel.addEventListener('dragover', (ev) => {
+    ev.preventDefault();
+    if (pending) $('editor-drop').hidden = false;
+  });
+  panel.addEventListener('dragleave', (ev) => {
+    if (!panel.contains(ev.relatedTarget)) $('editor-drop').hidden = true;
+  });
+  panel.addEventListener('drop', async (ev) => {
+    ev.preventDefault();
+    $('editor-drop').hidden = true;
+    const file = fileFromDrop(ev);
+    if (file) await onEditorDrop(file);
+  });
 }
 
 // ---------------- 删除 ----------------
@@ -1266,6 +1640,12 @@ $('publish-btn').addEventListener('click', async () => {
 (async function init() {
   // 正文/字段的输入用委托监听一次即可：编辑器内容是反复重渲染的，逐个绑定会越积越多。
   $('editor').addEventListener('input', onEditorInput);
+  // 「覆盖已有字段」是全局偏好，不随编辑器重渲染丢失
+  $('editor').addEventListener('change', (ev) => {
+    if (ev.target.id === 'ed-import-overwrite') importOverwrite = ev.target.checked;
+  });
+  bindDropZone($('create-drop'), onCreateDrop);
+  bindEditorDropZone();
   loadKindPref();
   renderKindPicker();
   try {

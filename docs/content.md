@@ -95,8 +95,9 @@ cascade:
 
 - **front matter 的唯一事实源是 `archetypes/`**：脚本只调 `hugo new content <path> --kind <kind>`，不另抄一份模板（避免两处漂移）；之后用 awk 在首个 `---` 区块内做定向行替换，注入 `tags`/`title`/`weight`/`repo` 等
 - **`--kind` 必须显式给**：`notes/index.md` 的默认 kind 会取路径首段 `courses`，拿到的是错的骨架
-- 建文件前先 `[ -f ]` 判存在（`hugo new content` 冲突时退出码也是 1，无法区分原因）；**标签与 `--materials` 校验都在任何建文件动作之前完成**，避免校验失败留下半成品文件
+- 建文件前先 `[ -f ]` 判存在（`hugo new content` 冲突时退出码也是 1，无法区分原因）；**标签、`--materials` 与 `--date` 校验都在任何建文件动作之前完成**，避免校验失败留下半成品文件
 - 默认 `draft: true`（与 archetype 一致），`--publish` 才写 `false`
+- 三个通用选项（管理页拖入 `.md` 时用）：`--date YYYY-MM-DD` 覆盖骨架里的 `date`（必须 `YYYY-MM-DD` 开头）、`--description 文本`、`--body-stdin` 从**标准输入**读正文整体替换骨架的占位正文。`--body-stdin` 只作用于该子命令创建的**主页面**（`chapter` 作用于入口页 `_index.md`，材料页不带正文；`--layered` 项目作用于 `_index.md`），且 stdin 为空时保留骨架正文
 
 子命令与材料页：
 

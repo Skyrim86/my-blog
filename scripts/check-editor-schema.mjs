@@ -27,11 +27,13 @@ const MAP = {
   },
   chapter: { archetypes: ['chapter'], hidden: ['layout', 'date'] },
   // 三种材料页（笔记 / 作业 / 实验）共用一份字段表，键必须保持一致；逐个检查才不会漏掉新加的那个
-  material: { archetypes: ['notes', 'homework', 'lab'], hidden: ['date'] },
-  project: { archetypes: ['projects'], hidden: ['date'] },
+  // material / project / project-doc 不再隐藏 date：check-frontmatter 要求这几类必须有 date，
+  // 而「文件没有 front matter」时编辑器得给出可改的输入框才能补全（见 requiredFrontMatterKeys）。
+  material: { archetypes: ['notes', 'homework', 'lab'], hidden: [] },
+  project: { archetypes: ['projects'], hidden: [] },
   'project-home': { archetypes: ['project-home'], hidden: ['date', 'cascade.target', 'cascade.kind'] },
   'project-section': { archetypes: ['project-section'], hidden: ['date'] },
-  'project-doc': { archetypes: ['project-doc'], hidden: ['date'] },
+  'project-doc': { archetypes: ['project-doc'], hidden: [] },
 };
 
 // 取 front matter 里的键路径。只认「顶层键 + 其下第一层子键」：

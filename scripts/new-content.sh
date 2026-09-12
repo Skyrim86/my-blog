@@ -17,6 +17,13 @@
 #   bash scripts/new-content.sh add-term <tags|categories> <词条> [--check]
 #                                                        只往词表加词条（不建内容）；--check 只校验不写
 #
+# 通用选项（除 remove / tags / add-term 外都接受）：
+#   --date YYYY-MM-DD    覆盖骨架里的 date（默认今天，由 archetype 写入）
+#   --description 文本   覆盖骨架里的 description
+#   --body-stdin         正文从标准输入读入，整体替换骨架的占位正文（管理页拖入 .md 用）。
+#                        只作用于该子命令创建的**主页面**：chapter 作用于入口页 _index.md，
+#                        材料页不带正文；--layered 项目作用于 _index.md。
+#
 # 设计要点：
 #   - front matter 的唯一事实源是 archetypes/：本脚本只调用 `hugo new content --kind`，
 #     不另抄一份 front matter 模板，避免两处漂移。
@@ -65,6 +72,11 @@ usage() {
                none（或空）表示只建章节入口页，材料之后再单独补
   --dir        只给 notes/homework/lab：材料页的目录名，默认与子命令同名；
                同一章要加第二个实验时用 --dir lab-02
+  --date YYYY-MM-DD  覆盖骨架里的 date（默认今天）；必须 YYYY-MM-DD 开头
+  --description 文本 覆盖骨架里的 description
+  --body-stdin  正文从标准输入读入，替换骨架的占位正文；只作用于该子命令创建的
+                主页面（chapter 作用于入口页 _index.md，材料页不带正文）。
+                stdin 为空时保留骨架正文，不动文件。
   --with-bundle  只给 remove：路径是 index.md/_index.md 时连它所在的整个目录一起删
   --dry-run      只给 remove：只列出会删掉哪些文件，不动磁盘
   不带 --tags 且在终端里运行时，会列出词表让你按编号挑
@@ -227,6 +239,47 @@ apply_meta() { # $1=文件：套用 TITLE / PUBLISH
   return 0
 }
 
+# 所有子命令共用的两个可选覆盖项。放在这里而不是 apply_meta 里，是因为各子命令设置 title
+# 的方式不同（章节用位置参数、子项目/文档有各自的缺省值），混在一起容易互相覆盖。
+apply_common() { # $1=文件：套用 DESCRIPTION / NEWDATE
+  local f="$1"
+  if [ -n "$DESC" ]; then fm_set "$f" '^description: ' "description: $(yaml_str "$DESC")"; fi
+  if [ -n "$NEWDATE" ]; then fm_set "$f" '^date: ' "date: $NEWDATE"; fi
+  return 0
+}
+
+# 正文从 stdin 读入，整体替换 front matter 之后的内容（骨架的占位正文被替换掉）。
+# stdin 为空时保留骨架正文：空正文多半是调用方出错，静默清空比报错更糟。
+# 只允许消费一次（BODY_CONSUMED）——chapter 会建多个文件，正文只属于入口页。
+set_body_from_stdin() { # $1=文件
+  local f="$1" head body
+  if [ "$BODY_CONSUMED" = "1" ]; then return 0; fi
+  BODY_CONSUMED=1
+  body="$(mktemp)"
+  cat > "$body"
+  if [ ! -s "$body" ]; then
+    rm -f "$body"
+    warn "stdin 是空的，保留骨架正文：$f"
+    return 0
+  fi
+  # 保证正文以换行结尾（拖进来的文件可能没有），其余字节原样保留
+  if [ -n "$(tail -c 1 "$body")" ]; then printf '\n' >> "$body"; fi
+  head="$(mktemp)"
+  awk 'BEGIN { fm = 0 } fm < 2 { print } /^---[[:space:]]*$/ { fm++ }' "$f" > "$head"
+  # 正常情况头部是「--- + front matter + ---」；没有闭合的 --- 时退回整份替换
+  if [ "$(grep -c '^---[[:space:]]*$' "$head")" -lt 2 ]; then cp "$body" "$head"; fi
+  cat "$head" "$body" > "$f.tmp"
+  mv "$f.tmp" "$f"
+  rm -f "$head" "$body"
+  return 0
+}
+
+# 只在调用方传了 --body-stdin 时才动正文
+apply_body() { # $1=文件
+  if [ "$BODY_STDIN" = "1" ]; then set_body_from_stdin "$1"; fi
+  return 0
+}
+
 write_tags() { # $1=文件 $2=行首正则 $3=输出行前缀（含缩进）
   local f="$1" kre="$2" prefix="$3"
   if [ -z "$NORMALIZED_TAGS" ]; then return 0; fi
@@ -245,6 +298,8 @@ cmd_post() {
   write_tags "$f" '^tags: ' 'tags: '
   if [ -n "$CATS" ]; then fm_set "$f" '^categories: ' "categories: $(yaml_list "$CATS")"; fi
   if [ -n "$SERIES" ]; then fm_set "$f" '^series: ' "series: $(yaml_list "$SERIES")"; fi
+  apply_common "$f"
+  apply_body "$f"
   return 0
 }
 
@@ -258,6 +313,8 @@ cmd_course() {
   # 课程标签写在 cascade 里（缩进 4 空格），只下发给 regular page
   write_tags "$f" '^    tags: ' '    tags: '
   if [ -n "$CATS" ]; then fm_set "$f" '^    categories: ' "    categories: $(yaml_list "$CATS")"; fi
+  apply_common "$f"
+  apply_body "$f"
   info "下一步：bash scripts/new-content.sh chapter $name <章节标题>"
   return 0
 }
@@ -328,6 +385,8 @@ create_material() { # $1 = notes|homework|lab, $2 = 课程, $3 = 章节目录名
   # 只认显式传进来的 --title；chapter 子命令会把 TITLE 临时清空，免得章节标题被套到材料页上
   if [ -n "$TITLE" ]; then fm_set "$f" '^title: ' "title: $(yaml_str "$TITLE")"; fi
   if [ "$PUBLISH" = "1" ]; then fm_set "$f" '^draft: ' 'draft: false'; fi
+  apply_common "$f"
+  apply_body "$f"
   return 0
 }
 
@@ -358,6 +417,9 @@ cmd_chapter() {
   fm_set "$LAST_FILE" '^title: ' "title: $(yaml_str "$title")"
   fm_set "$LAST_FILE" '^weight: ' "weight: $num"
   if [ "$PUBLISH" = "1" ]; then fm_set "$LAST_FILE" '^draft: ' 'draft: false'; fi
+  apply_common "$LAST_FILE"
+  # 正文只给入口页，且必须在建材料页之前消费掉 stdin（BODY_CONSUMED 保证材料页拿不到正文）
+  apply_body "$LAST_FILE"
 
   if [ -n "$mats" ]; then
     # 材料页不该继承章节的标题与目录名，这里临时清掉这两项
@@ -386,6 +448,8 @@ cmd_project() {
     apply_meta "$f"
     write_tags "$f" '^    tags: ' '    tags: '
     if [ -n "$CATS" ]; then fm_set "$f" '^    categories: ' "    categories: $(yaml_list "$CATS")"; fi
+    apply_common "$f"
+    apply_body "$f"
     info "下一步：bash scripts/new-content.sh sub $name <子项目>"
   else
     new_file "projects/$name/index.md" projects
@@ -394,6 +458,8 @@ cmd_project() {
     write_tags "$f" '^tags: ' 'tags: '
     if [ -n "$CATS" ]; then fm_set "$f" '^categories: ' "categories: $(yaml_list "$CATS")"; fi
     if [ -n "$REPO" ]; then fm_set "$f" '^repo: ' "repo: $(yaml_str "$REPO")"; fi
+    apply_common "$f"
+    apply_body "$f"
   fi
   return 0
 }
@@ -420,6 +486,8 @@ cmd_sub() {
   fm_set "$LAST_FILE" '^title: ' "title: $(yaml_str "${TITLE:-$sub}")"
   fm_set "$LAST_FILE" '^weight: ' "weight: $w"
   if [ "$PUBLISH" = "1" ]; then fm_set "$LAST_FILE" '^draft: ' 'draft: false'; fi
+  apply_common "$LAST_FILE"
+  apply_body "$LAST_FILE"
   info "子项目不用写 tags：由项目主页 cascade 下发"
   return 0
 }
@@ -443,6 +511,8 @@ cmd_doc() {
     warn "本页写了 tags，就不会再继承项目主页 cascade 下发的项目级标签（cascade 只填空、不合并）"
     warn "若要两者都有，请把项目级标签也一并写进 --tags"
   fi
+  apply_common "$f"
+  apply_body "$f"
   return 0
 }
 
@@ -602,7 +672,9 @@ esac
 
 POS=()
 TAGS=""; TITLE=""; SERIES=""; CATS=""; UNIT="章"; REPO=""
+DESC=""; NEWDATE=""
 LAYERED=0; PUBLISH=0; NEWTAG=0; MATH=1; CHECKONLY=0
+BODY_STDIN=0; BODY_CONSUMED=0
 # chapter 默认仍建笔记+作业（与改造前的行为一致）；none 表示只建入口页
 CHAPTER_MATERIALS="notes,homework"
 MATERIAL_DIR=""
@@ -620,6 +692,11 @@ while [ "$#" -gt 0 ]; do
     --categories) CATS="${2:-}"; shift 2 || die "--categories 缺少值" ;;
     --unit) UNIT="${2:-}"; shift 2 || die "--unit 缺少值" ;;
     --repo) REPO="${2:-}"; shift 2 || die "--repo 缺少值" ;;
+    --description) DESC="${2:-}"; shift 2 || die "--description 缺少值" ;;
+    --description=*) DESC="${1#*=}"; shift ;;
+    --date) NEWDATE="${2:-}"; shift 2 || die "--date 缺少值" ;;
+    --date=*) NEWDATE="${1#*=}"; shift ;;
+    --body-stdin) BODY_STDIN=1; shift ;;
     --materials) CHAPTER_MATERIALS="${2:-}"; shift 2 || die "--materials 缺少值" ;;
     --materials=*) CHAPTER_MATERIALS="${1#*=}"; shift ;;
     --dir) MATERIAL_DIR="${2:-}"; shift 2 || die "--dir 缺少值" ;;
@@ -649,6 +726,16 @@ if [ "$ACCEPTS_TAGS" = "1" ]; then
   if [ -n "$TAGS" ]; then
     normalize_tags "$TAGS" "$NEWTAG" || die "标签校验未通过（从上面的词表里挑，或加 --new-tag）"
   fi
+fi
+
+# --date 也必须在建任何文件之前校验（同 --tags / --materials 的理由：失败不留半成品）。
+# 只要求 YYYY-MM-DD 开头：完整 RFC3339（2026-09-12T10:00:00+08:00）同样合法，
+# 与 scripts/check-frontmatter.sh 的判定保持一致。
+if [ -n "$NEWDATE" ]; then
+  case "$NEWDATE" in
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*) ;;
+    *) die "--date「$NEWDATE」必须是 YYYY-MM-DD 开头（Hugo 解析不了会退回零值）" ;;
+  esac
 fi
 
 case "$cmd" in

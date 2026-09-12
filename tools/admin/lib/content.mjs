@@ -99,6 +99,18 @@ export function typeLabel(type) {
   return TYPE_LABEL[type] ?? type;
 }
 
+// 与 scripts/check-frontmatter.sh 对齐的硬性要求：title 一律必填；content/posts|courses|projects
+// 下非 _index.md 的页面还必须有 date 与 draft（缺了 CI 会以硬错误中止推送）。
+// 管理页用它提示「这个文件缺什么、能不能一键补全」。
+export function requiredFrontMatterKeys(relPath) {
+  const rel = String(relPath ?? '').replace(/\\/g, '/').replace(/^content\//, '');
+  const keys = ['title'];
+  if (/^(posts|courses|projects)\//.test(rel) && !/(^|\/)_index\.md$/.test(rel)) {
+    keys.push('date', 'draft');
+  }
+  return keys;
+}
+
 // ---------- 编辑器字段表 ----------
 //
 // kind: text | textarea | bool | list | number | select
@@ -114,6 +126,10 @@ export function editorSchema(type) {
     title: { key: 'title', label: '标题', kind: 'text' },
     description: { key: 'description', label: '描述', kind: 'textarea', hint: '列表页与摘要使用' },
     summary: { key: 'summary', label: '摘要', kind: 'textarea', hint: '留空则由正文自动截取（公式多的页面建议手写）' },
+    // date 只暴露给 scripts/check-frontmatter.sh 要求它的那几类（posts/courses/projects 下非
+    // _index.md 的页面，见 requiredFrontMatterKeys）。以前这些类型一律隐藏 date，导致「文件没有
+    // front matter」时编辑器虽然提示日期、却给不出可改的输入框，补全后仍过不了校验。
+    date: { key: 'date', label: '日期', kind: 'date', hint: '格式 2026-09-11；缺了会被 front matter 校验拦下' },
     draft: { key: 'draft', label: '仍是草稿', kind: 'bool', hint: '草稿不会被 CI 发布' },
     weight: { key: 'weight', label: '排序 weight', kind: 'number' },
     math: { key: 'math', label: '加载 KaTeX 样式', kind: 'bool', hint: '公式本身在构建期渲染；这里只决定本页要不要加载 CSS' },
@@ -132,7 +148,7 @@ export function editorSchema(type) {
           },
           base.description,
           base.draft,
-          { key: 'date', label: '日期', kind: 'date', hint: '格式 2026-09-11' },
+          base.date,
           listField('tags', '标签（来自词表）', ''),
           listField('categories', '分类', ''),
           listField('series', '系列', '', { hint: '填了会自动生成同系列导航' }),
@@ -166,6 +182,7 @@ export function editorSchema(type) {
       return {
         fields: [
           base.title,
+          base.date,
           base.description,
           base.weight,
           { key: 'icon', label: '图标', kind: 'text', hint: '📖 学习笔记 / 📝 作业 / 🧪 实验' },
@@ -179,6 +196,7 @@ export function editorSchema(type) {
       return {
         fields: [
           base.title,
+          base.date,
           base.description,
           base.draft,
           listField('tags', '技术栈标签', ''),
@@ -206,7 +224,7 @@ export function editorSchema(type) {
       };
     case 'project-doc':
       return {
-        fields: [base.title, base.description, base.summary, base.weight, base.draft, base.math, listField('tags', '标签', '')],
+        fields: [base.title, base.date, base.description, base.summary, base.weight, base.draft, base.math, listField('tags', '标签', '')],
         tagsPolicy: 'caution',
         tagsReason: '这是分层项目下的文档页：本页自己写了 tags，就会整体丢掉项目主页 cascade 下发的项目级标签。要保留就请把项目级标签一并写全。',
       };
@@ -227,20 +245,28 @@ export function editorSchema(type) {
   }
 }
 
-// 「项目 → 子项目 → 文档」里可以作为 doc 目标的项目目录（cmd_doc 要求 content/projects/<这个> 是个目录）。
-// 必须先确认路径确实在 content/projects/ 下：否则前缀替换会静默不生效，
-// 别的 section（如 content/courses/...）会被当成项目目录混进来。
+// 「项目 → 子项目 → 文档」里可以作为 doc 目标的项目目录。
+// 先确认路径确实在 content/projects/ 下：否则前缀替换会静默不生效，别的 section（如
+// content/courses/...）会被当成项目目录混进来。
+// 平铺单页项目（<目录>/index.md，leaf bundle）必须排除：leaf bundle 里不能有子页面，
+// `hugo new content <它>/<文档>.md` 会以「target path conflicts with existing content」失败，
+// 把这种目录列进下拉等于给用户一个点了就报错的选项。没有 index.md 的目录是 Hugo 的隐式
+// section，可以正常放文档，所以判据是「该目录下直接有 index.md」而不是「必须有 _index.md」。
 export function projectDirs(items) {
   const prefix = `${CONTENT_DIR}/projects/`;
-  const set = new Set();
+  const dirs = new Set();
+  const leafBundles = new Set();
   for (const item of items) {
     if (!item.path.startsWith(prefix)) continue;
     const rel = item.path.slice(prefix.length);
     const slash = rel.lastIndexOf('/');
     // 不带 / 的（projects/_index.md 这个列表页）自然被排除
-    if (slash > 0) set.add(rel.slice(0, slash));
+    if (slash <= 0) continue;
+    const dir = rel.slice(0, slash);
+    dirs.add(dir);
+    if (rel === `${dir}/index.md`) leafBundles.add(dir);
   }
-  return [...set].sort((a, b) => a.localeCompare(b, 'zh'));
+  return [...dirs].filter((d) => !leafBundles.has(d)).sort((a, b) => a.localeCompare(b, 'zh'));
 }
 
 export function courseDirs(items) {
@@ -338,12 +364,118 @@ export async function readContentFile(repoRoot, relPath) {
     typeLabel: typeLabel(type),
     schema: editorSchema(type),
     hasFrontMatter: parsed.hasFm,
+    // 缺哪些必填键（空数组 = 校验能过）。draft 只认「键不存在」，true/false 都算已写。
+    missingRequired: requiredFrontMatterKeys(rel).filter((k) =>
+      k === 'draft' ? parsed.values.draft === '' : parsed.values[k] === ''
+    ),
     body: parsed.body,
     values: parsed.values,
     indents: parsed.indents,
     cover,
   };
 }
+
+// ---------- 拖入 .md 的解析 ----------
+//
+// 纯函数：不碰磁盘、不读词表（词表求交交给前端，它已经有 store.taxonomy），复用
+// frontmatter.mjs 的行级读取，避免在浏览器里再写一遍 YAML 解析。
+//
+// 返回：
+//   values        文件 front matter 里真实存在、且本工具认识的字段（「文件里原本是什么」）
+//   fill          推荐填进表单的值：title/slug/date 允许从正文标题、文件名、站点今天兜底
+//   notApplicable 文件里有、但新建/编辑表单都没有对应输入的键（如 layout / url），需要告诉用户
+//   warnings      解析告警（块列表标签、日期格式、draft: false、没有 front matter…）
+//   unknownKeys   front matter 里完全不认识的顶层键
+//
+// draft 特意不进 fill：是否发布由用户在表单里决定，不因为拖入一个文件就自动取消草稿
+// （values.draft 仍然返回，用于提示「文件里其实是 draft: false」）。
+const IMPORT_APPLICABLE = ['title', 'description', 'summary', 'date', 'math', 'weight', 'icon', 'unit', 'repo', 'slug', 'series', 'tags', 'categories'];
+const IMPORT_SCALARS = ['title', 'description', 'summary', 'date', 'draft', 'math', 'weight', 'icon', 'unit', 'layout', 'repo', 'url', 'slug'];
+
+export function analyzeImport(text, filename, { today = '' } = {}) {
+  const src = String(text ?? '').replace(/^\uFEFF/, '');
+  const name = String(filename ?? '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .pop() ?? '';
+  const stem = name.replace(/\.md$/i, '');
+  const doc = splitFrontMatter(src);
+  const warnings = [];
+  const values = {};
+  let unknownKeys = [];
+
+  if (!doc.hasFm) {
+    warnings.push(
+      /^---[ \t]*(\r?\n|$)/.test(src)
+        ? '文件以 --- 开头，但没有找到闭合的 ---：已按「没有 front matter」处理，请确认正文里的分隔线。'
+        : '文件没有 front matter（首行不是 ---）：标题与日期按正文标题、文件名和站点今天推断。'
+    );
+  } else {
+    for (const key of IMPORT_SCALARS) {
+      const v = getField(doc, key).value;
+      if (v !== '') values[key] = v;
+    }
+    const tagsIndent = resolveIndent(doc, 'tags', '');
+    const catsIndent = resolveIndent(doc, 'categories', '');
+    for (const [key, indent] of [
+      ['tags', tagsIndent],
+      ['categories', catsIndent],
+      ['series', ''],
+    ]) {
+      const list = getList(doc, key, indent);
+      if (list.length) values[key] = list;
+      // 块列表（键后面换行再列 - 项）本模块读不出来：明确告警，而不是静默丢掉标签
+      if (doc.fm.some((line) => new RegExp(`^${indent}${key}[ \\t]*:[ \\t]*$`).test(line))) {
+        warnings.push(`${key} 用的是「块列表」写法（键后面换行再列 - 项），这里只识别行内数组 ["a", "b"]，这一项没有读出来。`);
+      }
+    }
+    unknownKeys = [
+      ...new Set(
+        doc.fm
+          .map((line) => (/^([A-Za-z_][A-Za-z0-9_-]*)[ \t]*:/.exec(line) ?? [])[1])
+          .filter((k) => k && k !== 'cover' && !IMPORT_SCALARS.includes(k) && !['tags', 'categories', 'series'].includes(k))
+      ),
+    ];
+  }
+
+  const heading = (/^#[ \t]+(.+?)[ \t]*$/m.exec(doc.body.join('\n')) ?? [])[1] ?? '';
+  const dateMatch = /^(\d{4}-\d{2}-\d{2})/.exec(values.date ?? '');
+  if (values.date && !dateMatch) {
+    warnings.push(`date「${values.date}」不是 YYYY-MM-DD 开头，导入时改用今天${today ? `（${today}）` : ''}。`);
+  }
+  if (values.draft === 'false') {
+    warnings.push('文件里写的是 draft: false；导入不会自动取消草稿，要直接发布请在表单里勾选「直接发布」（编辑页则取消「仍是草稿」）。');
+  }
+
+  const title = values.title || heading || stem;
+  const asciiStem = /^[A-Za-z0-9._-]+$/.test(stem) ? stem : '';
+  const fill = {};
+  for (const key of IMPORT_APPLICABLE) {
+    if (values[key] !== undefined) fill[key] = values[key];
+  }
+  fill.title = title;
+  // slug 优先用文件里的；没有就用 ASCII 文件名，最后才退回标题的 Hugo 式 slug
+  fill.slug = values.slug || asciiStem || hugoSlug(title) || stem;
+  // date 用站点今天兜底：archetype 的 date 也是今天，补全后能直接过 front matter 校验
+  fill.date = dateMatch ? dateMatch[1] : today;
+
+  return {
+    filename: name,
+    hasFrontMatter: doc.hasFm,
+    body: doc.body.join('\n'),
+    bodyLines: doc.body.length,
+    values,
+    fill,
+    // draft 有对应的勾选框，只是**有意**不自动填（是否发布由用户决定），所以不算「没有输入」
+    notApplicable: Object.keys(values)
+      .filter((k) => k !== 'draft' && !IMPORT_APPLICABLE.includes(k))
+      .sort(),
+    unknownKeys,
+    warnings,
+  };
+}
+
+
 
 // ---------- 列表（文件树） ----------
 
@@ -598,6 +730,15 @@ export function buildCreateArgs(form) {
       // 上面的 allowlist 已经拦住了，这里只是兜底
       throw Object.assign(new Error(`未知内容类型：${kind}`), { status: 400 });
   }
+
+  // description / date 对所有类型都适用（每个 archetype 都有这两个键），放在 switch 之后统一追加。
+  flag('--description', form.description);
+  flag('--date', form.date);
+
+  // 拖入 .md 的正文不进 argv（可能很大、也可能含任意字符），由调用方通过 stdin 传给脚本；
+  // 这里只加一个开关，真正的文本在 server.mjs 里作为 input 喂进去。
+  const bodyText = typeof form.body === 'string' ? form.body : '';
+  if (bodyText !== '') args.push('--body-stdin');
 
   // 位置参数（子命令之后、第一个 -- 之前）不能是空串
   for (const a of args) {

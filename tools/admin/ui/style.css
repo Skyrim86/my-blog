@@ -314,6 +314,71 @@ button.danger.armed { background: var(--danger); border-color: var(--danger); co
 .toolbar { display: flex; gap: 4px; flex-wrap: wrap; margin: 8px 0 4px; }
 .toolbar button { padding: 2px 8px; font-size: 12px; }
 
+/* ---------- 拖入 .md 导入 ---------- */
+
+/* 编辑面板是拖放遮罩的定位基准 */
+#panel-edit { position: relative; }
+
+.drop-zone {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.drop-zone strong { color: var(--fg); font-size: 13.5px; }
+.drop-zone .drop-hint { font-size: 12px; opacity: 0.85; }
+.drop-zone:hover, .drop-zone:focus-visible { border-color: var(--accent); }
+.drop-zone.over { border-color: var(--accent); background: var(--code); }
+
+/* 新建表单里的「描述」不需要编辑器那么高（textarea 的全局 min-height 是给正文的） */
+#create-fields textarea { min-height: 64px; }
+
+.import-notice {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.import-notice .hint.err { color: var(--danger); }
+
+/* 拖到编辑面板上时盖一层提示。pointer-events:none 保证拖放事件仍然落在面板上。
+   hidden 必须显式补一条：display:grid/flex 会压过 UA 的 [hidden] 规则（同上面的 .field[hidden]）。 */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--card);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  text-align: center;
+}
+
+.drop-overlay[hidden] { display: none; }
+.drop-overlay strong { color: var(--fg); font-size: 15px; }
+.drop-overlay span { max-width: 420px; color: var(--muted); font-size: 12.5px; }
+
 /* ---------- 发布 ---------- */
 
 .changes { border: 1px solid var(--border); border-radius: 6px; max-height: 260px; overflow: auto; }

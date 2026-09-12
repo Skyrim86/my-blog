@@ -32,6 +32,14 @@
         <code>archetypes/</code>，标签来自 <code>data/taxonomy.yaml</code>，不会出现手抄漂移。
       </p>
 
+      <div class="drop-zone" id="create-drop" tabindex="0" role="button" aria-label="拖入或选择 markdown 文件">
+        <strong>拖入 .md 文件</strong>
+        <span>先把上面的类型与目标目录选好，再把文件拖到这里：正文会替换骨架的占位正文，front matter 按文件里的值自动补全（缺的用骨架默认值）。</span>
+        <span class="drop-hint">也可以点这里选择文件，或直接把文件拖到本面板任意位置。</span>
+        <input type="file" id="create-file" accept=".md,text/markdown" hidden>
+      </div>
+      <div id="import-notice" class="import-notice" hidden></div>
+
       <div class="kind-picker" id="kind-picker"></div>
 
       <form id="create-form" autocomplete="off">
@@ -88,6 +96,11 @@
         <div class="editor" id="editor">
           <p class="muted">从左侧选一个文件开始编辑。</p>
         </div>
+      </div>
+      <!-- 拖入 .md 的提示遮罩：pointer-events:none，不干扰拖放事件 -->
+      <div class="drop-overlay" id="editor-drop" hidden>
+        <strong>松开即用拖入的 .md 替换正文</strong>
+        <span>front matter 只补空缺字段；要覆盖已有值请先勾选编辑器里的「覆盖已有字段」。</span>
       </div>
     </section>
 
