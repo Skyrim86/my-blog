@@ -1,6 +1,6 @@
 // 内容模型：类型判定、编辑器字段表、脚本参数拼装、预览 URL 推导。
 //
-// 这里集中了「哪些字段能改、tags 能不能写」的知识，它对应 AGENTS.md 第 5 节的三条硬红线：
+// 这里集中了「哪些字段能改、tags 能不能写」的知识，它对应 AGENTS.md 规则 3、4 的三条硬红线：
 //   - section 页（课程主页 / 章节入口页 / 分层项目主页 / 子项目页 / 列表页）不写 tags
 //   - 被 cascade 覆盖的子孙页（课程笔记、作业、实验）不写 tags
 //   - cascade 只填空不合并，所以分层项目的文档页写 tags 会整体丢掉项目级标签
@@ -160,7 +160,7 @@ export function editorSchema(type) {
       return {
         fields: [base.title, base.description, base.weight, base.draft, base.math],
         tagsPolicy: 'forbidden',
-        tagsReason: '章节入口页是 section，写 tags 只会让 /tags/ 计数虚高、词条页里并不出现（AGENTS.md 4.2⑨）。',
+        tagsReason: '章节入口页是 section，写 tags 只会让 /tags/ 计数虚高、词条页里并不出现（见 docs/content.md）。',
       };
     case 'material':
       return {

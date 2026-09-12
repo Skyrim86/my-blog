@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Actions 已按 commit SHA 固定（见 scripts/pin-actions.sh）。固定之后必须有更新通道，
+  # Actions 已按 commit SHA 固定（见 scripts/pin-actions.mjs）。固定之后必须有更新通道，
   # 否则就是「假安全」：SHA 会被永久冻在旧版本上。dependabot 会在**保持 SHA 固定**的前提下
   # 同时更新 SHA 与后面那行版本注释。
   - package-ecosystem: github-actions

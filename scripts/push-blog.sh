@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 一键构建 + 提交 + 推送博客（日常更新内容的固定入口，见 AGENTS.md 第 6 节）。
+# 一键构建 + 提交 + 推送博客（日常更新内容的固定入口，见 docs/architecture.md 第 4 节）。
 #
 # 用法：bash scripts/push-blog.sh ["提交说明"]
 #   不传说明时用默认说明。示例：bash scripts/push-blog.sh "feat: CMC2026 新增问题二"

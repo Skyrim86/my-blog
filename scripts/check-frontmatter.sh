@@ -18,7 +18,7 @@
 #   a. draft: false 但 date 在未来 —— Hugo 默认不构建未来内容，会静默不上线
 #   b. 顶层键不在已知集合里（多半是拼错）
 #   c. 两个页面 title 完全相同 —— giscus 用 mapping='title' 关联 Discussion，会并成同一条评论串
-#   d. 被 cascade 覆盖的项目文档自己写了 tags —— 会丢掉项目级标签
+#   d. 处在 cascade 之下的项目文档自己写了 tags —— 会丢掉项目级标签
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -63,6 +63,19 @@ fm_top() {
 
 has_key() { # $1=KEY<TAB>VALUE 列表, $2=键
   printf '%s\n' "$1" | cut -f1 | grep -qx "$2"
+}
+
+# 这一页是不是处在某个 cascade 之下？判据是**祖先目录里存在 _index.md**，而不是写死项目名，
+# 所以以后新建的分层项目自动生效。只从页面所在目录往上找到 content/projects 为止：
+# 平铺项目（content/projects/<项目>/index.md）下面没有 _index.md，标签本来就该写在自己身上。
+under_cascade() {
+  local d
+  d="$(dirname "$1")"
+  while [ "$d" != "content/projects" ] && [ "$d" != "." ] && [ "$d" != "/" ]; do
+    [ -f "$d/_index.md" ] && return 0
+    d="$(dirname "$d")"
+  done
+  return 1
 }
 
 get_val() { # $1=KEY<TAB>VALUE 列表, $2=键
@@ -138,11 +151,11 @@ while IFS= read -r f; do
       ;;
   esac
 
-  # d) 被 cascade 覆盖的项目文档自带 tags（只警告：这是有意的取舍）
+  # d) 处在 cascade 之下的项目文档自带 tags（只警告：这是有意的取舍）
   case "$rel" in
-    content/projects/CMC2026/*)
-      if [ "$is_index" -eq 0 ] && has_key "$pairs" tags; then
-        warn "$rel：自带 tags 会整体丢掉 CMC2026 项目主页 cascade 下发的标签（cascade 只填空、不合并）"
+    content/projects/*)
+      if [ "$is_index" -eq 0 ] && under_cascade "$rel" && has_key "$pairs" tags; then
+        warn "$rel：自带 tags 会整体丢掉项目主页 cascade 下发的标签（cascade 只填空、不合并）"
       fi
       ;;
   esac

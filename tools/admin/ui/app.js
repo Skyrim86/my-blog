@@ -47,6 +47,8 @@ const store = {
   items: [],
   options: { courses: [], chapters: {}, projectHomes: [], projectDirs: [] },
   kind: 'post',
+  group: 'post',
+  lastKindByGroup: {},
   createTags: new Set(),
   createCats: new Set(),
   editing: null,
@@ -289,6 +291,58 @@ const KINDS = {
   },
 };
 
+// 类型选择是两级的：第一行分组，第二行是该组下的具体类型。分组**只影响界面**，
+// store.kind 始终是叶子 id —— 它与 new-content.sh 的子命令名一一对应，
+// 服务端的 allowlist（lib/content.mjs 的 buildCreateArgs）也只认这些 id。
+const KIND_GROUPS = [
+  { id: 'post', label: '文章', kinds: ['post'] },
+  { id: 'course', label: '课程', kinds: ['course', 'chapter', 'notes', 'homework', 'lab'] },
+  { id: 'project', label: '项目', kinds: ['project', 'sub', 'doc'] },
+];
+
+const KIND_PREF_KEY = 'admin-create-kind';
+
+function groupOfKind(kind) {
+  return KIND_GROUPS.find((g) => g.kinds.includes(kind)) ?? KIND_GROUPS[0];
+}
+
+// 上次选的类型存本地：以前每次刷新都会跳回「文章」
+function saveKindPref() {
+  try {
+    localStorage.setItem(KIND_PREF_KEY, JSON.stringify({ kind: store.kind, lastKindByGroup: store.lastKindByGroup }));
+  } catch {
+    // 隐私模式 / 禁用存储：记不住就算了，不影响使用
+  }
+}
+
+function loadKindPref() {
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem(KIND_PREF_KEY) ?? 'null');
+  } catch {
+    saved = null;
+  }
+  // 存的是坏数据（类型被删掉过）就退回默认，不能让它把 store.kind 带歪
+  if (saved?.kind && KINDS[saved.kind]) store.kind = saved.kind;
+  if (saved?.lastKindByGroup) store.lastKindByGroup = saved.lastKindByGroup;
+  store.group = groupOfKind(store.kind).id;
+}
+
+function selectKind(kind) {
+  const group = groupOfKind(kind);
+  const changed = kind !== store.kind;
+  store.kind = kind;
+  store.group = group.id;
+  store.lastKindByGroup[group.id] = kind;
+  saveKindPref();
+  renderKindPicker();
+  // 点的是当前类型就只是把分组切回来，不要把已勾的标签清掉、也不要重渲染表单
+  if (!changed) return;
+  store.createTags.clear();
+  store.createCats.clear();
+  renderCreateFields();
+}
+
 // 下拉选项由服务端下发（见 GET /api/content/list 的 options），前端不重复实现路径推导。
 // 「所属章节」是唯一有依赖的一项：它跟着「所属课程」变，所以要看快照里当前选中的课程。
 function sourceOptions(source, snap) {
@@ -314,9 +368,19 @@ function fillChapterOptions(course) {
 }
 
 function renderKindPicker() {
-  $('kind-picker').innerHTML = Object.entries(KINDS)
-    .map(([k, spec]) => `<button type="button" data-kind="${k}" class="${k === store.kind ? 'active' : ''}">${esc(spec.label)}</button>`)
-    .join('');
+  const group = KIND_GROUPS.find((g) => g.id === store.group) ?? KIND_GROUPS[0];
+  const rows = KIND_GROUPS.map((g) => {
+    // 有子级的分组给个指示符；没有子级的（文章）点了就直接是表单
+    const caret = g.kinds.length > 1 ? '<span class="caret" aria-hidden="true">▾</span>' : '';
+    return `<button type="button" data-group="${g.id}" class="${g.id === group.id ? 'active' : ''}">${esc(g.label)}${caret}</button>`;
+  }).join('');
+  // 只有一个叶子的分组不再铺第二行，否则「文章」下面会多出一个同名按钮
+  const subs = group.kinds.length > 1
+    ? `<div class="kind-sub">${group.kinds
+        .map((k) => `<button type="button" data-kind="${k}" class="${k === store.kind ? 'active' : ''}">${esc(KINDS[k].label)}</button>`)
+        .join('')}</div>`
+    : '';
+  $('kind-picker').innerHTML = `<div class="kind-row">${rows}</div>${subs}`;
 }
 
 function renderCreateFields() {
@@ -426,14 +490,18 @@ function bindChipsPicker(containerId, selected, onChange) {
   });
 }
 
+// 分组按钮只带 data-group，叶子按钮只带 data-kind —— 两者分开才不会把分组当成类型
 $('kind-picker').addEventListener('click', (ev) => {
-  const btn = ev.target.closest('button[data-kind]');
-  if (!btn) return;
-  store.kind = btn.dataset.kind;
-  store.createTags.clear();
-  store.createCats.clear();
-  renderKindPicker();
-  renderCreateFields();
+  const groupBtn = ev.target.closest('button[data-group]');
+  if (groupBtn) {
+    const group = KIND_GROUPS.find((g) => g.id === groupBtn.dataset.group);
+    if (!group) return;
+    const remembered = store.lastKindByGroup[group.id];
+    selectKind(group.kinds.includes(remembered) ? remembered : group.kinds[0]);
+    return;
+  }
+  const kindBtn = ev.target.closest('button[data-kind]');
+  if (kindBtn) selectKind(kindBtn.dataset.kind);
 });
 
 $('tag-search').addEventListener('input', () => {
@@ -1197,6 +1265,7 @@ $('publish-btn').addEventListener('click', async () => {
 (async function init() {
   // 正文/字段的输入用委托监听一次即可：编辑器内容是反复重渲染的，逐个绑定会越积越多。
   $('editor').addEventListener('input', onEditorInput);
+  loadKindPref();
   renderKindPicker();
   try {
     await loadTaxonomy();

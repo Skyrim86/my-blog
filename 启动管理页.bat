@@ -7,10 +7,10 @@ rem IMPORTANT: keep this file PURE ASCII (no CJK), and CRLF line endings.
 rem With chcp 65001 above, a .bat containing multi-byte characters makes cmd.exe
 rem re-read the file at wrong byte offsets and execute fragments of lines
 rem (symptom: "'...' is not recognized as an internal or external command").
-rem All Chinese user-facing text is printed by scripts/admin.sh instead, which
-rem runs under Git Bash and writes UTF-8 correctly. Details in AGENTS.md 4.2(13).
+rem All Chinese user-facing text is printed by tools/admin/start.sh instead, which
+rem runs under Git Bash and writes UTF-8 correctly. Details in docs/admin.md.
 rem
-rem The real logic lives in scripts/admin.sh -> scripts/admin/server.mjs.
+rem The real logic lives in tools/admin/start.sh -> tools/admin/server.mjs.
 rem Extra args are forwarded, e.g.: launcher.bat --port 1415
 rem ---------------------------------------------------------------------------
 
@@ -46,13 +46,13 @@ if not defined BASH_EXE (
 )
 
 rem Make sure Git's own tools are reachable from the shell we are about to start.
-rem scripts/admin.sh needs cygpath / curl / sed, which live in Git's cmd and usr\bin.
+rem tools/admin/start.sh needs cygpath / curl / sed, which live in Git's cmd and usr\bin.
 rem Without this, a machine where Git was installed WITHOUT "add to PATH" would
 rem fail even though we located bash.exe by its absolute path.
 for %%i in ("%BASH_EXE%") do for %%j in ("%%~dpi..") do set "GIT_ROOT=%%~fj"
 set "PATH=%GIT_ROOT%\cmd;%GIT_ROOT%\usr\bin;%PATH%"
 
-"%BASH_EXE%" scripts/admin.sh %*
+"%BASH_EXE%" tools/admin/start.sh %*
 set "ADMIN_EXIT=%ERRORLEVEL%"
 
 if not "%ADMIN_EXIT%"=="0" (

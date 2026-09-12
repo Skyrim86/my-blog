@@ -64,7 +64,7 @@ function archetypeKeys(file) {
   return keys;
 }
 
-const content = await import(pathToFileURL('scripts/admin/lib/content.mjs').href);
+const content = await import(pathToFileURL('tools/admin/lib/content.mjs').href);
 
 let drift = 0;
 const rows = [];
@@ -105,6 +105,6 @@ if (drift === 0) {
   console.log('✓ 编辑器字段表与 archetypes 无漂移');
   process.exit(0);
 }
-console.log(`✗ 发现 ${drift} 处漂移。要么在 scripts/admin/lib/content.mjs 的 editorSchema 里暴露它，`);
+console.log(`✗ 发现 ${drift} 处漂移。要么在 tools/admin/lib/content.mjs 的 editorSchema 里暴露它，`);
 console.log('  要么在本脚本顶部的 MAP[type].hidden 里声明为「有意不暴露」。');
 process.exit(1);

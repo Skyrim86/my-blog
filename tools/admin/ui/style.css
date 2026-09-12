@@ -211,9 +211,22 @@ button.danger.armed { background: var(--danger); border-color: var(--danger); co
 
 .actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
 
-/* ---------- 类型选择 ---------- */
+/* ---------- 类型选择（两级：分组 → 具体类型） ---------- */
 
-.kind-picker { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.kind-picker { display: grid; gap: 8px; margin-top: 12px; }
+
+.kind-row, .kind-sub { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* 二级从属于一级：缩进 + 左侧竖线，层级关系一眼可见 */
+.kind-sub {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+
+.kind-sub button { font-size: 13px; }
+
+.kind-row button .caret { margin-left: 6px; font-size: 10px; opacity: 0.7; }
 
 .kind-picker button.active {
   background: var(--accent);

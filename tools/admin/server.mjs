@@ -67,7 +67,7 @@ function parseArgs(argv) {
     else if (a.startsWith('--base-path=')) out.basePath = a.slice(12);
     else if (a === '--no-preview') out.preview = false;
     else if (a === '-h' || a === '--help') {
-      console.log(`用法：node scripts/admin/server.mjs [选项]
+      console.log(`用法：node tools/admin/server.mjs [选项]
   --port N          管理页端口（默认 1414）
   --host H          绑定地址（默认 127.0.0.1；只有显式传 0.0.0.0 才会暴露到局域网）
   --preview-port N  预览端口（默认 1313，被占用时自动顺延）
@@ -86,7 +86,7 @@ async function findRepoRoot() {
   if (args.repo) return path.resolve(args.repo);
   const { stdout, code } = await git(process.cwd(), ['rev-parse', '--show-toplevel']);
   if (code === 0 && stdout.trim()) return stdout.trim();
-  // scripts/admin/server.mjs → 上溯三级
+  // tools/admin/server.mjs → tools/admin → tools → 仓库根
   return path.resolve(HERE, '..', '..');
 }
 
@@ -624,7 +624,7 @@ server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`✗ 端口 ${args.port} 已被占用。多半是上一次的管理页还在跑：`);
     console.error(`  查占用：netstat -ano | findstr :${args.port}`);
-    console.error(`  或换端口：bash scripts/admin.sh --port ${args.port + 1}`);
+    console.error(`  或换端口：bash tools/admin/start.sh --port ${args.port + 1}`);
   } else {
     console.error(`✗ 服务启动失败：${err.message}`);
   }

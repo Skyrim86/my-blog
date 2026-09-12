@@ -2,7 +2,7 @@
 # 博客本地管理页：一个中文网页，用来新建/编辑内容、管理标签词表、查看改动、一键发布，
 # 并在同屏 iframe 里实时预览渲染效果。
 #
-# 用法：bash scripts/admin.sh [选项]
+# 用法：bash tools/admin/start.sh [选项]
 #   --port N          管理页端口（默认 1414）
 #   --host H          绑定地址（默认 127.0.0.1）
 #   --preview-port N  预览端口（默认 1313，被占用时自动顺延）
@@ -24,7 +24,7 @@ NO_OPEN=0
 PASSTHROUGH=()
 
 usage() {
-  sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [ "$#" -gt 0 ]; do
@@ -50,7 +50,7 @@ command -v hugo >/dev/null 2>&1 || {
   echo "✗ 找不到 hugo：新建内容与预览都需要它（new-content.sh 会调用 hugo new content）。" >&2
   exit 1
 }
-[ -f scripts/admin/server.mjs ] || { echo "✗ 找不到 scripts/admin/server.mjs" >&2; exit 1; }
+[ -f tools/admin/server.mjs ] || { echo "✗ 找不到 tools/admin/server.mjs" >&2; exit 1; }
 
 # 把 bash 的 Windows 路径交给 Node，省得它在 PATH 里乱猜（Git Bash 下 bash 是 /usr/bin/bash）。
 if command -v cygpath >/dev/null 2>&1; then
@@ -71,7 +71,7 @@ open_url() {
 }
 
 # 这几行中文提示放在这里而不是 .bat / .cmd 里：批处理文件里混进中文会让 cmd.exe
-# 按错字节偏移重读文件、把半行当命令执行（详见 AGENTS.md 4.2⑬）。这里由 bash 打印，
+# 按错字节偏移重读文件、把半行当命令执行（详见 docs/admin.md）。这里由 bash 打印，
 # 配合启动器的 chcp 65001，中文正常显示。
 URL="http://127.0.0.1:${PORT}/"
 echo "▸ 博客管理页：${URL}"
@@ -98,6 +98,6 @@ if [ "$NO_OPEN" != "1" ]; then
   ) &
 fi
 
-exec node scripts/admin/server.mjs \
+exec node tools/admin/server.mjs \
   --port "$PORT" --host "$HOST" --preview-port "$PREVIEW_PORT" \
   ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}

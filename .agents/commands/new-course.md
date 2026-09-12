@@ -32,4 +32,4 @@ bash scripts/new-content.sh notes|homework|lab <课程> <章节> [--dir 目录�
 - 一切走脚本，不要手工创建课程文件。
 - **材料页（notes / homework / lab）绝对不要写 tags**：课程标签由课程主页的 `cascade`（带 `target.kind: page`）下发，而 cascade 只填空、不合并——材料页一旦自己写了 tags，就会整体丢掉继承来的课程标签。
 - 章节入口页必须保留 `math: false`（骨架已带），否则会继承课程主页 cascade 的 `math: true`，白加载约 23KB KaTeX 样式。
-- 管理页（`bash scripts/admin.sh`）的「新建」页签有同样的入口：章节表单里的材料多选，以及笔记 / 作业 / 实验三个独立按钮，走的是同一个脚本。
+- 管理页（`bash tools/admin/start.sh`）的「新建」页签有同样的入口：顶部选「课程」，二级里再选「章节 / 笔记 / 作业 / 实验」，走的是同一个脚本。
