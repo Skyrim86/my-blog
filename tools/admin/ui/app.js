@@ -427,6 +427,7 @@ function renderCreateFields() {
   $('create-cats-wrap').hidden = !spec.cats;
   $('create-series-wrap').hidden = !spec.series;
   if (spec.cats && store.createCats.size === 0) {
+    if (store.kind === 'post') store.createCats.add('文章');
     if (store.kind === 'course') store.createCats.add('课程');
     if (store.kind === 'project') store.createCats.add('项目');
   }

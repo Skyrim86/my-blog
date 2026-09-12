@@ -4,7 +4,7 @@ date: 2026-09-07
 draft: true                 # 正文还是模板话术，写完真实内容后删掉这一行即可公开发布
 description: "文章摘要，列表页显示"
 tags: ["Hugo"]
-categories: ["建站"]
+categories: ["文章"]
 series: ["Hugo 建站笔记"]
 cover:
   image: "cover.png"       # 相对 index.md 的路径

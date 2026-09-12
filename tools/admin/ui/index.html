@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>博客管理页</title>
 <link rel="stylesheet" href="/style.css">
+<!-- 必须是同步脚本：主题属性要在首屏绘制前写进 <html>，加 defer 会闪一下 -->
+<script src="/theme.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -16,6 +18,7 @@
     <button type="button" data-tab="publish">发布</button>
   </nav>
   <button type="button" id="preview-toggle" class="ghost">隐藏预览</button>
+  <button type="button" id="theme-toggle" class="ghost">夜间</button>
 </header>
 
 <main id="main">

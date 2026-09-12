@@ -5,7 +5,7 @@ title: "{{ replace .Name "-" " " | title }}"
 date: {{ now.Format "2006-01-02" }}
 draft: true
 tags: []
-categories: []
+categories: ["文章"]
 # 系列文章：填写后文末自动渲染同系列导航（见 layouts/_partials/series-posts.html）
 series: []
 description: ""

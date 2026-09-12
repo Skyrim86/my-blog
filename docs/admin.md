@@ -110,7 +110,20 @@ tools/admin/
 
 另外 hugo server 不会把「保存后固定链接变了」的页面注册到新地址上（`date`/`title`/`slug` 触发），所以界面在这三种字段被改动且预览在跑时会**自动重启预览**（重启即可复现正常）。
 
-## 9. 安全边界
+## 9. 夜间模式
+
+顶栏 `#theme-toggle` 切换，偏好存 `localStorage` 的 `admin-theme`（与站点主题用的 `pref-theme` 无关）。
+
+- 状态是 `<html>` 上的 `data-theme="light|dark"`，`style.css` 只留 `:root` 浅色 + `html[data-theme="dark"]` 暗色两份色板。**不要再用 `prefers-color-scheme` 媒体查询**：系统偏好各写一份色板的话，会和手动选择互相打架（属性选择器特异性高于 `:root`，媒体查询里那份就永远漏出来）
+- `ui/theme.js` 在 `<head>` 里**同步**加载（**不能加 `defer`**），属性要在首屏绘制前写进 `<html>`，否则会闪一下；点击绑定放在 `DOMContentLoaded`
+- 没存过偏好时跟随系统，且系统偏好变了实时跟随；手动切换过就以手动选择为准，不再跟随
+- localStorage 读写都包 try/catch（隐私模式下会抛错），沿用 `app.js` 里 `admin-create-kind` 那套写法
+- `color-scheme` 跟着一起切，否则搜索框、复选框、滚动条这些原生控件还是浅色的
+- `--log-bg` / `--log-fg` 有意不在暗色块里覆盖：日志区任何时候都是深底
+
+**预览不同步，这是有意的**：管理页在 `:1414`、hugo 预览在 `:1313`，**端口不同就是不同 origin**，localStorage 不互通，所以切管理页主题不会影响 iframe 里的站点；要看预览的暗色就在 iframe 里点站点自己的主题按钮。不做 `postMessage` 同步——那得往站点模板加代码，为本地工具改站点不划算。
+
+## 10. 安全边界
 
 因为这个服务**能执行 shell**：
 
@@ -122,7 +135,7 @@ tools/admin/
 
 **界面资源绝不能放进 `assets/js/` 或 `assets/css/extended/`**：那两个目录会被主题合并进公开站点资源，等于把管理界面发到线上。所以它们在 `tools/admin/ui/`，由 Node 服务直接提供。
 
-## 10. `启动管理页.bat` 的硬约束
+## 11. `启动管理页.bat` 的硬约束
 
 **必须保持纯 ASCII + CRLF**，这不是风格偏好：批处理里一旦有中文，`chcp 65001` 之后 cmd.exe 会按错误的字节偏移重读文件、把半行当命令执行。实测症状很有迷惑性——窗口里出现 `'会自动打开' is not recognized as an internal or external command`，**但服务其实照常起来了**，所以只看到「能跑」就以为没事。
 
@@ -130,7 +143,7 @@ tools/admin/
 
 启动器找 bash 的顺序刻意**先查 Git for Windows 的安装位置、再退回 PATH**：`C:\Windows\System32\bash.exe` 是 WSL 的 bash，用它跑这个脚本路径会全错。顺序为 `ADMIN_BASH` → `%ProgramFiles%\Git\bin\bash.exe` → `%ProgramFiles(x86)%\...` → `%LOCALAPPDATA%\Programs\Git\...` → 从 `where git` 反推 `..\bin\bash.exe`。找不到就打印 Git 下载地址并 `pause`，参数原样透传（`启动管理页.bat --port 1415` 可用）。
 
-## 11. 已知限制
+## 12. 已知限制
 
 - 只在本机可用（不做在线后台）
 - 幂等性没做文件锁，**不要同时开两个管理页改同一批文件**

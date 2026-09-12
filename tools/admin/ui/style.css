@@ -1,7 +1,10 @@
 /* 博客管理页样式。只服务本地管理界面，不参与 Hugo 构建（绝不能放进 assets/css/extended/，
    那个目录会被主题合并进公开站点资源）。 */
 
+/* 主题由 <html data-theme="light|dark"> 决定：theme.js 在首屏绘制前写入属性（没存过偏好时按系统偏好取）。
+   这里不再写 prefers-color-scheme 媒体查询——手动切换与系统偏好若各写一份色板就会互相打架。 */
 :root {
+  color-scheme: light;
   --bg: #f6f7f9;
   --card: #ffffff;
   --fg: #1f2328;
@@ -19,21 +22,20 @@
   --radius: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16181d;
-    --card: #1e2126;
-    --fg: #e6e8eb;
-    --muted: #9aa3ae;
-    --border: #333941;
-    --accent: #4f8cf7;
-    --accent-fg: #0b1220;
-    --danger: #f97066;
-    --warn-bg: #2c2415;
-    --warn-border: #6b551d;
-    --ok: #4ade80;
-    --code: #24282e;
-  }
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #16181d;
+  --card: #1e2126;
+  --fg: #e6e8eb;
+  --muted: #9aa3ae;
+  --border: #333941;
+  --accent: #4f8cf7;
+  --accent-fg: #0b1220;
+  --danger: #f97066;
+  --warn-bg: #2c2415;
+  --warn-border: #6b551d;
+  --ok: #4ade80;
+  --code: #24282e;
 }
 
 * { box-sizing: border-box; }
@@ -200,7 +202,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* 删除：默认只是描边提醒，武装（已确认过一次）后才填实，避免误点 */
 button.danger { border-color: var(--danger); color: var(--danger); }
-button.danger.armed { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
+button.danger.armed { background: var(--danger); border-color: var(--danger); color: var(--accent-fg); font-weight: 600; }
 
 .checks { display: flex; flex-wrap: wrap; gap: 4px 18px; }
 .checks .check { margin: 0; }
@@ -388,7 +390,7 @@ button.danger.armed { background: var(--danger); border-color: var(--danger); co
 .preview-actions button { padding: 2px 8px; font-size: 12px; }
 .preview-actions a { font-size: 12px; }
 
-#preview-frame { flex: 1; width: 100%; border: none; background: #fff; }
+#preview-frame { flex: 1; width: 100%; border: none; background: var(--card); }
 
 /* ---------- toast ---------- */
 
