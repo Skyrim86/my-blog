@@ -66,9 +66,9 @@ my-blog/
 │   ├── new-content.sh         # 新内容脚手架 + 删除（唯一实现）
 │   ├── check-frontmatter.sh   # 阻断：front matter 与 section/material 的 tags 规则
 │   ├── check-sections.sh      # 阻断：每个 section 目录必须有 _index.md（列表页）
-│   ├── fix-math-escapes.mjs   # 公式转义（\* → *）：默认只检查（阻断），--fix 自动修正
-│   ├── check-math-syntax.mjs  # 阻断：公式内容预检（嵌套 $、行内 $ 为奇数、§、圈号）
-│   ├── check-math-katex.mjs   # 阻断：公式真检（Hugo 内嵌 KaTeX 逐条试渲染；--selftest 自测机制）
+│   ├── fix-math-escapes.mjs   # 公式机械修复（\* → *、§ → \S、圈号 → \text{\textcircled{N}}）：默认只检查（阻断），--fix 自动修正，--selftest 自测规则
+│   ├── check-math-syntax.mjs  # 阻断：公式内容预检（嵌套 $、行内 $ 为奇数、JSON 双重转义指纹）
+│   ├── check-math-katex.mjs   # 阻断：公式真检（Hugo 内嵌 KaTeX 逐条试渲染；--selftest 自测机制，--fix 验证后才写盘地修双重转义）
 │   ├── check-tags.sh          # 只警告：标签词表比对
 │   ├── check-katex-pairing.sh # 阻断：KaTeX 样式与 Hugo 内嵌版本是否配对
 │   ├── check-links.mjs        # 阻断：站内链接与锚点（同站绝对链接也在内）
@@ -151,7 +151,7 @@ hugo --minify --gc --cleanDestinationDir   # 生产构建
 
 其中 **section 结构校验**（`check-sections.sh`）断言每个 section 目录都有 `_index.md`：列表页缺了的话，该分区的入口页（`/posts/` 这类）会在最后一个子页面被删空时静默消失，导航栏与首页指向它的链接跟着 404。判据与修法见 [`content.md`](content.md)。
 
-**公式转义这一项本地会自动修**：`scripts/push-blog.sh` 在算「工作区是否有改动」之前先跑 `node scripts/fix-math-escapes.mjs --fix`（写操作），所以管理页的「发布」与命令行发布都不会被 `\*` 拦住；CI 只检查不修改，用来兜住绕过这两条入口的提交。详见 [`formulas.md`](formulas.md) 第 3 节。
+**公式这一项本地会分两层自动修**（都在 `scripts/push-blog.sh` 里、都在算「工作区是否有改动」之前——这样修出来的改动才进同一次 commit）：先跑 `node scripts/fix-math-escapes.mjs --fix`（机械层：`\*` / `§` / 圈号，写操作），再跑 `node scripts/check-math-katex.mjs --fix`（验证层：JSON 双重转义，**改完试渲染通过才写盘**）。所以管理页的「发布」与命令行发布都不会被这些写法拦住；CI 只检查不修改，用来兜住绕过这两条入口的提交。详见 [`formulas.md`](formulas.md) 第 3、4.4 节。
 
 **新增校验一律加进 `action.yml`**，不要在某个 workflow 里单独写，否则 `checks.yml` 与 `deploy.yml` 会分叉。同时想清楚是**阻断**还是**只警告**：内容正确性问题（缺 front matter、坏链、公式错版）阻断；内部一致性与拼写问题（词表、编辑器字段表）只警告，别让它们拦住发布。
 

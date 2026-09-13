@@ -54,6 +54,24 @@ if [ -f scripts/fix-math-escapes.mjs ]; then
   fi
 fi
 
+# 公式真检自动修复：`\\theta` 这类 JSON 双重转义要"去掉一层"才对，但 `\\` 在 LaTeX 里本身是
+# 合法的换行符，盲替换会改坏多行公式/矩阵——所以用真检的机制**改完试渲染通过才写盘**
+# （本来能解析的公式一律不碰）。同样在算 dirty 之前跑，修出来的改动才进这次 commit。
+# 修不干净时不在这里中止：下面那两道阻断检查会把剩余的报出来并中止，口径只有一处。
+if [ -f scripts/check-math-katex.mjs ]; then
+  if command -v node >/dev/null 2>&1; then
+    echo "▸ 公式真检自动修复（双重转义：验证后才写盘）"
+    if mkfix_log="$(node scripts/check-math-katex.mjs --fix 2>&1)"; then
+      printf '%s\n' "$mkfix_log" | sed 's/^/  /'
+    else
+      printf '%s\n' "$mkfix_log" | sed 's/^/  /'
+      echo "  ⚠ 有公式自动修不了；下面两道检查会列出来并中止。"
+    fi
+  else
+    echo "  ⚠ 找不到 node，跳过公式真检自动修复（CI 仍会检查）"
+  fi
+fi
+
 msg="${*:-chore: 更新博客内容}"
 dirty="$(git status --porcelain -uall)"
 ahead="$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)"

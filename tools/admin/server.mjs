@@ -294,7 +294,8 @@ async function handleCreate(body) {
   // 日志里显示的也就是真正需要的那条命令。
   // 拖入 .md 的正文不进 argv（可能很大、含任意字符）：argv 里只有 --body-stdin 开关，
   // 文本本身作为 stdin 喂给脚本，由 new-content.sh 写进该子命令创建的主页面。
-  // 正文里的 `\*` 公式转义会让构建失败（KaTeX 无此命令），落盘前先过一遍同一份修法。
+  // 正文里会让 KaTeX 报错的写法（`\*`、`§`、圈号）会让构建失败，落盘前先过一遍同一份修法。
+  // 双重转义（`\\theta`）要跑 Hugo 验证才敢改，不在保存路径里修——那是发布时真检 --fix 的事。
   const mathFix = fixMathEscapes(typeof body.body === 'string' ? body.body : '');
   const stdin = mathFix.text === '' ? null : mathFix.text;
   let result;
@@ -384,7 +385,7 @@ async function handleSave(body) {
     text = setChildField(text, 'cover', change.child, change.value ?? '', { childIndent: '  ' });
   }
 
-  // 正文里的 `\*` 公式转义会让整站构建失败（KaTeX 无此命令）。这里对「即将写入的正文」
+  // 正文里会让 KaTeX 报错的写法（`\*`、`§`、圈号）会让整站构建失败。这里对「即将写入的正文」
   // 统一过一遍同一份修法——哪怕编辑器只是打开文件后原样保存，也顺手把坏的地方修掉。
   const doc = splitFrontMatter(text);
   const currentBody = doc.hasFm ? doc.body.join(doc.eol) : text;

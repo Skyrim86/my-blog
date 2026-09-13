@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 公式内容预检：数学区里那些「必然让 KaTeX 报错、又没法自动修」的写法。
+// 公式内容预检：数学区里那些「必然让 KaTeX 报错、且真检只能给出原始消息」的写法。
 //
 // 用法：
 //   node scripts/check-math-syntax.mjs              # 只检查 content/
@@ -8,14 +8,18 @@
 //
 // 为什么需要它：渲染钩子是 throwOnError = true，下面几类写法一处就让整站构建中止；而 Hugo 为这类
 // 错误报出的 `文件:行:列` 是**模板渲染位置、不是公式位置**——实测三个坏页都报 19:13，真缺陷在
-// 107/109/160 行，定位成本全落在人身上。本脚本给的是公式本体的行列号；它只覆盖下面四类，
+// 107/109/160 行，定位成本全落在人身上。本脚本给的是公式本体的行列号；它只覆盖下面几类，
 // **全部语法错误由 check-math-katex.mjs（真检）兜底**。
 //
-// 检查项（都会让构建失败，所以阻断；都不做自动修改，因为语义上无法机械替换）：
+// 检查项（都会让构建失败，所以阻断）：
 //   ① 数学区里 { } 不配对 —— 几乎总是「公式里又写了一个 $」把区域提前截断的指纹
 //   ② 一行里 $ 的个数是奇数而该行又有数学区 —— 同样指向「数学区里嵌了 $」
-//   ③ 数学区里出现 §      —— §(U+00A7) 不在 KaTeX 符号表内，包在 \text{} 里也照样报错
-//   ④ 数学区里出现圈号 ①–⑳ —— 同上，要写成 \textcircled{N}
+//   ③ 数学区里连续多个反斜杠后紧跟字母 —— JSON 双重转义（`\\theta` 这类）的指纹；它还可能
+//      "侥幸能解析"（`\\` 被当成换行符）而不被真检抓到，所以必须在这里报
+//
+// §（U+00A7）与圈号 ①–⑳ 这两类**已能自动修复**（`\S` / `\text{\textcircled{N}}`，都经 Hugo
+// 实测），改由 scripts/fix-math-escapes.mjs 报告与修改，这里不再重复报一遍。
+//
 // 区域识别、遮罩与行列号换算复用 scripts/fix-math-escapes.mjs，不再写第二套。
 //
 // 已知不覆盖：$ 出现在别处的畸形写法（例如 `$$\text{a$b}$$` 里那个多余的 $）、四空格缩进代码块。
@@ -33,8 +37,6 @@ import {
   regionSnippet,
   walkMarkdown,
 } from './fix-math-escapes.mjs';
-
-const CIRCLED = /[\u2460-\u2473]/; // ①…⑳
 
 // 按 LaTeX 口径数花括号：\{ \} 与 \x 都跳过。
 function braceBalance(region) {
@@ -79,25 +81,31 @@ export function scanMathSyntax(text) {
       });
     }
 
-    for (let i = 0; i < region.length; i++) {
-      const ch = region[i];
-      if (ch === '§') {
-        findings.push({
-          index: start + i,
-          ...positionOf(lineStarts, start + i),
-          kind: 'section',
-          message: '数学区里不能写 §（不在 KaTeX 符号表内，包在 \\text{} 里也会报错）：移到公式外，或写成「第 3.4 节」',
-          region: regionSnippet(region),
-        });
-      } else if (CIRCLED.test(ch)) {
-        findings.push({
-          index: start + i,
-          ...positionOf(lineStarts, start + i),
-          kind: 'circled',
-          message: `数学区里不能写圈号 ${ch}（不在 KaTeX 符号表内）：写成 \\textcircled{${ch.codePointAt(0) - 0x2460 + 1}}`,
-          region: regionSnippet(region),
-        });
-      }
+    // 双重转义指纹：连续 ≥2 个反斜杠后紧跟 ASCII 字母。
+    // 合法的 `\\`（display 里的换行、矩阵里的分行）后面跟的是空白 / `&` / `[`，不会是字母；
+    // 而 `\\theta` 这种，KaTeX 会把 `\\` 当换行符、把后面的命令拆散——运气好报错，运气不好
+    // 静默渲染成"换行 + 文本"，真检也未必抓得到，所以在这里拦。一处公式只报一条（带处数）。
+    let bsCount = 0;
+    for (let i = 0; i + 1 < region.length; i++) {
+      if (region[i] !== '\\' || region[i + 1] !== '\\') continue;
+      let j = i;
+      while (j < region.length && region[j] === '\\') j++;
+      const next = region[j];
+      if (next !== undefined && /[A-Za-z]/.test(next)) bsCount++;
+      i = j - 1;
+    }
+    if (bsCount > 0) {
+      findings.push({
+        index: start,
+        ...positionOf(lineStarts, start),
+        kind: 'doublebs',
+        message:
+          `疑似 JSON 双重转义：这个数学区里有 ${bsCount} 处「连续反斜杠 + 字母」，` +
+          `KaTeX 会把反斜杠对当成换行符而拆散命令。去掉一层转义即可` +
+          `（本地跑 node scripts/check-math-katex.mjs --fix 会验证后自动修好）；` +
+          `若你确实想要换行/分行，请在反斜杠对后面留一个空格`,
+        region: regionSnippet(region),
+      });
     }
   }
 
@@ -140,8 +148,7 @@ export function scanMathSyntax(text) {
 const KIND_LABEL = {
   brace: '嵌套 $ / 括号不配对',
   dollar: '本行 $ 数为奇数',
-  section: '§',
-  circled: '圈号',
+  doublebs: '疑似双重转义',
 };
 
 function collectFiles(args) {
@@ -203,7 +210,8 @@ function main(argv) {
     if (e.detail) console.log(e.detail);
   }
   if (entries.length > LIMIT) console.log(`    …还有 ${entries.length - LIMIT} 处，共 ${touched} 个文件`);
-  console.log(`  这三类都不会被自动修复，手改口径见 docs/formulas.md 第 4 节。`);
+  console.log(`  双重转义可自动修复：node scripts/check-math-katex.mjs --fix（改完试渲染通过才写盘）`);
+  console.log(`  § 与圈号由 node scripts/fix-math-escapes.mjs --fix 自动修；手改口径见 docs/formulas.md 第 4 节。`);
   return 1;
 }
 

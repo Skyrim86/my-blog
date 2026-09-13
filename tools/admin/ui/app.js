@@ -613,7 +613,7 @@ function printScriptResult(res) {
   let text = '';
   if (Array.isArray(res.scriptArgs)) text += `▸ new-content.sh ${res.scriptArgs.map((a) => (a.includes(' ') ? JSON.stringify(a) : a)).join(' ')}\n`;
   if (res.addedTerms?.length) text += `▸ 新标签已写入词表：${res.addedTerms.join('、')}\n`;
-  if (res.mathFix?.count > 0) text += `▸ 已自动修正 ${res.mathFix.count} 处公式转义（\\* → *）：不修的话 KaTeX 会让整站构建失败\n`;
+  if (res.mathFix?.count > 0) text += `▸ 已自动修正 ${res.mathFix.count} 处公式写法（\\* / § / 圈号 → KaTeX 的正规写法）：不修的话 KaTeX 会让整站构建失败\n`;
   if (res.stdout) text += res.stdout;
   if (res.stderr) text += `\n${res.stderr}`;
   log.textContent += text.endsWith('\n') || text === '' ? text : `${text}\n`;
@@ -971,8 +971,9 @@ async function saveEditor() {
     });
     p.changed.clear();
     p.coverChanged.clear();
-    // 服务端会把正文里 `\*` 这类会让构建失败的公式转义顺手修掉（同一份实现：
+    // 服务端会把正文里 `\*`、`§`、圈号这类会让构建失败的写法顺手修掉（同一份实现：
     // scripts/fix-math-escapes.mjs）。同步回编辑器，否则下次保存又把坏文本写回去。
+    // 注意：双重转义（`\\theta`）要跑 Hugo 验证，不在保存路径里修，发布时由真检 --fix 处理。
     const fixedCount = Number(res.mathFix?.count) || 0;
     if (fixedCount > 0 && typeof res.body === 'string') {
       p.body = res.body;
@@ -982,7 +983,7 @@ async function saveEditor() {
     p.bodyOriginal = p.body;
     p.bodyDirty = false;
     markDirty();
-    if (fixedCount > 0) toast(`已保存，并自动修正 ${fixedCount} 处公式转义（\\* → *）`, 'ok');
+    if (fixedCount > 0) toast(`已保存，并自动修正 ${fixedCount} 处公式写法（\\* / § / 圈号）`, 'ok');
     else toast(res.changed ? '已保存' : '没有变化，未写盘', 'ok');
     await loadItems(true);
     renderTree();

@@ -28,6 +28,7 @@ import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import {
+  fixMathRegion,
   lineStartsOf,
   maskCode,
   maskFrontMatter,
@@ -61,6 +62,8 @@ const CONFIG = [
 const SELFTEST = [
   { expr: 'a+b', display: false, bad: false },
   { expr: 'R^*', display: false, bad: false },
+  { expr: '\\S3.4', display: false, bad: false },
+  { expr: '\\text{\\textcircled{1}}', display: false, bad: false },
   { expr: '\\text{中文与全角标点（，）：都在符号表内}', display: false, bad: false },
   { expr: '\\tag{1}\\ x', display: true, bad: false },
   { expr: '= (\\text{', display: false, bad: true },
@@ -72,6 +75,8 @@ const SELFTEST = [
   },
   { expr: ' 后，位于 ', display: false, bad: true },
   { expr: '\\frac{1}', display: false, bad: true },
+  // JSON 双重转义的真身（2026-09-13 问题四.md:115）：必须判坏，且 --fix 能修好
+  { expr: '\\\\theta_{\\\\rm gap}\\\\le120^\\\\circ', display: false, bad: true },
 ];
 
 // ---------------- 收集数学区 ----------------
@@ -91,6 +96,8 @@ function collectRegions(files) {
       entries.push({
         expr: text.slice(start, end),
         display: !!block,
+        start,
+        end,
         ...positionOf(lineStarts, start),
         file,
       });
@@ -100,6 +107,7 @@ function collectRegions(files) {
 }
 
 // 同一条公式（同模式同文本）只渲染一次，但保留全部出现位置。
+// start/end 是绝对下标：--fix 要按它把验证过的修法 splice 回原文。
 function dedupe(entries) {
   const byKey = new Map();
   for (const e of entries) {
@@ -109,7 +117,7 @@ function dedupe(entries) {
       rec = { expr: e.expr, display: e.display, locations: [] };
       byKey.set(key, rec);
     }
-    rec.locations.push({ file: e.file, line: e.line, col: e.col });
+    rec.locations.push({ file: e.file, line: e.line, col: e.col, start: e.start, end: e.end });
   }
   return [...byKey.values()];
 }
@@ -172,6 +180,84 @@ function renderWithHugo(records) {
   }
 }
 
+// ---------------- 验证后才写的修复（--fix） ----------------
+
+// 去掉一层转义：每段连续的 2k 个反斜杠缩成 k 个（`\\theta` → `\theta`）。
+// 奇数段不动——可能是合法的 `\\`（换行）紧跟一个命令，交给候选渲染去否决。
+function unescapeOnce(expr) {
+  return expr.replace(/\\+/g, (run) => (run.length % 2 === 0 ? '\\'.repeat(run.length / 2) : run));
+}
+
+// 失败公式的候选修法，按可信度排序：
+//   ① 去掉一层转义（JSON 双重转义的指纹）
+//   ② 只套机械规则（`\*` / `§` / 圈号）
+//   ③ 先解转义再套机械规则（两种毛病叠加）
+function repairCandidates(expr) {
+  const out = [];
+  const push = (s) => {
+    if (s !== expr && !out.includes(s)) out.push(s);
+  };
+  const unescaped = unescapeOnce(expr);
+  push(unescaped);
+  push(fixMathRegion(expr).text);
+  if (unescaped !== expr) push(fixMathRegion(unescaped).text);
+  return out;
+}
+
+// 把候选交给 KaTeX 试渲染，每条公式取**第一条能解析**的候选。
+// 能解析的区域根本不会进这里（只有 failures 才修），所以合法公式不受影响。
+function pickRepairs(records, failures) {
+  const cands = [];
+  const meta = [];
+  for (const f of failures) {
+    const rec = records[f.index];
+    for (const expr of repairCandidates(rec.expr)) {
+      cands.push({ expr, display: rec.display });
+      meta.push({ recIndex: f.index, expr });
+    }
+  }
+  if (cands.length === 0) return { replacements: [], remaining: failures, renderBroken: false };
+
+  const res = renderWithHugo(cands);
+  if (!res.ran) return { replacements: [], remaining: failures, renderBroken: true };
+
+  const failed = new Set(res.failures.map((x) => x.index));
+  const chosen = new Map(); // recIndex → 第一条能解析的候选
+  for (let i = 0; i < meta.length; i++) {
+    if (failed.has(i) || chosen.has(meta[i].recIndex)) continue;
+    chosen.set(meta[i].recIndex, meta[i].expr);
+  }
+
+  const replacements = [];
+  for (const [recIndex, expr] of chosen) {
+    for (const loc of records[recIndex].locations) replacements.push({ ...loc, expr });
+  }
+  return {
+    replacements,
+    remaining: failures.filter((f) => !chosen.has(f.index)),
+    renderBroken: false,
+  };
+}
+
+// 按文件倒序 splice（改后面的不影响前面的下标），每个文件只写一次。
+function applyRepairs(replacements) {
+  const byFile = new Map();
+  for (const r of replacements) {
+    if (!byFile.has(r.file)) byFile.set(r.file, []);
+    byFile.get(r.file).push(r);
+  }
+  const done = [];
+  for (const [file, reps] of byFile) {
+    let text = fs.readFileSync(file, 'utf8');
+    for (const r of reps.slice().sort((a, b) => b.start - a.start)) {
+      text = text.slice(0, r.start) + r.expr + text.slice(r.end);
+    }
+    fs.writeFileSync(file, text, 'utf8');
+    done.push({ file, count: reps.length });
+  }
+  return done;
+}
+
 // ---------------- CLI ----------------
 
 function collectFiles(args) {
@@ -190,6 +276,18 @@ function rel(p) {
 }
 
 function selftest() {
+  // 先做一次纯字符串检查：双重转义的候选修法（不依赖 hugo，跑了才知道修复逻辑没跑偏）
+  const doubled = '\\\\theta_{\\\\rm gap}\\\\le120^\\\\circ';
+  const wantUnescaped = '\\theta_{\\rm gap}\\le120^\\circ';
+  const cands = repairCandidates(doubled);
+  if (cands[0] !== wantUnescaped) {
+    console.log(`✗ 公式真检自测失败：去掉一层转义的候选不对`);
+    console.log(`    输入：${doubled}`);
+    console.log(`    期望首选候选：${wantUnescaped}`);
+    console.log(`    实际：${cands[0] ?? '(无候选)'}`);
+    return 1;
+  }
+
   const records = dedupe(
     SELFTEST.map((s) => ({ expr: s.expr, display: s.display, file: '(selftest)', line: 0, col: 0 })),
   );
@@ -216,9 +314,29 @@ function selftest() {
   return 0;
 }
 
+function reportFailures(records, failures) {
+  console.log(
+    `✗ 公式真检未通过：${failures.length} 条公式 KaTeX 解析失败（与线上同一套 KaTeX，throwOnError=true）：`,
+  );
+  const LIMIT = 10;
+  for (const f of failures.slice(0, LIMIT)) {
+    const rec = records[f.index];
+    const locs = rec.locations;
+    console.log(`    ${rel(locs[0].file)}:${locs[0].line}:${locs[0].col}  ${f.message}`);
+    console.log(`      公式：${regionSnippet(rec.expr, 90)}`);
+    if (locs.length > 1) {
+      const more = locs.slice(1, 4).map((l) => `${rel(l.file)}:${l.line}`).join('、');
+      console.log(`      同一公式还出现在：${more}${locs.length > 4 ? ` 等 ${locs.length - 1} 处` : ''}`);
+    }
+  }
+  if (failures.length > LIMIT) console.log(`    …还有 ${failures.length - LIMIT} 条`);
+  console.log(`  这几条一定会让 hugo 构建失败；手改口径见 docs/formulas.md 第 4 节。`);
+}
+
 function main(argv) {
   if (argv.includes('--selftest')) return selftest();
 
+  const useFix = argv.includes('--fix');
   const args = argv.filter((a) => !a.startsWith('-'));
   const { files, error } = collectFiles(args);
   if (error) {
@@ -249,22 +367,26 @@ function main(argv) {
     return 0;
   }
 
-  console.log(
-    `✗ 公式真检未通过：${failures.length} 条公式 KaTeX 解析失败（与线上同一套 KaTeX，throwOnError=true）：`,
-  );
-  const LIMIT = 10;
-  for (const f of failures.slice(0, LIMIT)) {
-    const rec = records[f.index];
-    const locs = rec.locations;
-    console.log(`    ${rel(locs[0].file)}:${locs[0].line}:${locs[0].col}  ${f.message}`);
-    console.log(`      公式：${regionSnippet(rec.expr, 90)}`);
-    if (locs.length > 1) {
-      const more = locs.slice(1, 4).map((l) => `${rel(l.file)}:${l.line}`).join('、');
-      console.log(`      同一公式还出现在：${more}${locs.length > 4 ? ` 等 ${locs.length - 1} 处` : ''}`);
+  // --fix：只对**解析失败**的公式试候选修法，且只有候选能渲染才写盘。
+  // 本来就能解析的公式根本不进这个分支，所以这个修复器不会碰好公式（零误伤）。
+  if (useFix) {
+    const { replacements, remaining, renderBroken } = pickRepairs(records, failures);
+    if (renderBroken) {
+      console.log(`  ⚠ 候选修法渲染不起来，跳过自动修复`);
+    } else if (replacements.length === 0) {
+      console.log(`  ⚠ 试过候选修法仍无法解析（${failures.length} 条需手改）`);
+    } else {
+      const done = applyRepairs(replacements);
+      for (const d of done) console.log(`  ✓ 已修正 ${rel(d.file)}：${d.count} 条公式`);
+      const n = done.reduce((s, d) => s + d.count, 0);
+      console.log(`✓ 公式真检自动修复：${n} 条公式（改完试渲染通过才写盘）`);
+      if (remaining.length === 0) return 0;
     }
+    reportFailures(records, remaining);
+    return 1;
   }
-  if (failures.length > LIMIT) console.log(`    …还有 ${failures.length - LIMIT} 条`);
-  console.log(`  这几条一定会让 hugo 构建失败；手改口径见 docs/formulas.md 第 4 节。`);
+
+  reportFailures(records, failures);
   return 1;
 }
 
