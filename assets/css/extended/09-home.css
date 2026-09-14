@@ -1,0 +1,175 @@
+/* ============================================
+   首页（Profile Mode）：头像光环、快捷入口、最近更新
+   模板见 layouts/_partials/index_profile.html（覆盖主题同名 partial）
+   ============================================ */
+
+/* 主题把 profile 区撑到一屏高；首页现在还有「最近更新」，改成自然高度 */
+.main .profile {
+  min-height: auto;
+  padding: 3rem 0 2rem;
+}
+
+.profile .profile_inner {
+  width: 100%;
+  gap: 1.1rem;
+}
+
+/* 头像：一圈冷色光环 + 柔和投影，不用动画（移动端更省电） */
+.profile img {
+  box-shadow:
+    0 0 0 1px var(--surface-border),
+    0 0 0 9px var(--accent-soft),
+    var(--shadow-lift);
+}
+
+.profile h1 {
+  font-size: 2rem;
+  letter-spacing: .02em;
+  margin: 0;
+}
+
+.profile_inner > span {
+  color: var(--secondary);
+  letter-spacing: .04em;
+}
+
+/* ---------- 快捷入口：复用主导航前几项，样式做成 pill ---------- */
+.profile-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .55rem;
+  max-width: 640px;
+}
+
+.profile .profile-link {
+  padding: .38rem .95rem;
+  border-radius: 999px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  font-size: .92rem;
+  color: var(--secondary);
+  transition: color .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.profile .profile-link:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* 首页自带的按钮（hugo.toml 的 profileMode.buttons）与 pill 统一观感 */
+.profile .button {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  padding: .42rem 1.1rem;
+  font-size: .95rem;
+  transition: color .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.profile .button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* ---------- 最近更新 ---------- */
+.home-recent {
+  width: 100%;
+  max-width: calc(var(--main-width) + 40px);
+  margin: 2.6rem auto 0;
+  text-align: left;
+}
+
+.home-recent-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: .85rem;
+}
+
+.home-recent-head h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--secondary);
+  letter-spacing: .06em;
+  margin: 0;
+}
+
+.home-recent-head a {
+  font-size: .85rem;
+  color: var(--secondary);
+}
+
+.home-recent-head a:hover {
+  color: var(--accent);
+}
+
+.home-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: .6rem;
+}
+
+.home-recent-item {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  padding: .65rem .9rem;
+  border-radius: 10px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: border-color .2s ease, transform .2s ease;
+}
+
+.home-recent-item:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.home-recent-link {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  width: 100%;
+}
+
+.home-recent-type {
+  flex: none;
+  font-size: .72rem;
+  line-height: 1.6;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 0 .5rem;
+}
+
+.home-recent-title {
+  flex: 1;
+  font-size: .95rem;
+  color: var(--primary);
+}
+
+.home-recent-date {
+  flex: none;
+  font-size: .76rem;
+  color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .profile h1 {
+    font-size: 1.6rem;
+  }
+
+  .home-recent {
+    margin-top: 1.8rem;
+  }
+}

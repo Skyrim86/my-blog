@@ -1,0 +1,129 @@
+/* ============================================
+   设计令牌 + 站点背景（本文件靠 00- 前缀排在最前，01~09 的规则都建立在这些变量上）
+
+   - 只覆盖主题的 CSS 变量与少数全局选择器；组件级样式归各自编号的文件
+   - 暗色适配一律用 [data-theme="dark"]（主题给 <html> 设该属性，不是 .dark class）
+   - 背景图 URL 由 extend_head.html 生成到 css/bg-image.css 的 --bg-image，
+     这里不写死路径，站点在 /my-blog/ 子路径下也不用改本文件
+   - 底色交给 <html>、body 设透明，负 z-index 的背景层才透得出来
+   ============================================ */
+:root {
+  --accent: #5b6ee0;
+  --accent-soft: rgba(91, 110, 224, .12);
+  --surface: rgba(252, 253, 255, .80);
+  --surface-border: rgba(20, 22, 32, .08);
+  --shadow-card: 0 2px 10px rgba(18, 22, 40, .06);
+  --shadow-lift: 0 10px 28px rgba(18, 22, 40, .13);
+
+  --theme: #f7f8fc;
+  --entry: #ffffff;
+  --primary: #15171f;
+  --secondary: #6b7186;
+  --tertiary: #e7eaf3;
+  --content: #262a36;
+  --code-bg: #f1f3f9;
+  --code-block-bg: #1b1e28;
+  --border: #e5e8f1;
+  --radius: 10px;
+}
+
+:root[data-theme="dark"] {
+  --accent: #97a4ff;
+  --accent-soft: rgba(151, 164, 255, .16);
+  --surface: rgba(20, 23, 33, .74);
+  --surface-border: rgba(255, 255, 255, .08);
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, .35);
+  --shadow-lift: 0 12px 30px rgba(0, 0, 0, .5);
+
+  --theme: #0e1017;
+  --entry: #161a24;
+  --primary: #e7eaf5;
+  --secondary: #98a0b6;
+  --tertiary: #242938;
+  --content: #c4c9d8;
+  --code-bg: #171b26;
+  --code-block-bg: #12151d;
+  --border: #222735;
+}
+
+html {
+  background-color: var(--theme);
+  scroll-behavior: smooth;
+}
+
+body {
+  background: transparent;
+}
+
+/* 背景层：一层渐变蒙版压在插画上。深色模式蒙版更重，
+   是为了让正文对比度落在 WCAG AA 以内，不是「图不好看」。 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, rgba(247, 248, 252, .84) 0%, rgba(247, 248, 252, .93) 52%, rgba(247, 248, 252, .97) 100%),
+    var(--bg-image, none);
+  background-size: cover, cover;
+  background-position: center, center 34%;
+  background-repeat: no-repeat, no-repeat;
+}
+
+:root[data-theme="dark"] body::before {
+  background-image:
+    linear-gradient(180deg, rgba(14, 16, 23, .76) 0%, rgba(14, 16, 23, .89) 52%, rgba(14, 16, 23, .95) 100%),
+    var(--bg-image, none);
+}
+
+/* 列表容器默认有一层不透明底色，会挡住背景；由卡片自己承担可读性 */
+.list,
+[data-theme="dark"] .list {
+  background: transparent;
+}
+
+/* 顶栏：半透明毛玻璃，滚动时内容从左下透出 */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--surface-border);
+  backdrop-filter: saturate(150%) blur(10px);
+  -webkit-backdrop-filter: saturate(150%) blur(10px);
+}
+
+/* 页脚同样处理，避免底部出现一块死白/死黑 */
+.footer {
+  background: transparent;
+  border-top: 1px solid var(--surface-border);
+}
+
+/* ---------- 全局细节 ---------- */
+::selection {
+  background: var(--accent-soft);
+  color: var(--primary);
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tertiary) transparent;
+}
+
+/* 标题锚点被固定顶栏遮住的问题（主题只给 #top-link 做了处理） */
+.post-content :is(h1, h2, h3, h4, h5, h6),
+.post-content .anchor {
+  scroll-margin-top: calc(var(--header-height) + 16px);
+}
+
+.post-content img {
+  border-radius: 8px;
+}

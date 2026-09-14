@@ -56,3 +56,25 @@
 {{- if $needsMath }}
 <link rel="stylesheet" href="{{ "katex/katex.min.css" | relURL }}">
 {{- end }}
+
+{{- /* 站点背景图：把 assets/ 下的图片解析成带子路径前缀的 URL，写进一张生成的 CSS
+       （模板里不写 <style>，也不在 CSS 里硬编码 /my-blog/）。hugo.toml 里留空即关闭背景。 */ -}}
+{{- with site.Params.appearance.backgroundImage }}
+{{- with resources.Get . }}
+{{- $bgCss := resources.FromString "css/bg-image.css" (printf ":root{--bg-image:url('%s')}" .RelPermalink) | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $bgCss.RelPermalink }}" integrity="{{ $bgCss.Data.Integrity }}" crossorigin="anonymous">
+{{- end }}
+{{- end }}
+
+{{- /* 阅读进度条 + 目录高亮：只在真正走单页模板的页面上加载（与 giscus 的判据同源：
+       Kind == "page" 且排除 archives/search 两个独立 layout 的页面）。 */ -}}
+{{- if and (eq .Kind "page") (not (in (slice "archives" "search") .Layout)) }}
+{{- $reader := resources.Get "js/reading-progress.js" | minify | fingerprint }}
+<script defer src="{{ $reader.RelPermalink }}" integrity="{{ $reader.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}
+
+{{- /* 搜索快捷键（Ctrl/⌘+K，或不在输入框时按 "/"）：全站加载，脚本本身很小。
+       搜索页 URL 由 relLangURL 拼出，站点换子路径不用改脚本。 */ -}}
+{{- $searchKey := resources.Get "js/search-shortcut.js" | minify | fingerprint }}
+<script defer src="{{ $searchKey.RelPermalink }}" integrity="{{ $searchKey.Data.Integrity }}" crossorigin="anonymous"
+        data-search-url="{{ "search/" | relLangURL }}"></script>

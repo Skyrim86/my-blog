@@ -114,6 +114,18 @@ pagerSize = 10
   lang = 'zh-CN'
   loading = 'lazy'
 # ============================================
+# 外观与首页
+# ============================================
+# 站点背景图：assets/ 下的路径，由 extend_head.html 经资源管线交给 00-theme.css 的 --bg-image。
+# 留空字符串即关闭背景（退回纯色主题）。换图直接替换该文件即可，深浅两种蒙版在 CSS 里。
+[params.appearance]
+  backgroundImage = 'images/bg-anime-night.jpg'
+
+# 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html
+[params.home]
+  recentCount = 6
+
+# ============================================
 # 首页 Profile Mode 配置
 # ============================================
 [params.profileMode]

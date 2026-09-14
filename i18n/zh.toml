@@ -66,3 +66,15 @@ other = "项目"
 
 [relatedTypePage]
 other = "页面"
+
+# ---------- 首页（见 layouts/_partials/index_profile.html） ----------
+# 快捷入口（复用主导航，aria-label 用）
+[homeQuickLinks]
+other = "快捷入口"
+
+# 首页「最近更新」区块
+[homeRecent]
+other = "最近更新"
+
+[homeRecentAll]
+other = "全部内容 →"

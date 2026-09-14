@@ -45,7 +45,6 @@
   {{- end -}}
 {{- end -}}
 
-{{- $typeKeys := dict "posts" "relatedTypePost" "courses" "relatedTypeCourse" "projects" "relatedTypeProject" -}}
 {{- with first 5 (sort $scored "score" "desc") -}}
 <div class="related-content">
   <h2 class="related-heading">{{ i18n "relatedTitle" }}</h2>
@@ -53,7 +52,7 @@
     {{- range . -}}
     {{- $p := .page -}}
     <li class="related-item">
-      <a class="related-link" href="{{ $p.RelPermalink }}"><span class="related-type">{{ i18n (index $typeKeys $p.Type | default "relatedTypePage") }}</span><span class="related-title">{{ $p.LinkTitle }}</span></a>
+      <a class="related-link" href="{{ $p.RelPermalink }}"><span class="related-type">{{ partial "type-label.html" $p }}</span><span class="related-title">{{ $p.LinkTitle }}</span></a>
     </li>
     {{- end -}}
   </ul>

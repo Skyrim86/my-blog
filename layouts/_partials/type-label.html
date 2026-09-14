@@ -1,0 +1,5 @@
+{{- /* 页面类型徽标文案：文章 / 课程 / 项目 / 页面。
+       由 related-content.html 与首页最近更新（index_profile.html）共用，
+       所以映射只在这里维护一份。参数：一个 Page。 */ -}}
+{{- $typeKeys := dict "posts" "relatedTypePost" "courses" "relatedTypeCourse" "projects" "relatedTypeProject" -}}
+{{- i18n (index $typeKeys .Type | default "relatedTypePage") -}}

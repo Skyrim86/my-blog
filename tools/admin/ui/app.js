@@ -576,6 +576,11 @@ $('new-tag-btn').addEventListener('click', async () => {
   }
 });
 
+// 「直接发布」的默认值：`index.html` 的 #create-publish 也写了 checked，两处必须一致。
+// 新建的多是写完就想发的稿子，草稿是例外；创建成功后复位到这个默认值，
+// 免得下一条内容悄悄继承上一次的手动选择。
+const DEFAULT_PUBLISH = true;
+
 $('create-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const spec = KINDS[store.kind];
@@ -618,7 +623,7 @@ $('create-form').addEventListener('submit', async (ev) => {
       renderImportNotice();
       await loadItems(true);
       renderCreateFields();
-      $('create-publish').checked = false;
+      $('create-publish').checked = DEFAULT_PUBLISH;
     } else {
       toast('创建失败，看下方日志', 'error');
     }
