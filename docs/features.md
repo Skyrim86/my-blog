@@ -88,16 +88,47 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **`summary` 必须 `plainify` 后再截断到 150 字**，这是配合构建期公式渲染的必需处理：没写显式 `summary` 的页面（课程材料页就是），Hugo 会从 `.Content` 自动截取，而公式现在是成百上千个 KaTeX 标记，自动摘要会变成 5000+ 字符的 HTML（含完整 MathML），把索引从 17 KB 撑到 49 KB、检索片段里也会混进标记。净化后索引 14 KB。**给公式多的页面写显式 `summary` 仍是更好的做法**（自动摘要 plainify 后会出现「x∗x^*x∗」这类渲染文本与 LaTeX 并存的痕迹）。
 
-**代价**：正文只能匹配每页前 400 字，长文档内部的词搜不到（标题/摘要/标签仍全量匹配）。如果发现「某篇长文里明明有的词搜不到」，那是预期行为，不是 bug。
+**代价与补丁**：正文只能匹配每页前 400 字，长文档**正文中段**的词搜不到。索引为此补了 `headings` 字段（页内各级标题，最多三层，每页整体截断 400 字）：标题是信息密度最高、体积又最小的部分。实测搜「浮点」在补之前命中 0 条——`chapter-01/notes` 里明明有「1.3 浮点数与机器精度」，只是它落在前 400 字之外；补之后命中 2 条。索引因此从约 29 KB 涨到 39 KB，`report-size.sh` 的 `MAX_INDEX_KB` 同步从 40 KB 上调到 52 KB。仍然搜不到的只剩「长文档正文中段、且不在任何标题里出现」的词，那是预期行为。
 
 **改索引字段时必须同步 `fuseOpts.keys`**，否则多输出的字段搜不到、keys 里多写的字段则无效。
 
-## 4. 两处有意的主题模板覆盖
+### ⑫ 主题外观与站点背景 — `00-theme.css` + `extend_head.html` 生成的 `css/bg-image.css`
 
-除上述 hook 之外，仓库里有两处**有意**整份覆盖主题模板（是对「不复制主题模板」的例外）：
+设计令牌集中在 `assets/css/extended/00-theme.css`（`00-` 前缀保证合并时排在最前，01~09 都建立在它上面）：只覆盖主题的 CSS 变量（配色、`--radius`）与少数全局选择器，不动主题组件；另加 `--accent` / `--surface` / `--shadow-*` 三个自定义令牌供各组件复用。深色一律用 `[data-theme="dark"]`。
+
+**背景图不写死在 CSS 里**：唯一事实源是 `hugo.toml` 的 `[params.appearance] backgroundImage`；`extend_head.html` 用 `resources.Get` 取到带子路径前缀的 `RelPermalink`，再由 `resources.FromString` 生成一张只含 `--bg-image` 定义的小 CSS 外链。于是模板里不写 `<style>`、CSS 里不硬编码 `/my-blog/`、换图只改一行配置；**留空字符串即关闭背景**，退回纯色主题。
+
+两个连带改动，少一个背景就不可见或正文发糊：`html` 承担底色，**`body` 的背景必须置透明**（主题原版给 `body` 设了 `--theme`，会盖住 `z-index:-1` 的背景层）；`.list` 也置透明（主题给它设了 `--code-bg`）。正文可读性改由 `.post-single` 的半透明卡片（`--surface` + `backdrop-filter`）保证，卡片/列表项本来就自带不透明底色。
+
+背景图 `assets/images/bg-anime-night.jpg`（1280×717，191 KB）取自 Pixabay，按 **Pixabay Content License**（免费商用、无需署名）发布，页面为 `pixabay.com/illustrations/anime-wallpaper-sea-manga-comic-7914238/`。**换图时同步改这一行记录**（出处与许可是仓库里唯一会过期的东西）。
+
+### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
+
+只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a` 加 `.active`。
+
+**不要用 `requestAnimationFrame` 做节流**：隐藏标签页里 rAF 不触发，切回来会拿到过期状态——`terms-filter.js` 已经踩过同一个坑，这里直接同步算。
+
+### ⑭ 搜索快捷键与 `?q=` 预填 — `assets/js/search-shortcut.js`
+
+- 任意页按 `Ctrl/⌘ + K`，或不在输入框内时按 `/` → 跳到搜索页；搜索页 URL 由 `extend_head.html` 用 `relLangURL` 填进 `<script data-search-url="…">`，站点换子路径不用改脚本。主题原生只有 `Alt + /`（accesskey）。
+- 搜索页读 `?q=…` 预填输入框并自动出结果，于是任何页面/工具都能用链接直接发起搜索。
+- **必须重试**：主题 `fastsearch.js` 在 `window.load` 之后才 fetch 索引，索引没就绪时派发的 `input` 事件会被静默丢弃（`performSearch` 里 `!fuse` 直接 return）。脚本按「结果是否出现」最多重试 7 次（约 1.6 s），一旦用户自己在输入框里打字就交出控制权。
+
+### ⑮ 首页快捷入口与最近更新 — `_partials/index_profile.html`（整份覆盖）+ `09-home.css`
+
+首页在 profileMode 下由主题 `list.html` 直接调用 `index_profile.html`，**没有任何 hook**，所以这一处是整份覆盖（见第 4 节）。与原版的差异只有三处：头像多取一张 2× 图供高分屏、快捷入口、最近更新；标题/副标题/社交图标/`profileMode.buttons` 保持主题原样。
+
+- **快捷入口**复用主导航（跳过 `home`，取前 5 项），不维护第二份链接配置，导航改名自动同步。
+- **最近更新**：`site.RegularPages` 按 `Lastmod` 倒序取前 `params.home.recentCount` 条（`0` 关闭），排除 `searchHidden` 与 archives/search；每行是「类型徽标 + 标题 + 月日」，类型文案由 `type-label.html` 提供——与相关内容区块共用同一份 `Type → i18n key` 映射，不再各写一份。`enableGitInfo = true` 让 `Lastmod` 有真实值。
+- 主题 `profile-mode.css` 给 `.profile` 设了 `min-height: calc(100vh - …)`，加了内容会撑出很高的首屏，`09-home.css` 把它改成自然高度。
+
+## 4. 三处有意的主题模板覆盖
+
+除上述 hook 之外，仓库里有三处**有意**整份覆盖主题模板（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
 
 1. `layouts/courses/course.html`（`layout: "course"`）与 `layouts/courses/chapter.html`（`layout: "chapter"`）：列表页没有任何 hook，而这两页分别需要自动章节目录与入口卡片。两个模板都很小、只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`，页头共用 `course-header.html`），且只有显式写了 `layout` 的页面才命中，不影响 `/courses/` 列表页与文章页。**改外观请优先改 `04-course.css`**
 2. `layouts/index.json`：该模板无 hook 可挂，而正文截断无法从配置实现
+3. `layouts/_partials/index_profile.html`：首页在 profileMode 下由主题 `list.html` 直接调用它，没有 hook 可挂，而首页需要「快捷入口 + 最近更新」两块内容。改这一处时对照 `themes/PaperMod/layouts/_partials/index_profile.html`，确认主题侧是否有新变化需要合并
 
 ## 5. 总览页标题
 

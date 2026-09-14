@@ -9,6 +9,10 @@
       而公式现在渲染成了大段 KaTeX 标记，自动摘要会变成 5000+ 字的 HTML（含完整 MathML），
       把索引从 17 KB 撑到 49 KB，检索结果里也会混进标记。plainify 后只剩纯文本。
    3. 新增 tags 字段，让标签也能被搜到（hugo.toml 的 fuseOpts.keys 已同步加上 'tags'）。
+   4. 新增 headings 字段（页内各级标题，最多三层拼接）。原因：正文截断到 400 字之后，
+      课程笔记 / 项目文档这类长文里的关键词基本搜不到（实测搜「浮点」命中 0 条，而
+      chapter-01/notes 里明明有「1.3 浮点数与机器精度」）——标题是信息密度最高、体积
+      又最小的部分，补上它长文档才有可检索性（21 页实测：索引 29.3 KB → 39.1 KB）。
 
    其余逻辑（searchHidden、archives/search 页排除）沿用主题，未改动。
    这是继 layouts/courses/*.html 之后第二处有意的主题模板覆盖：主题该模板没有 hook 可挂，
@@ -16,11 +20,21 @@
 {{- $index := slice -}}
 {{- range site.RegularPages -}}
     {{- if and (not .Params.searchHidden) (ne .Layout `archives`) (ne .Layout `search`) }}
+    {{- /* 页内各级标题（最多三层）也进索引，理由见文件头第 4 条 */ -}}
+    {{- $heads := slice -}}
+    {{- range .Fragments.Headings -}}
+      {{- $heads = $heads | append .Title -}}
+      {{- range .Headings -}}
+        {{- $heads = $heads | append .Title -}}
+        {{- range .Headings -}}{{- $heads = $heads | append .Title -}}{{- end -}}
+      {{- end -}}
+    {{- end -}}
     {{- $index = $index | append (dict
         "title" .Title
         "content" (.Plain | truncate 400)
         "permalink" .Permalink
         "summary" (.Summary | plainify | htmlUnescape | truncate 150)
+        "headings" (truncate 400 (delimit $heads " "))
         "tags" (.Params.tags | default slice)) -}}
     {{- end -}}
 {{- end -}}

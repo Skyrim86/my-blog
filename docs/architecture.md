@@ -32,16 +32,23 @@ my-blog/
 │   └── project-doc.md         #   分层项目文档（regular page，math 默认 true）
 ├── assets/                    # 走 Hugo 资源管线（会被 minify/fingerprint/Resize）
 │   ├── css/extended/          #   自定义 CSS，主题自动 Concat + minify，按文件名排序
+│   │   ├── 00-theme.css       #     设计令牌（配色/圆角/阴影）+ 站点背景图层
 │   │   ├── 01-cards.css       #     文章列表卡片
 │   │   ├── 02-typography.css  #     中文排版
 │   │   ├── 03-widgets.css     #     系列导航
 │   │   ├── 04-course.css      #     章节目录 + 入口卡片 + 附件下载
 │   │   ├── 05-project.css     #     项目元信息（技术栈 + 仓库链接）
 │   │   ├── 06-terms-filter.css#     词条筛选框
-│   │   └── 07-related.css     #     相关内容区块
-│   ├── images/avatar.jpg      #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
+│   │   ├── 07-related.css     #     相关内容区块
+│   │   ├── 08-reader.css      #     阅读进度条 + 目录当前项 + 正文卡片
+│   │   └── 09-home.css        #     首页头像光环 / 快捷入口 / 最近更新
+│   ├── images/
+│   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
+│   │   └── bg-anime-night.jpg #   站点背景图（来源与许可：docs/features.md 第 12 节）
 │   └── js/                    #   自定义 JS 源码，经 extend_head.html minify+fingerprint 后外链
 │       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
+│       ├── reading-progress.js   # 阅读进度条 + 目录高亮（只在单页加载）
+│       ├── search-shortcut.js    # Ctrl/⌘+K 与「/」快捷键 + 搜索页 ?q= 预填
 │       └── terms-filter.js       # 标签/分类/系列总览页的词条筛选框
 ├── content/                   # 站点内容（详见 docs/content.md）
 │   ├── about.md  archives.md  search.md
@@ -52,12 +59,14 @@ my-blog/
 ├── data/taxonomy.yaml         # 标签 / 分类词表（唯一事实源，要入库）
 ├── i18n/zh.toml               # 站点级 UI 文案（与主题 i18n 合并，同名覆盖）
 ├── layouts/
-│   ├── index.json             # 覆盖主题模板：搜索索引（正文截断 + tags 字段）
+│   ├── index.json             # 覆盖主题模板：搜索索引（正文截断 + tags + 页内标题）
 │   ├── _markup/render-passthrough.html   # 公式渲染钩子（构建期 KaTeX）
 │   ├── courses/course.html    # 课程主页模板（由 layout: course 显式命中）
 │   ├── courses/chapter.html   # 章节入口页模板（由 layout: chapter 命中）
 │   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
-│       ├── extend_head.html   #   覆盖主题 hook：JS 接线 + KaTeX 样式按需加载
+│       ├── extend_head.html   #   覆盖主题 hook：JS 接线 + KaTeX 样式 + 背景图 CSS
+│       ├── index_profile.html #   覆盖主题同名 partial：首页快捷入口 + 最近更新
+│       ├── type-label.html    #   页面类型徽标文案（相关内容与首页共用）
 │       ├── extend_post_content.html  # 覆盖主题 hook：系列导航 + 附件 + 项目元信息 + 相关内容
 │       ├── series-posts.html  related-content.html  course-index.html
 │       ├── course-header.html course-downloads.html project-meta.html

@@ -16,7 +16,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 2. **标签只从 `data/taxonomy.yaml` 取**，不要手打；新词加 `--new-tag`（脚本自动写回词表）。词表格式被 shell grep 解析，**不要改成嵌套 YAML**
 3. **标签只打在 regular page 上**：section 页（课程主页、章节入口页、项目页、子项目页）写 `tags`/`categories` 是**无效且有害**的（`/tags/` 计数虚高、词条页里却不出现）。课程/项目的标签写在主页的 `cascade` 里并加 `target: {kind: page}`；写作用范围用 **`target`**，不要用已弃用的 `_target`
 4. **`cascade` 只填空、不合并**：子孙页一旦自己写了 `tags`（**空数组也算「已定义」**），继承来的标签会被**整体丢弃**。所以课程材料页与分层项目的子项目页/文档页**不要写 tags**
-5. **不要整份复制主题模板**。用主题 hook：覆盖 `layouts/_partials/` 下的 `extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 即生效。新建自定义 partial 放 `layouts/_partials/`（带下划线），不要用 `layouts/partials/` 或 `layouts/_default/`。**两处有意的整份覆盖**：`layouts/courses/{course,chapter}.html` 与 `layouts/index.json`
+5. **不要整份复制主题模板**。用主题 hook：覆盖 `layouts/_partials/` 下的 `extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 即生效。新建自定义 partial 放 `layouts/_partials/`（带下划线），不要用 `layouts/partials/` 或 `layouts/_default/`。**三处有意的整份覆盖**：`layouts/courses/{course,chapter}.html`、`layouts/index.json`、`layouts/_partials/index_profile.html`
 6. **JS 放 `assets/js/*.js`**，由 `extend_head.html` 用 `resources.Get | minify | fingerprint` 接线外链；不要内联 `<script>`（无 lint、无压缩、内联 defer 无效）。**CSS 放 `assets/css/extended/`**，一个职责一个文件、用 `NN-` 前缀控制合并顺序；模板里不要写 `<style>`
 7. **面向访客的文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}`；JS 里的文案走自己 `<script>` 标签的 `data-*` 属性（模板侧用 `i18n` 填值），不要硬编码中文
 8. **复用主题 CSS 变量**（`--theme`/`--border`/`--secondary` 等）；暗色适配用 **`[data-theme="dark"]`**（主题机制是 `<html>` 上的属性），写 `.dark` 永远不触发
@@ -51,6 +51,10 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 相关内容区块 | `_partials/related-content.html`、`07-related.css` | [`docs/features.md`](docs/features.md) |
 | 词条筛选框 | `assets/js/terms-filter.js`、`06-terms-filter.css` | 同上 |
 | 搜索索引 | `layouts/index.json` + `hugo.toml` 的 `fuseOpts.keys`（**改一处必须同步另一处**） | 同上 |
+| 站点外观（配色 / 深色令牌 / 背景图） | `assets/css/extended/00-theme.css`、`hugo.toml` 的 `[params.appearance]` | [`docs/features.md`](docs/features.md) |
+| 阅读进度条 / 目录当前项 | `assets/js/reading-progress.js`、`08-reader.css` | 同上 |
+| 首页（头像 / 快捷入口 / 最近更新） | `_partials/index_profile.html`（整份覆盖）、`09-home.css`、`hugo.toml` 的 `[params.home]` | 同上 |
+| 搜索快捷键（`Ctrl+K` / `/`）/ 搜索页 `?q=` 预填 | `assets/js/search-shortcut.js` | 同上 |
 | 数学公式（构建期 KaTeX） | `layouts/_markup/render-passthrough.html`、`static/katex/` | [`docs/formulas.md`](docs/formulas.md) |
 | 公式机械修复（`\*` → `*`、`§` → `\S`、圈号 → `\text{\textcircled{N}}`） | `scripts/fix-math-escapes.mjs`（管理页保存/新建与 `push-blog.sh` 都调它；`--selftest` 自测规则） | 同上 |
 | 公式内容预检（嵌套 `$`、行内 `$` 数为奇数、JSON 双重转义指纹） | `scripts/check-math-syntax.mjs`（CI 与 `push-blog.sh` 都跑，阻断） | 同上（第 4 节） |

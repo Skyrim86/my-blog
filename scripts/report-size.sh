@@ -18,7 +18,7 @@ cd "$(git rev-parse --show-toplevel)"
 # 定得比现状宽松，只在真出现回归时报警，不做日常噪音。
 MAX_PAGE_KB="${MAX_PAGE_KB:-1638}"   # 单页 raw HTML 上限 1.6 MB（现状最重约 1318 KB）
 MAX_TOTAL_KB="${MAX_TOTAL_KB:-12288}" # 整站输出上限 12 MB（2026-09-12：CMC2026 一次新增 16 个公式密集页，raw HTML 约 +6.5 MB，整站 5.6 → 10.0 MB，故 8 MB 上调到 12 MB）
-MAX_INDEX_KB="${MAX_INDEX_KB:-40}"   # 搜索索引上限 40 KB（现状 18 KB；历史上曾涨到 49 KB）
+MAX_INDEX_KB="${MAX_INDEX_KB:-52}"   # 搜索索引上限 52 KB（现状 39 KB，含页内标题 headings；历史上曾涨到 49 KB）
 
 DIR="public"
 TMP=""

@@ -14,12 +14,26 @@
     if (input) {
         const query = new URLSearchParams(window.location.search).get('q');
         if (query) {
-            window.addEventListener('load', () => {
-                window.setTimeout(() => {
-                    input.value = query;
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                }, 60);
-            });
+            const apply = () => {
+                input.value = query;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            };
+            let attempts = 0;
+            const kick = () => {
+                attempts += 1;
+                // 用户已经开始自己输入了就交出控制权
+                if (document.activeElement === input && input.value !== query && input.value !== '') {
+                    return;
+                }
+                apply();
+                // 主题的 fastsearch.js 在 window.load 之后才 fetch 索引：索引没就绪时派发的
+                // input 事件会被静默丢弃（performSearch 里 !fuse 直接 return）。
+                // 所以按「结果是否出现」重试几次，而不是只发一次就赌它已经就绪。
+                if (attempts < 7 && !document.querySelector('#searchResults li')) {
+                    window.setTimeout(kick, 240);
+                }
+            };
+            window.addEventListener('load', () => window.setTimeout(kick, 60));
         }
     }
 
