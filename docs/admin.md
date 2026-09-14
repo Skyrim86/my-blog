@@ -11,13 +11,13 @@
 
 双击后它会自动打开浏览器、并顺手带起 `hugo server` 预览。
 
-它在本机起一个**零依赖的 Node 服务**（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，四块功能：**新建**（九种内容类型的表单 + 词表 chips 选标签 + **拖入 .md 导入**）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条 + 删除 + **拖入 .md 替换正文**）、**发布**（git 改动清单 + diff + 提交说明 + 流式日志）、**同屏 iframe 预览**。
+它在本机起一个**零依赖的 Node 服务**（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，五块功能：**新建**（九种内容类型的表单 + 词表 chips 选标签 + **拖入 .md 导入**）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条 + 删除 + **拖入 .md 替换正文** + **粘贴/拖入图片**）、**发布**（git 改动清单 + diff + 草稿与排期 + 提交历史 + CI 状态 + 流式日志）、**体检**（跑 `scripts/` 那批校验脚本，结果按文件列出、可点进编辑器，见第 14 节）、**同屏 iframe 预览**（可拖宽、可切设备宽度）。顶栏常驻仓库状态（分支 / 改动 / 草稿 / 排期 / 预览），随时可按 `Ctrl+K` 开命令面板。
 
 ```
 tools/admin/
 ├── start.sh        # 启动器：参数解析、找 bash/node/hugo、开浏览器、exec server.mjs
 ├── server.mjs      # HTTP 服务：静态页 + JSON API（新建/删除/编辑/词表/git/发布）
-├── lib/            # 业务模块：content / frontmatter / taxonomy / git / hugo / exec
+├── lib/            # 业务模块：content / frontmatter / taxonomy / git / hugo / exec / checks / search / asset / ci
 └── ui/             # index.html + app.js + style.css（原生前端，无框架无构建）
 ```
 
@@ -189,9 +189,77 @@ section 页（课程主页 / 章节 / 分层项目主页 / 子项目页 / 列表
 
 启动器找 bash 的顺序刻意**先查 Git for Windows 的安装位置、再退回 PATH**：`C:\Windows\System32\bash.exe` 是 WSL 的 bash，用它跑这个脚本路径会全错。顺序为 `ADMIN_BASH` → `%ProgramFiles%\Git\bin\bash.exe` → `%ProgramFiles(x86)%\...` → `%LOCALAPPDATA%\Programs\Git\...` → 从 `where git` 反推 `..\bin\bash.exe`。找不到就打印 Git 下载地址并 `pause`，参数原样透传（`启动管理页.bat --port 1415` 可用）。
 
-## 13. 已知限制
+## 13. 体检面板（把校验搬进界面）
+
+`scripts/` 下那批校验脚本过去只出现在终端和 `push-blog.sh` 里。体检面板按**同一口径**跑一遍，并且**不在管理页里复刻规则**：`lib/checks.mjs` 只负责「调哪个脚本、怎么解析输出」，脚本改了规则界面自动跟上。
+
+| 档 | 检查项 | 说明 |
+| --- | --- | --- |
+| 快检 | 分区结构 / Front matter / 公式内容预检 / 标签词表 / 编辑器字段表 | 约 20 秒，其中 `check-frontmatter.sh` 独占 16–18 秒（Windows 上 bash 逐文件读的开销），其余都是秒级 |
+| 全检 | 上面 5 项 + 公式真检 / 站点构建 / KaTeX 配对 / 站内链接 / 体积预算 | 实测约 30 秒（本机：front matter 18s + 公式真检 5s + 其余每项不到 2s）。后 3 项要读构建产物，所以「站点构建」排在它们前面 |
+
+- 结果用 **SSE 流式**推：跑完一项推一项。慢项不会让界面全程空白，每项带耗时
+- 阻断判定服从 `push-blog.sh`：`blocking` 的项失败时结论标「会阻断发布」；`check-tags` / `check-editor-schema` 只算提醒
+- 输出解析成「文件 + 行号 + 级别」，按文件分组，每行「定位」按钮直接跳到编辑器对应行（文件行号减掉 front matter 高度才是正文行号）
+- 全检里的「站点构建」会 `hugo --minify --gc --cleanDestinationDir` 重写 `public/`。`public/` 在 `.gitignore` 里，不会污染发布页的改动清单
+
+## 14. 命令面板与快捷键
+
+| 键 | 作用 |
+| --- | --- |
+| `Ctrl/Cmd + K` | 开/关命令面板（也可点顶栏「搜索」） |
+| `↑` `↓`（或 `Ctrl+N` / `Ctrl+P`） | 移动选择 |
+| `Enter` | 执行 |
+| `Esc` | 关面板 |
+| `Ctrl/Cmd + S` | 保存当前编辑的文件 |
+
+面板里三类结果混排：**动作**（切 tab、跑快检、刷新/重启预览、切主题）、**文件**（本地已有的 `store.items`）、**正文命中**（`GET /api/search`，服务端按 mtime+size 缓存正文行，敲字时每 130ms 问一次也不重读磁盘）。正文命中带行号，回车跳到那一行。
+
+深链：地址栏是 `#<tab>` 或 `#edit/<文件路径>`，刷新与收藏都能回原处。**只做单向同步**——状态变化时写 hash、hash 变化时恢复状态，不回写，否则两边互相触发。
+
+未保存保护：有脏文件时 `beforeunload` 拦一次；树上的条目也会带「未保存」标记。
+
+## 15. 插入图片
+
+正文里**粘贴或拖入图片**即落盘：
+
+- 存到**当前编辑文件所在目录**（Hugo leaf bundle 约定），插入的引用是 `./文件名`
+- `POST /api/asset/upload` 收 `data:` URL；白名单 png / jpg / webp / gif / svg / avif，单张上限 8MB（该路由的 JSON 请求体上限相应提到 16MB，其余接口仍是 8MB）
+- 文件名清洗后去重（`x.png` 已存在就写 `x-2.png`），`resolveContentPath` 保证只落进 `content/`
+- 图片是**真实文件**，会被 `git add -A` 带进发布——这是有意的：封面与正文配图本来就要进仓库
+
+## 16. 预览：宽度与设备宽度
+
+- 中间的分隔条可拖动（宽度存 `localStorage` 的 `admin-preview-w`），双击复位到默认 `42vw`
+- 三档设备宽度：桌面（撑满）、平板 834px、手机 390px，存 `admin-preview-device`；后两档在 iframe 上加边框与阴影，切回桌面即还原
+
+## 17. 发布页的三块新信息
+
+顶栏与 `/api/state` 里早就有这些数据，界面过去没用上：
+
+- **草稿与排期**：`drafts` / `futureDated` 逐条列出。草稿行有「转正式」——只改 `draft` 一个字段（`PUT /api/content/file`），正文原样交回，服务端按行替换，其他内容不动
+- **最近提交**：`recentCommits`（`git log --oneline`）
+- **CI 状态**：`GET /api/ci` 读 GitHub Actions 最近 6 次运行。**不用 `gh`**：本机 gh 装过但没登录，而公开仓库未认证的 REST 就能读；想提限流额度就设 `GH_TOKEN`
+
+CI 这块走 `curl` 而不是 Node 的 `fetch`：这台机器上 `fetch` 直连 `api.github.com` 会挂（实测 socket 超时 / 504），同一地址走本地 HTTP 代理 7 秒回 200。代理来源 `ADMIN_PROXY` → `HTTPS_PROXY` → `https_proxy`；`start.sh` 启动时按 `7891 → 7890 → 10809 → 1080` 探一次，探到就设 `ADMIN_PROXY`。**都探不到也不影响别的功能**，CI 那块只显示「读不到」。结果缓存 5 分钟，发布后自动失效。
+
+## 18. 新增 API
+
+| 路由 | 作用 |
+| --- | --- |
+| `GET /api/check/items` | 检查项表（来自 `lib/checks.mjs`），界面用它渲染左栏 |
+| `POST /api/check` | 跑体检，SSE 流：`start` / `item-start` / `item-done` / `done` |
+| `GET /api/search?q=` | 正文全文搜索，返回 `path` / `title` / `line` / `text` / `kind` |
+| `POST /api/asset/upload` | 图片落盘，返回 `{path, markdown}` |
+| `GET /api/ci` | GitHub Actions 最近运行 |
+
+`lib/` 里新增四个模块：`checks.mjs`、`search.mjs`、`asset.mjs`、`ci.mjs`。
+
+## 19. 已知限制
 
 - 只在本机可用（不做在线后台）
 - 幂等性没做文件锁，**不要同时开两个管理页改同一批文件**
+- 体检的**全检会重建 `public/`**（数分钟）。期间预览照常，但别同时点发布——`push-blog.sh` 自己还会再构建一遍，白等一次
+- CI 状态要有能连 `api.github.com` 的通道（本机得靠代理，见第 17 节）。拿不到时那块只显示「读不到」，**不影响发布本身**
 - 拖入 .md 的客户端上限 **4MB**（更大会被拒；服务端 JSON 请求体上限是 8MB）
 - `start.sh` 的 `usage()` 用 `sed -n '2,14p' "$0"` 打印文件头注释——**改文件头时行号要一起调**（注释块是第 2–14 行）

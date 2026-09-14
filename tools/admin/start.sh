@@ -61,6 +61,18 @@ fi
 
 [ "$NO_PREVIEW" = "1" ] && PASSTHROUGH+=("--no-preview")
 
+# CI 状态（发布页那块）要访问 api.github.com。这台机器上直连会超时、本地代理能通，
+# 所以启动时探一次。端口不写死：按常见顺序试，谁能连上就用谁；都连不上就跳过，
+# CI 面板显示「读不到」，其余功能不受影响。已有 HTTPS_PROXY 时不覆盖用户的设置。
+if [ -z "${ADMIN_PROXY:-}" ] && [ -z "${HTTPS_PROXY:-}" ] && [ -z "${https_proxy:-}" ]; then
+  for _p in 7891 7890 10809 1080; do
+    if curl -sS -m 3 -x "http://127.0.0.1:${_p}" https://api.github.com/rate_limit >/dev/null 2>&1; then
+      export ADMIN_PROXY="http://127.0.0.1:${_p}"
+      break
+    fi
+  done
+fi
+
 open_url() {
   local url="$1"
   case "$(uname -s)" in

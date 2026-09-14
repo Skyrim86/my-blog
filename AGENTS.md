@@ -57,7 +57,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 公式真检（Hugo 内嵌 KaTeX 逐条试渲染，覆盖全部语法错误；`--fix` 验证后才写盘地修双重转义） | `scripts/check-math-katex.mjs`（CI 与 `push-blog.sh` 都跑，阻断；`--selftest` 自测机制本身） | 同上（第 4 节） |
 | 新内容脚手架 / 删除 | `scripts/new-content.sh` | [`docs/content.md`](docs/content.md) |
 | 标签词表 | `data/taxonomy.yaml`、`scripts/check-tags.sh` | 同上 |
-| 本地管理页 | `tools/admin/`（`start.sh`/`server.mjs`/`lib/`/`ui/`） | [`docs/admin.md`](docs/admin.md) |
+| 本地管理页（新建 / 编辑 / 发布 / 体检面板 / 命令面板 `Ctrl+K` / 插图） | `tools/admin/`（`start.sh`/`server.mjs`/`lib/`/`ui/`） | [`docs/admin.md`](docs/admin.md) |
 | 校验与 CI | `.github/actions/validate/action.yml`、`scripts/check-*.sh`、`report-size.sh` | [`docs/architecture.md`](docs/architecture.md) |
 
 **主题本身已提供**（不要重复实现）：明暗切换、TOC、面包屑、上下篇、代码复制、阅读时间、返回顶部（`#top-link`）、OG/JSON-LD/hreflang、robots.txt 与 sitemap。
@@ -94,7 +94,7 @@ bash scripts/upgrade-hugo.sh <版本>        # 同步升级 Hugo + 配对的 KaT
 | 内容结构、front matter、`cascade`、标签词表、脚手架参数、附件 | [`docs/content.md`](docs/content.md) |
 | 评论 / 系列 / 筛选框 / 相关内容 / 搜索索引 / 项目面板等具体功能 | [`docs/features.md`](docs/features.md) |
 | 公式渲染、passthrough 定界符、升级 Hugo、公式显示错乱 | [`docs/formulas.md`](docs/formulas.md) |
-| 管理页（含新建面板的类型分组、字段表、安全边界、`.bat`） | [`docs/admin.md`](docs/admin.md) |
+| 管理页（类型分组、字段表、体检面板、命令面板、插图、安全边界、`.bat`） | [`docs/admin.md`](docs/admin.md) |
 | 遇到怪现象、不确定某个机制为什么这样写 | [`docs/traps.md`](docs/traps.md) |
 
 **保持本文件精简**：新知识写进对应的 `docs/` 文件，这里只在「这是一条每次都必须遵守的规则」时才加一行，并附上指针。

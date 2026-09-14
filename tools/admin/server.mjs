@@ -44,6 +44,10 @@ import { addTerm, checkTerm, readTaxonomy } from './lib/taxonomy.mjs';
 import * as gitlib from './lib/git.mjs';
 import { HugoPreview } from './lib/hugo.mjs';
 import { resolveBash, runScript, git } from './lib/exec.mjs';
+import { checkItems, runCheckById } from './lib/checks.mjs';
+import { searchContent, invalidateSearchCache } from './lib/search.mjs';
+import { saveAsset } from './lib/asset.mjs';
+import { actionsStatus, invalidateActionsCache } from './lib/ci.mjs';
 import { splitFrontMatter, setField, setChildField, yamlList, yamlStr } from './lib/frontmatter.mjs';
 // 公式里的 `\*` 不是 KaTeX 命令，一处就能让整站构建失败（见 docs/formulas.md 第 3 节）。
 // 扫描与修法只有 scripts/fix-math-escapes.mjs 那一份实现，这里与 CLI、push-blog.sh 共用。
@@ -169,6 +173,8 @@ async function listContentCached(force = false) {
 function invalidateList() {
   listCache = { at: 0, value: null };
   invalidatePermalinks();
+  // 正文变了，命令面板的全文搜索缓存也要跟着失效，否则刚保存的内容搜不到
+  invalidateSearchCache();
 }
 
 // ---------------- HTTP 工具 ----------------
@@ -433,6 +439,52 @@ async function handlePreviewUrl(query) {
   };
 }
 
+// ---------------- 体检（SSE 流式） ----------------
+//
+// 一次跑一项、跑完立刻推一条：慢项（公式真检、hugo 构建）动辄几十秒，攒到最后一起返回的话
+// 界面上什么都看不到。检查项表与调用顺序在 lib/checks.mjs，口径与 push-blog.sh 一致。
+async function handleCheck(req, res, body) {
+  const full = body?.mode === 'full';
+  const items = checkItems({ full, only: Array.isArray(body?.only) && body.only.length ? body.only : null });
+  if (items.length === 0) throw Object.assign(new Error('没有可跑的检查项'), { status: 400 });
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  const send = (payload) => res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  send({ event: 'start', mode: full ? 'full' : 'fast', items });
+
+  // 关掉页面就不要再往下跑了（尤其是构建和真检），但已经启动的那一项没法中断
+  let aborted = false;
+  res.on('close', () => {
+    if (!res.writableEnded) aborted = true;
+  });
+
+  let errors = 0;
+  let warns = 0;
+  let blockingFailed = 0;
+  for (const meta of items) {
+    if (aborted) break;
+    send({ event: 'item-start', id: meta.id, label: meta.label });
+    // 逐项跑：并行跑 hugo 构建与真检会互相抢 CPU，还都会写临时目录
+    // eslint-disable-next-line no-await-in-loop
+    const r = await runCheckById(REPO_ROOT, meta.id, { timeoutMs: meta.id === 'build' ? 900000 : 600000 });
+    if (!r.ok) {
+      errors += 1;
+      if (meta.blocking) blockingFailed += 1;
+    }
+    warns += (r.issues ?? []).filter((i) => i.level === 'warn').length;
+    // 构建会重建 public/，permalink 表（hugo list all 得来）与体积数据都跟着变
+    if (meta.id === 'build') invalidateList();
+    send({ event: 'item-done', ...r });
+  }
+  send({ event: 'done', aborted, errors, warns, blockingFailed, ok: blockingFailed === 0 });
+  res.end();
+}
+
 // ---------------- 发布（SSE 流式） ----------------
 
 async function handlePublish(req, res, body) {
@@ -467,6 +519,7 @@ async function handlePublish(req, res, body) {
   child.on('close', (code) => {
     finished = true;
     invalidateList();
+    invalidateActionsCache(); // 刚推完，CI 列表一定变了
     send({ event: 'done', code });
     res.end();
   });
@@ -602,6 +655,26 @@ const server = http.createServer(async (req, res) => {
       }
       case 'POST /api/content':
         json(res, 200, await handleCreate(await readJsonBody(req)));
+        return;
+      case 'GET /api/search': {
+        json(res, 200, await searchContent(REPO_ROOT, searchParams.get('q') ?? ''));
+        return;
+      }
+      case 'POST /api/asset/upload': {
+        // 图片按 base64 走 JSON，8MB 的图编码后约 11MB，所以单独放宽这个接口的上限
+        const result = await saveAsset(REPO_ROOT, await readJsonBody(req, 16 * 1024 * 1024));
+        invalidateList();
+        json(res, 200, result);
+        return;
+      }
+      case 'POST /api/check':
+        await handleCheck(req, res, await readJsonBody(req));
+        return;
+      case 'GET /api/check/items':
+        json(res, 200, { items: checkItems({ full: true }) });
+        return;
+      case 'GET /api/ci':
+        json(res, 200, await actionsStatus(REPO_ROOT));
         return;
       case 'POST /api/content/delete':
         json(res, 200, await handleDelete(await readJsonBody(req)));

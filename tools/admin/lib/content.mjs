@@ -378,6 +378,9 @@ export async function readContentFile(repoRoot, relPath) {
       k === 'draft' ? parsed.values.draft === '' : parsed.values[k] === ''
     ),
     body: parsed.body,
+    // 正文第一行对应文件里的第几行（1-based）：搜索结果给的是文件行号，
+    // 编辑器里只有正文，要靠这个偏移换算，否则跳过去会偏出一整个 front matter
+    bodyStartLine: parsed.doc.hasFm ? parsed.doc.fmEnd + 2 : 1,
     values: parsed.values,
     indents: parsed.indents,
     cover,

@@ -55,6 +55,12 @@ const store = {
   import: null,
   editing: null,
   publishing: false,
+  tab: 'create',
+  // 有未保存改动的文件（树上打点提示）；离开页面时也靠它决定要不要拦一下
+  unsaved: new Set(),
+  // 体检面板的状态：结果按检查项 id 存
+  checks: { items: [], results: new Map(), running: false, selected: null, mode: null },
+  ci: null,
 };
 
 // ---------------- 顶栏状态 ----------------
@@ -62,16 +68,18 @@ const store = {
 function chips() {
   const s = store.state;
   if (!s) return '';
+  // 只留「会改变你今天动作」的状态。待推送为 0、草稿为 0 这类不需要占位的数字不再显示，
+  // 想让它们出现时点开发布页看细节。
   const out = [];
   const outOfMain = s.branch !== 'main';
-  out.push(`<span class="chip ${outOfMain ? 'warn' : ''}">分支 <b>${esc(s.branch || '?')}</b></span>`);
-  out.push(`<span class="chip ${s.entries.length ? 'warn' : ''}">改动 <b>${s.entries.length}</b></span>`);
-  out.push(`<span class="chip">待推送 <b>${s.ahead ?? '?'}</b></span>`);
-  if (s.drafts.length) out.push(`<span class="chip warn">草稿 <b>${s.drafts.length}</b></span>`);
-  if (s.futureDated?.length) out.push(`<span class="chip warn">排期在未来 <b>${s.futureDated.length}</b></span>`);
+  out.push(`<span class="chip ${outOfMain ? 'warn' : ''}" title="当前分支">${esc(s.branch || '?')}</span>`);
+  out.push(`<span class="chip ${s.entries.length ? 'warn' : ''}" title="工作区改动数（发布页有清单与 diff）">改动 <b>${s.entries.length}</b></span>`);
+  if (s.ahead > 0) out.push(`<span class="chip warn" title="已提交但还没推送">待推 <b>${s.ahead}</b></span>`);
+  if (s.drafts.length) out.push(`<span class="chip warn" title="草稿不会被 CI 发布">草稿 <b>${s.drafts.length}</b></span>`);
+  if (s.futureDated?.length) out.push(`<span class="chip warn" title="日期在未来，Hugo 默认不构建">排期 <b>${s.futureDated.length}</b></span>`);
   const p = s.preview;
-  const pText = !s.previewEnabled ? '已关闭' : p.ready ? `就绪 :${p.port}` : p.running ? '启动中…' : '未运行';
-  out.push(`<span class="chip ${p.ready ? 'ok' : ''}">预览 <b>${pText}</b></span>`);
+  const pText = !s.previewEnabled ? '已关闭' : p.ready ? `:${p.port}` : p.running ? '启动中' : '未运行';
+  out.push(`<span class="chip ${p.ready ? 'ok' : ''}" title="内嵌预览状态">预览 <b>${pText}</b></span>`);
   if (!s.bash.ok) out.push('<span class="chip warn">bash 不可用</span>');
   return out.join('');
 }
@@ -90,6 +98,8 @@ async function refreshState() {
     store.state = await api.get('/api/state');
     renderChips();
     renderChanges();
+    renderDrafts();
+    renderCommits();
     renderPreviewStatus();
   } catch (err) {
     toast(`读取仓库状态失败：${err.message}`, 'error');
@@ -136,7 +146,9 @@ async function setPreviewFor(relPath) {
 $('preview-toggle').addEventListener('click', () => {
   const main = $('main');
   main.classList.toggle('preview-hidden');
-  $('preview-toggle').textContent = main.classList.contains('preview-hidden') ? '显示预览' : '隐藏预览';
+  const hidden = main.classList.contains('preview-hidden');
+  $('preview-toggle').textContent = hidden ? '显示预览' : '预览';
+  $('preview-toggle').classList.toggle('active', !hidden);
 });
 
 $('preview-reload').addEventListener('click', () => {
@@ -168,16 +180,28 @@ async function restartPreview(quiet = false) {
 
 // ---------------- tab 切换 ----------------
 
+const TABS = ['create', 'edit', 'publish', 'check'];
+
 $('tabs').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-tab]');
-  if (!btn) return;
-  for (const b of $('tabs').querySelectorAll('button')) b.classList.toggle('active', b === btn);
-  for (const p of document.querySelectorAll('.panel')) {
-    p.classList.toggle('active', p.id === `panel-${btn.dataset.tab}`);
-  }
-  if (btn.dataset.tab === 'edit') loadTree();
-  if (btn.dataset.tab === 'publish') refreshState();
+  if (btn) activateTab(btn.dataset.tab);
 });
+
+// 切面板的唯一入口：tab 点击、URL hash（刷新/收藏）、命令面板都走这里，
+// 免得三处各写一遍「切 class + 拉数据」而漂移。silent 用于从 hash 恢复时不回写 hash。
+function activateTab(name, { silent = false } = {}) {
+  if (!TABS.includes(name)) name = 'create';
+  store.tab = name;
+  for (const b of $('tabs').querySelectorAll('button')) b.classList.toggle('active', b.dataset.tab === name);
+  for (const p of document.querySelectorAll('.panel')) p.classList.toggle('active', p.id === `panel-${name}`);
+  if (!silent) setHash(name);
+  if (name === 'edit') loadTree();
+  if (name === 'publish') {
+    refreshState();
+    loadCi();
+  }
+  if (name === 'check') loadCheckItems();
+}
 
 // ---------------- 新建 ----------------
 
@@ -633,10 +657,12 @@ function printScriptResult(res) {
   }
 }
 
-async function openInEditor(relPath) {
-  document.querySelector('#tabs button[data-tab="edit"]').click();
+// 打开某个文件；line > 0 时把正文滚到那一行（体检问题、搜索结果都靠它跳转）
+async function openInEditor(relPath, line = 0) {
+  activateTab('edit');
   await loadTree();
-  selectFile(relPath);
+  await selectFile(relPath);
+  if (line > 0) revealBodyLine(line);
 }
 
 // ---------------- 词表 ----------------
@@ -674,6 +700,26 @@ async function loadTree() {
   renderCreateFields();
 }
 
+// 折叠状态记在 localStorage：不记住的话每次刷新都重新展开全部 39 个文件
+const TREE_COLLAPSED_KEY = 'admin-tree-collapsed';
+const treeCollapsed = (() => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(TREE_COLLAPSED_KEY) ?? '[]'));
+  } catch {
+    return new Set();
+  }
+})();
+
+function saveTreeCollapsed() {
+  try {
+    localStorage.setItem(TREE_COLLAPSED_KEY, JSON.stringify([...treeCollapsed]));
+  } catch {
+    /* 隐私模式下写不了，不影响功能 */
+  }
+}
+
+// 每个条目一行：标题 + 短徽标。原先每条还要再占一行完整路径（content/courses/…），
+// 19 个文件就能把左栏撑出一屏半的滚动，而那一行信息在 title 提示和搜索里都有。
 function renderTree() {
   const kw = $('tree-search').value.trim().toLowerCase();
   const groups = new Map();
@@ -682,27 +728,45 @@ function renderTree() {
     if (!groups.has(item.typeLabel)) groups.set(item.typeLabel, []);
     groups.get(item.typeLabel).push(item);
   }
+  const shown = [...groups.values()].reduce((n, list) => n + list.length, 0);
+  $('tree-count').textContent = kw ? `${shown} / ${store.items.length} 个文件` : `${store.items.length} 个文件`;
   if (groups.size === 0) {
     $('tree-body').innerHTML = '<p class="muted">没有匹配的文件</p>';
     return;
   }
   $('tree-body').innerHTML = [...groups.entries()]
-    .map(
-      ([label, items]) => `<div class="tree-group"><h3>${esc(label)}（${items.length}）</h3>${items
-        .map(
-          (i) =>
-            `<button type="button" class="tree-item ${store.editing?.path === i.path ? 'active' : ''}" data-path="${esc(i.path)}">` +
-            `${esc(i.title)}${i.draft ? '<span class="badge">草稿</span>' : ''}${i.math ? '<span class="badge">公式</span>' : ''}` +
-            `<span class="path">${esc(i.path)}</span></button>`
-        )
-        .join('')}</div>`
-    )
+    .map(([label, items]) => {
+      // 搜索时强制展开：折叠着搜出「没匹配」比噪声更糟
+      const collapsed = !kw && treeCollapsed.has(label);
+      return `<div class="tree-group ${collapsed ? 'collapsed' : ''}">
+        <button type="button" class="tree-group-head" data-group="${esc(label)}" aria-expanded="${!collapsed}">
+          <span class="caret">${collapsed ? '▸' : '▾'}</span>${esc(label)}<span class="n">${items.length}</span>
+        </button>
+        <div class="tree-items">${items
+          .map(
+            (i) =>
+              `<button type="button" class="tree-item${pending && pending.path === i.path ? ' active' : ''}${store.unsaved.has(i.path) ? ' unsaved' : ''}" data-path="${esc(i.path)}" title="${esc(i.path)}">` +
+              `<span class="t">${esc(i.title)}</span>` +
+              `${i.draft ? '<span class="badge">草稿</span>' : ''}${i.math ? '<span class="badge">公式</span>' : ''}</button>`
+          )
+          .join('')}</div>
+      </div>`;
+    })
     .join('');
 }
 
 $('tree-search').addEventListener('input', renderTree);
 
 $('tree-body').addEventListener('click', (ev) => {
+  const head = ev.target.closest('button[data-group]');
+  if (head) {
+    const label = head.dataset.group;
+    if (treeCollapsed.has(label)) treeCollapsed.delete(label);
+    else treeCollapsed.add(label);
+    saveTreeCollapsed();
+    renderTree();
+    return;
+  }
   const btn = ev.target.closest('button[data-path]');
   if (btn) selectFile(btn.dataset.path);
 });
@@ -725,6 +789,8 @@ async function selectFile(relPath) {
       // 缺哪些必填 front matter（服务端按 check-frontmatter.sh 的规则算好）：
       // 用来提示、并让「按默认值补全」知道该补什么
       missingRequired: data.missingRequired ?? [],
+      // 正文第一行在文件里的行号：搜索与体检给的是文件行号，定位要减掉这个偏移
+      bodyStartLine: data.bodyStartLine ?? 1,
       futureDate: Boolean(data.futureDate),
       changed: new Map(),
       coverChanged: new Map(),
@@ -733,6 +799,7 @@ async function selectFile(relPath) {
     };
     renderEditor();
     renderTree();
+    syncEditHash();
     setPreviewFor(relPath);
   } catch (err) {
     toast(`打开失败：${err.message}`, 'error');
@@ -943,6 +1010,11 @@ function markDirty() {
   if (!badge || !pending) return;
   const dirty = pending.changed.size > 0 || pending.coverChanged.size > 0 || pending.bodyDirty;
   badge.hidden = !dirty;
+  // 未保存状态同步到左栏条目：切走再切回来也能看见哪个文件还没存
+  if (dirty) store.unsaved.add(pending.path);
+  else store.unsaved.delete(pending.path);
+  const item = $('tree-body')?.querySelector('button.tree-item.active');
+  if (item) item.classList.toggle('unsaved', dirty);
 }
 
 async function saveEditor() {
@@ -1310,7 +1382,12 @@ function bindEditorDropZone() {
   const panel = $('panel-edit');
   panel.addEventListener('dragover', (ev) => {
     ev.preventDefault();
-    if (pending) $('editor-drop').hidden = false;
+    if (!pending) return;
+    const dt = ev.dataTransfer;
+    const img = [...(dt?.items ?? [])].some((i) => i.kind === 'file' && /^image\//.test(i.type));
+    const strong = $('editor-drop').querySelector('strong');
+    if (strong) strong.textContent = img ? '松开即把图片存进本页目录并插入 markdown' : '松开即用拖入的 .md 替换正文';
+    $('editor-drop').hidden = false;
   });
   panel.addEventListener('dragleave', (ev) => {
     if (!panel.contains(ev.relatedTarget)) $('editor-drop').hidden = true;
@@ -1319,7 +1396,10 @@ function bindEditorDropZone() {
     ev.preventDefault();
     $('editor-drop').hidden = true;
     const file = fileFromDrop(ev);
-    if (file) await onEditorDrop(file);
+    if (!file) return;
+    // 图片与 .md 走两条路：图片存进本页目录并插 markdown，.md 是替换正文
+    if (/^image\//.test(file.type)) await insertImageFile(file);
+    else await onEditorDrop(file);
   });
 }
 
@@ -1681,4 +1761,679 @@ $('publish-btn').addEventListener('click', async () => {
   await refreshState();
   renderPreviewStatus();
   setInterval(refreshState, 6000);
+  initExtras();
 })();
+
+// ---------------- URL 深链 ----------------
+//
+// #edit/content/courses/…/index.md 这样的地址可以刷新、可以收藏。只做单向同步：
+// 状态变化时写 hash，hash 变化时恢复状态——恢复时不回写，否则两边互相触发。
+function setHash(tab, relPath = null) {
+  const next = relPath ? `#${tab}/${relPath}` : `#${tab}`;
+  if (location.hash !== next) history.replaceState(null, '', next);
+}
+
+async function restoreFromHash() {
+  const raw = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if (!raw) return false;
+  const slash = raw.indexOf('/');
+  const tab = (slash === -1 ? raw : raw.slice(0, slash)).trim();
+  const rel = slash === -1 ? null : raw.slice(slash + 1);
+  if (!TABS.includes(tab)) return false;
+  activateTab(tab, { silent: true });
+  if (tab === 'edit' && rel) {
+    await loadTree();
+    await selectFile(rel);
+  }
+  return true;
+}
+
+window.addEventListener('hashchange', () => {
+  restoreFromHash().catch(() => {});
+});
+
+// 打开文件后把 hash 换成它，刷新回来还是同一篇
+function syncEditHash() {
+  if (store.tab === 'edit' && pending?.path) setHash('edit', pending.path);
+}
+
+// ---------------- 正文定位 ----------------
+
+// 搜索与体检给的是**文件**行号，编辑器里只有正文，所以先减掉 front matter 的高度。
+function revealBodyLine(fileLine) {
+  const ta = $('ed-body');
+  if (!ta || !pending) return;
+  const bodyLine = Math.max(1, fileLine - (pending.bodyStartLine ?? 1) + 1);
+  const lines = ta.value.split('\n');
+  const before = lines.slice(0, bodyLine - 1).reduce((n, l) => n + l.length + 1, 0);
+  ta.focus();
+  ta.setSelectionRange(before, before + (lines[bodyLine - 1]?.length ?? 0));
+  const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+  ta.scrollTop = Math.max(0, (bodyLine - 6) * lh);
+  toast(`已定位到正文第 ${bodyLine} 行`, 'ok');
+}
+
+// ---------------- 预览：拖宽 + 设备宽度 ----------------
+const PREVIEW_W_KEY = 'admin-preview-w';
+const PREVIEW_DEVICE_KEY = 'admin-preview-device';
+
+function applyPreviewWidth(px) {
+  const root = document.documentElement;
+  if (px > 0) root.style.setProperty('--preview-w', String(Math.round(px)) + 'px');
+  else root.style.removeProperty('--preview-w');
+}
+
+function initPreviewPane() {
+  const saved = Number(localStorage.getItem(PREVIEW_W_KEY) || 0);
+  if (saved > 0) applyPreviewWidth(saved);
+
+  const gutter = $('preview-gutter');
+  let dragging = false;
+  gutter.addEventListener('mousedown', (ev) => {
+    dragging = true;
+    gutter.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    ev.preventDefault();
+  });
+  // 双击复位：拖窄了以后不用把宽度一格一格拖回来
+  gutter.addEventListener('dblclick', () => {
+    localStorage.removeItem(PREVIEW_W_KEY);
+    applyPreviewWidth(0);
+  });
+  window.addEventListener('mousemove', (ev) => {
+    if (!dragging) return;
+    const rect = $('main').getBoundingClientRect();
+    const w = rect.right - 14 - ev.clientX; // 14 = #main 的右内边距
+    applyPreviewWidth(Math.min(Math.max(w, 260), Math.max(320, window.innerWidth * 0.75)));
+    ev.preventDefault();
+  });
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    gutter.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--preview-w'), 10);
+    if (v > 0) localStorage.setItem(PREVIEW_W_KEY, String(v));
+  });
+
+  const stage = $('preview-stage');
+  const device = localStorage.getItem(PREVIEW_DEVICE_KEY) || 'desktop';
+  stage.dataset.device = device;
+  const markDevice = (d) => {
+    for (const b of $('preview-device').querySelectorAll('button')) b.classList.toggle('active', b.dataset.device === d);
+  };
+  markDevice(device);
+  $('preview-device').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-device]');
+    if (!btn) return;
+    stage.dataset.device = btn.dataset.device;
+    markDevice(btn.dataset.device);
+    localStorage.setItem(PREVIEW_DEVICE_KEY, btn.dataset.device);
+  });
+}
+
+// ---------------- 图片：粘贴 / 拖入即落盘并插图 ----------------
+//
+// 存到当前编辑文件所在目录（Hugo 的 leaf bundle 约定），插入的是相对引用 `./name.png`，
+// 这样文章搬家时图片跟着走，也不需要在 static/ 里维护一套按文章分目录的图床。
+async function insertImageFile(file) {
+  if (!pending) {
+    toast('先选中一个文件，图片才知道该存哪', 'error');
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    toast('图片超过 8 MB，先压一下再放', 'error');
+    return;
+  }
+  const dataUrl = await new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result));
+    fr.onerror = () => reject(new Error('读不出这个文件'));
+    fr.readAsDataURL(file);
+  });
+  try {
+    const res = await api.send('POST', '/api/asset/upload', {
+      path: pending.path,
+      name: file.name || 'pasted.png',
+      dataUrl,
+    });
+    insertAtCursor('\n' + res.markdown + '\n');
+    toast(`已存 ${res.path}，记得保存`, 'ok');
+  } catch (err) {
+    toast(`图片没存下：${err.message}`, 'error');
+  }
+}
+
+function insertAtCursor(text) {
+  const ta = $('ed-body');
+  if (!ta || !pending) return;
+  const start = ta.selectionStart ?? ta.value.length;
+  const end = ta.selectionEnd ?? start;
+  ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+  const caret = start + text.length;
+  ta.setSelectionRange(caret, caret);
+  pending.body = ta.value;
+  pending.bodyDirty = pending.body !== pending.bodyOriginal;
+  ta.focus();
+  markDirty();
+}
+
+// ---------------- 命令面板（Ctrl+K） ----------------
+//
+// 动作、文件、正文命中混在一处：动作与文件是本地数据（store.items 早就有），
+// 正文命中走 /api/search（服务端按 mtime 缓存，敲字时每 130ms 问一次也不会重读磁盘）。
+const PALETTE_ACTIONS = [
+  { label: '去「新建」', run: () => activateTab('create') },
+  { label: '去「编辑」', run: () => activateTab('edit') },
+  { label: '去「发布」', run: () => activateTab('publish') },
+  { label: '去「体检」', run: () => activateTab('check') },
+  { label: '跑一次快检', run: () => { activateTab('check'); runChecks('fast'); } },
+  { label: '刷新预览', run: () => $('preview-reload').click() },
+  { label: '重启预览', run: () => $('preview-restart').click() },
+  { label: '显示 / 隐藏预览', run: () => $('preview-toggle').click() },
+  { label: '切换夜间模式', run: () => $('theme-toggle').click() },
+];
+
+const palette = { open: false, results: [], sel: 0, seq: 0, timer: null };
+
+function initPalette() {
+  $('palette-btn').addEventListener('click', paletteOpen);
+  $('palette').addEventListener('mousedown', (ev) => {
+    if (ev.target === $('palette')) paletteClose();
+  });
+  $('palette-input').addEventListener('input', () => {
+    clearTimeout(palette.timer);
+    palette.timer = setTimeout(() => paletteSearch($('palette-input').value), 130);
+  });
+  $('palette-input').addEventListener('keydown', (ev) => {
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); paletteMove(1); }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); paletteMove(-1); }
+    else if (ev.key === 'Enter') { ev.preventDefault(); paletteRun(); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); paletteClose(); }
+  });
+  $('palette-results').addEventListener('click', (ev) => {
+    const li = ev.target.closest('li[data-idx]');
+    if (!li) return;
+    palette.sel = Number(li.dataset.idx);
+    paletteRun();
+  });
+}
+
+function paletteOpen() {
+  if (palette.open) return;
+  palette.open = true;
+  $('palette').hidden = false;
+  $('palette-input').value = '';
+  paletteSearch('');
+  $('palette-input').focus();
+}
+
+function paletteClose() {
+  palette.open = false;
+  $('palette').hidden = true;
+  palette.results = [];
+  $('palette-results').innerHTML = '';
+}
+
+function paletteMove(d) {
+  if (!palette.results.length) return;
+  palette.sel = (palette.sel + d + palette.results.length) % palette.results.length;
+  paletteRender();
+  $('palette-results').querySelector('li.sel')?.scrollIntoView({ block: 'nearest' });
+}
+
+function paletteRun() {
+  const item = palette.results[palette.sel];
+  if (!item) return;
+  // 先关面板再执行：动作可能切 tab 或弹确认框，开着面板会挡住
+  paletteClose();
+  Promise.resolve().then(() => item.run());
+}
+
+function paletteRender() {
+  const list = $('palette-results');
+  if (!palette.results.length) {
+    list.innerHTML = '<li class="hint">没有匹配。换个词试试。</li>';
+    return;
+  }
+  list.innerHTML = palette.results
+    .map(
+      (r, i) =>
+        `<li data-idx="${i}" class="${i === palette.sel ? 'sel' : ''}"><span class="kind">${esc(r.kind)}</span>` +
+        `<span class="body">${esc(r.body)}</span>${r.path ? `<span class="path">${esc(r.path)}${r.line ? ':' + r.line : ''}</span>` : ''}</li>`
+    )
+    .join('');
+}
+
+async function paletteSearch(q) {
+  const kw = q.trim();
+  const seq = ++palette.seq;
+  const out = [];
+  if (kw === '') {
+    for (const a of PALETTE_ACTIONS) out.push({ kind: '动作', body: a.label, run: a.run });
+    for (const i of store.items.slice(0, 12)) out.push({ kind: '文件', body: i.title, path: i.path, run: () => openInEditor(i.path) });
+    $('palette-hint').textContent = store.items.length ? `${store.items.length} 个文件，敲字可搜正文` : '';
+  } else {
+    const low = kw.toLowerCase();
+    for (const a of PALETTE_ACTIONS) if (a.label.toLowerCase().includes(low)) out.push({ kind: '动作', body: a.label, run: a.run });
+    for (const i of store.items) {
+      if (!`${i.title} ${i.path}`.toLowerCase().includes(low)) continue;
+      out.push({ kind: '文件', body: i.title, path: i.path, run: () => openInEditor(i.path) });
+    }
+    try {
+      const res = await api.get(`/api/search?q=${encodeURIComponent(kw)}`);
+      if (seq !== palette.seq) return; // 期间又敲了字，这次结果作废
+      const hits = res.hits ?? [];
+      for (const hit of hits) {
+        out.push({
+          kind: hit.kind === 'title' ? '标题' : '正文',
+          body: hit.text,
+          path: hit.path,
+          line: hit.line,
+          run: () => openInEditor(hit.path, hit.kind === 'body' ? hit.line : 0),
+        });
+      }
+      $('palette-hint').textContent = hits.length ? `正文命中 ${hits.length} 处` : '正文里没有，只有上面这些';
+    } catch (err) {
+      $('palette-hint').textContent = `正文搜索失败：${err.message}`;
+    }
+  }
+  if (seq !== palette.seq) return;
+  palette.results = out.slice(0, 60);
+  palette.sel = 0;
+  paletteRender();
+}
+
+// ---------------- 体检 ----------------
+//
+// 一次一项、跑完推一条（SSE）：慢项动辄几十秒，攒到最后一起返回的话界面全程是空的。
+// 检查项表与调用命令都在服务端 lib/checks.mjs（与 push-blog.sh 同源），前端不复制一份。
+const CHECK_ICON = { idle: '·', running: '◐', ok: '✓', fail: '✗' };
+
+async function loadCheckItems() {
+  if (!store.checks.items.length) {
+    try {
+      const res = await api.get('/api/check/items');
+      store.checks.items = res.items ?? [];
+    } catch (err) {
+      $('check-items').innerHTML = `<li class="pending">读不到检查项：${esc(err.message)}</li>`;
+      return;
+    }
+  }
+  renderCheckItems();
+  renderCheckLegend();
+}
+
+function checkStatusOf(id) {
+  const r = store.checks.results.get(id);
+  if (!r) return 'idle';
+  return r.status === 'running' ? 'running' : r.ok ? 'ok' : 'fail';
+}
+
+function renderCheckItems() {
+  const list = $('check-items');
+  if (!list) return;
+  const items = store.checks.items;
+  if (!items.length) {
+    list.innerHTML = '<li class="pending">载入中…</li>';
+    return;
+  }
+  list.innerHTML = items
+    .map((it) => {
+      const st = checkStatusOf(it.id);
+      const r = store.checks.results.get(it.id);
+      const warns = (r?.issues ?? []).filter((i) => i.level === 'warn').length;
+      const ms = r?.ms ? `${(r.ms / 1000).toFixed(1)}s` : '';
+      const skipped = store.checks.activeIds && !store.checks.activeIds.has(it.id);
+      const cls = [st === 'idle' ? 'pending' : '', st === 'fail' ? 'fail' : '', store.checks.selected === it.id ? 'active' : '']
+        .filter(Boolean)
+        .join(' ');
+      return (
+        `<li class="${cls}" data-id="${it.id}" title="${esc(it.hint || '')}"><span class="state">${CHECK_ICON[st]}</span>` +
+        `<span class="lbl">${esc(it.label)}${skipped ? ' <span class="ms">未跑</span>' : ''}${warns ? ` <span class="ms">${warns} 警告</span>` : ''}</span>` +
+        `<span class="ms">${ms}</span></li>`
+      );
+    })
+    .join('');
+}
+
+function renderCheckLegend() {
+  const box = $('check-legend');
+  if (!box) return;
+  box.innerHTML = store.checks.items
+    .map(
+      (it) =>
+        `<div class="list-row"><span class="dot ${it.blocking ? 'err' : 'warn'}"></span><span class="t">${esc(it.label)}</span>` +
+        `<span class="when">${it.blocking ? '阻断发布' : '只提醒'}${it.needsBuild ? ' · 需先构建' : ''}${it.fast ? '' : ' · 慢'}</span></div>`
+    )
+    .join('');
+}
+
+async function runChecks(mode) {
+  if (store.checks.running) return;
+  const btnFast = $('check-fast');
+  const btnFull = $('check-full');
+  store.checks.running = true;
+  store.checks.mode = mode;
+  store.checks.results = new Map();
+  store.checks.selected = null;
+  btnFast.disabled = true;
+  btnFull.disabled = true;
+  $('check-status').textContent = mode === 'full' ? '全检进行中（要一两分钟）…' : '快检进行中…';
+  $('check-detail').innerHTML = '<p class="muted">慢的是 front matter（十几秒）与真实构建，剩下的都是秒级。</p>';
+  const t0 = performance.now();
+  try {
+    const res = await fetch('/api/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Request': '1' },
+      body: JSON.stringify({ mode }),
+    });
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf('\n\n')) !== -1) {
+        const chunk = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          let payload;
+          try {
+            payload = JSON.parse(line.slice(6));
+          } catch {
+            continue;
+          }
+          if (payload.event === 'start') {
+            store.checks.activeIds = new Set((payload.items ?? []).map((i) => i.id));
+            renderCheckItems();
+          } else if (payload.event === 'item-start') {
+            store.checks.results.set(payload.id, { status: 'running' });
+            // 第一项开始时就把明细切过去，不然右边一直空着
+            if (!store.checks.selected) store.checks.selected = payload.id;
+            renderCheckItems();
+            renderCheckDetail(store.checks.selected);
+          } else if (payload.event === 'item-done') {
+            store.checks.results.set(payload.id, { ...payload, status: 'done' });
+            renderCheckItems();
+            renderCheckDetail(store.checks.selected);
+          } else if (payload.event === 'done') {
+            store.checks.summary = payload;
+          }
+        }
+      }
+    }
+    const s = store.checks.summary ?? {};
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    const failed = [...store.checks.results.values()].filter((r) => r.status === 'done' && !r.ok);
+    if (!failed.length) {
+      $('check-status').textContent = `全部通过 · ${store.checks.results.size} 项 · ${secs}s`;
+      toast('体检全绿', 'ok');
+    } else {
+      $('check-status').textContent = s.blockingFailed
+        ? `${failed.length} 项未通过（${s.blockingFailed} 项会阻断发布）· ${secs}s`
+        : `${failed.length} 项有提醒（不阻断）· ${secs}s`;
+      toast(`${failed.length} 项需要看一眼，右侧有明细`, 'error');
+    }
+  } catch (err) {
+    $('check-status').textContent = `体检中断：${err.message}`;
+    toast(`体检失败：${err.message}`, 'error');
+  } finally {
+    store.checks.running = false;
+    btnFast.disabled = false;
+    btnFull.disabled = false;
+  }
+}
+
+function checkIssueRow(i) {
+  const cls = i.level === 'error' ? 'err' : i.level === 'warn' ? 'warn' : '';
+  const icon = i.level === 'error' ? '✗' : i.level === 'warn' ? '⚠' : '·';
+  const jump = i.path
+    ? `<button type="button" class="ghost jump" data-open="${esc(i.path)}" data-line="${i.line ?? ''}">定位</button>`
+    : '';
+  return `<div class="check-issue ${cls}"><span class="lvl">${icon}</span><span class="txt">${esc(i.text)}</span>${jump}</div>`;
+}
+
+function renderCheckDetail(id) {
+  const box = $('check-detail');
+  if (!box) return;
+  const item = store.checks.items.find((i) => i.id === id);
+  if (!item) {
+    box.innerHTML = '<p class="muted">左栏点一项看它的明细。</p>';
+    return;
+  }
+  const r = store.checks.results.get(id);
+  const state = !r ? '还没跑' : r.status === 'running' ? '跑着呢…' : (r.ok ? '通过' : '未通过') + ' · ' + (r.ms / 1000).toFixed(1) + 's';
+  const head = `<h3>${esc(item.label)} <span class="hint">${state} · ${item.blocking ? '会阻断发布' : '只提醒'}</span></h3>`;
+  if (!r || r.status === 'running') {
+    box.innerHTML = head + `<p class="muted">${r ? '等它跑完。' : '这一项这次没跑（快检不含它）。'}</p>`;
+    return;
+  }
+  const all = r.issues ?? [];
+  // 没硬问题时不把脚本的整段日志倒出来（构建日志十几行、体积报表二十几行），只留最后三行
+  // —— 那通常是「✓ 通过」之类的结论行。有 error/warn 时全留，给上下文。
+  const bad = all.filter((i) => i.level !== 'info');
+  const infos = all.filter((i) => i.level === 'info');
+  const issues = bad.length ? all : infos.slice(-3);
+  const byFile = new Map();
+  const global = [];
+  for (const i of issues) {
+    if (!i.path) {
+      global.push(i);
+      continue;
+    }
+    if (!byFile.has(i.path)) byFile.set(i.path, []);
+    byFile.get(i.path).push(i);
+  }
+  const fileBlocks = [...byFile.entries()]
+    .map(([path, list]) => {
+      const jump = `<button type="button" class="ghost jump" data-open="${esc(path)}">打开</button>`;
+      return `<div class="check-file"><div class="file-head"><code>${esc(path)}</code>${jump}</div><div class="file-issues">${list
+        .map(checkIssueRow)
+        .join('')}</div></div>`;
+    })
+    .join('');
+  const globalBlock = global.length
+    ? `<div class="check-file"><div class="file-head"><strong>整体</strong></div><div class="file-issues">${global
+        .map(checkIssueRow)
+        .join('')}</div></div>`
+    : '';
+  const raw = ((r.stdout || '') + (r.stderr || '')).trim();
+  box.innerHTML =
+    head +
+    (fileBlocks || globalBlock ? fileBlocks + globalBlock : '<p class="muted">没有输出。</p>') +
+    (raw ? `<details class="about"><summary>原始输出</summary><pre class="diff">${esc(raw)}</pre></details>` : '');
+}
+
+function initCheckPanel() {
+  $('check-fast').addEventListener('click', () => runChecks('fast'));
+  $('check-full').addEventListener('click', () => runChecks('full'));
+  $('check-items').addEventListener('click', (ev) => {
+    const li = ev.target.closest('li[data-id]');
+    if (!li) return;
+    store.checks.selected = li.dataset.id;
+    renderCheckItems();
+    renderCheckDetail(li.dataset.id);
+  });
+  $('check-detail').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-open]');
+    if (!btn) return;
+    openInEditor(btn.dataset.open, Number(btn.dataset.line || 0));
+  });
+}
+
+// ---------------- 发布页：草稿 / 提交历史 / CI ----------------
+
+function renderDrafts() {
+  const box = $('draft-box');
+  if (!box) return;
+  const s = store.state;
+  const rows = [];
+  for (const d of s?.drafts ?? []) rows.push(draftRow(d, 'draft'));
+  for (const f of s?.futureDated ?? []) rows.push(draftRow(f, 'date'));
+  box.innerHTML = rows.join('');
+}
+
+function draftRow(item, kind) {
+  const path = typeof item === 'string' ? item : item.path;
+  const title = typeof item === 'string' ? item : item.title || item.path;
+  const when = kind === 'date' && item?.date ? `<span class="when">${esc(item.date)}</span>` : '';
+  const act = kind === 'draft' ? `<button type="button" class="ghost" data-unmark="${esc(path)}">转正式</button>` : '';
+  return `<div class="draft-row"><span class="dot warn"></span><span class="t">${esc(title)}${when}</span>${act}<button type="button" class="ghost" data-open-file="${esc(path)}">打开</button></div>`;
+}
+
+// 一键转正式：只改 draft 一个字段（值必须是布尔 false —— 服务端按真值判断写 true/false），
+// 正文原样不动。
+async function publishDraft(path) {
+  try {
+    await api.send('PUT', '/api/content/file', { path, changed: [{ key: 'draft', kind: 'bool', value: false }] });
+    toast(`已取消草稿：${path}（提交仍在发布页）`, 'ok');
+    await refreshState();
+    await loadItems(true);
+    renderTree();
+  } catch (err) {
+    toast(`改成正式失败：${err.message}`, 'error');
+  }
+}
+
+function renderCommits() {
+  const box = $('commit-list');
+  if (!box) return;
+  const commits = store.state?.recentCommits ?? [];
+  if (!commits.length) {
+    box.innerHTML = '<div class="list-empty">没有提交记录。</div>';
+    return;
+  }
+  box.innerHTML = commits
+    .map((line) => {
+      const m = /^([0-9a-f]{7,40})\s+(.*)$/.exec(String(line).trim());
+      return `<div class="list-row"><span class="sha">${esc(m ? m[1] : '')}</span><span class="t">${esc(m ? m[2] : String(line))}</span></div>`;
+    })
+    .join('');
+}
+
+function relTime(iso) {
+  const t = Date.parse(iso);
+  if (!t) return '';
+  const diff = (Date.now() - t) / 1000;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return `${Math.round(diff / 60)} 分钟前`;
+  if (diff < 86400) return `${Math.round(diff / 3600)} 小时前`;
+  return `${Math.round(diff / 86400)} 天前`;
+}
+
+async function loadCi(force = false) {
+  const box = $('ci-list');
+  if (!box) return;
+  if (store.ci && !force) {
+    renderCi();
+    return;
+  }
+  box.innerHTML = '<div class="list-empty">读取中…</div>';
+  try {
+    store.ci = await api.get('/api/ci');
+  } catch (err) {
+    store.ci = { ok: false, error: err.message };
+  }
+  renderCi();
+}
+
+function renderCi() {
+  const box = $('ci-list');
+  const ci = store.ci;
+  if (!ci) {
+    box.innerHTML = '<div class="list-empty">还没读取。</div>';
+    return;
+  }
+  if (!ci.ok) {
+    box.innerHTML = `<div class="list-empty">读不到 CI 状态：${esc(ci.error || '未知原因')}${
+      ci.note ? `<br><span class="hint">${esc(ci.note)}</span>` : ''
+    }</div>`;
+    return;
+  }
+  if (!(ci.runs ?? []).length) {
+    box.innerHTML = '<div class="list-empty">还没有 Actions 运行记录。</div>';
+    return;
+  }
+  box.innerHTML = ci.runs
+    .map((r) => {
+      const done = r.status === 'completed';
+      const dot = !done ? 'run' : r.conclusion === 'success' ? 'ok' : r.conclusion === 'cancelled' ? 'idle' : 'err';
+      return (
+        `<div class="list-row"><span class="dot ${dot}" title="${esc(done ? r.conclusion : r.status)}"></span>` +
+        `<span class="t">${esc(r.title || r.name)}</span><span class="when">${esc(relTime(r.createdAt))}</span>` +
+        `<a href="${esc(r.url)}" target="_blank" rel="noopener">打开</a></div>`
+      );
+    })
+    .join('');
+}
+
+function initPublishExtras() {
+  $('ci-refresh').addEventListener('click', () => loadCi(true));
+  $('draft-box').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-unmark]');
+    if (btn) {
+      publishDraft(btn.dataset.unmark);
+      return;
+    }
+    const open = ev.target.closest('button[data-open-file]');
+    if (open) openInEditor(open.dataset.openFile);
+  });
+}
+
+// ---------------- 快捷键与离开保护 ----------------
+
+function initShortcuts() {
+  window.addEventListener('keydown', (ev) => {
+    const mod = ev.ctrlKey || ev.metaKey;
+    if (mod && ev.key.toLowerCase() === 'k') {
+      ev.preventDefault();
+      if (palette.open) paletteClose();
+      else paletteOpen();
+      return;
+    }
+    if (mod && ev.key.toLowerCase() === 's') {
+      // 只在有打开的文件时接管：否则浏览器自己的「保存页面」不该被抢
+      if (store.tab === 'edit' && pending) {
+        ev.preventDefault();
+        saveEditor();
+      }
+      return;
+    }
+    if (ev.key === 'Escape' && palette.open) paletteClose();
+  });
+  // 有未保存改动时拦一下：这个界面的保存按钮不显眼，误关一次就等于白写
+  window.addEventListener('beforeunload', (ev) => {
+    if (store.unsaved.size === 0 && !store.publishing) return;
+    ev.preventDefault();
+    ev.returnValue = '';
+  });
+}
+
+// ---------------- 启动：新增部分 ----------------
+
+function initExtras() {
+  initPreviewPane();
+  initPalette();
+  initCheckPanel();
+  initPublishExtras();
+  initShortcuts();
+  // 正文里直接粘贴截图：插图最顺手的路径，不必先存成文件再拖进来
+  $('editor').addEventListener('paste', (ev) => {
+    const items = [...(ev.clipboardData?.items ?? [])];
+    const img = items.find((i) => i.kind === 'file' && /^image\//.test(i.type));
+    if (!img) return;
+    ev.preventDefault();
+    insertImageFile(img.getAsFile());
+  });
+  restoreFromHash().catch(() => {});
+  loadCheckItems().catch(() => {});
+}
+
+

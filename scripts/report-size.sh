@@ -29,7 +29,12 @@ if [ "${1:-}" = "--fresh" ]; then
   command -v hugo >/dev/null 2>&1 || { echo "✗ --fresh 需要 hugo，但找不到" >&2; exit 1; }
   TMP="$(mktemp -d)"
   echo "▸ 构建到临时目录做无偏差测量"
-  hugo --minify --gc --cleanDestinationDir -d "$TMP/site" >/dev/null 2>&1
+  # hugo 是原生 Windows 程序，不会把 MSYS 的 /tmp/... 翻译成 Windows 路径：直接把 /tmp/x/site
+  # 传给它，它既不报错也不产出（实测 exit 0、目录不存在），本脚本随后只能报「找不到」。
+  # 有 cygpath 时先转成 C:/... 形式；非 MSYS 环境（CI 的 Linux）没有 cygpath，路径原样使用。
+  DEST="$TMP/site"
+  if command -v cygpath >/dev/null 2>&1; then DEST="$(cygpath -m "$DEST")"; fi
+  hugo --minify --gc --cleanDestinationDir -d "$DEST" >/dev/null 2>&1
   DIR="$TMP/site"
 fi
 
