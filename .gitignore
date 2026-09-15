@@ -7,3 +7,7 @@ resources/
 Thumbs.db
 .DS_Store
 .zcode/
+
+# Python 字节码缓存（曾误提交过 tools/icons/__pycache__）
+__pycache__/
+*.pyc

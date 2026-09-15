@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""生成站点图标（Q 版神里绫华）：static/favicon.ico / favicon-16x16.png /
+"""生成站点图标（Q 版黑长直大小姐）：static/favicon.ico / favicon-16x16.png /
 favicon-32x32.png / apple-touch-icon.png / safari-pinned-tab.svg。
 
 为什么要有这个脚本：图标是二进制产物，手改一次就没人知道它从哪来。这里把「图」按风格定义成
 可复现的输入，脚本负责栅格化成各尺寸——改裁切框、改色只改本文件。
 
 两种风格（--style）：
-  art（默认）从 tools/icons/source-ayaka-chibi.png 裁头部。出处与许可见 docs/architecture.md。
+  art（默认）从 tools/icons/source-ojou-chibi.png 裁头部。出处与许可见 docs/architecture.md。
   pixel      脚本自绘的像素风（32x32 调色板网格），不依赖任何外部素材，许可干净。
 
 用法：
@@ -33,31 +33,32 @@ from PIL import Image, ImageChops, ImageDraw
 ROOT = Path(__file__).resolve().parents[2]
 STATIC = ROOT / "static"
 # 管理页的图标（同时是桌面快捷方式用的那个）——放在 tools/admin/ui/ 下，由管理页直接提供服务
-APP_ICO = ROOT / "tools" / "admin" / "ui" / "ayaka.ico"
+APP_ICO = ROOT / "tools" / "admin" / "ui" / "chibi.ico"
 
 ICO_SITE_SIZES = (16, 32)
 ICO_APP_SIZES = (16, 32, 48, 64, 128, 256)
 
 N = 32  # 主网格边长
 
-# ---- 调色板（神里绫华配色：白蓝发、蓝眼、深蓝和服、金饰 + 深蓝圆角底板）----
+# ---- 调色板（黑长直配色：黑紫发、紫眼、酒红和服、金饰 + 冷白圆角底板）----
+# 底板必须浅：黑发压在深底板上，16px 就是一团糊，看不出有人。
 PALETTE = {
-    "o": (11, 16, 32, 255),        # 描边（近黑蓝，压在深蓝底板上仍有边界）
-    "h": (244, 248, 255, 255),     # 头发
-    "H": (205, 218, 238, 255),     # 头发中间调
-    "d": (168, 187, 219, 255),     # 头发暗部
+    "o": (12, 10, 16, 255),        # 描边（近黑，压在浅底板上才有边界）
+    "h": (58, 50, 66, 255),        # 头发（黑，留一点紫调才不会被描边吃掉）
+    "H": (40, 34, 46, 255),        # 头发中间调
+    "d": (26, 22, 32, 255),        # 头发暗部
     "s": (253, 227, 211, 255),     # 皮肤
     "t": (242, 190, 168, 255),     # 皮肤暗部（脸颊/下眼睑）
-    "b": (74, 144, 226, 255),      # 眼睛（蓝）
-    "B": (42, 95, 174, 255),       # 眼睛暗部/上眼睑
+    "b": (152, 110, 214, 255),     # 眼睛（紫）
+    "B": (98, 64, 162, 255),       # 眼睛暗部/上眼睑
     "w": (255, 255, 255, 255),     # 高光/白
-    "k": (47, 79, 158, 255),       # 和服深蓝
-    "K": (111, 146, 214, 255),     # 和服浅蓝
+    "k": (110, 24, 44, 255),       # 和服深酒红
+    "K": (160, 48, 72, 255),       # 和服浅酒红
     "g": (233, 200, 119, 255),     # 金色发饰
-    "r": (143, 196, 240, 255),     # 发带/樱花蓝
+    "r": (176, 44, 62, 255),       # 发带（酒红）
     "p": (246, 182, 168, 255),     # 腮红
-    "P": (27, 35, 52, 255),        # 底板（深蓝黑）
-    "G": (39, 50, 76, 255),        # 底板上的光晕
+    "P": (240, 236, 244, 255),     # 底板（冷白）
+    "G": (214, 208, 222, 255),     # 底板上的光晕
     ".": (0, 0, 0, 0),             # 透明
 }
 
@@ -126,7 +127,7 @@ def rounded_plate(g, radius, color):
                 g.set(x, y, color)
 
 
-def draw_ayaka():
+def draw_chibi():
     """返回最终网格。先在透明网格上画人物并描边，再叠到圆角底板上——
     分开画的原因：outline() 会把「非空 vs 透明」的边界全描一圈，直接把底板也算进去
     会给底板外缘加一圈黑边。"""
@@ -233,8 +234,8 @@ def draw_ayaka():
 
 # ---- art 风格：Q 版插画裁头部 ----
 # 源图出处与许可见 docs/architecture.md「图标」一节；裁切框留在这里，换一张图只改这三个常量。
-ART = Path(__file__).with_name("source-ayaka-chibi.png")
-ART_CROP = (186, 21, 643, 479)      # 头部（含发饰与侧发），源图 1000x1000
+ART = Path(__file__).with_name("source-ojou-chibi.png")
+ART_CROP = (490, 90, 2390, 1990)    # 头部（含刘海与两侧长发），源图 3000x3000
 ART_TINT = (228, 238, 252)          # 冷色乘算：白底素材在浅色标签栏里没有边界，压一层才认得出来
 ART_RADIUS = 0.18                   # 圆角半径 = 0.18 * 边长
 
@@ -269,8 +270,8 @@ def art_render(base, size, radius_scale=ART_RADIUS):
 def art_mask_grid(base, n=N, tol=228, cell=16, need=8):
     """从插画取人物剪影，供 safari-pinned-tab 用。
 
-    用「从四边泛洪填掉近白背景」而不是「按亮度阈值」：绫华的头发本身就是近白的，
-    阈值会直接把她剃成秃头。泛洪只吃掉与画布边缘连通的近白区域，头发被轮廓线包住，留得下来。
+    用「从四边泛洪填掉近白背景」而不是「按亮度阈值」：素材背景是纯白，阈值法会把脸也一起
+    吃掉。泛洪只吃掉与画布边缘连通的近白区域，脸被头发与轮廓线包住，留得下来。
     """
     big = base.resize((n * cell, n * cell), Image.LANCZOS)
     w, h = big.size
@@ -407,7 +408,7 @@ def main():
             Image.new("RGB", (8 * N, 8 * N), ART_TINT),
         )
     else:
-        grid, char_grid = draw_ayaka()
+        grid, char_grid = draw_chibi()
 
         def source_at(size):
             return render(grid, size)

@@ -89,7 +89,7 @@ my-blog/
 │   └── pin-actions.mjs        # 把 Actions 的 uses 从可变标签改成 commit SHA
 ├── tools/icons/               # 图标生成（见第 6 节；不参与 Hugo 构建）
 │   ├── make-icons.py          #   生成 static/ 下的全部图标 + 管理页图标
-│   └── source-ayaka-chibi.png #   图标素材（Q 版神里绫华，出处见第 6 节）
+│   └── source-ojou-chibi.png  #   图标素材（Q 版黑长直少女，出处见第 6 节）
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）
 │   ├── start.sh               #   启动器（.bat 调它）
 │   ├── server.mjs             #   HTTP 服务：静态页 + JSON API
@@ -206,11 +206,11 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是�
 | `static/favicon-16x16.png`、`favicon-32x32.png` | 16、32 | 主题 `head.html` 默认引用 |
 | `static/apple-touch-icon.png` | 180（256 色量化） | iOS 收藏/主屏 |
 | `static/safari-pinned-tab.svg` | 单色路径 | Safari 固定标签 |
-| `tools/admin/ui/ayaka.ico` | 16→256 六帧 | 管理页标签页图标 + 桌面快捷方式图标（`博客管理页.lnk` 的 `IconLocation` 指向它） |
+| `tools/admin/ui/chibi.ico` | 16→256 六帧 | 管理页标签页图标 + 桌面快捷方式图标（`博客管理页.lnk` 的 `IconLocation` 指向它） |
 
-**为什么不把 `tools/admin/ui/ayaka.ico` 塞进 `static/`**：那会把 169 KB 的 256×192 帧发到线上，而站点的 `favicon.ico` 只要 16/32 两帧（3.9 KB）。站点图标和桌面图标要的尺寸集合不同，故意分成两个文件。
+**为什么不把 `tools/admin/ui/chibi.ico` 塞进 `static/`**：那会把 134 KB 的 256×256 帧发到线上，而站点的 `favicon.ico` 只要 16/32 两帧（3.9 KB）。站点图标和桌面图标要的尺寸集合不同，故意分成两个文件。
 
-**素材与许可**：`source-ayaka-chibi.png` 是 safebooru 站收录的 Q 版神里绫华同人（Pixiv 作品 `92959293`，作者 `maidsan_(littlemaidsan)`），非商用二次创作，**没有可声明的开放许可**。所以：管理页背景图与桌面图标这类**本地不发布**的用途直接用；站点 favicon 也用了它，若要彻底规避风险，把 `--style pixel` 生成的图标覆盖上去即可（像素风素材由脚本自绘，许可干净）。
+**素材与许可**：`source-ojou-chibi.png` 是 safebooru 站收录的 Q 版黑长直少女同人（原作者 `nekomoni`，原帖 `https://x.com/nekomoni/status/2098270238966272343`，safebooru post `7134756`），非商用二次创作，**没有可声明的开放许可**。所以：管理页背景图与桌面图标这类**本地不发布**的用途直接用；站点 favicon 也用了它，若要彻底规避风险，把 `--style pixel` 生成的图标覆盖上去即可（像素风素材由脚本自绘，许可干净）。
 裁切框、色调、圆角都是脚本里的常量（`ART_CROP` / `ART_TINT` / `ART_RADIUS`），换图只改这三个 + 换掉源文件。
 
 **`--check` 没进 CI**：它需要 Python + Pillow，而 `action.yml` 目前只有 Hugo + Node。图标是低频改动，本地跑一次就够；真要挂 CI，得先给复合动作加 `actions/setup-python` 与 `pip install pillow`。
