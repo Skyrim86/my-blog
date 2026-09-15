@@ -45,11 +45,13 @@ my-blog/
 │   │   ├── 10-nav.css         #     窄屏导航折叠（配合 assets/js/nav-toggle.js）
 │   │   ├── 11-toolbox.css     #     数学工具卡片墙 + 正文引用弹窗
 │   │   ├── 12-toc-rail.css    #     单页左侧跟随目录
-│   │   └── 13-ornament.css    #     装饰层：标题竖线 / 分隔线菱形 / 页脚渐隐线（第 3 节 ㉔）
+│   │   ├── 13-ornament.css    #     装饰层：标题竖线 / 分隔线菱形 / 页脚渐隐线（第 3 节 ㉔）
+│   │   └── 14-mascot.css      #     右下角看板娘（第 3 节 ㉕）
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
 │   │   ├── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
-│   │   ├── bg-velvet-night.webp   # 深色主题背景（程序生成的质感图，见 docs/features.md ⑫）
+│   ├── mascot.webp         # 看板娘半身像（从 tools/icons/ 那份素材抠出来，见 ㉕）
+│   ├── bg-velvet-night.webp   # 深色主题备选背景（程序生成，见 docs/features.md ⑫）
 │   │   └── bg-ivory-paper.webp    # 浅色主题背景（同上；两张分开的原因见 ⑫）
 │   └── js/                    #   自定义 JS 源码，经 extend_head.html minify+fingerprint 后外链
 │       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
@@ -109,6 +111,8 @@ my-blog/
 ├── tools/backgrounds/         # 背景图生成（不参与 Hugo 构建）
 │   ├── make-backgrounds.py    #   站点 2 张质感图（`--frost` 时额外生成管理页的霜雪备选）
 │   ├── make-admin-bg.py       #   管理页绫华插画 → 深/浅两版（见 docs/admin.md §20）
+│   ├── make-mascot.py         #   看板娘素材抠图（白底 → 透明，见 features.md ㉕）
+│   └── source-lady-slice.webp #   城市夜景上那位提灯少女的切片（同上）
 │   ├── source-night-city.jpg  #   站点深色背景的底图（画师作品，个人使用；见 features.md ⑫）
 │   ├── source-lady-slice.webp #   叠加用的黑发少女切片（带 alpha，同上）
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）

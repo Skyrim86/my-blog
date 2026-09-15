@@ -212,6 +212,17 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 两个写法约定：装饰只用 `--accent` / `--accent-2` / `--accent-soft` / `--rule` 这几个令牌，不写死色值（深浅两套主题才自动跟随）；凡是会改盒模型的装饰（`border` / `padding`）都要换成不吃布局的写法（`inset box-shadow`）——目录项和卡片在 hover 时跳一下，就是这里出的错。
 
+### ㉕ 看板娘（右下角固定半身像）— `layouts/_partials/extend_footer.html` + `14-mascot.css` + `assets/images/mascot.webp`
+
+与站点图标同源的那位少女，`position: fixed` 贴在右下角，下半截刻意推出视口（`bottom: -34px`），看起来像从页面底部探出来。点击进「关于」页。
+
+- **为什么用 `extend_footer.html`**：主题 `footer.html` 里调它一次、且不是 `partialCached`（缓存串页的坑见 ㉓），位置在 `<body>` 末尾，`fixed` 不受父级 containing block 影响。
+- **素材**：`tools/icons/source-ojou-chibi.png`（站点图标那份，白底）→ `tools/backgrounds/make-mascot.py` 抠图 → `assets/images/mascot.webp`（38 KB，365×720）。
+- **抠图的坑**：白底图不能只按亮度删（水手服领子也是白的），要用「与画布边缘连通的白色区域」做背景；而 `connectedComponentsWithStats` 把非前景像素标成 **label 0**，图像最外圈只要有一个非白像素，0 就进「边界标签」，整个暗色人物会被判成背景、alpha 全 0（预览里只剩脸和领子几个白块）——**边界标签集合必须减掉 0**。
+- **深色主题的轮廓**：黑发压在墨底上会糊，深色主题补一圈极淡冷光描边（两层 `drop-shadow`：2px 冷白 + 26px 黑），浅色主题只留普通投影。
+- **与 `.top-link` 的关系**：返回顶部按钮本来在 `bottom: 4rem; right: 2rem`，这里抬到 `calc(4rem + 190px)` 让位；**改看板娘尺寸时这个值要跟着改**。窄屏（≤1024px）与打印都隐藏——正文列本来就贴边，再挂人像就是挡内容。
+- 交互只做 hover 上浮（`prefers-reduced-motion` 下关掉），不做「点击收起」：为一个纯装饰元素多存一份 localStorage 状态不值当。
+
 ## 4. 四处有意的主题模板覆盖
 
 除上述 hook 之外，仓库里有四处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。

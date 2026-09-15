@@ -1,0 +1,75 @@
+/* ============================================
+   看板娘：右下角固定的半身像（14- 排最后，独立一层）
+
+   与站点图标同源的那位少女（素材见 docs/features.md ㉕），半身、透明底，
+   固定贴在视口右下角，下半截刻意压在视口外一点，看起来是从页面底部探出来。
+   ============================================ */
+
+.mascot {
+  position: fixed;
+  right: 14px;
+  /* 负值把下半身推出视口：只留头肩，比整张半身像轻，也不挡内容 */
+  bottom: -34px;
+  z-index: 6;
+  display: block;
+  width: clamp(112px, 10.5vw, 158px);
+  line-height: 0;
+  transition: transform .35s cubic-bezier(.2, .8, .25, 1), filter .35s ease;
+}
+
+.mascot img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 浅色主题：一层柔和投影就够，她本身是深色，和浅底对比天然够 */
+.mascot {
+  filter: drop-shadow(0 10px 22px rgba(20, 16, 28, .22));
+}
+
+/* 深色主题：黑发贴在墨底上会糊，所以补一圈极淡的冷光描边（drop-shadow 不偏色的那种做法），
+   再加一层更重的投影把她从背景里托起来 */
+:root[data-theme="dark"] .mascot {
+  filter:
+    drop-shadow(0 0 2px rgba(214, 226, 255, .38))
+    drop-shadow(0 12px 26px rgba(0, 0, 0, .6));
+}
+
+.mascot:hover {
+  transform: translateY(-8px);
+}
+
+/* 「返回顶部」按钮默认就在右下角（bottom: 4rem; right: 2rem），
+   这里把它抬到看板娘头顶，两者不叠。改看板娘尺寸时这个值要跟着改。 */
+.top-link {
+  bottom: calc(4rem + 190px);
+}
+
+/* 窄屏：正文列已经贴边，再挂个人像就是挡内容 */
+@media (max-width: 1024px) {
+  .mascot {
+    display: none;
+  }
+
+  .top-link {
+    bottom: 4rem;
+  }
+}
+
+@media print {
+  .mascot {
+    display: none;
+  }
+}
+
+/* 尊重「减少动效」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .mascot {
+    transition: none;
+  }
+
+  .mascot:hover {
+    transform: none;
+  }
+}

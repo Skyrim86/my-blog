@@ -170,3 +170,8 @@ other = "这张卡片的固定链接"
 # 卡片页底部返回工具库
 [toolboxBack]
 other = "返回数学工具库"
+
+# ---------- 看板娘（见 layouts/_partials/extend_footer.html） ----------
+# 右下角固定半身像的可访问名；它就是站点图标那位
+[mascotLabel]
+other = "看板娘（点开关于页）"
