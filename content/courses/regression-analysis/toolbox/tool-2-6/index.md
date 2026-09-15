@@ -1,7 +1,7 @@
 ---
 # 工具库卡片页：由 tools/course-import/import_course.py 生成，勿手改。
 # 卡片内容在 data/math-toolbox.json，模板是 layouts/courses/toolcard.html。
-title: "工具 2.6 正态样本中 $\\bar Y$ 与 $S^2$ 独立（Fisher 引理）"
+title: "Fisher 引理（命题 2.6）"
 layout: "toolcard"
 date: 2026-09-15
 draft: false

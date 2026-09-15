@@ -6,14 +6,14 @@
 {{- $card := .card -}}
 {{- $base := .base -}}
 <article class="tb-card" id="card-{{ $card.id }}" data-id="{{ $card.id }}" data-group="{{ $card.group }}"
-         data-kind="{{ $card.kind }}" data-search="{{ substr (printf "%s %s %s" $card.label $card.title ($card.body | plainify)) 0 260 }}">
+         data-kind="{{ $card.kind }}" data-search="{{ substr (printf "%s %s %s %s" $card.kind $card.num $card.title ($card.body | plainify)) 0 260 }}">
   <header class="tb-card-head">
     <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>
-    {{- /* label 里已经带类别（「定理 4.4」），徽章里再写一遍就重复了，这里只留编号 */ -}}
-    <span class="tb-label">{{ replace $card.label (printf "%s " $card.kind) "" }}</span>
-    {{- with $card.title }}
-    <span class="tb-card-title">{{ $page.RenderString . }}</span>
+    {{- /* 名字在前、编号在后：编号只作定位用的小字（右下角），不再当标签 */ -}}
+    {{- if $card.title }}
+    <span class="tb-card-title">{{ $page.RenderString $card.title }}</span>
     {{- end }}
+    <span class="tb-num">{{ $card.num }}</span>
     <a class="tb-card-anchor" href="#card-{{ $card.id }}" aria-label="{{ i18n "toolboxLinkLabel" }}" title="{{ i18n "toolboxLinkLabel" }}">#</a>
   </header>
   {{- with $card.body }}

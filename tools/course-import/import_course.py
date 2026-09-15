@@ -55,8 +55,13 @@ MODULES = [
     },
 ]
 
-# 工具库分组名（来自 00_数学工具.md 的 `## k 名称` 标题，缺失时回退到这里）
-TOOL_REF = re.compile(r"【工具\s*(\d+)\.(\d+)】")
+# 工具库引用纪律：正文只写结论的名字（「由全方差律」「见 Fisher 引理」），
+# 不写「工具 k.m」这类编号——编号只在卡片角落出现。这个正则是「旧写法残留」的探测器。
+STRAY_TOOL_REF = re.compile(r"【工具\s*(\d+)\.(\d+)】")
+TOOL_HEAD = re.compile(r"^###\s+(\S.*?)\s*\{#((?:tool|thm)-[0-9-]+)\}\s*$")
+ALIAS_RE = re.compile(r"^<!--\s*别名\s*[:：]\s*(.+?)\s*-->\s*$")
+KIND_PRIMARY = ("定义", "定理", "命题", "引理", "推论", "性质")
+KIND_FALLBACK = ("设定", "注", "注意", "例")
 THM_HEAD = re.compile(
     r"^\*\*(定理|命题|推论|引理|定义|性质)\s*([0-9]+(?:\.[0-9]+)*)?\s*(?:（([^）]*)）)?\*\*\s*"
 )
@@ -80,16 +85,19 @@ SEC_HEAD = re.compile(r"^##\s+§\s*(\d+)")
 def split_notes(text: str, first: int, last: int) -> str:
     """只保留 `## §first` 到 `## §last` 之间的小节（理由见 MODULES["notes"]）。
 
-    切分点是二级标题；没有 § 号的二级标题（附录）记为 9999，归到最后一组。
-    第一个二级标题之前的内容（文件的一级标题）直接丢掉 —— 博客页自带标题。
+    切分点是二级标题；没有 § 号的二级标题（附录）**归到最后一组**（`last >= 999`），
+    否则附录会被静默丢掉——页面的 description 里写着「附…索引与陷阱清单」，
+    正文里却没有，两边对不上（2026-09-15 修）。
     """
     keep: list[str] = []
     taking = False
     for ln in text.split("\n"):
         if ln.startswith("## "):
             m = SEC_HEAD.match(ln)
-            no = int(m.group(1)) if m else 9999
-            taking = first <= no <= last
+            if m:
+                taking = first <= int(m.group(1)) <= last
+            else:
+                taking = last >= 999
         if taking:
             keep.append(ln)
     body = "\n".join(keep).strip()
@@ -116,14 +124,82 @@ def read_text_text(text: str) -> str:
     return text.replace("\ufeff", "").replace("\r\n", "\n").replace("\r", "\n")
 
 
-def tool_to_shortcode(text: str) -> str:
-    """正文里的【工具 k.m】→ {{< tool "k.m" >}}（构建期渲染成可点击的引用按钮）。"""
-    return TOOL_REF.sub(lambda m: '{{< tool "%s.%s" >}}' % (m.group(1), m.group(2)), text)
+def first_kind(*texts: str) -> str:
+    """卡片的第一类别标签：优先 定义/定理/命题/…，其次 设定/注，都没有就叫「结论」。"""
+    tags: list[str] = []
+    for text in texts:
+        for m in re.finditer(r"^\*\*([^*（(]{1,8})", text or "", re.M):
+            tags.append(m.group(1).strip())
+    for tag in tags:
+        if tag in KIND_PRIMARY:
+            return tag
+    for tag in tags:
+        if tag in KIND_FALLBACK:
+            return "注" if tag.startswith("注") else tag
+    return "结论"
 
 
-def tool_to_anchor(text: str) -> str:
-    """卡片内容里的【工具 k.m】→ 指向工具库内该卡片的 Markdown 链接（不会递归引用）。"""
-    return TOOL_REF.sub(lambda m: "[【工具 %s.%s】](#card-tool-%s-%s)" % (m.group(1), m.group(2), m.group(1), m.group(2)), text)
+def build_name_table(cards: list) -> list:
+    """结论名字 → 卡片的名字表：条目标题 + 它下面的 `<!-- 别名: … -->`。
+
+    长的排在前面，替换时先命中长名字（「幂等二次型与卡方分布」不会被「卡方分布」抢走）。
+    名字里带公式的不收：链接文字是纯文本，KaTeX 不会渲染它。
+    """
+    pairs = []
+    for card in cards:
+        for name in [card.get("title", "")] + list(card.get("aliases") or []):
+            name = (name or "").strip()
+            if name and "$" not in name:
+                pairs.append((name, card))
+    pairs.sort(key=lambda item: len(item[0]), reverse=True)
+    return pairs
+
+
+# 这些区域里的名字一律不接链接：代码块、行内代码、数学区、既有链接、HTML 标签、
+# 裸 URL、已有短代码，以及**标题行**。
+# 标题必须排除：链接写进 `## §15 极大似然估计` 这种标题里，会顺着 .TableOfContents
+# 变成目录里的一串 HAHAHUGOSHORTCODE 占位符，也会污染锚点文本。
+# 少一个链接的代价远小于改坏一个公式或一个标题。
+SKIP_ZONE = re.compile(
+    r"```.*?```|~~~.*?~~~|`[^`\n]*`|\$\$.*?\$\$|\$[^$\n]*\$"      # 代码块、行内代码、数学区
+    r"|^#{1,6}\s[^\n]*"                                             # 标题行
+    r"|\[[^\]\n]*\]\([^)\n]*\)|<[^>\n]*>|https?://\S+|\{\{[<%].*?[>%]\}\}",
+    re.S | re.M,
+)
+
+
+def link_names(text: str, table: list, form: str, *, self_id: str = "") -> str:
+    """把出现过的结论名字换成引用。
+
+    form="shortcode" —— 课程正文：{{< tool "1.9" "全方差律" >}}，构建期渲染成可点击的链接，
+    点了就地展开卡片。form="card" —— 卡片内容：Markdown 链接 [名字](#card-tool-1-9)，
+    由 toolbox-md.html 再改写成目标卡片页地址。
+
+    卡片不引用自己（self_id 命中时保持纯文本）。
+    """
+    if not text or not table:
+        return text
+    lookup = {}
+    for name, card in table:
+        lookup.setdefault(name, card)
+    pattern = re.compile("|".join(re.escape(name) for name in lookup))
+
+    def repl(m: re.Match) -> str:
+        name = m.group(0)
+        card = lookup[name]
+        if self_id and card["id"] == self_id:
+            return name
+        if form == "card":
+            return "[%s](#%s)" % (name, "card-" + card["id"])
+        return '{{< tool "%s" "%s" >}}' % (card["num"], name)
+
+    out, pos = [], 0
+    for zone in SKIP_ZONE.finditer(text):
+        out.append(pattern.sub(repl, text[pos:zone.start()]))
+        out.append(zone.group(0))
+        pos = zone.end()
+    out.append(pattern.sub(repl, text[pos:]))
+    return "".join(out)
 
 
 def write_page_body(path: Path, body: str) -> str:
@@ -191,9 +267,17 @@ def assemble(parts: list[str]) -> dict:
 
 
 def parse_tool_file(path: Path) -> tuple[list[dict], list[dict]]:
-    """解析 工具/00_数学工具.md：返回 (分组, 卡片)。"""
+    """解析 工具/00_数学工具.md：返回 (分组, 卡片)。
+
+    条目形态：
+
+        ### 全期望律与全方差律 {#tool-1-2}
+        <!-- 别名: 全期望律、全方差律 -->
+
+    标题就是结论的名字（正文里直接写它，导入时按名字接上链接）；{#tool-1-2} 是稳定 id，
+    卡片上只以角落小字 1.2 出现；别名给正文用更短的叫法（如「全方差律」）。
+    """
     groups, cards = [], []
-    group_key, group_name = "", ""
     cur: dict | None = None
     buf: list[str] = []
 
@@ -204,34 +288,37 @@ def parse_tool_file(path: Path) -> tuple[list[dict], list[dict]]:
             content = re.sub(r"\n+---+\s*$", "", content).strip()
             card = dict(cur)
             card.update(assemble(split_blocks(content)))
-            card["body"] = tool_to_anchor(card["body"])
-            card["proof"] = tool_to_anchor(card["proof"])
-            card["usage"] = tool_to_anchor(card["usage"])
-            card["note"] = tool_to_anchor(card["note"])
+            # 名字接线在 build_toolbox 里统一做：那时才拿得到完整的名字表
+            card["kind"] = card["kind"] or first_kind(card["body"], card["proof"], card["usage"], card["note"])
             cards.append(card)
         cur, buf = None, []
 
     for ln in read_text(path).split("\n"):
         m_group = re.match(r"^##\s+(\d+)\s+(.*)$", ln)
-        m_card = re.match(r"^###\s+【工具\s*(\d+)\.(\d+)】\s*(.*)$", ln)
+        m_card = TOOL_HEAD.match(ln)
+        m_alias = ALIAS_RE.match(ln)
         m_sub = re.match(r"^###\s+", ln)
         if m_group:
             flush()
-            group_key, group_name = m_group.group(1), m_group.group(2).strip()
-            groups.append({"key": group_key, "name": group_name, "kind": "tool"})
+            groups.append({"key": m_group.group(1), "name": m_group.group(2).strip(), "kind": "tool"})
             continue
-        if m_card:
+        if m_card and m_card.group(2).startswith("tool-"):
             flush()
-            k, n, title = m_card.group(1), m_card.group(2), m_card.group(3).strip()
+            _, k, n = m_card.group(2).split("-")
             cur = {
-                "id": "tool-%s-%s" % (k, n),
-                "label": "工具 %s.%s" % (k, n),
-                "kind": "工具",
-                "title": title,
+                "id": m_card.group(2),
+                "num": "%s.%s" % (k, n),
+                "label": "%s.%s" % (k, n),
+                "kind": "",
+                "title": m_card.group(1).strip(),
+                "aliases": [],
                 "group": k,
             }
             continue
-        if m_sub and cur is not None and not m_card:
+        if m_alias and cur is not None:
+            cur["aliases"] = [a.strip() for a in re.split(r"[、,，]", m_alias.group(1)) if a.strip()]
+            continue
+        if m_sub and cur is not None:
             flush()
             continue
         if cur is not None:
@@ -278,6 +365,7 @@ def parse_note_theorems(path: Path, module: str, chapter: str, material: str) ->
         if parts:
             card = {
                 "id": "thm-%s" % num.replace(".", "-"),
+                "num": num,
                 "label": "%s %s" % (kind, num),
                 "kind": kind,
                 "title": title,
@@ -285,8 +373,6 @@ def parse_note_theorems(path: Path, module: str, chapter: str, material: str) ->
                 "material": material,
             }
             card.update(assemble(parts))
-            for key in ("body", "proof", "usage", "note"):
-                card[key] = tool_to_anchor(card[key])
             cards.append(card)
         i = j
     groups = [{"key": module, "name": "%s 的定理与定义" % module, "kind": "course"}]
@@ -294,7 +380,11 @@ def parse_note_theorems(path: Path, module: str, chapter: str, material: str) ->
 
 
 def load_branches(path: Path) -> dict:
-    """读数学库的分支表（data/math-branches.yaml）：分支清单 + 卡片归属规则。"""
+    """读数学库的分支表（data/math-branches.yaml）：大类 → 细分 + 卡片归属规则。
+
+    校验在这里一次做足：细分 key 会进生成产物、被模板当锚点用，重复或悬空都会在页面里
+    变成静默的错误分组，所以宁可导入时就把错误喊出来。
+    """
     if yaml is None:
         raise SystemExit("✗ 读 %s 需要 PyYAML（pip install pyyaml）" % path)
     if not path.exists():
@@ -303,46 +393,78 @@ def load_branches(path: Path) -> dict:
     branches = cfg.get("branches") or []
     if not branches:
         raise SystemExit("✗ %s 里没有 branches" % path)
-    keys = [b.get("key") for b in branches]
-    if any(not k for k in keys):
-        raise SystemExit("✗ %s 有分支缺 key" % path)
+    section_parent: dict[str, str] = {}
+    for b in branches:
+        key = b.get("key")
+        if not key:
+            raise SystemExit("✗ %s 有分支缺 key" % path)
+        sections = b.get("sections") or []
+        if not sections:
+            raise SystemExit("✗ %s 的分支 %s 没有 sections（细分）" % (path, key))
+        for s in sections:
+            skey = s.get("key")
+            if not skey:
+                raise SystemExit("✗ %s 的分支 %s 有细分缺 key" % (path, key))
+            if skey in section_parent:
+                raise SystemExit("✗ %s 的细分 key %s 重复" % (path, skey))
+            section_parent[skey] = key
+    keys = [b["key"] for b in branches]
     if len(set(keys)) != len(keys):
         raise SystemExit("✗ %s 的分支 key 有重复" % path)
-    if cfg.get("default") not in keys:
-        raise SystemExit("✗ %s 的 default=%s 不在 branches 里" % (path, cfg.get("default")))
+    if cfg.get("default") not in section_parent:
+        raise SystemExit("✗ %s 的 default=%s 不是任何细分" % (path, cfg.get("default")))
+    for table, mapping in (cfg.get("assign") or {}).items():
+        if table not in SECTION_LOOKUPS:
+            raise SystemExit("✗ %s 的 assign.%s 不是可用维度（%s）" % (path, table, "/".join(SECTION_LOOKUPS)))
+        for value, hit in (mapping or {}).items():
+            if hit not in section_parent:
+                raise SystemExit("✗ %s 的 assign.%s.%s=%s 不是任何细分" % (path, table, value, hit))
+    cfg["section_parent"] = section_parent
     return cfg
 
 
 # 归属规则的匹配顺序：细 → 粗。groups 与 modules 都查 card["group"]，
 # 但工具卡的分组号（"1"–"6"）与课程定理卡的模块号（"M1"）不会互相命中，所以共用一个字段。
-BRANCH_LOOKUPS = ("cards", "groups", "modules", "courses")
+SECTION_LOOKUPS = ("cards", "nums", "groups", "modules", "courses")
 
 
-def branch_of(card: dict, cfg: dict) -> str:
-    """卡片 → 分支 key：cards > groups > modules > courses > default。"""
+def card_section_key(card: dict, table: str):
+    """按维度取查表用的值：卡片 id / 节号（thm-<节>-<序> 的 <节>）/ 分组号 / 课程。"""
+    if table == "cards":
+        return card.get("id")
+    if table == "nums":
+        parts = card.get("id", "").split("-")
+        return parts[1] if card.get("id", "").startswith("thm-") and len(parts) > 2 else None
+    if table == "courses":
+        return card.get("course")
+    return card.get("group")
+
+
+def section_of(card: dict, cfg: dict) -> str:
+    """卡片 → 细分 key：cards > nums > groups > modules > courses > default。"""
     assign = cfg.get("assign") or {}
-    valid = {b["key"] for b in cfg["branches"]}
-    for table in BRANCH_LOOKUPS:
-        value = card.get("id") if table == "cards" else card.get("group")
-        if table == "courses":
-            value = card.get("course")
-        hit = (assign.get(table) or {}).get(value)
+    for table in SECTION_LOOKUPS:
+        hit = (assign.get(table) or {}).get(card_section_key(card, table))
         if hit:
-            if hit not in valid:
-                raise SystemExit("✗ 分支表 assign.%s 里的 %s 不在 branches 中" % (table, hit))
             return hit
     return cfg["default"]
 
 
-def build_toolbox(project: Path, cfg: dict) -> dict:
+def build_toolbox(project: Path, cfg: dict) -> tuple[dict, list]:
+    """生成 data/math-toolbox.json 的内容：(卡片 + 分组 + 分支, 名字表)。
+
+    两遍：先把工具卡与课程定理卡解析出来，用条目的标题/别名建名字表，
+    再给所有卡片的正文按名字接上引用（卡片互引，不引用自己）。
+    """
     groups: list[dict] = []
-    cards: list[dict] = []
+    tool_cards: list[dict] = []
+    thm_cards: list[dict] = []
     tool_file = project / "工具" / "00_数学工具.md"
     if not tool_file.exists():
         raise SystemExit("✗ 找不到 %s" % tool_file)
     g, c = parse_tool_file(tool_file)
     groups += g
-    cards += c
+    tool_cards += c
     seen: set = set()
     for mod in MODULES:
         for item in mod["notes"]:
@@ -354,24 +476,42 @@ def build_toolbox(project: Path, cfg: dict) -> dict:
                 continue
             g, c = parse_note_theorems(src, mod["module"], mod["chapter"], item["dir"])
             groups += g
-            cards += c
-    for card in cards:
+            thm_cards += c
+    for card in tool_cards + thm_cards:
         for key in ("body", "proof", "usage", "note"):
             card.setdefault(key, "")
-    cards = [c for c in cards if c.get("body") or c.get("proof")]
-    # 每张卡记住自己属于哪门课、哪个数学分支：数学库（/library/）靠这两个字段跨课程汇总
-    for card in cards:
+    tool_cards = [x for x in tool_cards if x.get("body") or x.get("proof")]
+    thm_cards = [x for x in thm_cards if x.get("body") or x.get("proof")]
+
+    table = build_name_table(tool_cards)
+    for card in tool_cards + thm_cards:
+        for key in ("body", "proof", "usage", "note"):
+            card[key] = link_names(card[key], table, "card", self_id=card["id"])
+        # 每张卡记住自己属于哪门课、哪个数学分支（大类）与细分：数学库（/library/）靠这几个字段汇总
         card["course"] = COURSE
-        card["branch"] = branch_of(card, cfg)
-    return {
+        card["section"] = section_of(card, cfg)
+        card["branch"] = cfg["section_parent"][card["section"]]
+
+    toolbox = {
         "note": "由 tools/course-import/import_course.py 从课程项目生成，勿手改。",
         "courses": [{"key": COURSE, "name": "回归分析"}],
-        # 分支清单来自 data/math-branches.yaml（不是生成产物），模板按 key 取卡片
-        "branches": [{"key": b["key"], "name": b.get("name", b["key"]), "summary": b.get("summary", "")}
-                     for b in cfg["branches"]],
+        # 分支体系来自 data/math-branches.yaml（不是生成产物）：大类 → 细分，模板按 key 取卡片
+        "branches": [
+            {
+                "key": b["key"],
+                "name": b.get("name", b["key"]),
+                "summary": b.get("summary", ""),
+                "sections": [
+                    {"key": s["key"], "name": s.get("name", s["key"]), "summary": s.get("summary", "")}
+                    for s in b["sections"]
+                ],
+            }
+            for b in cfg["branches"]
+        ],
         "groups": groups,
-        "cards": cards,
+        "cards": tool_cards + thm_cards,
     }
+    return toolbox, table
 
 
 # --------------------------------------------------------------------------- #
@@ -387,7 +527,11 @@ def card_page_md(card: dict, weight: int, date_str: str) -> str:
     超过 scripts/report-size.sh 的单页 1.6 MB 预算；拆开之后引用可以指向独立 URL，
     弹窗按需加载同一份内容（见 assets/js/toolbox.js）。
     """
-    title = " ".join(x for x in (card.get("label", ""), card.get("title", "")) if x).strip()
+    # 卡片页的标题：有名字就用名字（页签里带上类别与编号以便区分），没有名字退回「定理 4.6」
+    if card.get("title"):
+        title = "%s（%s %s）" % (card["title"], card["kind"], card["num"])
+    else:
+        title = "%s %s" % (card["kind"], card["num"])
     return (
         "---\n"
         "# 工具库卡片页：由 tools/course-import/import_course.py 生成，勿手改。\n"
@@ -445,6 +589,16 @@ def main() -> int:
     problems: list[str] = []
     plan: list[tuple[str, str, object]] = []  # (kind, path, payload)
 
+    # 先建数学库数据：正文的「名字 → 卡片」接线要用它的名字表
+    toolbox, name_table = build_toolbox(project, load_branches(BRANCHES_FILE))
+
+    def page_body(raw: str, where: str) -> str:
+        """课程正文：统一换行、按名字接上卡片引用，并拦下旧写法【工具 k.m】。"""
+        body = link_names(clean_body(raw), name_table, "shortcode")
+        for m in STRAY_TOOL_REF.finditer(body):
+            problems.append("%s 里还有旧写法【工具 %s.%s】——正文只写结论的名字" % (where, m.group(1), m.group(2)))
+        return body
+
     for mod in MODULES:
         chapter = mod["chapter"]
         for item in mod["notes"]:
@@ -452,7 +606,8 @@ def main() -> int:
             if not src.exists():
                 problems.append("缺少源文件 %s" % src)
                 continue
-            body = tool_to_shortcode(clean_body(split_notes(read_text(src), item["first"], item["last"])))
+            raw = split_notes(read_text(src), item["first"], item["last"])
+            body = page_body(raw, "%s §%s–§%s" % (item["src"], item["first"], item["last"]))
             dst = REPO / "content" / "courses" / COURSE / chapter / item["dir"] / "index.md"
             plan.append(("body", dst, body))
         for key in ("homework",):
@@ -461,7 +616,7 @@ def main() -> int:
             if not src.exists():
                 problems.append("缺少源文件 %s" % src)
                 continue
-            body = tool_to_shortcode(clean_body(read_text(src)))
+            body = page_body(read_text(src), src_rel)
             dst = REPO / "content" / "courses" / COURSE / chapter / material / "index.md"
             plan.append(("body", dst, body))
         for src_rel, material, figs_rel in mod["labs"]:
@@ -469,7 +624,7 @@ def main() -> int:
             if not src.exists():
                 problems.append("缺少源文件 %s" % src)
                 continue
-            body = tool_to_shortcode(clean_body(read_text(src)))
+            body = page_body(read_text(src), src_rel)
             dst = REPO / "content" / "courses" / COURSE / chapter / material / "index.md"
             plan.append(("body", dst, body))
             figs = project / figs_rel
@@ -477,7 +632,6 @@ def main() -> int:
                 for png in sorted(figs.glob("*")):
                     plan.append(("copy", dst.parent / "figs" / png.name, png))
 
-    toolbox = build_toolbox(project, load_branches(BRANCHES_FILE))
     plan.append(("json", TOOL_JSON, toolbox))
 
     # 每张卡片一个页面（理由见 card_page_md），并清掉已不属于任何卡片的孤儿目录

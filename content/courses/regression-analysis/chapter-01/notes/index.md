@@ -126,7 +126,7 @@ $$
 RSS(\beta_0,\beta_1)=\sum_{i=1}^n\big(y_i-\beta_0-\beta_1x_i\big)^2\ \longrightarrow\ \min. \tag{3.1}
 $$
 
-用平方而非绝对值的原因有三：可导（一阶条件线性）、对应正态误差的极大似然（§15）、以及有正交投影的几何意义（{{< tool "4.1" >}}）。
+用平方而非绝对值的原因有三：可导（一阶条件线性）、对应正态误差的极大似然（§15）、以及有{{< tool "4.1" "正交投影" >}}的几何意义。
 
 ### 3.2 解的存在性、唯一性与表达式
 
@@ -195,7 +195,7 @@ $$
 
 ### 3.4 几何解释
 
-把数据看成 $\mathbb R^n$ 中的向量 $\mathbf y=(y_1,\dots,y_n)'$，把 $\mathbf 1=(1,\dots,1)'$ 与 $\mathbf x=(x_1,\dots,x_n)'$ 张成的二维子空间记为 $\mathcal C(\mathbf X)$。最小化 $RSS=\|\mathbf y-\beta_0\mathbf 1-\beta_1\mathbf x\|^2$ 就是求 $\mathbf y$ 在 $\mathcal C(\mathbf X)$ 上的正交投影：$\hat{\mathbf y}=H\mathbf y$，$\mathbf e=(I-H)\mathbf y$，其中 $H$ 为正交投影矩阵（{{< tool "4.1" >}}）。残差的正交性质 1、2 就是"$\mathbf e\perp\mathcal C(\mathbf X)$"的分量形式。
+把数据看成 $\mathbb R^n$ 中的向量 $\mathbf y=(y_1,\dots,y_n)'$，把 $\mathbf 1=(1,\dots,1)'$ 与 $\mathbf x=(x_1,\dots,x_n)'$ 张成的二维子空间记为 $\mathcal C(\mathbf X)$。最小化 $RSS=\|\mathbf y-\beta_0\mathbf 1-\beta_1\mathbf x\|^2$ 就是求 $\mathbf y$ 在 $\mathcal C(\mathbf X)$ 上的{{< tool "4.1" "正交投影" >}}：$\hat{\mathbf y}=H\mathbf y$，$\mathbf e=(I-H)\mathbf y$，其中 $H$ 为{{< tool "4.1" "正交投影" >}}矩阵。残差的正交性质 1、2 就是"$\mathbf e\perp\mathcal C(\mathbf X)$"的分量形式。
 
 几何语言在 M2 中会成为主线；M1 中它只是提供直觉与几个等价表述。
 
@@ -242,7 +242,7 @@ $$
 
 **证明** 由 (3.2)，$\hat\beta_1=S_{xy}/S_{xx}=\frac{1}{S_{xx}}\sum(x_i-\bar x)(y_i-\bar y)=\sum c_i(y_i-\bar y)$，而 $\sum c_i=0$ 使 $\sum c_i(y_i-\bar y)=\sum c_iy_i$，第一式得证。$\hat\beta_0=\bar y-\hat\beta_1\bar x=\sum\big(\frac1n-\bar xc_i\big)y_i$，第二式得证。系数的和式：$\sum c_i=\frac{\sum(x_i-\bar x)}{S_{xx}}=0$；$\sum c_ix_i=\frac{\sum(x_i-\bar x)x_i}{S_{xx}}=\frac{S_{xx}}{S_{xx}}=1$；$\sum c_i^2=\frac{\sum(x_i-\bar x)^2}{S_{xx}^2}=\frac1{S_{xx}}$；$\sum d_i=1-\bar x\sum c_i=1$；$\sum d_ix_i=\bar x-\bar x\sum c_ix_i=0$。$\square$
 
-**这条引理的意义** "线性估计"（{{< tool "3.2" >}}）不是近似说法，而是精确结构。此后所有矩的计算都变成对 (4.1) 用{{< tool "1.1" >}}与{{< tool "1.4" >}}。
+**这条引理的意义** "线性估计"（{{< tool "3.2" "线性估计与 BLUE" >}}）不是近似说法，而是精确结构。此后所有矩的计算都变成对 (4.1) 用{{< tool "1.1" "期望与方差的运算法则" >}}与{{< tool "1.4" "线性组合的方差公式" >}}。
 
 ### 4.2 无偏性
 
@@ -266,7 +266,7 @@ $$
 \operatorname{Cov}(\hat\beta_0,\hat\beta_1)=-\frac{\bar x\,\sigma^2}{S_{xx}}. \tag{4.3}
 $$
 
-**证明** 由 (4.1) 与{{< tool "1.4" >}}（只要求不相关）：
+**证明** 由 (4.1) 与{{< tool "1.4" "线性组合的方差公式" >}}（只要求不相关）：
 
 $$
 \operatorname{Var}(\hat\beta_1)=\sum_i c_i^2\operatorname{Var}(y_i)=\sigma^2\sum_i c_i^2=\frac{\sigma^2}{S_{xx}},
@@ -291,7 +291,7 @@ $$
 
 ### 4.4 Gauss–Markov 定理
 
-**定理 4.4（Gauss–Markov）** 在 A1、A2 下，对任意常数 $a,b$（不全为 $0$），线性组合 $\theta=a\beta_0+b\beta_1$ 的**一切线性无偏估计量**中，$a\hat\beta_0+b\hat\beta_1$ 的方差最小。特别地 $\hat\beta_0,\hat\beta_1$ 分别是 $\beta_0,\beta_1$ 的 BLUE（{{< tool "3.2" >}}）。
+**定理 4.4（Gauss–Markov）** 在 A1、A2 下，对任意常数 $a,b$（不全为 $0$），线性组合 $\theta=a\beta_0+b\beta_1$ 的**一切线性无偏估计量**中，$a\hat\beta_0+b\hat\beta_1$ 的方差最小。特别地 $\hat\beta_0,\hat\beta_1$ 分别是 $\beta_0,\beta_1$ 的 {{< tool "3.2" "BLUE" >}}。
 
 **证明** 先刻画线性无偏估计类。设 $\tilde\theta=\sum_i k_iy_i$。由 $E\tilde\theta=\sum k_i(\beta_0+\beta_1x_i)=a\beta_0+b\beta_1$ 对一切 $\beta_0,\beta_1$ 成立，得约束
 
@@ -340,7 +340,7 @@ $$
 
 且二者**联合**正态，协方差由 (4.3) 的第三式给出。
 
-**证明** $\hat\beta_1,\hat\beta_0$ 是独立正态变量 $y_1,\dots,y_n$ 的线性组合（(4.1)），由{{< tool "2.2" >}}其边际分布为正态，均值方差由定理 4.2、4.3。联合正态性：把 $(\hat\beta_0,\hat\beta_1)'$ 写成 $A\mathbf y$（$2\times n$ 常数矩阵），由{{< tool "2.3" >}}线性变换保持多元正态。$\square$
+**证明** $\hat\beta_1,\hat\beta_0$ 是独立正态变量 $y_1,\dots,y_n$ 的线性组合（(4.1)），由{{< tool "2.2" "正态线性组合" >}}知其边际分布为正态，均值方差由定理 4.2、4.3。联合正态性：把 $(\hat\beta_0,\hat\beta_1)'$ 写成 $A\mathbf y$（$2\times n$ 常数矩阵），由{{< tool "2.3" "多元正态的线性变换" >}}保持多元正态。$\square$
 
 **等价的标准化形式**
 
@@ -353,7 +353,7 @@ $$
 
 ### 4.6 有效性：OLS 是否"已经到头"
 
-**命题 4.6** 正态误差下，$\hat\beta_1$ 的 Fisher 信息为 $I(\beta_1)=S_{xx}/\sigma^2$，故无偏估计的方差下界（{{< tool "3.5" >}}）为 $\sigma^2/S_{xx}$，恰好等于 $\operatorname{Var}(\hat\beta_1)$。
+**命题 4.6** 正态误差下，$\hat\beta_1$ 的 Fisher 信息为 $I(\beta_1)=S_{xx}/\sigma^2$，故无偏估计的方差下界（{{< tool "3.5" "Cramér–Rao 下界" >}}）为 $\sigma^2/S_{xx}$，恰好等于 $\operatorname{Var}(\hat\beta_1)$。
 
 **证明** 似然函数见 (15.1)；对数似然对 $\beta_1$ 的二阶导为 $-S_{xx}/\sigma^2$（与 $\mathbf y$ 无关），故 $I(\beta_1)=E[S_{xx}/\sigma^2]=S_{xx}/\sigma^2$。下界 $1/I=\sigma^2/S_{xx}$ 与 (4.3) 相等。$\square$
 
@@ -361,7 +361,7 @@ $$
 
 - 无偏性（定理 4.2）：**已证**，仅需 A1。
 - 方差公式与协方差（定理 4.3）：**已证**，仅需 A1、A2。
-- BLUE（定理 4.4）：**已证**，仅需 A1、A2；限定"线性无偏类"。
+- {{< tool "3.2" "BLUE" >}}（定理 4.4）：**已证**，仅需 A1、A2；限定"线性无偏类"。
 - 有效性（命题 4.6）：**条件成立**，需 A3（正态）；在正态模型下 OLS 是全部无偏估计中的有效估计。
 ## §5 误差方差的估计与回归系数的标准误
 
@@ -382,7 +382,7 @@ $\hat\sigma$ 称为**回归标准误**（standard error of regression）或**残
 **为什么分母是 $n-2$ 而不是 $n$** 三条互相印证的理由：
 
 1. **自由度记账**：$RSS$ 是 $y_1,\dots,y_n$ 的离差平方和，但要先由数据估出 $\beta_0,\beta_1$ 两个参数；残差受两个线性约束 (3.3)(3.4) 的牵制，$n$ 个残差只有 $n-2$ 个"自由"方向。
-2. **秩的论证**：$\mathbf e=M\boldsymbol\epsilon$，$M=I-H$ 对称幂等，$\operatorname{rank}(M)=n-\operatorname{rank}(H)=n-2$（{{< tool "4.2" >}}）；二次型 $\mathbf e'\mathbf e$ 的自由度就是 $M$ 的秩。
+2. **秩的论证**：$\mathbf e=M\boldsymbol\epsilon$，$M=I-H$ 对称幂等，$\operatorname{rank}(M)=n-\operatorname{rank}(H)=n-2$（{{< tool "4.2" "幂等矩阵的秩与迹" >}}）；二次型 $\mathbf e'\mathbf e$ 的自由度就是 $M$ 的秩。
 3. **无偏性**：下面的定理 5.3 证明只有 $n-2$ 这个分母才能得到无偏。
 
 ### 5.2 无偏性
@@ -404,7 +404,7 @@ $$
 
 **定理 5.3（$\hat\sigma^2$ 无偏）** 在 A1、A2 下，$E(RSS)=(n-2)\sigma^2$，从而 $E(\hat\sigma^2)=\sigma^2$。
 
-**证明** 在 (5.3) 两边取期望。第一项：$\sum(\epsilon_i-\bar\epsilon)^2$ 是 $n$ 个同方差、不相关（故由{{< tool "1.4" >}}方差可加）的量的离差平方和，其中 $\operatorname{Var}(\epsilon_i-\bar\epsilon)=\sigma^2(1-1/n)$，故
+**证明** 在 (5.3) 两边取期望。第一项：$\sum(\epsilon_i-\bar\epsilon)^2$ 是 $n$ 个同方差、不相关（故由{{< tool "1.4" "线性组合的方差公式" >}}）的量的离差平方和，其中 $\operatorname{Var}(\epsilon_i-\bar\epsilon)=\sigma^2(1-1/n)$，故
 
 $$
 E\sum_i(\epsilon_i-\bar\epsilon)^2=\sum_i\operatorname{Var}(\epsilon_i-\bar\epsilon)=(n-1)\sigma^2 .
@@ -426,11 +426,11 @@ $$
 
 **证明** 用 §3.4 的投影语言记 $\hat{\mathbf y}=H\mathbf y$、$\mathbf e=(I-H)\mathbf y$。
 
-*独立性与分布*：$\operatorname{Cov}(\hat{\mathbf y},\mathbf e)=\operatorname{Cov}(H\mathbf y,(I-H)\mathbf y)=H\operatorname{Var}(\mathbf y)(I-H)'=\sigma^2H(I-H)=0$。又 $(\hat{\mathbf y}',\mathbf e')'$ 是 $\mathbf y$ 的线性变换，由{{< tool "2.3" >}}联合正态，"协方差为零 $\Rightarrow$ 独立"。于是 $\mathbf e$ 与 $\hat{\mathbf y}$ 独立，而 $(\hat\beta_0,\hat\beta_1)$ 是 $\hat{\mathbf y}$ 的线性函数（取 $\hat{\mathbf y}$ 的前两个投影方向的坐标），故与 $\mathbf e$ 独立，进而与 $RSS=\|\mathbf e\|^2$ 独立。
+*独立性与分布*：$\operatorname{Cov}(\hat{\mathbf y},\mathbf e)=\operatorname{Cov}(H\mathbf y,(I-H)\mathbf y)=H\operatorname{Var}(\mathbf y)(I-H)'=\sigma^2H(I-H)=0$。又 $(\hat{\mathbf y}',\mathbf e')'$ 是 $\mathbf y$ 的线性变换，由{{< tool "2.3" "多元正态的线性变换" >}}联合正态，"协方差为零 $\Rightarrow$ 独立"。于是 $\mathbf e$ 与 $\hat{\mathbf y}$ 独立，而 $(\hat\beta_0,\hat\beta_1)$ 是 $\hat{\mathbf y}$ 的线性函数（取 $\hat{\mathbf y}$ 的前两个投影方向的坐标），故与 $\mathbf e$ 独立，进而与 $RSS=\|\mathbf e\|^2$ 独立。
 
-*分布*：$\mathbf e=(I-H)\mathbf y=(I-H)(\mathbf X\boldsymbol\beta+\boldsymbol\epsilon)=(I-H)\boldsymbol\epsilon$（因 $(I-H)\mathbf X=0$），故 $\mathbf e/\sigma\sim N_n(\mathbf 0,I-H)$。矩阵 $M=I-H$ 对称幂等、秩 $n-2$，由{{< tool "2.4" >}}得 $\|\mathbf e\|^2/\sigma^2\sim\chi^2_{n-2}$，即 (5.4)。$\square$
+*分布*：$\mathbf e=(I-H)\mathbf y=(I-H)(\mathbf X\boldsymbol\beta+\boldsymbol\epsilon)=(I-H)\boldsymbol\epsilon$（因 $(I-H)\mathbf X=0$），故 $\mathbf e/\sigma\sim N_n(\mathbf 0,I-H)$。矩阵 $M=I-H$ 对称幂等、秩 $n-2$，由{{< tool "2.4" "幂等二次型的分布" >}}得 $\|\mathbf e\|^2/\sigma^2\sim\chi^2_{n-2}$，即 (5.4)。$\square$
 
-**这个定理是全部推断的支柱**：它同时提供了 $t$ 统计量的分母（$\chi^2$ 分布）与分子分母的独立性（{{< tool "2.5" >}}的构造前提）。
+**这个定理是全部推断的支柱**：它同时提供了 $t$ 统计量的分母（$\chi^2$ 分布）与分子分母的独立性（{{< tool "2.5" "t 分布与 F 分布的构造" >}}前提）。
 
 ### 5.4 标准误
 
@@ -441,7 +441,7 @@ $$
 \operatorname{se}(\hat\beta_0)=\hat\sigma\sqrt{\frac1n+\frac{\bar x^2}{S_{xx}}}. \tag{5.5}
 $$
 
-记号说明：$\widehat{\operatorname{Var}}(\cdot)$ 表示"用估计量代替未知参数后得到的方差估计"，即 $\widehat{\operatorname{Var}}(\hat\beta_1)=\hat\sigma^2/S_{xx}$。由 MSE 分解（{{< tool "3.1" >}}），$\widehat{\operatorname{MSE}}=\widehat{\operatorname{Var}}+\widehat{\text{bias}^2}$，而估计量无偏时偏差项为零，故标准误就是 RMSE 的平方根。
+记号说明：$\widehat{\operatorname{Var}}(\cdot)$ 表示"用估计量代替未知参数后得到的方差估计"，即 $\widehat{\operatorname{Var}}(\hat\beta_1)=\hat\sigma^2/S_{xx}$。由{{< tool "3.1" "均方误差分解" >}}，$\widehat{\operatorname{MSE}}=\widehat{\operatorname{Var}}+\widehat{\text{bias}^2}$，而估计量无偏时偏差项为零，故标准误就是 RMSE 的平方根。
 
 **注意** $\operatorname{se}(\hat\beta_1)$ **是随机变量**（含 $\hat\sigma$），$\sqrt{\operatorname{Var}(\hat\beta_1)}=\sigma/\sqrt{S_{xx}}$ 才是常数。软件的 `Std. Error` 列报告的是前者。
 

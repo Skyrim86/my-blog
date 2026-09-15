@@ -66,7 +66,7 @@ t_0=\frac{\hat\beta_1-\beta_{10}}{\operatorname{se}(\hat\beta_1)}
 =\underbrace{\frac{\hat\beta_1-\beta_{10}}{\sigma/\sqrt{S_{xx}}}}_{=z_0}\bigg/\underbrace{\sqrt{\frac{\hat\sigma^2}{\sigma^2}}}_{=\sqrt{\chi^2_{n-2}/(n-2)}}, \tag{7.6}
 $$
 
-其中分子是 $N(0,1)$、分母来自独立于分子的 $\chi^2_{n-2}$，故由{{< tool "2.5" >}}
+其中分子是 $N(0,1)$、分母来自独立于分子的 $\chi^2_{n-2}$，故由 {{< tool "2.5" "t 分布与 F 分布的构造" >}}
 
 $$
 t_0\sim t_{n-2}\quad(\text{在 } H_0 \text{ 下}). \tag{7.7}
@@ -207,14 +207,14 @@ $$
 \frac{SS_{\rm reg}}{\sigma^2}\sim\chi^2_{1}(\lambda),\quad \lambda=\frac{\beta_1^2S_{xx}}{\sigma^2},
 $$
 
-其中 $SS_{\rm reg}$ 的分布是**非中心**卡方（{{< tool "2.7" >}}），非中心参数 $\lambda$；当 $\beta_1=0$ 时退化为中心 $\chi^2_1$。且
+其中 $SS_{\rm reg}$ 的分布是**非中心**卡方，非中心参数 $\lambda$；当 $\beta_1=0$ 时退化为中心 $\chi^2_1$。且
 $$
 \frac{SS_{\rm res}}{\sigma^2}\ \text{与}\ \frac{SS_{\rm reg}}{\sigma^2}\ \text{独立}.
 $$
 
-**证明** $SS_{\rm T}/\sigma^2\sim\chi^2_{n-1}$ 是{{< tool "2.6" >}}的结论（取 $\mu=0$ 的 $n$ 个观测的离差）。$SS_{\rm res}/\sigma^2\sim\chi^2_{n-2}$ 与独立性是定理 5.4。
+**证明** $SS_{\rm T}/\sigma^2\sim\chi^2_{n-1}$ 是 {{< tool "2.6" "Fisher 引理" >}}的结论（取 $\mu=0$ 的 $n$ 个观测的离差）。$SS_{\rm res}/\sigma^2\sim\chi^2_{n-2}$ 与独立性是定理 5.4。
 
-对 $SS_{\rm reg}$：由 (8.2)，$SS_{\rm reg}=\hat\beta_1^2S_{xx}$，而 $\hat\beta_1\sim N(\beta_1,\sigma^2/S_{xx})$，故 $\hat\beta_1\sqrt{S_{xx}}/\sigma\sim N(\beta_1\sqrt{S_{xx}}/\sigma,1)$，其平方服从非中心 $\chi^2_1$，非中心参数为均值平方 $\beta_1^2S_{xx}/\sigma^2$（{{< tool "2.7" >}}的定义）。$SS_{\rm reg}$ 是 $\hat{\mathbf y}$ 的函数、$SS_{\rm res}$ 是 $\mathbf e$ 的函数，二者独立已由定理 5.4 的证明给出。$\square$
+对 $SS_{\rm reg}$：由 (8.2)，$SS_{\rm reg}=\hat\beta_1^2S_{xx}$，而 $\hat\beta_1\sim N(\beta_1,\sigma^2/S_{xx})$，故 $\hat\beta_1\sqrt{S_{xx}}/\sigma\sim N(\beta_1\sqrt{S_{xx}}/\sigma,1)$，其平方服从非中心 $\chi^2_1$，非中心参数为均值平方 $\beta_1^2S_{xx}/\sigma^2$（{{< tool "2.7" "非中心卡方" >}}的定义）。$SS_{\rm reg}$ 是 $\hat{\mathbf y}$ 的函数、$SS_{\rm res}$ 是 $\mathbf e$ 的函数，二者独立已由定理 5.4 的证明给出。$\square$
 
 ### 8.4 $F$ 统计量与 $F$ 检验
 
@@ -228,7 +228,7 @@ $$
 
 在 $H_0$ 下 $F_0\sim F_{1,n-2}$，拒绝域为 $F_0>F_{\alpha,1,n-2}$。
 
-**证明** 在 $H_0$ 下由定理 8.5 得 $SS_{\rm reg}/\sigma^2\sim\chi^2_1$、$SS_{\rm res}/\sigma^2\sim\chi^2_{n-2}$ 且相互独立，代入{{< tool "2.5" >}}的 $F$ 分布构造：
+**证明** 在 $H_0$ 下由定理 8.5 得 $SS_{\rm reg}/\sigma^2\sim\chi^2_1$、$SS_{\rm res}/\sigma^2\sim\chi^2_{n-2}$ 且相互独立，代入 {{< tool "2.5" "t 分布与 F 分布的构造" >}}：
 
 $$
 F_0=\frac{(SS_{\rm reg}/\sigma^2)/1}{(SS_{\rm res}/\sigma^2)/(n-2)}\sim F_{1,n-2}.\ \square
@@ -247,7 +247,7 @@ E\big(MS_{\rm res}\big)=\sigma^2,\qquad
 E\big(MS_{\rm reg}\big)=\sigma^2+\beta_1^2S_{xx}=\sigma^2\Big(1+\frac{\lambda}{1}\Big). \tag{8.4}
 $$
 
-**证明** 第一式由定理 5.3。第二式：$E[SS_{\rm reg}]=E[\hat\beta_1^2S_{xx}]=S_{xx}\big(\operatorname{Var}(\hat\beta_1)+\beta_1^2\big)=S_{xx}\big(\sigma^2/S_{xx}+\beta_1^2\big)=\sigma^2+\beta_1^2S_{xx}$（用{{< tool "3.1" >}}的 MSE 分解，偏差为零）。$\square$
+**证明** 第一式由定理 5.3。第二式：$E[SS_{\rm reg}]=E[\hat\beta_1^2S_{xx}]=S_{xx}\big(\operatorname{Var}(\hat\beta_1)+\beta_1^2\big)=S_{xx}\big(\sigma^2/S_{xx}+\beta_1^2\big)=\sigma^2+\beta_1^2S_{xx}$（用{{< tool "3.1" "均方误差分解" >}}，偏差为零）。$\square$
 
 **为什么这个结论重要**：$MS_{\rm res}$ 的期望**与 $\beta_1$ 无关**，$MS_{\rm reg}$ 的期望只在 $\beta_1=0$ 时才等于 $\sigma^2$，否则多出 $\beta_1^2S_{xx}$。因此
 
@@ -374,13 +374,13 @@ $$
 \mu_{y\mid x_0}\in\hat\mu_{y\mid x_0}\pm t_{\alpha/2}(n-2)\,\operatorname{se}(\hat\mu_{y\mid x_0}) . \tag{9.7}
 $$
 
-**证明** 无偏性：$E\hat\mu=\beta_0+\beta_1x_0$（定理 4.2）。方差：用中心化形式最省事。$\hat\mu=\bar y+\hat\beta_1(x_0-\bar x)$，而 $\operatorname{Cov}(\bar y,\hat\beta_1)=0$（推论 6.2），故由{{< tool "1.4" >}}
+**证明** 无偏性：$E\hat\mu=\beta_0+\beta_1x_0$（定理 4.2）。方差：用中心化形式最省事。$\hat\mu=\bar y+\hat\beta_1(x_0-\bar x)$，而 $\operatorname{Cov}(\bar y,\hat\beta_1)=0$（推论 6.2），故由{{< tool "1.4" "线性组合的方差公式" >}}
 
 $$
 \operatorname{Var}(\hat\mu)=\operatorname{Var}(\bar y)+(x_0-\bar x)^2\operatorname{Var}(\hat\beta_1)=\frac{\sigma^2}{n}+(x_0-\bar x)^2\frac{\sigma^2}{S_{xx}},
 $$
 
-即 (9.6)。正态性：$\hat\mu$ 是 $y_i$ 的线性组合（{{< tool "2.2" >}}）。分布：把 (9.6) 中的 $\sigma$ 换成 $\hat\sigma$，同 (7.6) 的构造，用定理 5.4 的独立性与{{< tool "2.5" >}}得 $t_{n-2}$。$\square$
+即 (9.6)。正态性：$\hat\mu$ 是 $y_i$ 的线性组合（{{< tool "2.2" "正态线性组合" >}}）。分布：把 (9.6) 中的 $\sigma$ 换成 $\hat\sigma$，同 (7.6) 的构造，用定理 5.4 的独立性与 {{< tool "2.5" "t 分布与 F 分布的构造" >}}得 $t_{n-2}$。$\square$
 
 **注意两个方差的来源**：$1/n$ 项来自"$\bar y$ 的不确定性"，$(x_0-\bar x)^2/S_{xx}$ 项来自"斜率的不确定性被放大到距离 $x_0-\bar x$ 上"。
 
@@ -447,13 +447,13 @@ $$
 \psi=\underbrace{y_0-\mu_{y\mid x_0}}_{=\epsilon_0\ (\text{新误差})}-\underbrace{\big(\hat\mu_{y\mid x_0}-\mu_{y\mid x_0}\big)}_{\text{估计误差}},
 $$
 
-两项相互独立（$\hat\mu$ 只依赖旧数据，$\epsilon_0$ 来自新观测）。取期望：$E\psi=0-0=0$。取方差：由{{< tool "1.1" >}}与独立性
+两项相互独立（$\hat\mu$ 只依赖旧数据，$\epsilon_0$ 来自新观测）。取期望：$E\psi=0-0=0$。取方差：由{{< tool "1.1" "期望与方差的运算法则" >}}与独立性
 
 $$
 \operatorname{Var}(\psi)=\operatorname{Var}(\epsilon_0)+\operatorname{Var}(\hat\mu_{y\mid x_0})=\sigma^2+\sigma^2\Big[\frac1n+\frac{(x_0-\bar x)^2}{S_{xx}}\Big].\ \square
 $$
 
-**问题**：$\epsilon_0$ 的分布未知，因此 $\psi$ 的正态性需要 A3 才能断言。在 A3 下 $\psi$ 是独立正态变量的线性组合，$\psi\sim N(0,\operatorname{Var}\psi)$。
+**问题**：$\epsilon_0$ 的分布未知，因此 $\psi$ 的正态性需要 A3 才能断言。在 A3 下 $\psi$ 是独立{{< tool "2.2" "正态变量的线性组合" >}}，$\psi\sim N(0,\operatorname{Var}\psi)$。
 
 ### 10.3 预测区间
 
@@ -469,7 +469,7 @@ $$
 \frac{y_0-\hat y_0}{\sigma\sqrt{1+\frac1n+\frac{(x_0-\bar x)^2}{S_{xx}}}}\sim N(0,1). \tag{10.3}
 $$
 
-把 $\sigma$ 换成 $\hat\sigma$：分母相对分子是独立的 $\sqrt{\chi^2_{n-2}/(n-2)}$（定理 5.4），由{{< tool "2.5" >}}得 $t_{n-2}$。按 (9.1) 解出 $y_0$ 即 (10.2)。$\square$
+把 $\sigma$ 换成 $\hat\sigma$：分母相对分子是独立的 $\sqrt{\chi^2_{n-2}/(n-2)}$（定理 5.4），由 {{< tool "2.5" "t 分布与 F 分布的构造" >}}得 $t_{n-2}$。按 (9.1) 解出 $y_0$ 即 (10.2)。$\square$
 
 **命题 10.4（宽于置信区间，且随 $n$ 的收敛速度不同）**
 
@@ -544,7 +544,7 @@ $$
 R^2=\frac{S_{xy}^2/S_{xx}}{S_{yy}}=\Big(\frac{S_{xy}}{\sqrt{S_{xx}S_{yy}}}\Big)^2=r^2.\ \square
 $$
 
-**推论 11.3** $0\le R^2\le1$ 是{{< tool "1.3" >}}的 Cauchy–Schwarz 不等式 $|r|\le1$ 的直接后果；$R^2=1\iff$ 所有点共线。
+**推论 11.3** $0\le R^2\le1$ 是 {{< tool "1.3" "Cauchy–Schwarz 不等式" >}} $|r|\le1$ 的直接后果；$R^2=1\iff$ 所有点共线。
 
 **为什么这只是一元情形的巧合**：$R^2=r^2$ 依赖"只有一个回归量"，此时 $\pm r$ 恰好是标准化后的斜率。多元回归中 $R^2$ 与任一两变量相关系数都无此关系（M2 §3.5）。
 

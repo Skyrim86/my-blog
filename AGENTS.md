@@ -25,7 +25,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 11. **能问工具的就不要自己实现**：页面 URL 问 `hugo list all`（它输出每页 `path,permalink`），front matter 模板认 `archetypes/`，词表格式认 `data/taxonomy.yaml`
 12. **新增校验加进 `.github/actions/validate/action.yml`**（不要在某个 workflow 里单独写，否则 `checks.yml` 与 `deploy.yml` 分叉），并想清楚是**阻断**（内容正确性：缺 front matter、坏链、公式错版）还是**只警告**（内部一致性：词表、编辑器字段表）
 13. **改 URL 需谨慎**：URL 由 `[permalinks]`、目录名、文章标题（`:slug` 取自标题）决定。giscus 用 `mapping='title'`，所以**改标题既换 URL 又丢评论关联**；改目录名只换 URL。管理页的 `slug` 字段可把文章 URL 固定下来
-15. **课程内容与数学工具库是生成产物**：`content/courses/regression-analysis/**` 的正文、`data/math-toolbox.json`、`content/courses/*/toolbox/<id>/index.md` 全部由 `python tools/course-import/import_course.py` 从课程项目（`D:\\1.Study\\course\\回归分析`）生成。改内容改**课程项目里的 md**再重跑导入；手改博客这边的产物会在下次导入时被覆盖（`--check` 只比对不写盘）。**例外**：数学库的分支归属在 `data/math-branches.yaml`，那张表是手写的，改它 + 重跑导入即可（见 docs/features.md ㉒）
+15. **课程内容与数学工具库是生成产物**：`content/courses/regression-analysis/**` 的正文、`data/math-toolbox.json`、`content/courses/*/toolbox/<id>/index.md` 全部由 `python tools/course-import/import_course.py` 从课程项目（`D:\\1.Study\\course\\回归分析`）生成。改内容改**课程项目里的 md**再重跑导入；手改博客这边的产物会在下次导入时被覆盖（`--check` 只比对不写盘）。**例外**：数学库的分支归属在 `data/math-branches.yaml`，那张表是手写的（两级：大类 → 细分），改它 + 重跑导入即可（见 docs/features.md ㉒）。正文里的数学引用**写结论的名字**、不写「工具 k.m」——脚本按名字表自动接上卡片链接
 14. **管理页（`tools/admin/`）受同样约束**：界面资源只能放 `tools/admin/ui/`（放进 `assets/**` 会被主题合并进公开站点资源 = 把管理界面发到线上）；写盘一律转交 `new-content.sh`/`push-blog.sh`，不要在 Node 里另写一套 front matter 或发布逻辑
 
 ## 3. 内容怎么建
@@ -63,7 +63,8 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 公式真检（Hugo 内嵌 KaTeX 逐条试渲染，覆盖全部语法错误；`--fix` 验证后才写盘地修双重转义） | `scripts/check-math-katex.mjs`（CI 与 `push-blog.sh` 都跑，阻断；`--selftest` 自测机制本身） | 同上（第 4 节） |
 | 课程内容导入（课程项目 → 博客正文 + 工具库数据） | `tools/course-import/import_course.py`（**生成产物，不要手改**） | [`docs/content.md`](docs/content.md) 第 9 节 |
 | 数学工具库（卡片墙 / 卡片页 / 引用弹窗） | `layouts/courses/{tools,toolcard}.html`、`_partials/{card-ref,toolbox-*}.html`、`assets/js/toolbox.js`、`11-toolbox.css` | [`docs/features.md`](docs/features.md) 第 3 节 ㉑ |
-| 数学库（跨课程卡片墙，按分支分组） | `layouts/library/library.html`、`content/library/_index.md`、`data/math-branches.yaml`（分支归属，**非生成产物**） | [`docs/features.md`](docs/features.md) 第 3 节 ㉒ |
+| 数学库（跨课程卡片墙，大类 → 细分两级） | `layouts/library/library.html`、`content/library/_index.md`、`data/math-branches.yaml`（分支归属，**非生成产物**） | [`docs/features.md`](docs/features.md) 第 3 节 ㉒ |
+| 课程材料页的左侧跟随目录 | `layouts/_partials/{course-toc,extend_post_content}.html`、`assets/js/toc-rail.js`、`12-toc-rail.css` | [`docs/features.md`](docs/features.md) 第 3 节 ㉓ |
 | 新内容脚手架 / 删除 | `scripts/new-content.sh` | [`docs/content.md`](docs/content.md) |
 | 标签词表 | `data/taxonomy.yaml`、`scripts/check-tags.sh` | 同上 |
 | 本地管理页（新建 / 编辑 / 发布 / 体检面板 / 命令面板 `Ctrl+K` / 插图） | `tools/admin/`（`start.sh`/`server.mjs`/`lib/`/`ui/`） | [`docs/admin.md`](docs/admin.md) |

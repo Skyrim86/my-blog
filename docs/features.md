@@ -106,11 +106,13 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
 
-只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout。`archives` 那条现在没有对象了——归档页 2026-09-15 删除——留着是为了它回来时不用再想起这件事）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a` 加 `.active`。
+只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout。`archives` 那条现在没有对象了——归档页 2026-09-15 删除——留着是为了它回来时不用再想起这件事）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a`、`.toc-rail a`（课程材料页的左侧目录，见 ㉓）加 `.active`。
 
 **不要用 `requestAnimationFrame` 做节流**：隐藏标签页里 rAF 不触发，切回来会拿到过期状态——`terms-filter.js` 已经踩过同一个坑，这里直接同步算。
 
 **几何量必须缓存**：正文与每个目录项的绝对偏移只在「重新测量」时算一次，滚动路径上只做 `window.scrollY` 的算术。原来的写法每次 scroll 都要对正文调 `getBoundingClientRect()` 与 `offsetHeight`、再对每个目录项逐个取 rect，而最重的公式页有 1082 KB HTML / 1.68 万个 `<span>`。用 CDP 的 Performance 计数器量（`.shots/jank.py`，110 次滚动）：旧写法 `ScriptDuration` 0.019~0.020 s，缓存后 0.004~0.005 s，**滚动脚本开销降到 1/4**。失效时机是 `resize` / `load` / `document.fonts.ready` / `ResizeObserver(.post-single)`，最后一条是为了兜住「图片或字体迟到导致正文高度变了」。
+
+**偏移排序后再扫描**：课程材料页上同时有两个目录（正文顶部的折叠目录 + 左侧跟随目录，见 ㉓），两组指向同一批标题，拼在一起不再单调递增，而扫描逻辑是「遇到更大的 `top` 就 break」——不排序的话第一组一结束就收手，左侧目录永远不会亮（实测 `inlineActive: 1 / railActive: 0`）。`marks` 现在按 `top` 稳定排序，同一个标题上的两份目录由靠后出现的那份（左侧栏）拿到高亮。
 
 ### ⑭ 搜索快捷键与 `?q=` 预填 — `assets/js/search-shortcut.js`
 
@@ -163,21 +165,35 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 数学课里「由【工具 1.4】」「定理 4.4」这类引用以前只能翻附录，现在是一套卡片库：
 
 - **数据**：`data/math-toolbox.json`，由 `tools/course-import/import_course.py` 从课程项目生成（见 [`content.md` 第 9 节](content.md#9-课程内容从课程项目导入含数学工具库)）。
-- **主页** `/courses/<课程>/toolbox/`（`layout: "tools"`）：只铺**索引卡**（类别徽章 + 编号 + 标题），顶部按关键词与分组筛选。
+- **主页** `/courses/<课程>/toolbox/`（`layout: "tools"`）：只铺**索引卡**（类别徽章 + 名字 + 右下角编号），顶部按关键词与分组筛选。
 - **卡片页** `/toolbox/<id>/`（`layout: "toolcard"`，id 形如 `tool-1-4`／`thm-4-4`）：完整卡片 —— 陈述、用途、折叠的证明。一卡一页是因为：80 张卡铺一页有 3 MB、超单页预算；顺带每张卡有了可分享的固定链接。
-- **正文引用**：`{{< tool "1.4" >}}` / `{{< thm "4.4" >}}` → `_partials/card-ref.html` 输出一个徽章链接。点击由 `toolbox.js` 拦截，抓对应卡片页塞进弹窗（同一地址只抓一次）；**无 JS 时退化成普通链接**，跳到卡片页。
+- **正文引用写名字，不写编号**：正文里写「由全方差律」「见 Fisher 引理」，导入脚本按名字表把它换成 `{{< tool "1.2" "全方差律" >}}` → `_partials/card-ref.html` 输出链接，点击由 `toolbox.js` 拦截、抓对应卡片页塞进弹窗（同一地址只抓一次）；**无 JS 时退化成普通链接**，跳到卡片页。名字表 = 工具库条目的标题 + 条目紧跟的 `<!-- 别名: … -->` 行，长名字优先，**每处出现都接线**。数学区、行内代码、既有链接、HTML 标签与**标题行**一律跳过：标题里插链接会让 `.TableOfContents` 冒出 `HAHAHUGOSHORTCODE372s2HBHB` 这类占位符（实测踩到，目录里当场可见）。
+- **「工具 k.m」这套称呼已取消**：条目标题就是定理/定义的名字，编号只作卡片角落的定位小字（`.tb-num`），同时仍是稳定 id（`tool-1-4`）。正文里若还残留 `【工具 k.m】`，导入脚本报错退出（`STRAY_TOOL_REF`），不会静默漏掉。
 - 卡片页不参与标签体系（`toolbox/_index.md` 的 `cascade` 清空 `tags`），也不进 sitemap 与搜索索引（`sitemap.disable` + `searchHidden`）。
-- 卡内的 `[【工具 1.1】](#card-tool-1-1)` 会被 `toolbox-md.html` 在渲染后改写成目标卡片页地址（Hugo 会把纯 fragment 链接补成「当前页地址 + #锚点」）。
+- 卡内的 `[名字](#card-tool-1-1)` 会被 `toolbox-md.html` 在渲染后改写成目标卡片页地址（Hugo 会把纯 fragment 链接补成「当前页地址 + #锚点」）；卡片不引用自己。
 
 ### ㉒ 数学库（跨课程卡片墙，按数学分支分组）— `layouts/library/library.html` + `data/math-branches.yaml`
 
 `/library/`（导航里排在首页之后）把各门课程的卡片按**数学分支**汇总成一张索引墙。它不新建内容，只是 ㉑ 那批卡片的第二个视图：
 
-- **数据**：仍是 `data/math-toolbox.json`，每张卡多两个字段 —— `course`（卡片属于哪门课）与 `branch`（哪个分支）。归属规则写在 `data/math-branches.yaml`（**不是**生成产物）：`assign` 按 `cards > groups > modules > courses` 取第一个命中，都没命中落到 `default`。调某张卡的归属改这张表，再重跑导入。
-- **页面**：`content/library/_index.md`（section，`layout: "library"`）只铺索引卡，卡片页仍留在 `/courses/<课程>/toolbox/<id>/` —— 卡片正文只有一份，一卡一页的体积账（㉑）不受影响。
-- **交互复用**：搜索、筛选、弹窗全部沿用 `assets/js/toolbox.js` 与 `11-toolbox.css`。筛选维度从「工具库分组」换成「分支」不需要新脚本 —— `toolbox.js` 只按 `.tb-group[data-group]` 与 chip 的 `data-group` 配对，两个页面共用同一份。**注意脚本的加载判据在 `extend_head.html` 的 layout 白名单里**（`"tools" "toolcard" "library"`）：新页面想用卡片墙或卡片引用，先把它加进那个 `slice`，否则脚本不加载、筛选静默失效（踩过，页面看起来完全正常）。
-- **空分支不渲染**：分支表里预置的分支若一张卡都没有（现在有「数学分析」「数值分析与科学计算」「最优化」），既不上筛选条也不出分组；以后导入别的课程就自动出现。
+- **数据**：仍是 `data/math-toolbox.json`，每张卡多三个字段 —— `course`（卡片属于哪门课）、`branch`（大类）与 `section`（细分）。归属规则写在 `data/math-branches.yaml`（**不是**生成产物）：`branches` 是**两级**结构（大类 → `sections` 细分，每个细分带一句 `summary`），`assign` 按 `cards > nums > groups > modules > courses` 取第一个命中，都没命中落到 `default`。调某张卡的归属改这张表，再重跑导入；导入时会校验细分 key 不重复、`assign` 与 `default` 都指向真实存在的细分（写错就报错退出，而不是在页面上静默错分）。
+- **两级渲染**：大类是 `.tb-group[data-group]`（筛选按钮切换的就是它），细分是库页独有的 `.lb-subgroup`——只做视觉分组、不参与筛选，卡被筛空时由 `toolbox.js` 整块收起（否则筛「概率论」时别的分支下会留下一排空标题）。页面顶部另有一张**分支大纲**（大类 + 全部细分 + 计数 + 跳转锚点），省掉在 80 多张卡里来回滚。
+- **筛选维度是大类**：`assign.nums` 让课程定理卡按节号落到细分（`thm-7-*` → 参数的检验、`thm-8-*` → 方差分析与 F 检验……），细到节的粒度才配得上「每个分支再细分」。
+- **页面**：`content/library/_index.md`（section，`layout: "library"`，`math: true`——卡片名字里带公式的条目要渲染）只铺索引卡，卡片页仍留在 `/courses/<课程>/toolbox/<id>/` —— 卡片正文只有一份，一卡一页的体积账（㉑）不受影响。
+- **交互复用**：搜索、筛选、弹窗全部沿用 `assets/js/toolbox.js` 与 `11-toolbox.css`。筛选维度从「工具库分组」换成「大类」不需要新脚本 —— `toolbox.js` 只按 `.tb-group[data-group]` 与 chip 的 `data-group` 配对，两个页面共用同一份。**注意脚本的加载判据在 `extend_head.html` 的 layout 白名单里**（`"tools" "toolcard" "library"`）：新页面想用卡片墙或卡片引用，先把它加进那个 `slice`，否则脚本不加载、筛选静默失效（踩过，页面看起来完全正常）。
+- **空分支不渲染**：分支表里预置的大类若一张卡都没有（现在有「数学分析」「数值分析与科学计算」「最优化」），既不上筛选条也不出分组；以后导入别的课程就自动出现。
 - **卡片页底部**给两个返回入口：「本课程工具库」与「数学库」。正文里的 `{{< tool/thm >}}` 引用在数学库页上也会按卡片自己的 `course` 找到正确工具库（`card-ref.html` 的第二级查找），不再依赖「当前页属于哪门课」。
+
+### ㉓ 课程材料页的左侧跟随目录 — `_partials/course-toc.html` + `assets/js/toc-rail.js` + `12-toc-rail.css`
+
+点开笔记（以及作业、实验）时，宽屏左侧有一栏跟随滚动的目录；窄屏不显示，仍用正文顶部那份折叠目录。
+
+- **范围**：`Type == "courses"` 且 `Kind == "page"` 的页面，判据同时写在 `extend_post_content.html`（渲染）与 `extend_head.html`（脚本）里，**两处要一起改**。
+- **目录内容**：Hugo 的 `.TableOfContents`（默认 h2–h3，正好对上 §x / §x.y），不用主题 `toc.html` 那份 Scratch 撑嵌套的自建目录。它的标题文本是**原始 Markdown**，所以还要 `replaceRE` 去掉 `$…$` 定界符（构建期渲染的 KaTeX 不会进目录，留着就是裸的 `$F$`）——注意 `replaceRE` 的返回值不是 `template.HTML`，末尾必须补 `| safeHTML`，否则整段目录被转义成文本（踩过）。
+- **为什么由 JS 挪到 `<body>` 下**：`.post-single` 上的 `backdrop-filter` 会成为 fixed 后代的包含块，目录留在正文容器里就是「跟着正文滚」而不是跟随视口（实测滚动 2500px 后 top 由 170px 变成 -1943px）。`assets/js/toc-rail.js` 把 `#toc-rail` 移到 `body` 末尾并给 `body` 加 `.has-toc-rail`——**显示与否挂在这个类上**，所以没 JS 时目录栏不出现、正文顶部的折叠目录照旧，不会出现「两个都没有」。
+- **为什么不能挂在 `extend_footer.html`**：主题 baseof 用 `partialCached "footer.html" . .Layout .Kind …`，同 (Layout, Kind) 的页面共用一份渲染结果——笔记页的 `.Type`、`.Section`、`.TableOfContents` 会串成**第一个被缓存页面**的那份（实测三个不同材料页拿到完全相同的调试值）。要页面相关内容就得用 `extend_post_content.html`（`partial`，逐页渲染）。
+- **断点 1240px**：正文列 720px 居中，左右各留约 600px，240px 的目录栏 + 间距放得下，`left: max(16px, …)` 兜住临界宽度；宽屏下正文顶部那份折叠目录由 `body.has-toc-rail .post-single > .toc { display: none }` 收起。
+- **当前小节高亮**沿用 `reading-progress.js`（选择器含 `.toc-rail a`，见 ⑬ 的排序说明）。
 
 ## 4. 四处有意的主题模板覆盖
 

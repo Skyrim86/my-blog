@@ -195,7 +195,7 @@
 
 .tb-teaser-link {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: baseline;
   gap: 7px;
   padding: 0.7rem 0.85rem;
@@ -207,20 +207,12 @@
   color: var(--accent);
 }
 
+/* 名字独占剩下的宽度、在卡内换行，编号才不会被挤到下一行去 */
 .tb-teaser-title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.92rem;
   font-weight: 600;
-}
-
-.tb-teaser-arrow {
-  margin-left: auto;
-  font-size: 0.85rem;
-  color: var(--secondary);
-  opacity: 0.45;
-}
-
-.tb-teaser-link:hover .tb-teaser-arrow {
-  opacity: 1;
 }
 
 /* ---------- 单张卡片页（layouts/courses/toolcard.html） ---------- */
@@ -274,11 +266,22 @@
   background: var(--code-bg);
 }
 
-.tb-label {
+/* 编号（1.2 / 4.4）：定位用的小字，不再是标签；索引卡与卡片头都靠它对齐右端 */
+.tb-num {
   flex: none;
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
   color: var(--secondary);
+  opacity: 0.75;
+}
+
+.tb-teaser-link .tb-num,
+.tb-card-head .tb-num {
+  margin-left: auto;
+}
+
+.tb-card-head .tb-card-anchor {
+  margin-left: 0.15rem;
 }
 
 .tb-card-title {
@@ -445,4 +448,102 @@ body.tb-modal-open {
     border-radius: 0;
     border: none;
   }
+}
+
+/* ---------- 数学库（/library/）：大类 → 细分 两级 ----------
+   大类用 .tb-group（筛选按钮切换的就是它，见 assets/js/toolbox.js），
+   细分是库页独有的 .lb-subgroup：只作视觉分组，不参与筛选；卡全被筛掉时整块收起。 */
+.lb-branches {
+  margin-top: 1.4rem;
+}
+
+.lb-subgroup {
+  margin: 1.3rem 0 0;
+}
+
+.lb-subgroup[hidden] {
+  display: none;
+}
+
+.lb-subgroup-title {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0 0 0.15rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.lb-subgroup-count {
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--secondary);
+  opacity: 0.8;
+}
+
+.lb-subgroup-desc {
+  margin: 0 0 0.7rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--secondary);
+}
+
+/* 分支大纲：两级一览 + 计数，省掉在 80 多张卡里来回滚 */
+.lb-outline {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.7rem 1.5rem;
+  margin: 1.1rem 0 1.3rem;
+  padding: 1rem 1.1rem;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.lb-outline-branch {
+  min-width: 0;
+}
+
+.lb-outline a {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.lb-outline a:hover {
+  color: var(--accent);
+}
+
+.lb-outline-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.lb-outline-list {
+  margin: 0.3rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.lb-outline-list a {
+  color: var(--secondary);
+}
+
+.lb-outline-list a:hover {
+  color: var(--accent);
+}
+
+.lb-outline-list li {
+  margin: 0.12rem 0;
+}
+
+.lb-count {
+  margin-left: auto;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--secondary);
+  opacity: 0.8;
 }

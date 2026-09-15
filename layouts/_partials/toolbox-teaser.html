@@ -1,15 +1,23 @@
-{{- /* 工具库索引卡（工具库主页用）。参数：page（工具库页）、card、url（卡片页地址）。 */ -}}
+{{- /* 工具库 / 数学库的索引卡。参数：page（所在页）、card（data/math-toolbox.json 的一条）、url（卡片页地址）。
+
+     一块卡片的显示：类别徽章 → 名字 → 编号。
+
+       - 名字 = 条目标题（如「Fisher 引理」）；课程定理卡没有名字时退回编号，
+         免得徽章与主文本把类别写两遍。
+       - 编号（1.2 / 4.4）只作定位用的小字，出现在右下角，不再当标签用。
+       - data-search 给截图不进正文的信息（名字、编号、类别、正文）供搜索用，
+         见 assets/js/toolbox.js 的筛选。 */ -}}
 {{- $card := .card -}}
-{{- $search := printf "%s %s %s" $card.label $card.title ($card.body | plainify) -}}
+{{- $search := printf "%s %s %s %s" $card.kind $card.num $card.title ($card.body | plainify) -}}
 <article class="tb-card tb-teaser" data-id="{{ $card.id }}" data-group="{{ $card.group }}"
          data-kind="{{ $card.kind }}" data-search="{{ substr $search 0 240 }}">
   <a class="tb-teaser-link" href="{{ .url }}">
     <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>
-    {{- /* label 里已经带类别（「工具 1.4」），徽章里再写一遍就重复了，这里只留编号 */ -}}
-    <span class="tb-label">{{ replace $card.label (printf "%s " $card.kind) "" }}</span>
     {{- with $card.title }}
     <span class="tb-teaser-title">{{ $.page.RenderString . }}</span>
+    <span class="tb-num">{{ $card.num }}</span>
+    {{- else }}
+    <span class="tb-teaser-title">{{ $card.num }}</span>
     {{- end }}
-    <span class="tb-teaser-arrow" aria-hidden="true">→</span>
   </a>
 </article>

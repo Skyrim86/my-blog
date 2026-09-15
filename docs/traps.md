@@ -28,6 +28,9 @@
 | 换 logo 后看不到新图标 | `static/` 下是无内容指纹的静态文件 | 访客强刷即可；换图标**不要手改那些 png/ico**，改 `tools/icons/make-icons.py` 后重新生成（见 `architecture.md` 第 6 节），桌面快捷方式还要 `ie4uinit.exe -show` 刷 Explorer 的图标缓存 |
 | 改明暗颜色的代码不生效 | 监听/匹配了 `.dark` class | 主题机制是 `<html>` 上的 **`data-theme` 属性**，用 `[data-theme="dark"]` |
 | bash 脚本报 `$'\r': command not found` | 全新 checkout 得到 CRLF | `scripts/*.sh` 与 `data/*.yaml` **必须 LF**（`.gitattributes` 已用 `text eol=lf` 钉住）。内容 `.md` 允许 CRLF（Hugo 与两个校验脚本都能处理） |
+| 课程材料页的左侧目录栏不跟着滚（或整栏跑到正文末尾） | `.post-single` 上的 `backdrop-filter` 会成为 fixed 后代的**包含块**——留在正文容器里的 `position: fixed` 是相对卡片定位的，于是跟着正文一起滚 | `assets/js/toc-rail.js` 把 `#toc-rail` 挪到 `<body>` 下；显示与否挂在 `body.has-toc-rail` 上，没 JS 时不显示（正文顶部的折叠目录照旧）。见 [`features.md` 第 3 节 ㉓](features.md) |
+| 同一类页面之间内容串页：A 页的侧栏/页脚出现 B 页的目录 | 主题 baseof 用 `partialCached "footer.html" . .Layout .Kind …`，同 (Layout, Kind) 的页面**共用一份渲染结果**（`extend_footer.html` 里的页面相关输出会串） | 页面相关的内容一律挂 `extend_post_content.html`（`partial`，逐页渲染）；`extend_footer.html` 只放与页面无关的东西 |
+| 目录里冒出 `HAHAHUGOSHORTCODE372s2HBHB` | 标题行里有 `{{< … >}}`：`.TableOfContents` 不执行短代码，占位符原样进目录 | 导入脚本的接线要跳过标题行（`import_course.py` 的 `SKIP_ZONE`）；正文里也别手写短代码进标题 |
 | 管理页窗口里出现 `'会自动打开' is not recognized…`，但服务起来了 | `.bat` 里混进了中文 | 见 [`admin.md` 第 12 节](admin.md#12-启动管理页bat-的硬约束) |
 | 管理界面被发布到线上 | 界面资源放进了 `assets/` | 只能放 `tools/admin/ui/`，见 [`admin.md` 第 11 节](admin.md#11-安全边界) |
 

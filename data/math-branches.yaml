@@ -1,50 +1,169 @@
 # 数学库（/library/）的分支体系 —— 卡片按数学分支归类的唯一事实源。
 #
-# tools/course-import/import_course.py 导入时读这张表，把 branch 写进
-# data/math-toolbox.json（生成产物，勿手改）；layouts/library/library.html 按它分组。
+# 两级结构：大类（branches，数学分支）→ 细分（sections，方向）。
+# tools/course-import/import_course.py 导入时读这张表，把 branch（大类）与 section（细分）
+# 写进 data/math-toolbox.json（生成产物，勿手改）；layouts/library/library.html 按它分组：
+# 页面按大类分块、块内按细分归组。
 # 调整某张卡的归属改这里，然后重跑导入脚本。
 #
-# branches 的顺序 = 数学库页面上的分组顺序；summary 显示在分组标题下。
+# 归属规则的匹配顺序（细 → 粗，取第一个命中）：
+#   cards   按卡片 id（如 thm-4-4、tool-1-1）—— 最细，最优先
+#   nums    按课程定理卡的节号（thm-<节>-<序> 里的节号，与课程笔记的 § 号一致）
+#   groups  按工具卡的分组号（工具/00_数学工具.md 里 `## k 名称` 的 k）
+#   modules 按课程模块号（笔记文件里的 M1 / M2 …）
+#   courses 按课程目录名 —— 最粗
+# 都没命中 → default。default 也必须是某个细分（落在「未分类」大类里）。
 branches:
   - key: probability
     name: 概率论
-    summary: "概率空间、随机变量与矩、常见分布、收敛性"
+    summary: "随机变量与矩、条件期望、常见分布、极限定理与渐近方法"
+    sections:
+      - key: prob-moments
+        name: 期望、方差与协方差
+        summary: "线性运算法则、Cauchy–Schwarz 界、不相关与方差可加"
+      - key: prob-conditioning
+        name: 条件期望与全方差律
+        summary: "条件期望、全期望律、全方差律"
+      - key: prob-normal
+        name: 正态分布与多元正态
+        summary: "标准正态、正态线性组合、线性变换封闭性、二元正态条件分布"
+      - key: prob-chisquare
+        name: 卡方分布与二次型
+        summary: "卡方分布的定义与矩、幂等二次型、Fisher 引理、非中心卡方"
+      - key: prob-tf
+        name: t 分布与 F 分布
+        summary: "t 与 F 的构造，以及长尾的来源"
+      - key: prob-limit
+        name: 大数律与中心极限定理
+        summary: "Khinchine 弱大数律、Lindeberg–Lévy 中心极限定理"
+      - key: prob-asymptotic
+        name: 收敛方式与渐近方法
+        summary: "依分布/依概率收敛、Slutsky 定理、连续映射、delta 方法"
   - key: statistics
     name: 数理统计
-    summary: "估计与检验、抽样分布、回归与线性模型"
+    summary: "估计与检验、回归与线性模型"
+    sections:
+      - key: stat-estimation
+        name: 估计量与无偏性
+        summary: "偏差、MSE 分解、线性估计类与 BLUE"
+      - key: stat-bounds
+        name: 信息与方差下界
+        summary: "Fisher 信息、Cramér–Rao 下界"
+      - key: stat-likelihood
+        name: 似然、充分性与极值
+        summary: "极大似然、不变性、充分统计量与因子分解定理"
+      - key: stat-model
+        name: 模型设定与假设
+        summary: "简单线性回归模型、假设分层、过原点模型"
+      - key: stat-ols
+        name: 最小二乘与几何
+        summary: "正规方程、正交投影、残差性质、中心化形式、过原点回归"
+      - key: stat-properties
+        name: 估计量的性质与抽样分布
+        summary: "无偏性、方差与协方差、Gauss–Markov、误差方差估计、标准误"
+      - key: stat-tests
+        name: 参数的检验
+        summary: "t 检验、显著性、p 值、检验与区间的等价性"
+      - key: stat-anova
+        name: 方差分析与 F 检验
+        summary: "平方和分解、自由度、F 统计量、期望均方"
+      - key: stat-interval
+        name: 区间估计与预测
+        summary: "系数与误差方差的区间、均值响应、预测区间"
+      - key: stat-fit
+        name: 拟合优度与相关
+        summary: "R²、调整 R²、样本相关系数与 Fisher z 变换"
+      - key: stat-mle
+        name: 极大似然与回归的渐近性质
+        summary: "正态误差下的 MLE、误差方差的偏差、无正态假设时的推断"
+      - key: stat-random
+        name: 随机回归量与相关模型
+        summary: "固定设计 vs 随机设计、条件与无条件矩、稳健性"
   - key: linear-algebra
     name: 线性代数
     summary: "矩阵运算、投影与二次型、秩与分块"
+    sections:
+      - key: la-projection
+        name: 正交投影与幂等矩阵
+        summary: "投影矩阵、幂等性、特征值与秩-迹相等"
+      - key: la-block
+        name: 分块矩阵与消元
+        summary: "Schur 补、分块求逆、Frisch–Waugh–Lovell 引理"
   - key: analysis
     name: 数学分析
     summary: "极限与连续、微分与积分、级数与不等式"
+    sections:
+      - key: analysis-ineq
+        name: 不等式与极值
+        summary: "常用不等式、凸性、最值条件"
   - key: numerical
     name: 数值分析与科学计算
     summary: "误差与稳定性、数值线性代数、微分方程数值解"
+    sections:
+      - key: numerical-linalg
+        name: 数值线性代数与误差
+        summary: "最小二乘的数值实现、条件数与抵消误差"
   - key: optimization
     name: 最优化
     summary: "凸性、无约束与约束问题、数值算法"
+    sections:
+      - key: optim-convex
+        name: 凸性与最优性条件
+        summary: "凸函数、一阶/二阶条件、无约束下降法"
   - key: misc
     name: 未分类
     summary: "还没有分支归属的卡片——这一组非空就说明某张卡漏了归属"
-
-# 卡片 → 分支的匹配规则，自上而下取第一个命中的：
-#   cards   按卡片 id（如 thm-4-4、tool-1-1）—— 最细，最优先
-#   groups  按工具卡的分组号（工具/00_数学工具.md 里 `## k 名称` 的 k）
-#   modules 按课程定理卡的模块号（笔记文件里的 M1 / M2 …）
-#   courses 按课程目录名 —— 最粗
-# 都没命中 → default。
+    sections:
+      - key: misc-inbox
+        name: 待归类
+        summary: "先落在这里，再补 assign 规则"
 assign:
-  cards: {}
+  cards:
+    tool-1-2: prob-conditioning
+    tool-1-3: prob-moments
+    tool-1-4: prob-moments
+    tool-2-2: prob-normal
+    tool-2-3: prob-normal
+    tool-2-4: prob-chisquare
+    tool-2-6: prob-chisquare
+    tool-2-7: prob-chisquare
+    tool-3-2: stat-estimation
+    tool-3-3: stat-likelihood
+    tool-3-4: stat-likelihood
+    tool-3-5: stat-bounds
+    tool-4-1: la-projection
+    tool-4-2: la-projection
+    tool-4-3: la-block
+    tool-5-1: prob-limit
+    tool-5-2: prob-asymptotic
+    tool-5-3: prob-asymptotic
+    tool-6-1: prob-normal
+    tool-6-2: stat-fit
+    thm-9-2: stat-tests
+    thm-14-1: stat-model
+  nums:
+    "2": stat-model
+    "3": stat-ols
+    "4": stat-properties
+    "5": stat-properties
+    "6": stat-ols
+    "7": stat-tests
+    "8": stat-anova
+    "9": stat-interval
+    "10": stat-interval
+    "11": stat-fit
+    "14": stat-ols
+    "15": stat-mle
+    "16": stat-random
   groups:
-    "1": probability
-    "2": probability
-    "3": statistics
-    "4": linear-algebra
-    "5": statistics
-    "6": statistics
+    "1": prob-moments
+    "2": prob-chisquare
+    "3": stat-estimation
+    "4": la-projection
+    "5": prob-asymptotic
+    "6": stat-fit
   modules:
-    M1: statistics
+    M1: stat-ols
   courses:
-    regression-analysis: statistics
-default: misc
+    regression-analysis: stat-ols
+default: misc-inbox

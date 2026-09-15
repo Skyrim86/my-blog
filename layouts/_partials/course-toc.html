@@ -1,0 +1,19 @@
+{{- /* 课程材料页（笔记 / 作业 / 实验）的左侧跟随目录，由 extend_post_content.html 调用。
+
+     目录用 Hugo 的 .TableOfContents（hugo.toml 没改 [markup.tableOfContents]，默认收 h2–h3，
+     正好对上 §x / §x.y 两级），不用主题 partials/toc.html 那份自建目录 ——
+     页内折叠目录在宽屏由 12-toc-rail.css 收起（body:has(.toc-rail)），窄屏继续用它。
+
+     当前小节的高亮由 assets/js/reading-progress.js 负责（选择器含 .toc-rail）。 */ -}}
+{{- $toc := .TableOfContents -}}
+{{- if and $toc (strings.Contains $toc "<li>") }}
+<aside class="toc-rail" id="toc-rail">
+  <p class="toc-rail-title">{{ i18n "toc" }}</p>
+  <div class="toc-rail-inner">
+    {{- /* .TableOfContents 的标题文本是**原始 Markdown**：小标题里的 $F$、$p$ 会原样冒出来，
+           这里去掉行内公式的定界符、留下内容（与主题内嵌目录 plainify 的效果一致）。
+           定界符只出现在文字里，href 里的锚点 id 本来就去掉了它们，所以这样做不会改坏跳转。 */ -}}
+    {{- $toc | replaceRE `\$([^$]*)\$` "$1" | safeHTML -}}
+  </div>
+</aside>
+{{- end }}

@@ -149,6 +149,14 @@
           if (show) visible++;
         });
         group.hidden = visible === 0;
+        /* 数学库是「大类 → 细分」两级：细分小节里卡全被筛掉就整块收起，
+           否则筛「概率论」时会在别的分支下留下一个空的细分标题。 */
+        Array.prototype.forEach.call(group.querySelectorAll("[data-subgroup]"), function (sub) {
+          var has = Array.prototype.some.call(sub.querySelectorAll(".tb-card"), function (card) {
+            return !card.hidden;
+          });
+          sub.hidden = !has;
+        });
         if (inGroup) shown += visible;
       });
       if (q || activeGroup !== "all") {

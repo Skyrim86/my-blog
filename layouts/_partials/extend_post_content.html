@@ -1,4 +1,11 @@
 {{- partial "series-posts.html" . }}
+{{- /* 课程材料页（学习笔记 / 作业 / 实验）：左侧跟随目录。
+       必须挂在这里而不是 footer 的扩展钩子：footer.html 是 partialCached
+       （主题 baseof 用 partialCached "footer.html" . .Layout .Kind …），
+       页面相关的输出会被同键页面共用，目录会串页。这里每个页面各渲染一次。 */ -}}
+{{- if and (eq .Type "courses") (eq .Kind "page") }}
+{{- partial "course-toc.html" . }}
+{{- end }}
 {{- /* 课程材料页（学习笔记 / 作业 / 实验）：正文之后追加附件下载区 */ -}}
 {{- if eq .Type "courses" }}
 {{- partial "course-downloads.html" . }}

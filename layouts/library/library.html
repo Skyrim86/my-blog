@@ -1,12 +1,14 @@
 {{- /* 数学库主页（layout: "library"）：把各门课程的卡片按**数学分支**汇总成一张索引墙。
 
-     数据来自 data/math-toolbox.json（生成产物），每张卡带 course / branch 两个字段：
-       - branch 决定它落进哪个分组，来源是 data/math-branches.yaml（分支归属改那张表）
-       - course 决定它的卡片页在哪 —— 卡片页仍留在 /courses/<课程>/toolbox/<id>/，
-         文库不复制卡片内容，只聚合索引（一卡一页，正文只有一份，见 docs/features.md ㉑）
+     层级是两级：大类（概率论 / 数理统计 / 线性代数 …）→ 细分（矩与随机变量运算、抽样分布 …）。
+     数据来自 data/math-toolbox.json（生成产物），每张卡带 branch（大类）与 section（细分）两个字段，
+     来源是 data/math-branches.yaml（分支归属改那张表，见文件头注释）。
+
+     卡片页仍留在 /courses/<课程>/toolbox/<id>/，文库不复制卡片内容，只聚合索引
+     （一卡一页，正文只有一份，见 docs/features.md ㉑）。
 
      索引卡复用工具库的 toolbox-teaser.html，所以搜索、筛选与弹窗都由同一份
-     assets/js/toolbox.js + 11-toolbox.css 驱动：这里的「分类」维度是分支，不是工具库的分组。 */ -}}
+     assets/js/toolbox.js + 11-toolbox.css 驱动：这里的「分类」维度是大类，不是工具库的分组。 */ -}}
 {{- define "main" }}
 {{- $tb := index site.Data "math-toolbox" }}
 
@@ -20,13 +22,31 @@
   {{- end }}
 
   {{- with $tb }}
-  {{- /* 只保留真有卡片的分支：空分支既不上筛选条、也不出分组 */ -}}
+  {{- /* 只保留真有卡片的大类与细分：空分支既不上筛选条、也不去大纲里占位 */ -}}
   {{- $branches := slice }}
   {{- range .branches }}
     {{- if where $tb.cards "branch" .key }}
       {{- $branches = $branches | append . }}
     {{- end }}
   {{- end }}
+
+  {{- /* 分支大纲：两级一览 + 计数，长页面上省掉来回滚动 */ -}}
+  <nav class="lb-outline" aria-label="{{ i18n "libraryOutline" }}">
+    {{- range $branches }}
+    {{- $branchCards := where $tb.cards "branch" .key }}
+    <div class="lb-outline-branch">
+      <a class="lb-outline-name" href="#branch-{{ .key }}">{{ .name }}<span class="lb-count">{{ len $branchCards }}</span></a>
+      <ul class="lb-outline-list">
+        {{- range .sections }}
+        {{- $n := len (where $branchCards "section" .key) }}
+        {{- if $n }}
+        <li><a href="#section-{{ .key }}">{{ .name }}<span class="lb-count">{{ $n }}</span></a></li>
+        {{- end }}
+        {{- end }}
+      </ul>
+    </div>
+    {{- end }}
+  </nav>
 
   <div class="tb-toolbar">
     <div class="tb-search">
@@ -43,30 +63,45 @@
     <p class="tb-empty" id="tb-empty" hidden>{{ i18n "toolboxEmpty" }}</p>
   </div>
 
-  <div class="tb-groups">
+  <div class="tb-groups lb-branches">
     {{- range $branches }}
-    {{- $cards := where $tb.cards "branch" .key }}
-    <section class="tb-group" id="group-{{ .key }}" data-group="{{ .key }}">
+    {{- $branchCards := where $tb.cards "branch" .key }}
+    <section class="tb-group lb-branch" id="branch-{{ .key }}" data-group="{{ .key }}">
       <h2 class="tb-group-title">
         <span class="tb-group-name">{{ .name }}</span>
-        <span class="tb-group-count">{{ len $cards }}</span>
+        <span class="tb-group-count">{{ len $branchCards }}</span>
       </h2>
       {{- with .summary }}
       <p class="tb-group-desc">{{ . }}</p>
       {{- end }}
-      <div class="tb-grid">
-        {{- range $cards }}
-        {{- $url := "" }}
-        {{- with site.GetPage (printf "/courses/%s/toolbox/%s" .course .id) }}
-          {{- $url = .RelPermalink }}
+
+      {{- range .sections }}
+      {{- $cards := where $branchCards "section" .key }}
+      {{- if $cards }}
+      <div class="lb-subgroup" id="section-{{ .key }}" data-subgroup="{{ .key }}">
+        <h3 class="lb-subgroup-title">
+          <span class="lb-subgroup-name">{{ .name }}</span>
+          <span class="lb-subgroup-count">{{ len $cards }}</span>
+        </h3>
+        {{- with .summary }}
+        <p class="lb-subgroup-desc">{{ . }}</p>
         {{- end }}
-        {{- if $url }}
-        {{- partial "toolbox-teaser.html" (dict "page" $ "card" . "url" $url) }}
-        {{- else }}
-          {{- warnf "library: 卡片 %s 没有对应的卡片页（课程 %s）" .id .course }}
-        {{- end }}
-        {{- end }}
+        <div class="tb-grid">
+          {{- range $cards }}
+          {{- $url := "" }}
+          {{- with site.GetPage (printf "/courses/%s/toolbox/%s" .course .id) }}
+            {{- $url = .RelPermalink }}
+          {{- end }}
+          {{- if $url }}
+          {{- partial "toolbox-teaser.html" (dict "page" $ "card" . "url" $url) }}
+          {{- else }}
+            {{- warnf "library: 卡片 %s 没有对应的卡片页（课程 %s）" .id .course }}
+          {{- end }}
+          {{- end }}
+        </div>
       </div>
+      {{- end }}
+      {{- end }}
     </section>
     {{- end }}
   </div>

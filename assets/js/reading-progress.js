@@ -25,7 +25,7 @@
     bar.setAttribute('aria-hidden', 'true');
     document.body.appendChild(bar);
 
-    const tocLinks = Array.from(document.querySelectorAll('.toc a[href^="#"]'))
+    const tocLinks = Array.from(document.querySelectorAll('.toc a[href^="#"], .toc-rail a[href^="#"]'))
         .map((link) => {
             let id = link.hash.slice(1);
             try {
@@ -48,10 +48,16 @@
             top,
             span: article.offsetHeight - window.innerHeight * 0.85,
             line: (header?.offsetHeight || 60) + 24,
-            marks: tocLinks.map((item) => ({
-                link: item.link,
-                top: item.el.getBoundingClientRect().top + window.scrollY,
-            })),
+            marks: tocLinks
+                .map((item) => ({
+                    link: item.link,
+                    top: item.el.getBoundingClientRect().top + window.scrollY,
+                }))
+                /* 按文档位置排序：正文顶部的折叠目录与课程材料页的左侧目录指向同一批标题，
+                   两组拼在一起不再单调，而 update() 的扫描是「遇到更大的 top 就 break」——
+                   不排序的话第一组结束时就收手，左侧目录永远不会高亮。
+                   稳定排序让同一个标题上靠后出现的那份目录（左侧栏）拿到高亮。 */
+                .sort((a, b) => a.top - b.top),
         };
     };
 

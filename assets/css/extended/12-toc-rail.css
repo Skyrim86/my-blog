@@ -1,0 +1,91 @@
+/* ============================================
+   课程材料页的左侧跟随目录（layouts/_partials/course-toc.html）
+   ============================================
+   - 目录栏由 assets/js/toc-rail.js 挪到 <body> 下并给 body 加 .has-toc-rail，
+     三条规则都挂在这个类下，所以没 JS 时不显示目录栏，正文顶部那份折叠目录照旧。
+     （挪的原因：.post-single 的 backdrop-filter 会成为 fixed 后代的包含块，
+      留在正文里的话 position: fixed 会跟着正文滚，就不是"跟随"了。）
+   - 断点 1240px：正文列 720px 居中（PaperMod 的 --main-width），两侧各空出约 600px，
+     240px 的目录 + 间距放得下，不挤压正文。
+   - 当前小节高亮 .active 由 assets/js/reading-progress.js 打上（与正文目录同一份逻辑）。
+   ============================================ */
+
+.toc-rail {
+  display: none;
+}
+
+@media (min-width: 1240px) {
+  body.has-toc-rail .toc-rail {
+    display: block;
+    position: fixed;
+    top: calc(var(--header-height) + 24px);
+    left: max(16px, calc(50% - 360px - 24px - 240px));
+    width: 240px;
+    max-height: calc(100vh - var(--header-height) - 48px);
+    overflow-y: auto;
+    padding: 0.85rem 1rem 0.95rem;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* 目录已经在左栏，正文顶部那份折叠目录收起来 */
+  body.has-toc-rail .post-single > .toc {
+    display: none;
+  }
+}
+
+.toc-rail-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.1em;
+  color: var(--secondary);
+}
+
+.toc-rail-inner {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.toc-rail ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc-rail > .toc-rail-inner > nav > ul > li {
+  margin: 0.3rem 0;
+}
+
+.toc-rail > .toc-rail-inner > nav > ul > li > a {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.toc-rail ul ul {
+  margin: 0.15rem 0 0.35rem 0.1rem;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--border);
+}
+
+.toc-rail li {
+  margin: 0.12rem 0;
+}
+
+.toc-rail a {
+  display: block;
+  color: var(--secondary);
+  text-decoration: none;
+}
+
+.toc-rail a:hover {
+  color: var(--primary);
+}
+
+.toc-rail a.active {
+  color: var(--accent);
+  font-weight: 600;
+}

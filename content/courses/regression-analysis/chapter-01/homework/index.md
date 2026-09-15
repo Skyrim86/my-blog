@@ -32,7 +32,7 @@ E(\hat\beta_0)=\sum_id_iE(y_i)=\sum_id_i(\beta_0+\beta_1x_i)
 =\beta_0\underbrace{\sum_id_i}_{=1}+\beta_1\underbrace{\sum_id_ix_i}_{=0}=\beta_0 .
 $$
 
-**（2）$\operatorname{Cov}(\bar y,\hat\beta_1)=0$。** 由{{< tool "1.4" >}}（两两不相关时方差可加 $\operatorname{Var}\big(\sum a_iX_i\big)=\sum a_i^2\operatorname{Var}(X_i)$）与协方差的双线性（{{< tool "1.1" >}}），对 $\bar y=\frac1n\sum_iy_i$、$\hat\beta_1=\sum_ic_iy_i$ 有 $\operatorname{Cov}(\bar y,\hat\beta_1)=\sigma^2\sum_i\frac1nc_i$，而
+**（2）$\operatorname{Cov}(\bar y,\hat\beta_1)=0$。** 由{{< tool "1.4" "线性组合的方差公式" >}}（两两不相关时方差可加 $\operatorname{Var}\big(\sum a_iX_i\big)=\sum a_i^2\operatorname{Var}(X_i)$）与协方差的双线性（{{< tool "1.1" "期望与方差的运算法则" >}}），对 $\bar y=\frac1n\sum_iy_i$、$\hat\beta_1=\sum_ic_iy_i$ 有 $\operatorname{Cov}(\bar y,\hat\beta_1)=\sigma^2\sum_i\frac1nc_i$，而
 
 $$
 \sum_i\frac1nc_i=\frac1n\sum_ic_i=0
@@ -47,7 +47,7 @@ $$
 \operatorname{Cov}(\hat\beta_0,\hat\beta_1)=-\frac{\bar x\,\sigma^2}{S_{xx}} .
 $$
 
-其证明就是下面这一步（由引理 4.1 的系数与{{< tool "1.4" >}}）：
+其证明就是下面这一步（由引理 4.1 的系数与{{< tool "1.4" "线性组合的方差公式" >}}）：
 
 $$
 \operatorname{Var}(\hat\beta_0)=\sigma^2\sum_id_i^2=\sigma^2\sum_i\Big(\frac1n-\bar xc_i\Big)^2
@@ -96,7 +96,7 @@ $$
 \frac{SS_{\rm reg}}{SS_{\rm T}}=\frac{S_{xy}^2}{S_{xx}S_{yy}}=\hat\rho_{xy}^2 .
 $$
 
-**（4）$E(SS_{\rm reg})=\sigma^2+\beta_1^2S_{xx}$。** 由 (2) 与引理 8.3，$SS_{\rm reg}=\hat\beta_1^2S_{xx}$；再用{{< tool "3.1" >}}的 MSE 分解 $\operatorname{MSE}(\hat\theta)=\operatorname{Var}(\hat\theta)+\operatorname{bias}^2(\hat\theta)$（此处偏差为零），配合定理 4.2（$E\hat\beta_1=\beta_1$）与定理 4.3（$\operatorname{Var}(\hat\beta_1)=\sigma^2/S_{xx}$）：
+**（4）$E(SS_{\rm reg})=\sigma^2+\beta_1^2S_{xx}$。** 由 (2) 与引理 8.3，$SS_{\rm reg}=\hat\beta_1^2S_{xx}$；再用{{< tool "3.1" "均方误差分解" >}} $\operatorname{MSE}(\hat\theta)=\operatorname{Var}(\hat\theta)+\operatorname{bias}^2(\hat\theta)$（此处偏差为零），配合定理 4.2（$E\hat\beta_1=\beta_1$）与定理 4.3（$\operatorname{Var}(\hat\beta_1)=\sigma^2/S_{xx}$）：
 
 $$
 E(\hat\beta_1^2)=\operatorname{Var}(\hat\beta_1)+\big(E\hat\beta_1\big)^2=\frac{\sigma^2}{S_{xx}}+\beta_1^2
@@ -124,7 +124,7 @@ $$
 **推导**
 
 1. **最小二乘解。** 最小化 $Q(\beta_1)=\sum_i(y_i-\beta_1x_i)^2$：$Q'(\beta_1)=-2\sum_ix_i(y_i-\beta_1x_i)=0$ 给出 $\hat\beta_1=\dfrac{\sum_ix_iy_i}{\sum_ix_i^2}$；$Q''=2\sum_ix_i^2>0$，故这是唯一最小值点。
-2. **无偏与方差。** 把 $\hat\beta_1$ 写成 $\beta_1+\dfrac{\sum_ix_i\epsilon_i}{\sum_ix_i^2}$：取期望得无偏；取方差由{{< tool "1.4" >}}得 $\sigma^2\dfrac{\sum_ix_i^2}{(\sum_ix_i^2)^2}=\dfrac{\sigma^2}{\sum_ix_i^2}$。
+2. **无偏与方差。** 把 $\hat\beta_1$ 写成 $\beta_1+\dfrac{\sum_ix_i\epsilon_i}{\sum_ix_i^2}$：取期望得无偏；取方差由{{< tool "1.4" "线性组合的方差公式" >}}得 $\sigma^2\dfrac{\sum_ix_i^2}{(\sum_ix_i^2)^2}=\dfrac{\sigma^2}{\sum_ix_i^2}$。
 3. **误差方差的自由度。** 记 $e_i=y_i-\hat\beta_1x_i=\epsilon_i-(\hat\beta_1-\beta_1)x_i$，平方求和并代入 $\hat\beta_1-\beta_1=\sum_ix_i\epsilon_i/\sum_ix_i^2$：
 
 $$
@@ -169,7 +169,7 @@ $$
 
 **（a）$\operatorname{Cov}(\hat\beta_0,\hat\beta_1)=- \bar x\sigma^2/S_{xx}$**；（**b）$\operatorname{Cov}(\bar y,\hat\beta_1)=0$**。
 
-两问都由**定理 4.3**（A1、A2 下 $\operatorname{Var}(\hat\beta_1)=\sigma^2/S_{xx}$、$\operatorname{Var}(\hat\beta_0)=\sigma^2(1/n+\bar x^2/S_{xx})$、$\operatorname{Cov}(\hat\beta_0,\hat\beta_1)=-\bar x\sigma^2/S_{xx}$）与协方差的双线性（{{< tool "1.1" >}}、{{< tool "1.4" >}}）推出，共用同一个技术：把估计量写成 $y$ 的线性组合，剩下的只是系数点积——§4.3 的全部协方差都走这条路。
+两问都由**定理 4.3**（A1、A2 下 $\operatorname{Var}(\hat\beta_1)=\sigma^2/S_{xx}$、$\operatorname{Var}(\hat\beta_0)=\sigma^2(1/n+\bar x^2/S_{xx})$、$\operatorname{Cov}(\hat\beta_0,\hat\beta_1)=-\bar x\sigma^2/S_{xx}$）与协方差的双线性（{{< tool "1.1" "期望与方差的运算法则" >}}、{{< tool "1.4" "线性组合的方差公式" >}}）推出，共用同一个技术：把估计量写成 $y$ 的线性组合，剩下的只是系数点积——§4.3 的全部协方差都走这条路。
 
 **(a)** 用引理 4.1 的 $c_i=\dfrac{x_i-\bar x}{S_{xx}}$、$d_i=\dfrac1n-\bar xc_i$ 与 $\sum c_i=0$、$\sum c_i^2=1/S_{xx}$：
 
@@ -219,13 +219,13 @@ $$
 \text{bias}(\hat\beta_1)=\beta_2\frac{S_{12}}{S_{11}} .
 $$
 
-**读法**：遗漏变量的偏误 = 遗漏变量的真实系数 × 被保留变量与遗漏变量的（简单回归）斜率。这一"遗漏变量偏误公式"在观测数据研究中是判断"该不该控制某个变量"的基本工具，M2 会以 FWL 引理（{{< tool "4.3" >}}）给出多元版本。
+**读法**：遗漏变量的偏误 = 遗漏变量的真实系数 × 被保留变量与遗漏变量的（简单回归）斜率。这一"遗漏变量偏误公式"在观测数据研究中是判断"该不该控制某个变量"的基本工具，M2 会以 {{< tool "4.3" "FWL 引理" >}}给出多元版本。
 
 #### ILRA 6e 2.28 $\sigma^2$ 的 MLE 的偏差
 
 **（a）偏差量**：$\text{bias}(\tilde\sigma^2)=-\dfrac{2\sigma^2}{n}$。**（b）$n\to\infty$ 时**偏差趋于 $0$。
 
-**定理 15.2**：$\sigma^2$ 的 MLE 为
+**定理 15.2**：$\sigma^2$ 的 {{< tool "3.3" "MLE" >}} 为
 
 $$
 \tilde\sigma^2=\frac{SS_{\rm res}}{n}=\frac{n-2}{n}\hat\sigma^2,\qquad
@@ -239,7 +239,7 @@ E\tilde\sigma^2=\frac{(n-2)\sigma^2}{n}=\frac{n-2}{n}\sigma^2
 \ \Longrightarrow\ \text{bias}(\tilde\sigma^2)=\frac{n-2}{n}\sigma^2-\sigma^2=-\frac{2\sigma^2}{n}\xrightarrow[n\to\infty]{}0 .
 $$
 
-这是 MLE 渐近无偏性的一个直接算例。
+这是 {{< tool "3.3" "MLE" >}} 渐近无偏性的一个直接算例。
 
 #### ILRA 6e 2.29 使斜率标准误最小的设计（反例型）
 
@@ -284,7 +284,7 @@ $$
 
 **是否合理**：合理。这等价于"先把已知的理论水平减掉，再作过原点的回归"，$\sum_ix_i\ne0$ 时需要保留 $\sum_ix_i\beta_0$ 项（不能化简为 $\sum_ix_iy_i/\sum_ix_i^2$，除非 $\sum_ix_i=0$）。
 
-**（b）方差。** 由 (B.1) 的系数平方和（{{< tool "1.4" >}}）：
+**（b）方差。** 由 (B.1) 的系数平方和（{{< tool "1.4" "线性组合的方差公式" >}}）：
 
 $$
 \operatorname{Var}(\hat\beta_1)=\frac{\sigma^2}{\sum_ix_i^2}. \tag{B.2}
@@ -378,7 +378,7 @@ $$
 | 2.40 | 含截距的线性回归模型总通过数据中心 | **对** | 推论 3.4(4)：$\bar y=\hat\beta_0+\hat\beta_1\bar x$ |
 | 2.41 | 预测响应的方差在预测变量均值处最小 | **对** | 定理 9.7：$\operatorname{Var}(\hat\mu_{y\mid x_0})=\sigma^2\big[\frac1n+\frac{(x_0-\bar x)^2}{S_{xx}}\big]$，在 $x_0=\bar x$ 处取最小值 $\sigma^2/n$ |
 | 2.42 | 均值响应的置信区间总比同点新观测的预测区间宽 | **错** | 命题 10.4：$\sqrt{1+\frac1n+\frac{(x_0-\bar x)^2}{S_{xx}}}\ge\sqrt{\frac1n+\frac{(x_0-\bar x)^2}{S_{xx}}}$，预测量多出 $\sigma^2$ 一项，预测区间恒更宽 |
-| 2.43 | 最小二乘法保证斜率与截距估计是 BLUE | **错** | 定理 4.4（Gauss–Markov）：在 A1、A2 下，一切线性无偏估计量中 $a\hat\beta_0+b\hat\beta_1$ 的方差最小；最小二乘本身只是"使 $RSS$ 最小"的代数操作，没有 A1、A2 就不保证无偏，更不保证最优 |
+| 2.43 | 最小二乘法保证斜率与截距估计是 {{< tool "3.2" "BLUE" >}} | **错** | 定理 4.4（Gauss–Markov）：在 A1、A2 下，一切线性无偏估计量中 $a\hat\beta_0+b\hat\beta_1$ 的方差最小；最小二乘本身只是"使 $RSS$ 最小"的代数操作，没有 A1、A2 就不保证无偏，更不保证最优 |
 | 2.44 | 含截距模型中残差之和恒为零 | **对** | 推论 3.4(1)：$\sum_ie_i=0$，即正规方程 (3.3) |
 
 #### ILRA 6e 2.9 无截距模型的辩护（讨论题）
