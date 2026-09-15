@@ -1,0 +1,59 @@
+/* ============================================
+   窄屏导航折叠
+
+   - 起因：主题这份 PaperMod 的 #menu 在窄屏是 flex-wrap 换行，7 个菜单项折成两行，
+     顶栏被顶高、正文被往下推。
+   - 折叠逻辑在 assets/js/nav-toggle.js：它给 <html> 加 .has-nav-toggle 并插入按钮，
+     下面所有收起规则都挂在这个类下，所以禁用 JS 时菜单照主题原样显示。
+   - 断点与主题的 .header-nav 移动端断点保持一致（640px）。
+   ============================================ */
+
+.nav-toggle {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .has-nav-toggle .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    color: var(--primary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .has-nav-toggle .nav-toggle:hover {
+    border-color: var(--secondary);
+  }
+
+  .has-nav-toggle #menu {
+    display: none;
+  }
+
+  .has-nav-toggle #menu.is-open {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-basis: 100%;
+    gap: 2px;
+    width: 100%;
+    padding: 4px 0 2px;
+  }
+
+  .has-nav-toggle #menu.is-open li {
+    width: 100%;
+  }
+
+  .has-nav-toggle #menu.is-open a {
+    display: block;
+    padding: 2px 0;
+    line-height: 1.7;
+    font-size: 0.97rem;
+  }
+}

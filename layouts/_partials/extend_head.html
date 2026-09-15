@@ -73,6 +73,11 @@
 <script defer src="{{ $reader.RelPermalink }}" integrity="{{ $reader.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
+{{- /* 窄屏导航折叠：全站加载（很小），没有 JS 时菜单照主题原样铺开。 */ -}}
+{{- $navToggle := resources.Get "js/nav-toggle.js" | minify | fingerprint }}
+<script defer src="{{ $navToggle.RelPermalink }}" integrity="{{ $navToggle.Data.Integrity }}" crossorigin="anonymous"
+        data-label="{{ i18n "navToggleLabel" }}"></script>
+
 {{- /* 搜索快捷键（Ctrl/⌘+K，或不在输入框时按 "/"）：全站加载，脚本本身很小。
        搜索页 URL 由 relLangURL 拼出，站点换子路径不用改脚本。 */ -}}
 {{- $searchKey := resources.Get "js/search-shortcut.js" | minify | fingerprint }}

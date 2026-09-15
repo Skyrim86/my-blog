@@ -6,6 +6,10 @@ draft: false
 # 分区单位：本课程按「章」组织（改成 "周" 即切换为第 N 周）
 unit: "章"
 description: "数值分析课程笔记：从误差分析与数值稳定性出发，覆盖方程求根、线性方程组、特征值、插值逼近、数值积分与常微分方程数值解。"
+# 列表卡片封面（生成产物：tools/covers/make-covers.py）
+cover:
+  image: "images/covers/numerical-analysis.webp"
+  alt: "数值分析"
 summary: "按章整理的学习笔记与作业解法：笔记是课堂内容，作业是作业解法，两者均可下载。"
 # 课程主页自身没有公式；公式渲染由下面的 cascade 传给各章节材料页
 math: false
@@ -20,6 +24,44 @@ cascade:
   # 章节目录下的所有页面：关闭评论；开启数学公式渲染（KaTeX，见 extend_head.html）
   - comments: false
     math: true
+# 课程规划：正文里用 {{< course-plan >}} 渲染成「规划 × 已发布」对照表 + 进度条
+# （模板见 layouts/_shortcodes/course-plan.html）。
+# title 必须与 content/courses/<课程>/chapter-XX/_index.md 的 title **逐字一致**，
+# 匹配得上才算「已发布」；weight 是本课程里的计划章号（用于显示「第 N 章」）。
+plan:
+  - weight: 1
+    title: "误差与浮点数"
+    summary: "绝对/相对误差、有效数字、机器精度、舍入误差"
+  - weight: 2
+    title: "误差传播与条件数"
+    summary: "问题的病态 vs 算法的稳定、误差放大与抵消"
+  - weight: 3
+    title: "非线性方程求根"
+    summary: "二分法、不动点迭代、牛顿法、割线法，收敛阶比较"
+  - weight: 4
+    title: "线性方程组：直接法"
+    summary: "高斯消元、LU 分解、列主元、Cholesky 分解"
+  - weight: 5
+    title: "线性方程组：迭代法"
+    summary: "Jacobi、Gauss-Seidel、SOR，谱半径与收敛条件"
+  - weight: 6
+    title: "矩阵特征值"
+    summary: "幂法、反幂法、QR 算法"
+  - weight: 7
+    title: "插值"
+    summary: "拉格朗日、牛顿插值、Hermite 插值、Runge 现象与分段插值"
+  - weight: 8
+    title: "样条与函数逼近"
+    summary: "三次样条、最小二乘、正交多项式、切比雪夫逼近"
+  - weight: 9
+    title: "数值积分与微分"
+    summary: "梯形、Simpson、Romberg 外推、高斯求积"
+  - weight: 10
+    title: "常微分方程初值问题"
+    summary: "Euler 法、Runge-Kutta 法、多步法"
+  - weight: 11
+    title: "稳定性与刚性"
+    summary: "绝对稳定性、A-稳定、刚性问题简介"
 ---
 
 数值分析研究如何用计算机求解数学问题：在有限精度、有限步数下给出可用的近似解，并回答「这个近似到底有多好」。
@@ -41,17 +83,7 @@ cascade:
 
 ## 课程规划
 
-1. **误差与浮点数**——绝对/相对误差、有效数字、机器精度、舍入误差
-2. **误差传播与条件数**——问题的病态 vs 算法的稳定、误差放大与抵消
-3. **非线性方程求根**——二分法、不动点迭代、牛顿法、割线法，收敛阶比较
-4. **线性方程组：直接法**——高斯消元、LU 分解、列主元、Cholesky 分解
-5. **线性方程组：迭代法**——Jacobi、Gauss-Seidel、SOR，谱半径与收敛条件
-6. **矩阵特征值**——幂法、反幂法、QR 算法
-7. **插值**——拉格朗日、牛顿插值、Hermite 插值、Runge 现象与分段插值
-8. **样条与函数逼近**——三次样条、最小二乘、正交多项式、切比雪夫逼近
-9. **数值积分与微分**——梯形、Simpson、Romberg 外推、高斯求积
-10. **常微分方程初值问题**——Euler 法、Runge-Kutta 法、多步法
-11. **稳定性与刚性**——绝对稳定性、A-稳定、刚性问题简介
+{{< course-plan >}}
 
 ## 学习方法
 

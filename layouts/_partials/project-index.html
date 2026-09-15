@@ -1,0 +1,34 @@
+{{- /* 分层项目主页（与子项目页共用）的子页目录：按 weight 列出下级子项目与文档。
+
+   调用方：layouts/projects/project-home.html。为什么要有它：section 页默认走主题的 list.html，
+   那一版只把子页排成一列卡片，层级与进度都看不出来（哪个子项目写完了、各有几篇文档）。 */ -}}
+{{- $children := union .Sections .RegularPages.ByWeight -}}
+{{- $children = $children.ByWeight -}}
+{{- with $children }}
+<nav class="project-index">
+  <h2 class="project-index-heading">{{ i18n "projectIndex" }}</h2>
+  <ol class="project-index-list">
+    {{- range . }}
+    <li class="project-index-item">
+      <a class="project-index-link" href="{{ .RelPermalink }}">
+        <span class="project-index-title">{{ .Title }}</span>
+        {{- /* description 常写成「问题一　交会定位…」，与上一行的标题重复，只在不重复时显示 */ -}}
+        {{- if and .Description (not (strings.HasPrefix .Description .Title)) }}
+        <span class="project-index-desc">{{ . }}</span>
+        {{- end }}
+      </a>
+      {{- $count := len .RegularPagesRecursive }}
+      {{- if gt $count 0 }}
+      <p class="project-index-meta">
+        {{- i18n "chipDocs" (dict "count" $count) }}
+        {{- with .RegularPagesRecursive.ByLastmod }}
+        {{- $latest := index . (sub (len .) 1) }}
+        &nbsp;·&nbsp;{{ i18n "courseUpdated" (dict "date" ($latest.Lastmod.Format "2006-01-02")) }}
+        {{- end }}
+      </p>
+      {{- end }}
+    </li>
+    {{- end }}
+  </ol>
+</nav>
+{{- end }}

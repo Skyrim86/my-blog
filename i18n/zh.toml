@@ -25,6 +25,36 @@ other = "本章内容"
 [courseAttachmentCount]
 other = "{{ .count }} 个附件"
 
+# 章节目录里每个章节的材料数与最近更新（见 layouts/_partials/course-index.html）
+[courseChapterMaterials]
+other = "{{ .count }} 篇材料"
+
+[courseUpdated]
+other = "更新于 {{ .date }}"
+
+# 课程规划与进度（见 layouts/_shortcodes/course-plan.html）
+[coursePlanStat]
+other = "已发布 {{ .done }} / {{ .total }} 章"
+
+[coursePlanBuilt]
+other = "已发布"
+
+[coursePlanPlanned]
+other = "计划中"
+
+# 列表卡片上的计数 chips（见 layouts/_partials/card-chips.html）
+[chipUnitCount]
+other = "{{ .count }} {{ .unit }}"
+
+[chipMaterials]
+other = "{{ .count }} 篇材料"
+
+[chipSubProjects]
+other = "{{ .count }} 个子项目"
+
+[chipDocs]
+other = "{{ .count }} 篇文档"
+
 # 附件下载区
 [courseDownloads]
 other = "📎 附件下载"
@@ -34,6 +64,10 @@ other = "下载"
 
 # ---------- 项目展示（见 content/projects/） ----------
 # 项目详情页元信息面板中的技术栈标签
+# 分层项目主页的子页目录标题（见 layouts/_partials/project-index.html）
+[projectIndex]
+other = "子项目与文档"
+
 [projectTechStack]
 other = "技术栈"
 
@@ -66,6 +100,10 @@ other = "项目"
 
 [relatedTypePage]
 other = "页面"
+
+# ---------- 导航（见 assets/js/nav-toggle.js） ----------
+[navToggleLabel]
+other = "展开或收起导航"
 
 # ---------- 首页（见 layouts/_partials/index_profile.html） ----------
 # 快捷入口（复用主导航，aria-label 用）

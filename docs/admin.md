@@ -273,5 +273,5 @@ CI 这块走 `curl` 而不是 Node 的 `fetch`：这台机器上 `fetch` 直连 
 - 蒙版按主题换强度（浅色 .50→.74、暗色 .60→.86），`.panel` 用 `color-mix(in srgb, var(--card) 66%, transparent)` 让面板也透出背景。**这组数值是量出来的不是猜的**：截图取样算 WCAG 对比度，浅色 10.9:1、暗色 12.1:1，都在 AAA（7:1）以上；面板从 84% 一路调到 66%，实际约束不是对比度而是「再低背景就喧宾夺主」
 - 顶栏 `color-mix(... 82% ...)` + `backdrop-filter`，滚动时背景从下面透出来
 - 换图：把新图放进 `ui/`（**必须是平铺文件名**——`server.mjs` 的 `serveStatic` 只接受 `[A-Za-z0-9._-]+`，不支持子目录），改 `style.css` 里的 `url()`。新增扩展名要同时加进 `STATIC_TYPES`（`.webp` / `.png` 已加）
-- **`chibi.ico`（134 KB，16→256 六帧）只给本地用**：管理页标签页图标 + 桌面快捷方式。桌面快捷方式 `博客管理页.lnk` 的 `IconLocation` 指向它；换图标后 Explorer 有缓存，跑 `ie4uinit.exe -show` 或注销一次才刷新
+- **`chibi.ico`（120 KB，16→256 六帧）只给本地用**：管理页标签页图标 + 桌面快捷方式。桌面快捷方式 `博客管理页.lnk` 的 `IconLocation` 指向它；换图标后 Explorer 有缓存，跑 `ie4uinit.exe -show` 或注销一次才刷新
 - 图标与站点那套同源，都由 `tools/icons/make-icons.py` 生成（素材出处与许可见 `architecture.md` 第 6 节）

@@ -1,8 +1,15 @@
 ---
 title: "CMC2026"
+# 分层项目的项目主页：命中 layouts/projects/project-home.html（子页目录 + 技术栈面板）。
+# 平铺单页项目不要写它，否则会丢掉正文样式（那里走主题的 single.html）。
+layout: "project-home"
 date: 2026-09-10
 draft: false
 description: "CMC2026 建模竞赛的选题分析与建模思路实现"
+# 列表卡片封面（生成产物：tools/covers/make-covers.py）
+cover:
+  image: "images/covers/cmc2026.webp"
+  alt: "CMC2026"
 # 分类法只在这里写一次，由 cascade 下发给各级文档页。
 # target.kind: page —— 只发给 regular page（下面那些 .md 文档）。项目主页与各级子项目页
 # 都是 section，带上标签只会让 /tags/ 计数虚高、词条页里并不出现（见 AGENTS.md）。

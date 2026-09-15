@@ -3,7 +3,7 @@
 {{- define "main" }}
 
 <article class="course-chapter">
-  {{- partial "course-header.html" (dict "page" .) }}
+  {{- partial "page-head.html" (dict "page" .) }}
 
   {{- $materials := .RegularPages.ByWeight }}
   {{- with $materials }}

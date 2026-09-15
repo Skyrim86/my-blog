@@ -7,7 +7,22 @@
 //   - 加 --disableFastRender：否则新建的文件不会真正出现在站点里（见下）。
 
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import net from 'node:net';
+
+// 站点挂在 baseURL 的子路径下（/my-blog/）。本地预览要用**同一个**子路径，
+// 否则菜单、favicon 这些 absURL 会指向线上站点：本地改图标/样式看不到，点菜单还会跳走。
+// 子路径从 hugo.toml 现读，不在两处各写一份。
+function sitePath() {
+  try {
+    const toml = fs.readFileSync(new URL('../../../hugo.toml', import.meta.url), 'utf8');
+    const m = /^baseURL\s*=\s*['"]https?:\/\/[^/]*(\/[^'"]*)['"]/m.exec(toml);
+    if (m && m[1].endsWith('/')) return m[1];
+  } catch {
+    /* 读不到就退回根路径 */
+  }
+  return '/';
+}
 
 export function probePort(port, host = '127.0.0.1', timeoutMs = 500) {
   return new Promise((resolve) => {
@@ -78,9 +93,13 @@ export class HugoPreview {
       // --disableFastRender 是必需的：Fast Render Mode 下新建的文件（管理页最常见的动作）
       // 只会触发一次局部重建，新页面拿不到 200，预览看上去像没生效。
       // --buildFuture：预览要能看到「日期写在未来」的排期文章（CI 不会发布它们，界面上有提醒）。
+      // 用 HUGO_BASEURL 而不是 --baseURL：--baseURL 只在首次构建生效，watch 触发的重建会
+      // 退回 hugo.toml 的 baseURL（实测：改一个文件后菜单与 favicon 又指向线上站点）。
+      const baseURL = `http://127.0.0.1:${port}${sitePath()}`;
       child = spawn('hugo', ['server', '-D', '-F', '--disableFastRender', '--port', String(port), '--bind', '127.0.0.1'], {
         cwd: this.repoRoot,
         windowsHide: true,
+        env: { ...process.env, HUGO_BASEURL: baseURL },
         stdio: ['ignore', 'pipe', 'pipe'],
       });
     } catch (err) {

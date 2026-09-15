@@ -237,6 +237,121 @@
   border-radius: 999px;
 }
 
+/* ---------- 章节目录里的徽章（现在是链接）与章节元信息 ---------- */
+a.course-badge {
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+a.course-badge:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.course-index-meta {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  color: var(--secondary);
+}
+
+/* ---------- 课程规划与进度（layouts/_shortcodes/course-plan.html） ---------- */
+.course-plan {
+  margin: 0.4rem 0 1.2rem;
+}
+
+.course-plan-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.course-plan-bar {
+  flex: 1 1 auto;
+  height: 8px;
+  background: var(--tertiary);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.course-plan-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.course-plan-stat {
+  flex: none;
+  font-size: 0.82rem;
+  color: var(--secondary);
+  white-space: nowrap;
+}
+
+.course-plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.course-plan-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.course-plan-item:last-child {
+  border-bottom: 0;
+}
+
+.course-plan-num {
+  flex: none;
+  min-width: 4.4rem;
+  font-size: 0.8rem;
+  color: var(--secondary);
+}
+
+.course-plan-title {
+  font-size: 0.98rem;
+}
+
+.course-plan-state {
+  flex: none;
+  padding: 0 0.45rem;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+}
+
+.course-plan-summary {
+  flex: 1 1 100%;
+  padding-left: 4.4rem;
+  font-size: 0.85rem;
+  color: var(--secondary);
+}
+
+/* 计划中的章节压暗：与已发布的对照关系一眼可见 */
+.course-plan-item.is-planned .course-plan-title {
+  color: var(--secondary);
+  opacity: 0.75;
+}
+
+.course-plan-item.is-planned .course-plan-state {
+  color: var(--secondary);
+  background: var(--tertiary);
+}
+
+@media (max-width: 640px) {
+  .course-plan-summary {
+    padding-left: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .course-file-type {
     display: none;

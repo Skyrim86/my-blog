@@ -30,8 +30,9 @@ TODAY="$(TZ=Asia/Shanghai date +%F)"
 # 已知顶层键。没列出的键只警告、不阻断（Hugo 与主题本身还有很多合法 page 参数）。
 KNOWN_KEYS="title description date draft weight summary math layout url placeholder
 tags categories series icon repo unit cascade cover slug lastmod publishDate expiryDate
+# plan：课程主页的规划清单（见 layouts/_shortcodes/course-plan.html），值是一个列表
 aliases keywords author images type outputs menu sitemap headless searchHidden hideMeta
-disableShare ShowToc TocOpen robotsNoIndex canonicalURL"
+disableShare ShowToc TocOpen robotsNoIndex canonicalURL plan"
 KNOWN_KEYS=" $(printf '%s' "$KNOWN_KEYS" | tr -s '[:space:]' ' ') "
 
 errors=0

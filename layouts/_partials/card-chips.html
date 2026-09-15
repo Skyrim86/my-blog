@@ -1,0 +1,64 @@
+{{- /* 列表卡片上的补充元信息（课程 / 项目）。
+
+   位置：挂在 post_meta.html 之后 —— 主题把列表卡片的元信息整块交给那个 partial，
+   而 list.html 里没有别的 hook（cover.html 只能拿 IsSingle 标记，且要整份复制主题的封面逻辑）。
+   post_meta.html 在**详情页也会被调用**，所以详情页那份由 CSS 隐藏
+   （01-cards.css 的 `.post-single .post-meta .card-chips{display:none}`）：详情页已经有
+   project-meta 面板，卡片用的计数/标签在那里是重复信息。
+
+   显示规则：
+     · 有下级页面（section / 带子页的 bundle）→ 计数 chips（课程按 unit，项目按子项目/文档）
+     · 只有课程/项目的**根页**（content/<type>/<名字>/，目录深度 2）→ 技术栈 chips
+       （再深一层是同一个项目下的文档，卡片上全都挂着同一组继承来的标签，只是噪音）
+     · 项目的 section 页 front matter 里不写 tags（见 AGENTS.md：会让 /tags/ 计数虚高），
+       所以技术栈取它子孙页标签的并集。 */ -}}
+{{- $type := .Type -}}
+{{- /* 路径分隔符要归一：Windows 上 .File.Dir 给的是 projects\my-blog\（反斜杠），
+       直接按 "/" 切会得到深度 1，根页判定全失效。 */ -}}
+{{- $dir := strings.Replace (.File.Dir | default "") "\\" "/" -}}
+{{- if in (slice "courses" "projects") $type -}}
+{{- $children := union .RegularPages .Sections -}}
+{{- $depth := len (split (strings.TrimSuffix "/" $dir) "/") -}}
+{{- $chips := slice -}}
+
+{{- if $children -}}
+  {{- if eq $type "courses" -}}
+    {{- $unit := .Params.unit | default "章" -}}
+    {{- $chips = $chips | append (i18n "chipUnitCount" (dict "count" (len .Sections) "unit" $unit)) -}}
+    {{- $chips = $chips | append (i18n "chipMaterials" (dict "count" (len .RegularPagesRecursive))) -}}
+  {{- else -}}
+    {{- $chips = $chips | append (i18n "chipSubProjects" (dict "count" (len .Sections))) -}}
+    {{- $chips = $chips | append (i18n "chipDocs" (dict "count" (len .RegularPagesRecursive))) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $tags := slice -}}
+{{- if eq $depth 2 -}}
+  {{- $seen := dict -}}
+  {{- range .GetTerms "tags" -}}
+    {{- $seen = merge $seen (dict .Permalink .LinkTitle) -}}
+  {{- end -}}
+  {{- if not $seen -}}
+    {{- range .RegularPagesRecursive -}}
+      {{- range .GetTerms "tags" -}}
+        {{- $seen = merge $seen (dict .Permalink .LinkTitle) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- range $href, $title := $seen -}}
+    {{- $tags = $tags | append (dict "href" $href "title" $title) -}}
+  {{- end -}}
+  {{- $tags = sort $tags "title" -}}
+{{- end -}}
+
+{{- if or $chips $tags -}}
+<div class="card-chips">
+  {{- range $chips }}
+  <span class="card-chip">{{ . }}</span>
+  {{- end }}
+  {{- range $tags }}
+  <a class="card-chip card-chip--tag" href="{{ .href }}">{{ .title }}</a>
+  {{- end }}
+</div>
+{{- end -}}
+{{- end -}}

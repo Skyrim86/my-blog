@@ -1,15 +1,35 @@
-{{- /* 项目详情页元信息：技术栈 + 仓库链接。由 extend_post_content.html 在 Type == "projects" 时注入。
+{{- /* 项目元信息：技术栈 + 仓库链接。
+       调用方：extend_post_content.html（Type == "projects" 的单页）
+               layouts/projects/project-home.html（分层项目的 section 主页）。
        技术栈直接用 tags 分类法（不再另设 tech 字段），因此标签可点进 /tags/ 词条页，
-       而 /tags/ 词条页也会列出该项目——项目与标签体系双向联动。 */ -}}
-{{- $tags := .GetTerms "tags" }}
-{{- if or $tags .Params.repo }}
+       而 /tags/ 词条页也会列出该项目——项目与标签体系双向联动。
+
+       分层项目的 section 主页 front matter 里**刻意不写 tags**（带上只会让 /tags/ 计数虚高、
+       词条页里并不出现，见 AGENTS.md），所以这里对 section 取子孙页标签的并集。 */ -}}
+{{- $tagList := slice -}}
+{{- range .GetTerms "tags" -}}
+  {{- $tagList = $tagList | append (dict "href" .Permalink "title" .LinkTitle) -}}
+{{- end -}}
+{{- if and (not $tagList) .IsSection -}}
+  {{- $seen := dict -}}
+  {{- range .RegularPagesRecursive -}}
+    {{- range .GetTerms "tags" -}}
+      {{- $seen = merge $seen (dict .Permalink .LinkTitle) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- range $href, $title := $seen -}}
+    {{- $tagList = $tagList | append (dict "href" $href "title" $title) -}}
+  {{- end -}}
+  {{- $tagList = sort $tagList "title" -}}
+{{- end -}}
+{{- if or $tagList .Params.repo }}
 <div class="project-meta">
-  {{- with $tags }}
+  {{- with $tagList }}
   <div class="project-tech">
     <span class="project-tech-label">{{ i18n "projectTechStack" }}</span>
     <ul class="project-tech-list">
       {{- range . }}
-      <li class="project-tech-tag"><a href="{{ .Permalink }}">{{ .LinkTitle }}</a></li>
+      <li class="project-tech-tag"><a href="{{ .href }}">{{ .title }}</a></li>
       {{- end }}
     </ul>
   </div>

@@ -21,6 +21,63 @@ article.post-entry:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
 }
 
+/* 列表页 / 课程页的标题区：以前 h1 与描述直接压在背景插画上，背景一亮点对比度就不够。
+   给它和卡片一样的面板（令牌见 00-theme.css），不动主题的 .page-header 布局。 */
+.page-header {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
+  padding: 1.4rem 1.9rem 1.5rem;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    padding: 1rem 1.1rem 1.1rem;
+    border-radius: 12px;
+  }
+
+  .page-header h1 {
+    font-size: 28px;
+  }
+}
+
+/* ---------- 列表卡片上的计数 / 技术栈 chips（layouts/_partials/card-chips.html） ---------- */
+.card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.card-chip {
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.card-chip--tag {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: transparent;
+  text-decoration: none;
+}
+
+.card-chip--tag:hover {
+  border-color: var(--accent);
+}
+
+/* 详情页的元信息位置已经有内容（project-meta 面板、日期·字数），卡片用的 chips 在那里只是重复。
+   post_meta.html 同时供列表卡片与详情页使用，所以这里按容器区分。 */
+.post-single .post-meta .card-chips {
+  display: none;
+}
+
 /* 封面图也加圆角 */
 .entry-cover img {
   border-radius: 8px;

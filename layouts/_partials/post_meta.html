@@ -1,0 +1,33 @@
+{{- /* 覆盖主题同名 partial：**只**在末尾追加 card-chips.html，其余逐字保留主题实现。
+
+   为什么非要覆盖：列表卡片的元信息整块由这个 partial 产出，主题的 list.html 里没有别的 hook
+   能让卡片多出一块内容（cover.html 只带 IsSingle 标记，要复用它就得整份复制封面逻辑）。
+   详情页也调用本 partial，那一份 chips 由 CSS 隐藏（见 01-cards.css）。
+
+   主题升级时这份要手动合并 —— 见 features.md「其他 partial（post_meta.html 等）也可覆盖，但优先找 hook」。 */ -}}
+{{- $scratch := newScratch }}
+
+{{- if not .Date.IsZero -}}
+    {{- $scratch.Add "meta" (slice (printf "<span title='%s'>%s</span>" (.Date) (.Date | time.Format (default ":date_long" site.Params.DateFormat)))) }}
+{{- end }}
+
+{{- if (.Param "ShowReadingTime") -}}
+    {{- $scratch.Add "meta" (slice (printf "<span>%s</span>" (i18n "read_time" .ReadingTime | default (printf "%d min" .ReadingTime)))) }}
+{{- end }}
+
+{{- if (.Param "ShowWordCount") -}}
+    {{- $scratch.Add "meta" (slice (printf "<span>%s</span>" (i18n "words" .WordCount | default (printf "%d words" .WordCount)))) }}
+{{- end }}
+
+{{- if not (.Param "hideAuthor") -}}
+    {{- with (partial "author.html" .) }}
+        {{- $scratch.Add "meta" (slice (printf "<span>%s</span>" .)) }}
+    {{- end }}
+{{- end }}
+
+{{/* Combine all meta information into a single string with separators and render it as HTML.*/}}
+
+{{- with ($scratch.Get "meta") }}
+    {{- delimit . "&nbsp;·&nbsp;" | safeHTML -}}
+{{- end -}}
+{{- partial "card-chips.html" . -}}

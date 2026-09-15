@@ -3,6 +3,9 @@
 # （kind 取路径首段 "courses"，所以无需 --kind；章节入口页请用 --kind chapter）
 # 章节目录由 layouts/_partials/course-index.html 按 weight 自动生成，不用在这里维护。
 title: "{{ replace .Name "-" " " | title }}"
+# 课程规划：front matter 的 plan 列表 + 正文里一行 {{< course-plan >}} 会渲染成进度对照表。
+# 已发布判定按 title 与子章节标题逐字相同，所以 plan 条目的 title 要和 _index.md 的 title 一致。
+# 列表卡片封面（可选）：tools/covers/make-covers.py 生成后写 cover.image
 layout: "course"
 date: {{ now.Format "2006-01-02" }}
 draft: true

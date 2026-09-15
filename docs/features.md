@@ -126,13 +126,46 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **最近更新**：`site.RegularPages` 按 `Lastmod` 倒序取前 `params.home.recentCount` 条（`0` 关闭），排除 `searchHidden` 与 archives/search；每行是「类型徽标 + 标题 + 月日」，类型文案由 `type-label.html` 提供——与相关内容区块共用同一份 `Type → i18n key` 映射，不再各写一份。`enableGitInfo = true` 让 `Lastmod` 有真实值。
 - 主题 `profile-mode.css` 给 `.profile` 设了 `min-height: calc(100vh - …)`，加了内容会撑出很高的首屏，`09-home.css` 把它改成自然高度。
 
-## 4. 三处有意的主题模板覆盖
+### ⑯ 课程规划与进度 — `_shortcodes/course-plan.html` + 课程主页的 `plan` 字段
 
-除上述 hook 之外，仓库里有三处**有意**整份覆盖主题模板（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
+课程主页正文里写一行 `{{< course-plan >}}`，「课程规划」那一节就变成「进度条 + 已发布/计划中对照表」：
+
+- 数据源是课程主页 front matter 的 `plan` 列表（`weight` / `title` / `summary`），**不是**正文里的手写清单——手写清单没法判「哪几章真的建好了」。
+- 已发布判定按 **`title` 与子章节标题逐字相同**（不是按 weight：实际课程会跳章，`chapter-02` 是规划里的第 3 条）。
+- 未发布的条目压暗并标「计划中」；数字口径写在模板注释里，改文案改 `i18n/zh.toml` 的 `coursePlan*` 键。
+
+### ⑰ 分层项目主页 — `layouts/projects/project-home.html` + `project-index.html`
+
+`layout: "project-home"` 的项目 section 页不再走主题 `list.html`：页头（共用 `page-head.html`）→ 技术栈面板（`project-meta.html`，section 页没有自己的 tags 时取子孙标签并集）→ 子页目录（每项：序号、标题、描述、`N 篇文档 · 更新于 …`）→ 正文。
+
+**为什么值得另开模板**：主题的 section 页只会把子页排成一列卡片，看不出层级与进度（哪个子项目写完了、各有几篇文档），也拿不到「技术栈 + 查看源码」面板（`project-meta.html` 原先只在走 `single.html` 的页面上注入）。
+
+### ⑱ 列表卡片的计数 / 技术栈 chips — `card-chips.html` + 覆盖 `post_meta.html`
+
+课程卡片显示「N 章 · M 篇材料」，项目卡片显示「N 个子项目 · M 篇文档」，根页（`content/<type>/<名字>/`）再带技术栈标签。
+
+**为什么挂在 `post_meta.html`**：列表卡片的元信息整块由它产出，主题 `list.html` 没有别的 hook（`cover.html` 只带 `IsSingle` 标记，且要整份复制封面逻辑）。它**在详情页也会被调用**，所以详情页那份 chips 由 CSS 隐藏（`01-cards.css` 的 `.post-single .post-meta .card-chips`）——详情页已经有 `project-meta` 面板，标签在那里是重复信息。
+
+技术栈只在「根页」显示：更深一层的文档卡片全都挂着同一组继承来的标签（cascade 下发），只是噪音。判定用目录深度，**注意 `.File.Dir` 在 Windows 上是反斜杠**（见 `traps.md` 第 4 节）。
+
+### ⑲ 窄屏折叠导航 — `assets/js/nav-toggle.js` + `10-nav.css`
+
+主题这份 PaperMod 的 `#menu` 在窄屏是 `flex-wrap` 换行，7 个菜单项折成两行、顶栏被顶高。脚本在窄屏插一个按钮把菜单收起来，点开才铺开；`Esc`、点空白、回到宽屏都会收起。
+
+**纯渐进增强**：脚本跑起来才给 `<html>` 加 `.has-nav-toggle`，CSS 里的收起规则全挂在它下面——禁用 JS 时菜单照主题原样铺开，不会变成点不开的死菜单。
+
+### ⑳ 列表卡片封面 — `tools/covers/make-covers.py`
+
+封面是生成产物（渐变 + 细网格底纹 + 标签/标题/副标题），脚本是可复现的事实源：改标题配色只改脚本里的 `COVERS`，输出到 `assets/images/covers/*.webp`，front matter 里写 `cover.image: "images/covers/<名字>.webp"` 即生效。**不用外部图片**的原因和图标不同：封面只承担「卡片有视觉锚点」，自绘没有许可问题。
+
+## 4. 四处有意的主题模板覆盖
+
+除上述 hook 之外，仓库里有四处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
 
 1. `layouts/courses/course.html`（`layout: "course"`）与 `layouts/courses/chapter.html`（`layout: "chapter"`）：列表页没有任何 hook，而这两页分别需要自动章节目录与入口卡片。两个模板都很小、只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`，页头共用 `course-header.html`），且只有显式写了 `layout` 的页面才命中，不影响 `/courses/` 列表页与文章页。**改外观请优先改 `04-course.css`**
 2. `layouts/index.json`：该模板无 hook 可挂，而正文截断无法从配置实现
 3. `layouts/_partials/index_profile.html`：首页在 profileMode 下由主题 `list.html` 直接调用它，没有 hook 可挂，而首页需要「快捷入口 + 最近更新」两块内容。改这一处时对照 `themes/PaperMod/layouts/_partials/index_profile.html`，确认主题侧是否有新变化需要合并
+4. `layouts/_partials/post_meta.html`：**唯一一处「复制主题 partial 再加一行」**（第 ⑱ 项）。它是列表卡片与详情页共用的元信息块，没有 hook 可挂，而卡片要一块计数/标签。与前三处不同：这里**逐字保留**主题实现，只在末尾调用 `card-chips.html`，主题升级时对照 diff 手工合并即可。若哪天主题给它加了 hook，优先换回 hook
 
 ## 5. 总览页标题
 

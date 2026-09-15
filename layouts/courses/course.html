@@ -3,7 +3,7 @@
 {{- define "main" }}
 
 <article class="course-home">
-  {{- partial "course-header.html" (dict "page" . "unit" .Params.unit) }}
+  {{- partial "page-head.html" (dict "page" . "unit" .Params.unit) }}
 
   {{- partial "course-index.html" . }}
 

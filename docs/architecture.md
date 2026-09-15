@@ -41,14 +41,17 @@ my-blog/
 │   │   ├── 06-terms-filter.css#     词条筛选框
 │   │   ├── 07-related.css     #     相关内容区块
 │   │   ├── 08-reader.css      #     阅读进度条 + 目录当前项 + 正文卡片
-│   │   └── 09-home.css        #     首页头像光环 / 快捷入口 / 最近更新
+│   │   ├── 09-home.css        #     首页头像光环 / 快捷入口 / 最近更新
+│   │   └── 10-nav.css         #     窄屏导航折叠（配合 assets/js/nav-toggle.js）
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
+│   │   ├── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
 │   │   └── bg-anime-night.webp#   站点背景图（来源与许可：docs/features.md 第 12 节）
 │   └── js/                    #   自定义 JS 源码，经 extend_head.html minify+fingerprint 后外链
 │       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
 │       ├── reading-progress.js   # 阅读进度条 + 目录高亮（只在单页加载）
 │       ├── search-shortcut.js    # Ctrl/⌘+K 与「/」快捷键 + 搜索页 ?q= 预填
+│       ├── nav-toggle.js         # 窄屏导航折叠（渐进增强，无 JS 时菜单照主题原样铺开）
 │       └── terms-filter.js       # 标签/分类/系列总览页的词条筛选框
 ├── content/                   # 站点内容（详见 docs/content.md）
 │   ├── about.md  search.md                       # archives.md 已于 2026-09-15 删除（见第 3 节）
@@ -63,13 +66,19 @@ my-blog/
 │   ├── _markup/render-passthrough.html   # 公式渲染钩子（构建期 KaTeX）
 │   ├── courses/course.html    # 课程主页模板（由 layout: course 显式命中）
 │   ├── courses/chapter.html   # 章节入口页模板（由 layout: chapter 命中）
+│   ├── projects/project-home.html  # 分层项目主页模板（由 layout: project-home 命中）
+│   ├── _shortcodes/course-plan.html# 课程规划与进度（课程主页正文里 {{< course-plan >}}）
 │   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
 │       ├── extend_head.html   #   覆盖主题 hook：JS 接线 + KaTeX 样式 + 背景图 CSS
 │       ├── index_profile.html #   覆盖主题同名 partial：首页快捷入口 + 最近更新
+│       ├── post_meta.html     #   覆盖主题同名 partial：只在末尾追加一行卡片 chips
+│       ├── card-chips.html    #   列表卡片的计数 / 技术栈 chips
 │       ├── type-label.html    #   页面类型徽标文案（相关内容与首页共用）
 │       ├── extend_post_content.html  # 覆盖主题 hook：系列导航 + 附件 + 项目元信息 + 相关内容
 │       ├── series-posts.html  related-content.html  course-index.html
-│       ├── course-header.html course-downloads.html project-meta.html
+│       ├── project-index.html #   分层项目主页的子页目录（各子项目文档数 + 更新时间）
+│       ├── page-head.html     #   面包屑 + 标题 + 描述（课程页 / 章节页 / 项目主页共用）
+│       ├── course-downloads.html project-meta.html
 │       └── comments.html      #   覆盖主题同名 partial（Giscus）
 ├── scripts/                   # 内容与 CI 工具（bash / Node，零依赖）
 │   ├── new-content.sh         # 新内容脚手架 + 删除（唯一实现）
@@ -84,12 +93,14 @@ my-blog/
 │   ├── check-editor-schema.mjs# 只警告：archetypes 与管理页字段表的漂移
 │   ├── report-size.sh         # 阻断：页面体积预算（--fresh 消除 public/ 陈旧产物影响）
 │   ├── push-blog.sh           # 一键公式转义自动修复 + 构建 + 校验 + 提交 + 推送
-│   ├── preview.sh             # 本地预览（hugo server -D）
+│   ├── preview.sh             # 本地预览（hugo server -D，HUGO_BASEURL 指本机，见 traps.md 第 3 节）
 │   ├── upgrade-hugo.sh        # Hugo + KaTeX 一键同步升级
 │   └── pin-actions.mjs        # 把 Actions 的 uses 从可变标签改成 commit SHA
 ├── tools/icons/               # 图标生成（见第 6 节；不参与 Hugo 构建）
 │   ├── make-icons.py          #   生成 static/ 下的全部图标 + 管理页图标
 │   └── source-ojou-chibi.png  #   图标素材（Q 版黑长直少女，出处见第 6 节）
+├── tools/covers/              # 列表卡片封面生成（不参与 Hugo 构建）
+│   └── make-covers.py         #   渐变 + 底纹 + 标题字，写 assets/images/covers/*.webp
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）
 │   ├── start.sh               #   启动器（.bat 调它）
 │   ├── server.mjs             #   HTTP 服务：静态页 + JSON API
@@ -208,9 +219,9 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是�
 | `static/safari-pinned-tab.svg` | 单色路径 | Safari 固定标签 |
 | `tools/admin/ui/chibi.ico` | 16→256 六帧 | 管理页标签页图标 + 桌面快捷方式图标（`博客管理页.lnk` 的 `IconLocation` 指向它） |
 
-**为什么不把 `tools/admin/ui/chibi.ico` 塞进 `static/`**：那会把 134 KB 的 256×256 帧发到线上，而站点的 `favicon.ico` 只要 16/32 两帧（3.9 KB）。站点图标和桌面图标要的尺寸集合不同，故意分成两个文件。
+**为什么不把 `tools/admin/ui/chibi.ico` 塞进 `static/`**：那会把 120 KB 的 256×256 帧发到线上，而站点的 `favicon.ico` 只要 16/32 两帧（3.9 KB）。站点图标和桌面图标要的尺寸集合不同，故意分成两个文件。
 
-**素材与许可**：`source-ojou-chibi.png` 是 safebooru 站收录的 Q 版黑长直少女同人（原作者 `nekomoni`，原帖 `https://x.com/nekomoni/status/2098270238966272343`，safebooru post `7134756`），非商用二次创作，**没有可声明的开放许可**。所以：管理页背景图与桌面图标这类**本地不发布**的用途直接用；站点 favicon 也用了它，若要彻底规避风险，把 `--style pixel` 生成的图标覆盖上去即可（像素风素材由脚本自绘，许可干净）。
-裁切框、色调、圆角都是脚本里的常量（`ART_CROP` / `ART_TINT` / `ART_RADIUS`），换图只改这三个 + 换掉源文件。
+**素材与许可**：`source-ojou-chibi.png` 是 safebooru 站收录的 Q 版黑长直少女同人（原作者 `nanachides`，来源 `https://www.facebook.com/` 图床直链，safebooru post `7099755`），非商用二次创作，**没有可声明的开放许可**。所以：管理页背景图与桌面图标这类**本地不发布**的用途直接用；站点 favicon 也用了它，若要彻底规避风险，把 `--style pixel` 生成的图标覆盖上去即可（像素风素材由脚本自绘，许可干净）。
+裁切框、背景抠图容差、底板色、圆角都是脚本里的常量（`ART_CROP` / `ART_KEY` / `ART_KEY_TOL` / `ART_PLATE` / `ART_RADIUS`）：素材背景要求是一块平整的纯色，脚本按 `ART_KEY` 抠掉它、再压到 `ART_PLATE`（酒红）上——黑发压浅底太软、压深底会糊成一团，所以底板色由脚本控而不是让素材自带。换图只改这一组常量 + 换掉源文件。
 
 **`--check` 没进 CI**：它需要 Python + Pillow，而 `action.yml` 目前只有 Hugo + Node。图标是低频改动，本地跑一次就够；真要挂 CI，得先给复合动作加 `actions/setup-python` 与 `pip install pillow`。

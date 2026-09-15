@@ -31,7 +31,7 @@ const MAP = {
   // 而「文件没有 front matter」时编辑器得给出可改的输入框才能补全（见 requiredFrontMatterKeys）。
   material: { archetypes: ['notes', 'homework', 'lab'], hidden: [] },
   project: { archetypes: ['projects'], hidden: [] },
-  'project-home': { archetypes: ['project-home'], hidden: ['date', 'cascade.target', 'cascade.kind'] },
+  'project-home': { archetypes: ['project-home'], hidden: ['layout', 'date', 'cascade.target', 'cascade.kind'] },
   'project-section': { archetypes: ['project-section'], hidden: ['date'] },
   'project-doc': { archetypes: ['project-doc'], hidden: [] },
   // section 列表页（/posts/、/courses/、/projects/、/tags/ 这类分区的入口页）：五种类型共用

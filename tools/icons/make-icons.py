@@ -7,7 +7,8 @@ favicon-32x32.png / apple-touch-icon.png / safari-pinned-tab.svg。
 可复现的输入，脚本负责栅格化成各尺寸——改裁切框、改色只改本文件。
 
 两种风格（--style）：
-  art（默认）从 tools/icons/source-ojou-chibi.png 裁头部。出处与许可见 docs/architecture.md。
+  art（默认）从 tools/icons/source-ojou-chibi.png 裁头部、抠掉平灰背景、压到酒红底板上。
+            出处与许可见 docs/architecture.md。
   pixel      脚本自绘的像素风（32x32 调色板网格），不依赖任何外部素材，许可干净。
 
 用法：
@@ -17,7 +18,7 @@ favicon-32x32.png / apple-touch-icon.png / safari-pinned-tab.svg。
   python tools/icons/make-icons.py --check         # 不写盘，比对 static/ 是否与脚本一致（非零退出=漂移）
 
 设计约定：
-  - 16px 是下限：art 风格靠「大头裁切 + 冷色调压白底」，pixel 风格靠 32x32 主网格整数倍缩放。
+  - 16px 是下限：art 风格靠「大头裁切 + 酒红底板上出黑发轮廓」，pixel 风格靠 32x32 主网格整数倍缩放。
   - 圆角由脚本加（art 风格），不靠素材自带的边框。
 """
 
@@ -25,7 +26,6 @@ import argparse
 import math
 import struct
 import sys
-from collections import deque
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw
@@ -233,74 +233,57 @@ def draw_chibi():
 
 
 # ---- art 风格：Q 版插画裁头部 ----
-# 源图出处与许可见 docs/architecture.md「图标」一节；裁切框留在这里，换一张图只改这三个常量。
+# 源图出处与许可见 docs/architecture.md「图标」一节；换一张图只需要改这一组常量。
 ART = Path(__file__).with_name("source-ojou-chibi.png")
-ART_CROP = (490, 90, 2390, 1990)    # 头部（含刘海与两侧长发），源图 3000x3000
-ART_TINT = (228, 238, 252)          # 冷色乘算：白底素材在浅色标签栏里没有边界，压一层才认得出来
+ART_CROP = (430, 300, 1630, 1500)   # 头部（含刘海、两侧长发、头顶红花与一点衣领），源图 1975x2048
+ART_KEY = (184, 184, 184)           # 素材背景是一块纯平灰：按到它的距离抠掉，换成下面的底板
+ART_KEY_TOL = 40                    # 通道差 <= 此值算背景，全透明
+ART_KEY_SOFT = 30                   # TOL 到 TOL+SOFT 线性过渡，避免硬锯齿
+ART_PLATE = (150, 30, 48)           # 酒红底板：黑发压浅底太软、压深底会糊，中深红才出轮廓
 ART_RADIUS = 0.18                   # 圆角半径 = 0.18 * 边长
 
 
 def art_source():
-    """裁出头部。原始素材与裁切框都在 tools/icons/ 里，脚本不联网。"""
+    """裁出头部并抠掉平灰背景，返回 RGBA。素材与裁切框都在 tools/icons/ 里，脚本不联网。"""
     im = Image.open(ART)
     if im.mode != "RGB":
         im = im.convert("RGB")
-    return im.crop(ART_CROP)
-
-
-def rounded_alpha(im, radius):
-    """给方形图加圆角 alpha。radius=0 时原样返回。"""
-    if radius <= 0:
-        return im.convert("RGBA")
-    mask = Image.new("L", im.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle(
-        [0, 0, im.size[0] - 1, im.size[1] - 1], radius=radius, fill=255
+    im = im.crop(ART_CROP)
+    diff = ImageChops.difference(im, Image.new("RGB", im.size, ART_KEY))
+    r, g, b = diff.split()
+    # 取三通道最大差当距离：比 convert("L") 的加权亮度可靠（背景是灰的，人物有红有黑）
+    m = ImageChops.lighter(ImageChops.lighter(r, g), b)
+    alpha = m.point(
+        lambda v: 0 if v <= ART_KEY_TOL
+        else (255 if v >= ART_KEY_TOL + ART_KEY_SOFT
+              else round((v - ART_KEY_TOL) * 255 / ART_KEY_SOFT))
     )
     out = im.convert("RGBA")
-    out.putalpha(mask)
+    out.putalpha(alpha)
     return out
 
 
 def art_render(base, size, radius_scale=ART_RADIUS):
-    im = base.resize((size, size), Image.LANCZOS)
-    im = ImageChops.multiply(im, Image.new("RGB", (size, size), ART_TINT))
-    return rounded_alpha(im, max(2, round(size * radius_scale)))
+    """圆角底板 + 人物：人物先贴上去，圆角由底板切，换底板色不用改任何一张图。"""
+    radius = max(0, round(size * radius_scale))
+    plate = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(plate)
+    if radius > 0:
+        draw.rounded_rectangle([0, 0, size - 1, size - 1], radius=radius, fill=ART_PLATE + (255,))
+    else:
+        draw.rectangle([0, 0, size - 1, size - 1], fill=ART_PLATE + (255,))
+    plate.alpha_composite(base.resize((size, size), Image.LANCZOS))
+    return plate
 
 
-def art_mask_grid(base, n=N, tol=228, cell=16, need=8):
-    """从插画取人物剪影，供 safari-pinned-tab 用。
+def art_mask_grid(base, n=N, cell=16):
+    """从抠好的人物取剪影，供 safari-pinned-tab 用。
 
-    用「从四边泛洪填掉近白背景」而不是「按亮度阈值」：素材背景是纯白，阈值法会把脸也一起
-    吃掉。泛洪只吃掉与画布边缘连通的近白区域，脸被头发与轮廓线包住，留得下来。
+    直接读 alpha：背景已经按 ART_KEY 抠掉，不必再猜哪些像素算背景；脸是浅色但 alpha 是满的，
+    不会被吃掉（这正是不用「亮度阈值」的原因）。
     """
-    big = base.resize((n * cell, n * cell), Image.LANCZOS)
-    w, h = big.size
+    big = base.split()[-1].resize((n * cell, n * cell), Image.LANCZOS)
     px = big.load()
-
-    def bg(x, y):
-        r, g, b = px[x, y]
-        return r >= tol and g >= tol and b >= tol
-
-    seen = bytearray(w * h)
-    q = deque()
-    for x in range(w):
-        for y in (0, h - 1):
-            if not seen[x * h + y] and bg(x, y):
-                seen[x * h + y] = 1
-                q.append((x, y))
-    for y in range(h):
-        for x in (0, w - 1):
-            if not seen[x * h + y] and bg(x, y):
-                seen[x * h + y] = 1
-                q.append((x, y))
-    while q:
-        x, y = q.popleft()
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < w and 0 <= ny < h and not seen[nx * h + ny] and bg(nx, ny):
-                seen[nx * h + ny] = 1
-                q.append((nx, ny))
-
     g = Grid(n)
     step = 4
     total = len(range(0, cell, step)) ** 2
@@ -309,7 +292,7 @@ def art_mask_grid(base, n=N, tol=228, cell=16, need=8):
             hit = 0
             for yy in range(gy * cell, (gy + 1) * cell, step):
                 for xx in range(gx * cell, (gx + 1) * cell, step):
-                    if not seen[xx * h + yy]:
+                    if px[xx, yy] > 96:
                         hit += 1
             if hit >= total // 4:
                 g.set(gx, gy, "k")
@@ -355,7 +338,7 @@ def mask_svg(g, size):
             x += n
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {g.n} {g.n}" '
-        f'width="{size}" height="{size}">\n<path d="{"".join(d)}" fill="#2f4f9e"/>\n</svg>\n'
+        f'width="{size}" height="{size}">\n<path d="{"".join(d)}" fill="#8e1f2c"/>\n</svg>\n'
     )
 
 
@@ -403,10 +386,7 @@ def main():
             return art_render(base, size)
 
         mask_grid = art_mask_grid(base)
-        flat = ImageChops.multiply(
-            base.resize((8 * N, 8 * N), Image.LANCZOS),
-            Image.new("RGB", (8 * N, 8 * N), ART_TINT),
-        )
+        flat = art_render(base, 8 * N)
     else:
         grid, char_grid = draw_chibi()
 

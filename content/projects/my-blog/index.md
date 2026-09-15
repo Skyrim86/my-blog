@@ -3,6 +3,10 @@ title: "本博客"
 date: 2026-09-10
 draft: false
 description: "用 Hugo + PaperMod 搭建的静态博客：课程、项目、系列文章与自托管 KaTeX"
+# 列表卡片封面（生成产物：tools/covers/make-covers.py）
+cover:
+  image: "images/covers/my-blog.webp"
+  alt: "本博客"
 tags: ["Hugo", "Go Template", "CSS", "GitHub Actions"]
 repo: "https://github.com/Skyrim86/my-blog"
 categories: ["项目"]

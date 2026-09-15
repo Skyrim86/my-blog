@@ -1,0 +1,48 @@
+{{- /* 课程规划与进度（在课程主页正文里用 {{< course-plan >}} 调用）。
+
+   数据源：课程主页 front matter 的 plan 列表（weight / title / summary）。
+   已发布判定：plan 条目的 title 与某个子章节的 title 逐字相同 → 可点链接 + 「已发布」，
+   匹配不上 → 灰显 + 「计划中」。用 title 而不是 weight 匹配，是因为实际建章顺序可以与
+   计划顺序不同（数值分析就是先建了「误差与浮点数」与「非线性方程求根」，跳过第 2 章）。
+
+   为什么放正文而不是课程模板：位置该由作者决定（这一节本来就在正文的「课程规划」处）。 */ -}}
+{{- $course := .Page -}}
+{{- $plan := $course.Params.plan -}}
+{{- if $plan -}}
+{{- $byTitle := dict -}}
+{{- range (union $course.RegularPages $course.Sections) -}}
+  {{- $byTitle = merge $byTitle (dict (printf "%v" .Title) .) -}}
+{{- end -}}
+{{- $done := 0 -}}
+{{- range $plan -}}
+  {{- if index $byTitle (printf "%v" .title) -}}{{- $done = add $done 1 -}}{{- end -}}
+{{- end -}}
+{{- $total := len $plan -}}
+{{- $pct := div (mul $done 100) $total -}}
+{{- $unit := $course.Params.unit | default "章" -}}
+<div class="course-plan">
+  <div class="course-plan-progress">
+    <div class="course-plan-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ $total }}"
+      aria-valuenow="{{ $done }}" title="{{ i18n "coursePlanStat" (dict "done" $done "total" $total) }}">
+      <span style="width: {{ $pct }}%"></span>
+    </div>
+    <span class="course-plan-stat">{{ i18n "coursePlanStat" (dict "done" $done "total" $total) }}</span>
+  </div>
+  <ol class="course-plan-list">
+    {{- range $plan -}}
+    {{- $ch := index $byTitle (printf "%v" .title) -}}
+    <li class="course-plan-item{{ if $ch }} is-built{{ else }} is-planned{{ end }}">
+      <span class="course-plan-num">{{ i18n "courseUnitLabel" (dict "num" .weight "unit" $unit) }}</span>
+      {{- if $ch -}}
+      <a class="course-plan-title" href="{{ $ch.RelPermalink }}">{{ .title }}</a>
+      <span class="course-plan-state">{{ i18n "coursePlanBuilt" }}</span>
+      {{- else -}}
+      <span class="course-plan-title">{{ .title }}</span>
+      <span class="course-plan-state">{{ i18n "coursePlanPlanned" }}</span>
+      {{- end -}}
+      {{- with .summary }}<span class="course-plan-summary">{{ . }}</span>{{ end }}
+    </li>
+    {{- end -}}
+  </ol>
+</div>
+{{- end -}}

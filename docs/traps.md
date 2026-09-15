@@ -60,6 +60,9 @@
 - **`public/` 不会被自动清空**：Hugo 默认不清目标目录（`Cleaned` 恒为 0），所以只要跑过一次 `hugo -D`，`public/` 里就会留下草稿页等陈旧产物。本地量页数与体积前**必须**用 `--cleanDestinationDir`，否则量的是错的东西（实测页数虚高 5 页，giscus 脚本的「加载页面数」也被这 5 个陈旧页面污染）
 - **不能用「构建还过」来判断删主题文件是否安全**：主题 `_partials/head.html` 无条件调用的 `google_analytics.html` 在站点与主题里**都不存在**，而 og:/JSON-LD 照常渲染、构建一直是绿的。**Hugo 会静默容忍缺失的 partial。** 详见 [`architecture.md` 第 5 节](architecture.md#5-主题剪裁记录2026-09-12)
 - **`hugo server` 会改写 `public/`**（管理页的预览就是它）：实测在干净构建后 public 里有 16 个带 `class=katex` 的页面，一启动 `hugo server` 就变成 0（而 public 里仍有 78 个 html，说明确实被写过）。于是**读 `public/` 的校验会给出假结果**——`check-katex-pairing.sh` 报「没有找到含公式的页面」、`check-links.mjs` 报坏链、`report-size.sh` 量到别的页数。注意 CI 与 `push-blog.sh` **不受影响**：`.github/actions/validate/action.yml` 里这三个检查都排在「构建」之后，构建会先把 public 刷新一遍。只有**手动**跑这些校验时要保证前面刚构建过；校验失败时先确认没有预览在跑
+- **`hugo server --baseURL` 只在首次构建生效**：实测传了 `--baseURL http://localhost:1313/my-blog/` 后，页面里的菜单/favicon 一开始确实是本机地址，但**改一个文件触发重建就又变回 `hugo.toml` 里的线上地址**——本地预览里点菜单会跳到线上站点、改了图标/样式也看不到。改用环境变量 `HUGO_BASEURL=...`（每次构建都读），实测重建前后都保持本机地址。`scripts/preview.sh` 与 `tools/admin/lib/hugo.mjs` 都走环境变量
+- **但资源级 `.Permalink`（封面/图片这类）环境变量救不了**：Hugo 在资源处理时就把 baseURL 烘进绝对地址，所以**跑过一次完整 `hugo`（用配置里的线上 baseURL）之后，正在运行的 preview 会跟着 emit 线上地址**——预览里封面变成空白框、图片 404，而页面链接还是本机的。判据：`curl 127.0.0.1:1313/my-blog/projects/ | grep 'src=".*covers'`，出现 `skyrim86.github.io` 就是中的这个。**修法：重启 preview**（顺序是「先完整构建、后起 preview」，别反过来）
+- **别在 `hugo server`（watch 模式）跑着的时候执行 `hugo --cleanDestinationDir`**：实测 server 的 watcher 会 panic 退出（`hugolib.(*HugoSites).Build` 栈），预览直接死掉。要跑完整构建就先把 preview 停掉
 - **Hugo 报公式渲染错误时会「取消剩下的页面」，所以它列出的坏页可能不全**：实测一次推送里其实有 **3** 个坏页（`问题二_证明笔记.md` 107 行的嵌套 `$`、`问题三_小证明.md` 109 行多出来的 `$`、`问题三_证明_下界.md` 160 行的 `§`），而 `hugo` 只报出前两个——渲染是并行的，报错即取消未完成的任务。**所以「修完报出来的错误」不等于构建就能过**，必须重新构建到绿；`scripts/check-math-katex.mjs`（真检，逐条试渲染）能一次扫全，上面那个第三个坏页就是这一路扫出来的
 
 ## 4. 工具与脚本
@@ -67,6 +70,7 @@
 - **`hugo list all` 是页面 URL 的权威来源**（`path,slug,title,date,…,permalink,kind,section`）。任何需要「这一页最终 URL 是什么」的地方都应该问它，不要自己实现 slugify + permalinks + `pathToLower`（管理页原先的第二份实现已删除）。解析它输出的两个坑：**标题里可能有逗号**（不能按逗号朴素切分）；**顶层页面的 `section` 是空字符串**
 - **shell `case` 的通配 `*` 会跨 `/`**，不是「一层」。`check-frontmatter.sh` 里 `content/courses/*/*/index.md` 正是靠这一点覆盖 `content/courses/<课程>/<章>/<材料>/index.md`，所以新增材料目录（`lab`、`lab-02`）会自动被覆盖。改这类模式时要意识到这一点
 - **`next_weight()` 与 `next_material_weight()` 是两个函数**，别用错：前者数 `*/_index.md` 与 `*.md`（`sub`/`doc` 用），材料页是 `*/index.md`，用它永远得 1（实测踩过：`--dir lab-02` 与笔记撞成同一个 weight）
+- **`.File.Dir` 在 Windows 上给的是反斜杠**（`projects\my-blog\`）：模板里 `split (.File.Dir) "/"` 会得到 1 段，按目录深度做判断（根页 / 文档页）会全部算错，且**不报错**——表现是「某些卡片上少了一整块内容」。先 `strings.Replace $dir "\\" "/"` 再切。「标题里的逗号」「section 为空字符串」是 `hugo list all` 的两个同类坑（见上一条）
 - **KaTeX 版本注释曾把警告说反**：`extend_head.html` 里原本写着「当前版本：0.18.7」，实际是 0.16.x（无前缀）。照那行注释去换 0.18.x 的 CSS 会让全站公式错版。判据与自查命令见 [`formulas.md` 第 5 节](formulas.md#5-katex-样式版本必须与-hugo-内嵌版本配对-)
 
 ## 5. 导航与排序的「反直觉」

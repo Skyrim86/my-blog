@@ -1,0 +1,23 @@
+{{- /* 分层项目的项目主页模板：仅当项目 _index.md 设置 layout: "project-home" 时命中。
+
+   为什么不复用主题的 list.html：section 页在主题里只会把子页排成一列卡片，看不到层级与进度
+   （哪个子项目有几篇文档、最近动过没有），也没有「技术栈 + 查看源码」面板
+   （project-meta 原先只在走 single.html 的页面上注入）。子项目页仍走主题 list.html，
+   只是多了卡片上的计数 chips（见 layouts/_partials/card-chips.html）。 */ -}}
+{{- define "main" }}
+
+<article class="project-home">
+  {{- partial "page-head.html" (dict "page" .) }}
+
+  {{- partial "project-meta.html" . }}
+
+  {{- partial "project-index.html" . }}
+
+  {{- if .Content }}
+  <div class="post-content md-content">
+    {{- partial "anchored_headings.html" .Content }}
+  </div>
+  {{- end }}
+</article>
+
+{{- end }}{{/* end main */}}

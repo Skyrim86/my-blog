@@ -25,7 +25,8 @@ content/courses/<课程>/<chapter-0N>/homework/index.md   # leaf bundle，📝
 content/courses/<课程>/<chapter-0N>/lab/index.md        # leaf bundle，🧪
 ```
 
-- **课程主页**由 `layouts/courses/course.html` 渲染：面包屑 + 标题 + `unit` 说明 + 自动章节目录（按 `weight` 排序，显示「第 N 章」与各章徽标）+ 大纲正文
+- **课程主页**由 `layouts/courses/course.html` 渲染：面包屑 + 标题 + `unit` 说明 + 自动章节目录（按 `weight` 排序，显示「第 N 章」、可点的材料徽章、`N 篇材料 · 更新于 …`）+ 大纲正文
+- **课程规划与进度**：front matter 的 `plan` 列表（`weight` / `title` / `summary`）+ 正文里一行 `{{< course-plan >}}`，渲染成进度条与「已发布 / 计划中」对照表。已发布判定按 `title` 与子章节标题**逐字相同**（课程会跳章，按 weight 会算错），详见 docs/features.md 第 ⑯ 项
 - **章节入口页**由 `layouts/courses/chapter.html` 渲染：把本章子页面列成入口卡片（名字取 `title`、图标取 `icon`、顺序取 `weight`）。**笔记、作业、实验不堆在同一页**，必须从这里分开进入
 - **材料页**走主题 `single.html`：正文即内容，附件区由 `extend_post_content.html` 注入 `course-downloads.html`
 
