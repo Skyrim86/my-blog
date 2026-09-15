@@ -158,6 +158,17 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 封面是生成产物（渐变 + 细网格底纹 + 标签/标题/副标题），脚本是可复现的事实源：改标题配色只改脚本里的 `COVERS`，输出到 `assets/images/covers/*.webp`，front matter 里写 `cover.image: "images/covers/<名字>.webp"` 即生效。**不用外部图片**的原因和图标不同：封面只承担「卡片有视觉锚点」，自绘没有许可问题。
 
+### ㉑ 数学工具库（课程卡片 + 正文引用弹窗）— `layouts/courses/{tools,toolcard}.html`、`_partials/{card-ref,toolbox-card,toolbox-teaser,toolbox-md}.html`、`assets/js/toolbox.js`、`11-toolbox.css`
+
+数学课里「由【工具 1.4】」「定理 4.4」这类引用以前只能翻附录，现在是一套卡片库：
+
+- **数据**：`data/math-toolbox.json`，由 `tools/course-import/import_course.py` 从课程项目生成（见 [`content.md` 第 9 节](content.md#9-课程内容从课程项目导入含数学工具库)）。
+- **主页** `/courses/<课程>/toolbox/`（`layout: "tools"`）：只铺**索引卡**（类别徽章 + 编号 + 标题），顶部按关键词与分组筛选。
+- **卡片页** `/toolbox/<id>/`（`layout: "toolcard"`，id 形如 `tool-1-4`／`thm-4-4`）：完整卡片 —— 陈述、用途、折叠的证明。一卡一页是因为：80 张卡铺一页有 3 MB、超单页预算；顺带每张卡有了可分享的固定链接。
+- **正文引用**：`{{< tool "1.4" >}}` / `{{< thm "4.4" >}}` → `_partials/card-ref.html` 输出一个徽章链接。点击由 `toolbox.js` 拦截，抓对应卡片页塞进弹窗（同一地址只抓一次）；**无 JS 时退化成普通链接**，跳到卡片页。
+- 卡片页不参与标签体系（`toolbox/_index.md` 的 `cascade` 清空 `tags`），也不进 sitemap 与搜索索引（`sitemap.disable` + `searchHidden`）。
+- 卡内的 `[【工具 1.1】](#card-tool-1-1)` 会被 `toolbox-md.html` 在渲染后改写成目标卡片页地址（Hugo 会把纯 fragment 链接补成「当前页地址 + #锚点」）。
+
 ## 4. 四处有意的主题模板覆盖
 
 除上述 hook 之外，仓库里有四处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
@@ -182,7 +193,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 | 站点背景图 | 191.4 KB（JPEG） | 65.5 KB（WebP） |
 | `static/favicon.ico` | 3.3 KB | 3.9 KB（16/32 两帧；256 帧挪去了管理页图标） |
 | `static/apple-touch-icon.png` | 5.7 KB | 14 KB（180×180 真彩原本 61 KB，量化到 256 色） |
-| 整站输出（`report-size.sh`） | 9957 KB | 9833 KB |
+| 整站输出（`report-size.sh`） | 9833 KB | 18983 KB（新增「回归分析」课程：3 页笔记 + 作业 + 实验 + 80 张工具卡页；预算 12 → 24 MB） |
 | 滚动脚本开销（最重页，110 次滚动） | 0.019~0.020 s | 0.004~0.005 s |
 
 ### 最重的页面到底重在哪
@@ -195,6 +206,8 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - `.post-single` 的 `backdrop-filter: blur(8px)` 是**页面那么高**的元素，本来怀疑它是滚动卡顿源。用 `jank.py` 在 4 G 与本机各量了一轮，`TaskDuration` / `LayoutCount` / 帧间隔都测不出差异（headless 下 rAF 帧间隔恒定 6.05 ms，该探针对合成器侧的开销不敏感）。**测不出问题就不动它**——它同时承担正文可读性。
 
 ### 还剩下的（已知、暂不动）
+
+**2026-09-15 追加**：一门公式密集的课程（回归分析 M1）让整站 +9.2 MB —— 最重的单页 1082 KB（M1 笔记按 § 拆成 3 页才压回预算内），80 张工具卡页各约 40 KB 页面框架 + 卡片内容。单页预算不变（1638 KB），整站预算 12 → 24 MB。**没有**为了压体积去掉 MathML（理由见上面「试过并否决」）。
 
 - KaTeX 在公式页加载 6 个 woff2 共 **107 KB**、`katex.min.css` 23 KB；只在真有公式的页面加载（`extend_head.html` 的三条件判据）。要再降只能做字体子集化，收益不确定、维护成本高。
 - 每个页面都多一次 59 字节的 `css/bg-image.css`（渲染阻塞）。它和主样式表是**并行**下载的（不是串行），FCP 实测没有差别，所以不值得为它把背景图 URL 硬编码进 CSS 或往模板里写 `<style>`。

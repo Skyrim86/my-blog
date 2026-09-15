@@ -7,6 +7,25 @@
 
   {{- partial "course-index.html" . }}
 
+  {{- /* 工具库入口：课程下 layout: "tools" 的页面（例如数学工具库）不属于章节，
+         所以被 course-index 排除，在这里单独给一个入口条。 */ -}}
+  {{- with where (union .RegularPages .Sections) "Layout" "tools" }}
+  <nav class="course-tools">
+    {{- range . }}
+    <a class="course-tool-link" href="{{ .RelPermalink }}">
+      <span class="course-tool-icon" aria-hidden="true">🧰</span>
+      <span class="course-tool-main">
+        <span class="course-tool-title">{{ .Title }}</span>
+        {{- with .Description }}
+        <span class="course-tool-desc">{{ . }}</span>
+        {{- end }}
+      </span>
+      <span class="course-tool-arrow" aria-hidden="true">→</span>
+    </a>
+    {{- end }}
+  </nav>
+  {{- end }}
+
   {{- if .Content }}
   <div class="post-content md-content">
     {{- partial "anchored_headings.html" .Content }}

@@ -116,3 +116,40 @@ other = "最近更新"
 
 [homeRecentAll]
 other = "按分类浏览 →"
+
+# ---------- 数学工具库（见 layouts/courses/tools.html、assets/js/toolbox.js） ----------
+# 搜索框提示（工具库页）
+[toolboxSearch]
+other = "搜索编号、标题或内容，例如「Gauss」「4.4」「方差」"
+
+[toolboxFilterLabel]
+other = "按分类筛选"
+
+[toolboxAll]
+other = "全部"
+
+[toolboxEmpty]
+other = "没有匹配的卡片"
+
+# {shown} / {total} 是脚本替换的占位符（单花括号，别写成 Go 模板的 {{ }}）
+[toolboxResult]
+other = "匹配 {shown} / {total} 张"
+
+# 卡片里折叠的证明
+[toolboxProof]
+other = "证明"
+
+# 弹窗标题与关闭按钮
+[toolboxTitle]
+other = "数学工具库"
+
+[toolboxClose]
+other = "关闭卡片"
+
+# 卡片标题旁的固定链接
+[toolboxLinkLabel]
+other = "这张卡片的固定链接"
+
+# 卡片页底部返回工具库
+[toolboxBack]
+other = "返回数学工具库"

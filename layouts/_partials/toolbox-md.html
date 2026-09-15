@@ -1,0 +1,14 @@
+{{- /* 渲染卡片里的一段 markdown（体/用途/注/证明），并把卡内交叉引用
+       [【工具 1.1】](#card-tool-1-1) 的锚点改写成目标卡片页地址
+       （卡片已经一卡一页，锚点在本页无效；没有 base 时保持原样）。
+
+     参数：page（渲染上下文页）、text（markdown）、base（可选，卡片页 URL 前缀，如 /courses/x/toolbox/）。 */ -}}
+{{- $html := .page.RenderString .text -}}
+{{- with .base -}}
+  {{- /* 卡内交叉引用 [【工具 1.1】](#card-tool-1-1)：Hugo 会把纯 fragment 的链接补成
+         「当前页地址 + #card-…」，所以模式里要先吃掉 href 里 # 之前的部分。 */ -}}
+  {{- $html = replaceRE `href="[^"]*#card-([^"]+)"` (printf `href="%s$1/"` .) $html -}}
+{{- end -}}
+{{- /* 必须 safeHTML：partial 的返回值是普通字符串，直接输出会把 KaTeX 的 HTML 标记
+       当成文本转义显示出来（模板函数链里 RenderString 的 template.HTML 类型会丢掉）。 */ -}}
+{{- $html | safeHTML -}}

@@ -1,0 +1,34 @@
+{{- /* 一张完整的工具库卡片（卡片页 layouts/courses/toolcard.html 与弹窗用同一份 markup）。
+
+     参数：page（渲染上下文页）、card（data/math-toolbox.json 的一条）、
+           base（可选，卡片页 URL 前缀，用于改写卡内交叉引用，见 toolbox-md.html）。 */ -}}
+{{- $page := .page -}}
+{{- $card := .card -}}
+{{- $base := .base -}}
+<article class="tb-card" id="card-{{ $card.id }}" data-id="{{ $card.id }}" data-group="{{ $card.group }}"
+         data-kind="{{ $card.kind }}" data-search="{{ substr (printf "%s %s %s" $card.label $card.title ($card.body | plainify)) 0 260 }}">
+  <header class="tb-card-head">
+    <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>
+    {{- /* label 里已经带类别（「定理 4.4」），徽章里再写一遍就重复了，这里只留编号 */ -}}
+    <span class="tb-label">{{ replace $card.label (printf "%s " $card.kind) "" }}</span>
+    {{- with $card.title }}
+    <span class="tb-card-title">{{ $page.RenderString . }}</span>
+    {{- end }}
+    <a class="tb-card-anchor" href="#card-{{ $card.id }}" aria-label="{{ i18n "toolboxLinkLabel" }}" title="{{ i18n "toolboxLinkLabel" }}">#</a>
+  </header>
+  {{- with $card.body }}
+  <div class="tb-card-body">{{ partial "toolbox-md.html" (dict "page" $page "text" . "base" $base) }}</div>
+  {{- end }}
+  {{- with $card.usage }}
+  <div class="tb-card-usage">{{ partial "toolbox-md.html" (dict "page" $page "text" . "base" $base) }}</div>
+  {{- end }}
+  {{- with $card.proof }}
+  <details class="tb-card-proof">
+    <summary>{{ i18n "toolboxProof" }}</summary>
+    <div class="tb-proof-body">{{ partial "toolbox-md.html" (dict "page" $page "text" . "base" $base) }}</div>
+  </details>
+  {{- end }}
+  {{- with $card.note }}
+  <div class="tb-card-note">{{ partial "toolbox-md.html" (dict "page" $page "text" . "base" $base) }}</div>
+  {{- end }}
+</article>

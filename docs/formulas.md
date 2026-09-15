@@ -81,8 +81,8 @@ KaTeX parse error: ... Unicode text character "到" used in math mode
 
 严格模式（Hugo 默认 `strict: 'error'`）只认符号表里的字符（下面都是实测结论）：
 
-- **能过**：中文、全角标点（`，`、`（`、`）`）、`–`、`—`、以及**纯数学模式下的裸 `§`**
-- **不能过**：`\text{}` 里的裸 `§`（`Unrecognized Unicode character "§"`）、圈号 `①`–`⑳`（不在符号表内）、**单独用的** `\textcircled{N}`（`LaTeX's accent \textcircled works only in text mode`）
+- **能过**：中文、全角标点里的 `，`、`（`、`）`、`–`、`—`、以及**纯数学模式下的裸 `§`**
+- **不能过**：**全角冒号 `：`**（`Unicode text character "：" used in math mode`，`，` 能过它不能——写 `\text{…：}` 或半角 `:`）、`\text{}` 里的裸 `§`（`Unrecognized Unicode character "§"`）、圈号 `①`–`⑳`（不在符号表内）、**单独用的** `\textcircled{N}`（`LaTeX's accent \textcircled works only in text mode`）
 
 `§` 是最常踩的（写「见 §3.4」时顺手带进了公式）：**一律写成 `\S`**——KaTeX 的 `\S` 就是 §，math 与 text 两种模式都认，所以 `\S3.4` 与散文里的 `§3.4` 视觉一致。圈号写成 `\text{\textcircled{N}}`。这两类都已进机械层自动修复（见第 3 节），不用手改。
 

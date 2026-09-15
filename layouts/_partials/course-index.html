@@ -1,6 +1,8 @@
 {{- /* 章节目录：课程主页（layout: course）下按 weight 列出各章/周，并标出材料可用情况 */ -}}
 {{- $unit := .Params.unit | default "章" }}
-{{- $chapters := union .RegularPages .Sections }}
+{{- /* layout: "tools" 的页面（数学工具库）不是章节，不列进章节目录；
+       课程主页另有专门的工具库入口（见 layouts/courses/course.html）。 */ -}}
+{{- $chapters := where (union .RegularPages .Sections) "Layout" "!=" "tools" }}
 {{- $chapters = $chapters.ByWeight }}
 {{- if $chapters }}
 <nav class="course-index">

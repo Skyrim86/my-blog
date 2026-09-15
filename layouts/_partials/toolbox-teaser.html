@@ -1,0 +1,15 @@
+{{- /* 工具库索引卡（工具库主页用）。参数：page（工具库页）、card、url（卡片页地址）。 */ -}}
+{{- $card := .card -}}
+{{- $search := printf "%s %s %s" $card.label $card.title ($card.body | plainify) -}}
+<article class="tb-card tb-teaser" data-id="{{ $card.id }}" data-group="{{ $card.group }}"
+         data-kind="{{ $card.kind }}" data-search="{{ substr $search 0 240 }}">
+  <a class="tb-teaser-link" href="{{ .url }}">
+    <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>
+    {{- /* label 里已经带类别（「工具 1.4」），徽章里再写一遍就重复了，这里只留编号 */ -}}
+    <span class="tb-label">{{ replace $card.label (printf "%s " $card.kind) "" }}</span>
+    {{- with $card.title }}
+    <span class="tb-teaser-title">{{ $.page.RenderString . }}</span>
+    {{- end }}
+    <span class="tb-teaser-arrow" aria-hidden="true">→</span>
+  </a>
+</article>

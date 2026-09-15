@@ -25,6 +25,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 11. **能问工具的就不要自己实现**：页面 URL 问 `hugo list all`（它输出每页 `path,permalink`），front matter 模板认 `archetypes/`，词表格式认 `data/taxonomy.yaml`
 12. **新增校验加进 `.github/actions/validate/action.yml`**（不要在某个 workflow 里单独写，否则 `checks.yml` 与 `deploy.yml` 分叉），并想清楚是**阻断**（内容正确性：缺 front matter、坏链、公式错版）还是**只警告**（内部一致性：词表、编辑器字段表）
 13. **改 URL 需谨慎**：URL 由 `[permalinks]`、目录名、文章标题（`:slug` 取自标题）决定。giscus 用 `mapping='title'`，所以**改标题既换 URL 又丢评论关联**；改目录名只换 URL。管理页的 `slug` 字段可把文章 URL 固定下来
+15. **课程内容与数学工具库是生成产物**：`content/courses/regression-analysis/**` 的正文、`data/math-toolbox.json`、`content/courses/*/toolbox/<id>/index.md` 全部由 `python tools/course-import/import_course.py` 从课程项目（`D:\\1.Study\\course\\回归分析`）生成。改内容改**课程项目里的 md**再重跑导入；手改博客这边的产物会在下次导入时被覆盖（`--check` 只比对不写盘）
 14. **管理页（`tools/admin/`）受同样约束**：界面资源只能放 `tools/admin/ui/`（放进 `assets/**` 会被主题合并进公开站点资源 = 把管理界面发到线上）；写盘一律转交 `new-content.sh`/`push-blog.sh`，不要在 Node 里另写一套 front matter 或发布逻辑
 
 ## 3. 内容怎么建
@@ -60,6 +61,8 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 公式机械修复（`\*` → `*`、`§` → `\S`、圈号 → `\text{\textcircled{N}}`） | `scripts/fix-math-escapes.mjs`（管理页保存/新建与 `push-blog.sh` 都调它；`--selftest` 自测规则） | 同上 |
 | 公式内容预检（嵌套 `$`、行内 `$` 数为奇数、JSON 双重转义指纹） | `scripts/check-math-syntax.mjs`（CI 与 `push-blog.sh` 都跑，阻断） | 同上（第 4 节） |
 | 公式真检（Hugo 内嵌 KaTeX 逐条试渲染，覆盖全部语法错误；`--fix` 验证后才写盘地修双重转义） | `scripts/check-math-katex.mjs`（CI 与 `push-blog.sh` 都跑，阻断；`--selftest` 自测机制本身） | 同上（第 4 节） |
+| 课程内容导入（课程项目 → 博客正文 + 工具库数据） | `tools/course-import/import_course.py`（**生成产物，不要手改**） | [`docs/content.md`](docs/content.md) 第 9 节 |
+| 数学工具库（卡片墙 / 卡片页 / 引用弹窗） | `layouts/courses/{tools,toolcard}.html`、`_partials/{card-ref,toolbox-*}.html`、`assets/js/toolbox.js`、`11-toolbox.css` | [`docs/features.md`](docs/features.md) 第 3 节 ㉑ |
 | 新内容脚手架 / 删除 | `scripts/new-content.sh` | [`docs/content.md`](docs/content.md) |
 | 标签词表 | `data/taxonomy.yaml`、`scripts/check-tags.sh` | 同上 |
 | 本地管理页（新建 / 编辑 / 发布 / 体检面板 / 命令面板 `Ctrl+K` / 插图） | `tools/admin/`（`start.sh`/`server.mjs`/`lib/`/`ui/`） | [`docs/admin.md`](docs/admin.md) |
@@ -75,6 +78,8 @@ bash scripts/preview.sh                    # 纯本地预览（含草稿）http:
 hugo --minify --gc --cleanDestinationDir   # 生产构建（--cleanDestinationDir 不能省）
 bash scripts/push-blog.sh "feat: 说明"     # 公式自动修复（机械层 + 真检验证层）→ 校验 → 构建 → commit → push（固定入口）
 bash scripts/upgrade-hugo.sh <版本>        # 同步升级 Hugo + 配对的 KaTeX 样式
+python tools/course-import/import_course.py           # 课程项目 → 博客内容 + 数学工具库（改完课程笔记后重跑）
+python tools/course-import/import_course.py --check   # 只比对：博客是否落后于课程项目
 ```
 
 跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`；公式相关的都在**构建前**跑：`node scripts/fix-math-escapes.mjs`（机械修复，`--fix` 修、`--selftest` 自测规则）、`node scripts/check-math-syntax.mjs`（快检）、`node scripts/check-math-katex.mjs`（真检，`--selftest` 自测机制；`--fix` 验证后才写盘地修双重转义）。

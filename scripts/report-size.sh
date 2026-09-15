@@ -17,7 +17,7 @@ cd "$(git rev-parse --show-toplevel)"
 # ---- 预算（可用环境变量覆盖，例如 MAX_PAGE_KB=2000 bash scripts/report-size.sh）----
 # 定得比现状宽松，只在真出现回归时报警，不做日常噪音。
 MAX_PAGE_KB="${MAX_PAGE_KB:-1638}"   # 单页 raw HTML 上限 1.6 MB（现状最重约 1318 KB）
-MAX_TOTAL_KB="${MAX_TOTAL_KB:-12288}" # 整站输出上限 12 MB（2026-09-12：CMC2026 一次新增 16 个公式密集页，raw HTML 约 +6.5 MB，整站 5.6 → 10.0 MB，故 8 MB 上调到 12 MB）
+MAX_TOTAL_KB="${MAX_TOTAL_KB:-24576}" # 整站输出上限 24 MB（2026-09-15：新增「回归分析」课程 —— 拆成 3 页的 M1 笔记 + 作业 + 实验，以及 80 张数学工具卡页（一卡一页，见 tools/course-import/），整站 10.0 → 19.0 MB；单页预算不变）
 MAX_INDEX_KB="${MAX_INDEX_KB:-52}"   # 搜索索引上限 52 KB（现状 39 KB，含页内标题 headings；历史上曾涨到 49 KB）
 
 DIR="public"

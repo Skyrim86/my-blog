@@ -140,6 +140,26 @@ bash scripts/new-content.sh remove   <content 路径> [--with-bundle] [--dry-run
 
 用 `/new-post`、`/new-course`、`/new-project`，或打开管理页（`bash tools/admin/start.sh`）。**不要用 Write 直接创建内容文件、也不要手抄 front matter**——`archetypes/` 是唯一事实源，手抄必然漂移（`archetypes/default.md` 的 `cover.relative` 就曾长期是错的）。**删除也一样**走 `new-content.sh remove`，不要在会话里手敲 `rm`。
 
+## 9. 课程内容从课程项目导入（含数学工具库）
+
+「回归分析」这类课程的项目根不在博客仓库里（`D:\1.Study\course\回归分析`），博客侧的内容与数据由脚本生成：
+
+```bash
+python tools/course-import/import_course.py            # 生成 / 更新
+python tools/course-import/import_course.py --check    # 只比对（CI 不跑：CI 里没有课程项目目录）
+```
+
+| 产物 | 来源 |
+|---|---|
+| `content/courses/<课程>/<chapter>/<材料>/index.md` 的**正文** | 课程项目的 `笔记/`、`作业/`、`实验/` 里的 md。front matter 仍由 `new-content.sh` 生成，脚本只替换正文；正文里的 `【工具 k.m】` 会换成 `{{< tool "k.m" >}}` |
+| `data/math-toolbox.json` | `工具/00_数学工具.md`（按 `## k 名称` 分 6 组）+ 各模块笔记里的定理/定义/命题块 |
+| `content/courses/<课程>/toolbox/<id>/index.md` | 与上同一批卡片：一张卡一个页面，front matter 由脚本生成、正文为空，模板按目录名从 data 取内容 |
+| `实验/<lab>/figs/*.png` | 直接复制进对应材料页的 bundle |
+
+**改内容一律改课程项目里的 md，再重跑导入**——博客侧这几类文件是生成产物，手改会在下次导入时被覆盖。
+
+一条笔记太长时按 § 拆成多页（`MODULES["notes"]` 里的 `first`/`last` 指定保留哪几节）：1575 行、2500 多个数学区渲染出来约 2.5 MB，会撞 `report-size.sh` 的单页预算。
+
 ## 8. URL 与内容的关系
 
 - 课程各页 URL 由目录名决定（`/courses/<课程>/<chapter-0N>/notes/`），改名即改 URL；课程主页 URL（`/courses/<课程>/`）保持不变

@@ -1,0 +1,49 @@
+{{- /* 「卡片引用」按钮：正文里的 {{< tool "1.4" >}} / {{< thm "4.4" >}} 都走这里。
+
+     卡片内容只存一份 —— data/math-toolbox.json（由 tools/course-import/import_course.py
+     从课程项目生成），每张卡另有一个独立页面（content/courses/<课程>/toolbox/<id>/）。
+     这里输出的是指向那张卡片页的链接：
+
+       <a class="card-ref" href="…/toolbox/tool-1-4/" data-card="tool-1-4">工具 1.4</a>
+
+     assets/js/toolbox.js 拦截点击并把卡片页就地抓成弹窗；没有 JS 时就是普通链接，
+     点开是完整可读的卡片页。
+
+     参数：page（当前页）、id（卡片 id，如 tool-1-4 / thm-4-4）、label（可选，覆盖显示文本）。
+     卡片不存在时退化成纯文本 + 构建期警告，不会产出死链。 */ -}}
+{{- $page := .page -}}
+{{- $id := .id -}}
+{{- $tb := index hugo.Data "math-toolbox" -}}
+{{- $card := false -}}
+{{- with $tb -}}
+  {{- with .cards -}}
+    {{- with where . "id" $id -}}
+      {{- $card = index . 0 -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $label := .label -}}
+{{- if and (not $label) $card -}}{{- $label = $card.label -}}{{- end -}}
+{{- if not $label -}}{{- $label = $id -}}{{- end -}}
+{{- /* 卡片所在的工具库：先按当前页所属课程找，找不到再退回全站第一个 layout: tools 的页面 */ -}}
+{{- $tbPage := false -}}
+{{- with $page -}}
+  {{- $file := replace (.File.Path | default "") "\\" "/" -}}
+  {{- $parts := split $file "/" -}}
+  {{- if and (ge (len $parts) 2) (eq (index $parts 0) "courses") -}}
+    {{- with site.GetPage (printf "/courses/%s/toolbox" (index $parts 1)) -}}
+      {{- $tbPage = . -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if and (not $tbPage) $page -}}
+  {{- range where site.Pages "Layout" "tools" -}}
+    {{- if not $tbPage -}}{{- $tbPage = . -}}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if and $card $tbPage -}}
+<a class="card-ref" href="{{ printf "%s%s/" $tbPage.RelPermalink $id }}" data-card="{{ $id }}" data-kind="{{ $card.kind }}">{{ $label }}</a>
+{{- else -}}
+  {{- warnf "card-ref: 卡片 %s 不存在（%s），已退化为纯文本" $id ($page.File.Path | default "?") -}}
+<span class="card-ref card-ref-missing">{{ $label }}</span>
+{{- end -}}

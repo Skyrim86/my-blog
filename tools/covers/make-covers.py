@@ -49,6 +49,13 @@ COVERS = {
         "bg": ((14, 20, 26), (26, 52, 66)),
         "accent": (91, 110, 224),
     },
+    "regression-analysis": {
+        "label": "课程 · COURSE",
+        "title": "回归分析",
+        "subtitle": "最小二乘 · 推断 · 模型诊断",
+        "bg": ((13, 21, 24), (24, 64, 58)),
+        "accent": (72, 166, 148),
+    },
     "cmc2026": {
         "label": "项目 · PROJECT",
         "title": "CMC2026",

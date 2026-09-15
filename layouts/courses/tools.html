@@ -1,0 +1,56 @@
+{{- /* 数学工具库主页（layout: "tools"）：卡片**索引**。
+
+     完整卡片在各自页面 content/courses/<课程>/toolbox/<id>/（模板 toolcard.html），
+     点击索引卡或正文里的引用时由 assets/js/toolbox.js 抓取对应卡片页弹出。
+
+     为什么不在这一页直接铺满卡片正文：80 张卡片的 KaTeX 排版树约 3 MB，
+     超过 scripts/report-size.sh 的单页 1.6 MB 预算。 */ -}}
+{{- define "main" }}
+{{- $tb := index site.Data "math-toolbox" }}
+{{- $tbURL := .RelPermalink }}
+
+<article class="post-single toolbox-page">
+  {{- partial "page-head.html" (dict "page" .) }}
+
+  {{- if .Content }}
+  <div class="post-content md-content tb-intro">
+    {{- partial "anchored_headings.html" .Content }}
+  </div>
+  {{- end }}
+
+  {{- with $tb }}
+  <div class="tb-toolbar">
+    <div class="tb-search">
+      <input type="search" id="tb-search" class="tb-search-input" placeholder="{{ i18n "toolboxSearch" }}"
+             autocomplete="off" spellcheck="false" aria-label="{{ i18n "toolboxSearch" }}">
+    </div>
+    <div class="tb-filters" role="group" aria-label="{{ i18n "toolboxFilterLabel" }}">
+      <button type="button" class="tb-chip is-active" data-group="all">{{ i18n "toolboxAll" }}<span class="tb-chip-count">{{ len .cards }}</span></button>
+      {{- range .groups }}
+      <button type="button" class="tb-chip" data-group="{{ .key }}">{{ .name }}<span class="tb-chip-count">{{ len (where $tb.cards "group" .key) }}</span></button>
+      {{- end }}
+    </div>
+    <p class="tb-result" id="tb-result" hidden></p>
+    <p class="tb-empty" id="tb-empty" hidden>{{ i18n "toolboxEmpty" }}</p>
+  </div>
+
+  <div class="tb-groups">
+    {{- range .groups }}
+    {{- $cards := where $tb.cards "group" .key }}
+    <section class="tb-group" id="group-{{ .key }}" data-group="{{ .key }}">
+      <h2 class="tb-group-title">
+        <span class="tb-group-name">{{ .name }}</span>
+        <span class="tb-group-count">{{ len $cards }}</span>
+      </h2>
+      <div class="tb-grid">
+        {{- range $cards }}
+        {{- partial "toolbox-teaser.html" (dict "page" $ "card" . "url" (printf "%s%s/" $tbURL .id)) }}
+        {{- end }}
+      </div>
+    </section>
+    {{- end }}
+  </div>
+  {{- end }}
+</article>
+
+{{- end }}{{/* end main */}}

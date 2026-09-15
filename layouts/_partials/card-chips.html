@@ -24,8 +24,11 @@
 {{- if $children -}}
   {{- if eq $type "courses" -}}
     {{- $unit := .Params.unit | default "章" -}}
-    {{- $chips = $chips | append (i18n "chipUnitCount" (dict "count" (len .Sections) "unit" $unit)) -}}
-    {{- $chips = $chips | append (i18n "chipMaterials" (dict "count" (len .RegularPagesRecursive))) -}}
+    {{- /* 数学工具库（layout: "tools"）不是章；工具库的卡片页（layout: "toolcard"）也不是课程材料 */ -}}
+    {{- $chapters := where .Sections "Layout" "!=" "tools" -}}
+    {{- $materials := where .RegularPagesRecursive "Layout" "!=" "toolcard" -}}
+    {{- $chips = $chips | append (i18n "chipUnitCount" (dict "count" (len $chapters) "unit" $unit)) -}}
+    {{- $chips = $chips | append (i18n "chipMaterials" (dict "count" (len $materials))) -}}
   {{- else -}}
     {{- $chips = $chips | append (i18n "chipSubProjects" (dict "count" (len .Sections))) -}}
     {{- $chips = $chips | append (i18n "chipDocs" (dict "count" (len .RegularPagesRecursive))) -}}

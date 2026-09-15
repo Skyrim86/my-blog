@@ -73,6 +73,17 @@
 <script defer src="{{ $reader.RelPermalink }}" integrity="{{ $reader.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
+{{- /* 数学工具库：正文里出现卡片引用（.card-ref）的页面，或工具库页自身，才加载。
+       脚本负责「引用 → 弹窗」与工具库页的筛选；文案经 data-* 传给脚本
+       （JS 不能调 i18n，与 terms-filter.js 同一套做法）。 */ -}}
+{{- if or (in (slice "tools" "toolcard") .Layout) (strings.Contains (string .Content) "card-ref") }}
+{{- $tb := resources.Get "js/toolbox.js" | minify | fingerprint }}
+<script defer src="{{ $tb.RelPermalink }}" integrity="{{ $tb.Data.Integrity }}" crossorigin="anonymous"
+        data-title="{{ i18n "toolboxTitle" }}"
+        data-close="{{ i18n "toolboxClose" }}"
+        data-result="{{ i18n "toolboxResult" }}"></script>
+{{- end }}
+
 {{- /* 窄屏导航折叠：全站加载（很小），没有 JS 时菜单照主题原样铺开。 */ -}}
 {{- $navToggle := resources.Get "js/nav-toggle.js" | minify | fingerprint }}
 <script defer src="{{ $navToggle.RelPermalink }}" integrity="{{ $navToggle.Data.Integrity }}" crossorigin="anonymous"

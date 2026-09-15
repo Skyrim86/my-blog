@@ -1,0 +1,25 @@
+{{- /* 单张卡片页（layout: "toolcard"）。
+
+     这些页面由 tools/course-import/import_course.py 生成：front matter 只有 title 与 weight，
+     卡片正文从 data/math-toolbox.json 里按**目录名**（= 卡片 id）取，因此一卡一页也不会
+     让卡片内容出现第二份副本。
+
+     为什么一卡一页：80 张卡片堆在一页约 3 MB，超过 scripts/report-size.sh 的单页预算；
+     拆开后每页只渲染一张卡的公式，弹窗（assets/js/toolbox.js）按需抓取本页的 .tb-card。 */ -}}
+{{- define "main" }}
+{{- $tb := index hugo.Data "math-toolbox" }}
+{{- $id := path.Base .File.Dir }}
+{{- $card := false }}
+{{- range where $tb.cards "id" $id }}{{ $card = . }}{{ end }}
+
+<article class="post-single toolbox-page">
+  {{- partial "page-head.html" (dict "page" .) }}
+  {{- with $card }}
+  <div class="tb-single">
+    {{- partial "toolbox-card.html" (dict "page" $ "card" . "base" $.Parent.RelPermalink) }}
+  </div>
+  <p class="tb-back"><a href="{{ $.Parent.RelPermalink }}">← {{ i18n "toolboxBack" }}</a></p>
+  {{- end }}
+</article>
+
+{{- end }}{{/* end main */}}
