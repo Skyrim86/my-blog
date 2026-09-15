@@ -237,3 +237,39 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 - KaTeX 在公式页加载 6 个 woff2 共 **107 KB**、`katex.min.css` 23 KB；只在真有公式的页面加载（`extend_head.html` 的三条件判据）。要再降只能做字体子集化，收益不确定、维护成本高。
 - 每个页面都多一次 59 字节的 `css/bg-image.css`（渲染阻塞）。它和主样式表是**并行**下载的（不是串行），FCP 实测没有差别，所以不值得为它把背景图 URL 硬编码进 CSS 或往模板里写 `<style>`。
+
+### 打开页面头几秒的卡顿（2026-09-15 追加三）
+
+稳态早就够了：真窗口、165 Hz（帧预算 6.06 ms）下持续滚动，3 s 之后 p99 6.2–6.3 ms、max 6.3 ms、**没有一帧超过 7 ms**。掉帧全部集中在打开页面后的 1–3 s。量法 `D:\blog\.shots\startjank.py`（`addScriptToEvaluateOnNewDocument` 注入到 document 起点，导航后立刻逐帧滚动，同时收 longtask / layout-shift / 资源时刻）。
+
+| 场景（重页 1082 KB HTML、23566 个元素） | 主线程长任务 | 滚动帧 |
+|---|---|---|
+| 本地，首次导航 | 261 ms（起始 35 ms），另 110 + 63 ms | 0–1 s 只有 79 帧，3 帧 >25 ms、max 267 ms |
+| 本地，缓存热之后 | 89~97 ms | 0–1 s max 103~109 ms、3~5 帧 >25 ms |
+| 线上 4G（3 次同配置） | 最长 103~287 ms | DCL 1.3~4.3 s、load 1.5~7.0 s、CLS 0.11~0.20（>0.1 已是 CWV 差档） |
+| 加载完成之后（本地 load 0.7 s） | — | p99 6.2 ms、max 6.3 ms、0 帧超 7 ms |
+| 同上，但 4G 慢臂（load 7.0 s） | — | **连 >3 s 的窗口都不干净：p99 42.5 ms、6 帧 >25 ms、max 145.5 ms** |
+
+长任务与 HTML 体量成正比，而且是**解析本身**：`content-visibility: auto` 加在正文块上对初始长任务毫无收益（95 → 89~95 ms，噪声内）——它省掉的是布局，省不掉建 2.3 万个节点。
+
+线上那段还叠了 KaTeX 字体晚到：6 个 woff2 的发起来源是 `katex.min.css`（`initiatorType: css`），慢网下 0.7~3.8 s 才到货，到货即重排（layout-shift 源 `SPAN.base`，单次 0.066~0.088）。`<link rel=preload as=font>` 能把它们提到与 CSS 并行，但**没测出干净数字**：同配置的两次 4G 运行 DCL 差 3 s，链路抖动盖过效应。别在文档里写「提升 X%」。
+
+卡顿区间不是固定的「头 3 秒」，它跟着 load 走：本地 0.7 s 就结束，4G 慢网能拖到 7 s。要再压这一段只剩两条：把大页拆小（唯一直接打掉解析长任务的路径，参照 M1 笔记按 § 拆页的先例），以及别在打开后立刻滚——3 s 后整站是 165 fps 锁定的。
+
+### 滚动流畅度：合成器侧实测（2026-09-15 追加二）
+
+量法：`D:\blog\.shots\scrollcost.py`（headless，逐个 CSS 变体注入，出 `RasterTask` / `DirectRenderer::DrawFrame` 总量）与 `frameab.py`（真窗口 2560×1600 @165 Hz，rAF 帧间隔 → 掉帧数）。**旧的 `jank.py` 只量主线程计数器，看不见合成器侧**，所以前面「backdrop-filter 测不出代价」的判断按下面这组数字修正——代价是真的，只是没到掉帧。
+
+| 项 | 数字 |
+|---|---|
+| `.post-single` 的 `blur(8px)` 占 `DirectRenderer::DrawFrame` | 88.3 → 33.8 ms / 333 帧（去掉后 −61%）；`RasterTask` 24.3 → 2.4 ms |
+| 真机全页滚动（49195 px，dpr2 @165 Hz） | 408 帧：p50 6.1 / p90 6.2 / p99 6.25 ms，只有 1~2 帧超过一帧预算（6.06 ms） |
+| 同上、去掉卡片 blur | 410 帧，p50/p99 一样，同样 1 帧 → **不掉帧** |
+| 换成不透明底的视觉代价（`--surface` .94 浅 / .92 深） | 浅色 max 7/255、mean 1.11；深色 max 7/255、mean 0.33 |
+
+结论：卡片毛玻璃的合成器开销真实存在（占合成帧绘制时间六成），但在本机 165 Hz 上仍锁在 6.1 ms/帧，**不值得为性能牺牲它的观感**。若哪天要压手机/省电模式的余量，改法是去掉 `.post-single` 的 `backdrop-filter` 并把 `--surface` 提到 94%（浅）/92%（深）——像素级几乎不可见。
+
+试过无收益：把 `content-visibility: auto` 加在正文块上（`RasterTask` 7.8 vs 6.1 ms，反而更差，连续文本没有可跳过的排版工作）。
+
+量滚动卡顿的两个坑（已写进脚本头注释）：真窗口不加 `--disable-features=CalculateNativeWinOcclusion`，被别的窗口盖住时 `visibilityState=hidden`、rAF 完全冻结（会得到「0 帧」这种假流畅）；Windows 下 `asyncio.sleep(0.008)` 的真实粒度约 15.6 ms，驱不动合成器滚动，改用帧内 `scrollBy({behavior:'instant'})`，并先关掉站点全局的 `scroll-behavior: smooth`（否则逐帧 scrollBy 被平滑动画吃掉，0.9 s 只挪 180 px）。
+
