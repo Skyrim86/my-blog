@@ -108,8 +108,7 @@ my-blog/
 │   └── make-covers.py         #   渐变 + 底纹 + 标题字，写 assets/images/covers/*.webp
 ├── tools/backgrounds/         # 背景图生成（不参与 Hugo 构建）
 │   ├── make-backgrounds.py    #   站点 2 张质感图（`--frost` 时额外生成管理页的霜雪备选）
-│   ├── make-admin-bg.py       #   管理页绫华壁纸 → 深/浅两版（见 docs/admin.md §20）
-│   └── source-ayaka.jpg       #   绫华源图（画师作品，仅本地工具用；出处同上）
+│   └── make-admin-bg.py       #   管理页绫华插画 → 深/浅两版（见 docs/admin.md §20）
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）
 │   ├── start.sh               #   启动器（.bat 调它）
 │   ├── server.mjs             #   HTTP 服务：静态页 + JSON API

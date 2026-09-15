@@ -21,7 +21,7 @@ import os
 import random
 import sys
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -95,6 +95,21 @@ def save(im, rel_path, quality=72):
     print(f"{rel_path}  {im.size[0]}x{im.size[1]}  {os.path.getsize(out) // 1024} KB")
 
 
+def city_background():
+    """深色主题那张真图：source-night-city.jpg → assets/images/bg-night-city.webp。
+
+    只做压暗 + 轻冷调，不重绘。**它不是质感图**：夜景城市 + 星空，蒙版放松到 .54→.84
+    才看得见（见 00-theme.css 的深色那段）。代价是 127 KB —— 这是一张每页都要下载的
+    资源，换图前先算这笔账。
+    """
+    src = os.path.join(ROOT, "tools", "backgrounds", "source-night-city.jpg")
+    im = Image.open(src).convert("RGB").resize((1600, 900), Image.LANCZOS)
+    im = ImageEnhance.Brightness(im).enhance(0.85)
+    im = ImageEnhance.Color(im).enhance(0.92)
+    im = Image.blend(im, Image.new("RGB", im.size, (120, 165, 220)), 0.06)   # 冷调，压掉一点暖黄灯火
+    save(im, os.path.join("assets", "images", "bg-night-city.webp"), quality=74)
+
+
 def site_backgrounds():
     """站点两张：浅色象牙纸、深色墨绒夜。尺寸 1600×900（整屏铺满，只需够 cover）。"""
     w, h = 1600, 900
@@ -151,6 +166,7 @@ def admin_backgrounds():
 
 if __name__ == "__main__":
     site_backgrounds()
+    city_background()
     # 管理页的「霜雪质感」两张是备选：管理页当前用的是绫华壁纸（见 docs/admin.md §20），
     # 只有想换回纯质感时才生成，所以要显式加 --frost。
     if "--frost" in sys.argv:

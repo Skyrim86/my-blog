@@ -68,10 +68,10 @@ body {
   font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
-/* 背景层：一张绫华壁纸 + 一层按主题换强度的蒙版。
-   深色主题用原色调的夜景（冰晶 + 青色光，本身就是冷色，配 --bg 夜蓝正好）；
-   浅色主题用的是**处理过的霜白版**（提亮 + 重度去饱和 + 霜白渐变 + 轻微模糊）——
-   直接把原图压在浅色蒙版下会变成一块灰，青绿冰晶遇上白蒙版就是脏。
+/* 背景层：那张绫华插画（和风庭院 + 风铃 + 樱花）的深/浅两版 + 一层按主题换强度的蒙版。
+   两版只做了轻度冷调（见 tools/backgrounds/make-admin-bg.py）：原图是庭院暖光 + 青绿植物，
+   和界面的冰蓝/霜白不在一个色温上，压一层薄蓝就落回来了；**不虚化、不洗白**——
+   这张构图是挑过认可的，人物要看得清。
    蒙版不做成「图片变淡」而是压一层纯色，和站点的做法一致。 */
 body::before {
   content: "";
@@ -80,17 +80,17 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-image:
-    linear-gradient(180deg, rgba(240, 248, 254, .22) 0%, rgba(243, 249, 254, .34) 55%, rgba(245, 250, 254, .48) 100%),
-    url("/ayaka-snow.webp");
+    linear-gradient(180deg, rgba(238, 247, 254, .46) 0%, rgba(241, 248, 254, .58) 55%, rgba(244, 250, 254, .70) 100%),
+    url("/ayaka-day.webp");
   background-size: cover, cover;
   background-position: center, center 38%;
   background-repeat: no-repeat, no-repeat;
 }
 
-/* 深色主题换图而不是把浅色图压黑：夜蓝底上的白霜才看得见，同一张浅图压黑只会发灰 */
+/* 深色主题换图而不是把浅色图压黑：压黑会把庭院的青绿压成一片脏灰，换压暗冷调版才干净 */
 html[data-theme="dark"] body::before {
   background-image:
-    linear-gradient(180deg, rgba(8, 17, 28, .52) 0%, rgba(8, 17, 28, .66) 55%, rgba(8, 17, 28, .80) 100%),
+    linear-gradient(180deg, rgba(8, 17, 28, .58) 0%, rgba(8, 17, 28, .72) 55%, rgba(8, 17, 28, .84) 100%),
     url("/ayaka-night.webp");
   background-position: center, center 42%;
 }

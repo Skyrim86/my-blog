@@ -1,3 +1,0 @@
-User-agent: *
-Disallow:
-Sitemap: https://skyrim86.github.io/my-blog/sitemap.xml

@@ -1,1 +1,0 @@
-(()=>{const e=document.getElementById("toc-rail");if(!e)return;document.body.appendChild(e),document.body.classList.add("has-toc-rail")})()

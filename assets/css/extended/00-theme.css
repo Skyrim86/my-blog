@@ -91,7 +91,7 @@ body::before {
 
 :root[data-theme="dark"] body::before {
   background-image:
-    linear-gradient(180deg, rgba(11, 10, 15, .72) 0%, rgba(11, 10, 15, .85) 52%, rgba(11, 10, 15, .92) 100%),
+    linear-gradient(180deg, rgba(11, 10, 15, .54) 0%, rgba(11, 10, 15, .70) 52%, rgba(11, 10, 15, .84) 100%),
     var(--bg-image-dark, none);
 }
 
