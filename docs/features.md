@@ -214,16 +214,16 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 两个写法约定：装饰只用 `--accent` / `--accent-2` / `--accent-soft` / `--rule` 这几个令牌，不写死色值（深浅两套主题才自动跟随）；凡是会改盒模型的装饰（`border` / `padding`）都要换成不吃布局的写法（`inset box-shadow`）——目录项和卡片在 hover 时跳一下，就是这里出的错。
 
-### ㉕ 看板娘（右下角固定半身像）— `layouts/_partials/extend_footer.html` + `14-mascot.css` + `assets/images/mascot.webp`
+### ㉕ 看板娘（左右各一位，固定在下沿）— `layouts/_partials/extend_footer.html` + `14-mascot.css`
 
-与站点图标同源的那位少女，`position: fixed` 贴在右下角，下半截刻意推出视口（`bottom: -34px`），看起来像从页面底部探出来。点击进「关于」页。
+左下与右下各一位，`position: fixed` 贴视口下沿，点击进「关于」页。
 
+- **左位**：黑发公主切（黑白漫画风）`assets/images/mascot-left.webp`，素材 Wallhaven `wallhaven.cc/w/1jm3ew`（来源入库 `tools/backgrounds/source-mascot-left.jpg`，提取脚本 `make-mascot-left.py`）。原图右侧带一块纯黑背景，与人物黑发同色、按颜色分不开，提取时整列裁掉（x > 0.76），再在 CSS 里用 `mask-image` 从 58% 起渐隐——**淡出必须早于裁切线**，否则右缘会出现「头发被切平」的一刀。
+- **右位**：与站点图标同源的少女 `assets/images/mascot.webp`（站点图标那份白底素材 → `tools/backgrounds/make-mascot.py` 抠图，38 KB）。**白底抠图的坑**：不能只按亮度删（水手服的领子也是白的），要按「与画布边缘连通的白色区域」判背景；而 `connectedComponentsWithStats` 把非前景像素标成 **label 0**，图像最外圈只要有一个非白像素，0 就会进「边界标签」集合，整个暗色人物被判成背景、alpha 全 0（预览里只剩脸和领子几个白块）——**边界标签里必须减掉 0**。
+- **尺寸用高度控制**（`height: clamp(168px, 16.5vw, 286px)`）：两张图宽高比差得多，用宽度会让两人一高一矮。左位往上提（`bottom: 18px`）——她是「头 + 肩」构图、脸在图片上部，按右位那样压到视口外会切掉下半张脸。
+- **窗口变窄时不是「两人一起缩到看不见」**，而是分三档：≥1400px 两位全尺寸；900~1400px 两位等比缩小；≤900px 只留右位；≤640px 全隐藏（正文列贴边，再挂人像就是挡内容）。这一条是被明确要求过的，别改成「一起缩」。
 - **为什么用 `extend_footer.html`**：主题 `footer.html` 里调它一次、且不是 `partialCached`（缓存串页的坑见 ㉓），位置在 `<body>` 末尾，`fixed` 不受父级 containing block 影响。
-- **素材**：`tools/icons/source-ojou-chibi.png`（站点图标那份，白底）→ `tools/backgrounds/make-mascot.py` 抠图 → `assets/images/mascot.webp`（38 KB，365×720）。
-- **抠图的坑**：白底图不能只按亮度删（水手服领子也是白的），要用「与画布边缘连通的白色区域」做背景；而 `connectedComponentsWithStats` 把非前景像素标成 **label 0**，图像最外圈只要有一个非白像素，0 就进「边界标签」，整个暗色人物会被判成背景、alpha 全 0（预览里只剩脸和领子几个白块）——**边界标签集合必须减掉 0**。
-- **深色主题的轮廓**：黑发压在墨底上会糊，深色主题补一圈极淡冷光描边（两层 `drop-shadow`：2px 冷白 + 26px 黑），浅色主题只留普通投影。
-- **与 `.top-link` 的关系**：返回顶部按钮本来在 `bottom: 4rem; right: 2rem`，这里抬到 `calc(4rem + 190px)` 让位；**改看板娘尺寸时这个值要跟着改**。窄屏（≤1024px）与打印都隐藏——正文列本来就贴边，再挂人像就是挡内容。
-- 交互只做 hover 上浮（`prefers-reduced-motion` 下关掉），不做「点击收起」：为一个纯装饰元素多存一份 localStorage 状态不值当。
+- 深色主题给两位补冷光描边（黑发贴墨底会糊），浅色主题只留投影；`prefers-reduced-motion` 下关掉 hover 上浮。`.top-link` 抬到看板娘头顶，**改看板娘高度时这个偏移要跟着改**。
 
 ## 4. 四处有意的主题模板覆盖
 

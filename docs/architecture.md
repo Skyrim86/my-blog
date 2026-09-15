@@ -111,7 +111,9 @@ my-blog/
 ├── tools/backgrounds/         # 背景图生成（不参与 Hugo 构建）
 │   ├── make-backgrounds.py    #   站点 2 张质感图（`--frost` 时额外生成管理页的霜雪备选）
 │   ├── make-admin-bg.py       #   管理页绫华插画 → 深/浅两版（见 docs/admin.md §20）
-│   ├── make-mascot.py         #   看板娘素材抠图（白底 → 透明，见 features.md ㉕）
+│   ├── make-mascot.py        #   站点图标素材 → 右位看板娘透明图（白底抠图，见 features.md ㉕）
+│   ├── make-mascot-left.py   #   左位看板娘（黑白漫画公主切，Wallhaven 1jm3ew）
+│   └── source-mascot-left.jpg#   左位素材来源（113 KB）
 │   └── source-lady-slice.webp #   城市夜景上那位提灯少女的切片（同上）
 │   ├── source-night-city.jpg  #   站点深色背景的底图（画师作品，个人使用；见 features.md ⑫）
 │   ├── source-lady-slice.webp #   叠加用的黑发少女切片（带 alpha，同上）

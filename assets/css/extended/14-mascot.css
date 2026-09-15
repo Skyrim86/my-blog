@@ -1,53 +1,97 @@
 /* ============================================
-   看板娘：右下角固定的半身像（14- 排最后，独立一层）
+   看板娘：左右各一位（14- 排最后，独立一层）
 
-   与站点图标同源的那位少女（素材见 docs/features.md ㉕），半身、透明底，
-   固定贴在视口右下角，下半截刻意压在视口外一点，看起来是从页面底部探出来。
+   左位是那位黑发公主切（黑白漫画风），右位是与站点图标同源的少女。
+   两人都 `position: fixed` 贴在视口下沿，下缘各自推出视口一点，像从页面底部探出来。
+   尺寸用**高度**控制（两张图宽高比差很多，用宽度会让两人看起来一高一矮）。
    ============================================ */
 
 .mascot {
   position: fixed;
-  right: 14px;
-  /* 负值把下半身推出视口：只留头肩，比整张半身像轻，也不挡内容 */
-  bottom: -34px;
   z-index: 6;
   display: block;
-  width: clamp(112px, 10.5vw, 158px);
   line-height: 0;
   transition: transform .35s cubic-bezier(.2, .8, .25, 1), filter .35s ease;
 }
 
 .mascot img {
-  width: 100%;
-  height: auto;
   display: block;
+  width: auto;
+  height: clamp(168px, 16.5vw, 286px);
 }
 
-/* 浅色主题：一层柔和投影就够，她本身是深色，和浅底对比天然够 */
+.mascot--right {
+  right: 14px;
+  bottom: -34px;
+}
+
+.mascot--left {
+  left: 14px;
+  /* 她是「头 + 肩」构图、脸在图片上部，按右位那样压到视口外会切掉下半张脸，所以往上提 */
+  bottom: 18px;
+  /* 她不镜像：原图视线偏右，朝页面中间看，镜像过去就变成望着屏幕外了 */
+}
+
+/* 浅色主题：一层柔和投影就够，两人本身都是深色，和浅底对比天然够 */
 .mascot {
   filter: drop-shadow(0 10px 22px rgba(20, 16, 28, .22));
 }
 
-/* 深色主题：黑发贴在墨底上会糊，所以补一圈极淡的冷光描边（drop-shadow 不偏色的那种做法），
-   再加一层更重的投影把她从背景里托起来 */
+/* 深色主题：黑发贴在墨底上会糊，补一圈极淡的冷光描边（drop-shadow 不偏色的那种做法），
+   再加一层更重的投影把她们从背景里托起来 */
 :root[data-theme="dark"] .mascot {
   filter:
     drop-shadow(0 0 2px rgba(214, 226, 255, .38))
     drop-shadow(0 12px 26px rgba(0, 0, 0, .6));
 }
 
+/* 左侧那张漫画原图右侧带了一块背景黑块（纯黑，与她的黑发同色，分不开），
+   已经在生成环节整列裁掉了（见 tools/backgrounds/make-mascot-left.py），
+   这里只留一道很轻的右缘羽化收掉裁切线 */
+.mascot--left img {
+  /* 淡出要早于裁切线：头发从 58% 就开始化开，右缘才不会被看成「被切平的一刀」 */
+  -webkit-mask-image: linear-gradient(to right, #000 58%, rgba(0, 0, 0, .38) 82%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 58%, rgba(0, 0, 0, .38) 82%, transparent 100%);
+}
+
 .mascot:hover {
   transform: translateY(-8px);
 }
 
-/* 「返回顶部」按钮默认就在右下角（bottom: 4rem; right: 2rem），
-   这里把它抬到看板娘头顶，两者不叠。改看板娘尺寸时这个值要跟着改。 */
+/* 「返回顶部」按钮默认就在右下角（bottom: 4rem; right: 2rem），抬到看板娘头顶。
+   改看板娘高度时这个值要跟着改。 */
 .top-link {
-  bottom: calc(4rem + 190px);
+  bottom: calc(4rem + 200px);
 }
 
-/* 窄屏：正文列已经贴边，再挂个人像就是挡内容 */
-@media (max-width: 1024px) {
+/* 中等窗口：正文列开始贴边，两位一起挂会挤掉阅读视野 —— 两人等比例缩小，不砍人 */
+@media (max-width: 1400px) {
+  .mascot img {
+    height: clamp(140px, 14vw, 196px);
+  }
+
+  .top-link {
+    bottom: calc(4rem + 150px);
+  }
+}
+
+/* 窄窗口：留一位（右边那位），另一位收起来 —— 不是怕挤，是两位同时缩小就都看不清了 */
+@media (max-width: 900px) {
+  .mascot--left {
+    display: none;
+  }
+
+  .mascot img {
+    height: 150px;
+  }
+
+  .top-link {
+    bottom: calc(4rem + 120px);
+  }
+}
+
+/* 手机：正文列贴到边，再挂人像就是挡内容 */
+@media (max-width: 640px) {
   .mascot {
     display: none;
   }

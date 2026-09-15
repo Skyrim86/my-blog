@@ -175,3 +175,6 @@ other = "返回数学工具库"
 # 右下角固定半身像的可访问名；它就是站点图标那位
 [mascotLabel]
 other = "看板娘（点开关于页）"
+
+[mascotLabelLeft]
+other = "看板娘・公主切（点开关于页）"
