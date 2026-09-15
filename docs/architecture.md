@@ -240,3 +240,23 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是�
 裁切框、背景抠图容差、底板色、圆角都是脚本里的常量（`ART_CROP` / `ART_KEY` / `ART_KEY_TOL` / `ART_KEY_SOFT` / `ART_PLATE` / `ART_RADIUS`）：素材背景要求是一块平整的纯色，脚本按 `ART_KEY` 抠掉它、再压到 `ART_PLATE`（酒红）上。**容差必须远低于「肤色到背景色」的距离**：白底素材的肤白离白只有 ~27 个通道，`ART_KEY_TOL` 设成 40 就会把脸一起抠成半透明、底板透上来整张脸红掉（实测踩过）。——黑发压浅底太软、压深底会糊成一团，所以底板色由脚本控而不是让素材自带。换图只改这一组常量 + 换掉源文件。
 
 **`--check` 没进 CI**：它需要 Python + Pillow，而 `action.yml` 目前只有 Hugo + Node。图标是低频改动，本地跑一次就够；真要挂 CI，得先给复合动作加 `actions/setup-python` 与 `pip install pillow`。
+
+## 7. 已评估否决：不迁 Next.js、不分离前后端（2026-09-15）
+
+**一、不迁框架。** 评估时的版本现状：Next.js 15 已退到 maintenance LTS（15.5.21，2026-07-20），current stable 是 **16.3**（16.0 GA 2025-10-21）；React **19.3**（2026-09-09，没有 20）。所以「Next 15 + React 19」本身就是一个过时的组合，真要动目标也是 16.3。
+
+维持 Hugo 的直接理由：本站的能力面用不上 Next 的任何一条（无登录、无数据库、无个性化、无实时数据；RSC / PPR / ISR / Cache Components 全无对应场景——站点全是内容页）。而迁移的真实成本不在写页面，在**重建这台机器**：
+
+| 项 | 现在 | 迁移后 |
+|---|---|---|
+| 规模 / 构建 | 128 md → 200 HTML，全量 **1.6 s** | 内容管线全部重写 |
+| 输出 / JS | 21 MB 输出；**全部 JS 28 KB**（搜索 20 KB + 其余 1–4 KB）；零 `node_modules`，唯一构建依赖是 `action.yml` 里钉的 hugo 二进制 | MDX 侧 JS 预算必然上涨 |
+| 公式 | **构建期**渲染：`render-passthrough.html` + `transform.ToMath`（`throwOnError = true`，公式写错即构建失败）+ 三层校验 + KaTeX↔Hugo 版本配对表 | 换 rehype-katex 重写，或退回客户端 KaTeX（正是当初刻意去掉的那条） |
+| 校验 | 10 个脚本（front matter / section 结构 / 站内链接与**锚点** / 体积预算）绑在 Hugo 的 URL 结构上 | 按新框架产物重写 |
+| Hugo 白送 | `enableGitInfo` lastmod、tags/categories/series 三套分类与自定义视图、`data/taxonomy.yaml` 词表、图片 Resize、RSS + JSON 搜索索引、`/:year/:month/:slug/` 永久链接 | 逐项自建，且已发布的链接一条都不能断 |
+
+触发再评估的条件：真需要服务端鉴权 / 个性化 / 增量内容 API。若只是 `output: 'export'` 静态导出，那 Next 只是一个更复杂的 Hugo，无收益。
+
+**二、不分离前后端。** 站点已经是三段分离（构建期 → GitHub Actions + Pages 发布 → 本机 `tools/admin/` 写作），**线上没有任何后端进程**，运行期无后端可分离。唯一可拆的是 `tools/admin/`：它的 `ui/` 与 `server.mjs` 本来就靠 fetch 通信，技术分离零成本，但搬到公网易养认证 / 会话 / CORS / 密钥托管 / HTTPS / 进程守护，而现有三条安全边界（绑 loopback、`Host` 白名单防 DNS rebinding、写操作要 `X-Admin-Request` 头）的前提全是「攻击面 = 本机」；同时唯一的写盘入口 `new-content.sh` / `push-blog.sh` 会被拆散。**保持可分离性，不实际分离。**
+
+真要「换设备写、手机写、别人投稿」，正确做法是把后端外包给 Git-based CMS（Decap / Sveltia 之类，拿 GitHub API 当后端）：仓库、CI、静态站形态都不动，只换编辑器。
