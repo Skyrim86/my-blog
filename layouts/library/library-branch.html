@@ -1,47 +1,42 @@
 {{- /* 数学库的大类页（layout: "library-branch"），URL = /library/<大类>/。
 
-     页面由 content/library/_content.gotmpl 生成（内容适配器），front matter 里只有
-     params.branch（分支表的 key）与 searchHidden；名字、范围说明、细分目录、计数全部
-     从 data/math-toolbox.json 现算——分支表改了就跟着变，没有第二份。
+     页面由 content/library/_content.gotmpl 生成（内容适配器）：front matter 里只有
+     params.branch（分支表的 key）与 searchHidden。名字、范围说明、细分清单与计数全部在这
+     里回表取 —— 页面不留第二份副本，改 data/math-branches.yaml 就够（见 docs/features.md ㉒）。
 
-     本页只列**细分**（名称 + 一句范围 + 计数），卡片在细分页上。 */ -}}
+     本页只列**细分**（下一级），不铺卡片：卡片在细分页上。原先一页铺 80 张索引卡的做法在
+     线上 4G 下是一个 119 ms 长任务 + 121 ms 的单帧，而这一页要说的只是「有哪些方向」。 */ -}}
 {{- define "main" }}
 {{- $tb := index hugo.Data "math-toolbox" }}
 {{- $key := .Params.branch }}
 {{- $branch := index (where $tb.branches "key" $key) 0 }}
 {{- $cards := where $tb.cards "branch" $key }}
 
-<article class="post-single library-page">
+<article class="post-single toolbox-page library-page">
   {{- partial "page-head.html" (dict "page" .) }}
 
-  <nav class="lb-crumbs" aria-label="{{ i18n "libraryCrumbsLabel" }}">
-    <a href="{{ "library/" | relLangURL }}">{{ i18n "libraryName" }}</a>
-    <span class="lb-crumb-sep" aria-hidden="true">/</span>
-    <span class="lb-crumb-here">{{ .Title }}</span>
-  </nav>
-
-  {{- with $branch.summary }}
-  <p class="lb-branch-summary">{{ . }}</p>
+  {{- with $branch }}
+  {{- /* 细分清单：只保留真有卡片的细分，与总览页「空分支不渲染」同一条口径 */ -}}
+  {{- $subs := slice }}
+  {{- range .sections }}
+    {{- if where $cards "section" .key }}{{ $subs = $subs | append . }}{{ end }}
   {{- end }}
 
-  <h2 class="lb-sub-title">{{ i18n "librarySectionsTitle" }}<span class="lb-count">{{ len $cards }}</span></h2>
-
+  <h2 class="lb-sub-title">
+    {{- i18n "librarySectionsTitle" }}<span class="lb-count">{{ len $subs }}</span>
+  </h2>
   <div class="lb-subs">
-    {{- range $branch.sections }}
-    {{- $scards := where $cards "section" .key }}
-    {{- if $scards }}
+    {{- range $subs }}
     <a class="lb-sub-card" href="{{ printf "library/%s/%s/" $key .key | relLangURL }}">
       <span class="lb-sub-head">
         <span class="lb-sub-name">{{ .name }}</span>
-        <span class="lb-sub-count">{{ len $scards }}</span>
+        <span class="lb-sub-count">{{ len (where $cards "section" .key) }}</span>
       </span>
-      {{- with .summary }}
-      <span class="lb-sub-desc">{{ . }}</span>
-      {{- end }}
+      {{- with .summary }}<span class="lb-sub-desc">{{ . }}</span>{{ end }}
     </a>
     {{- end }}
-    {{- end }}
   </div>
+  {{- end }}
 </article>
 
 {{- end }}{{/* end main */}}

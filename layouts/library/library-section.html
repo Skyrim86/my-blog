@@ -1,30 +1,25 @@
 {{- /* 数学库的细分页（layout: "library-section"），URL = /library/<大类>/<细分>/。
 
-     页面由 content/library/_content.gotmpl 生成，params 里只有两个 key（branch / section）。
-     本页铺这一细分的卡片索引卡（最多十几张）：点开仍是弹窗（assets/js/toolbox.js 按需抓卡片页），
-     没有 JS 就直接跳到卡片页——卡片正文只有一份，永远在 /courses/<课程>/toolbox/<id>/。 */ -}}
+     页面由 content/library/_content.gotmpl 生成，params 里只有两个 key（branch / section）
+     加 math（卡片标题里有公式）。本页铺这一细分的索引卡（最多十几张）：点开是就地弹窗
+     （assets/js/toolbox.js 按需抓卡片页），没有 JS 就是普通跳转 —— 卡片正文始终只有一份，
+     仍在 /courses/<课程>/toolbox/<id>/（见 docs/features.md ㉑）。
+
+     面包屑只到「大类」为止：当前这一级的名字就是页面的 h1，再写一遍是噪音。 */ -}}
 {{- define "main" }}
 {{- $tb := index hugo.Data "math-toolbox" }}
 {{- $key := .Params.branch }}
 {{- $sec := .Params.section }}
-{{- $branch := index (where $tb.branches "key" $key) 0 }}
-{{- $section := index (where $branch.sections "key" $sec) 0 }}
 {{- $cards := where (where $tb.cards "branch" $key) "section" $sec }}
 
-<article class="post-single library-page">
+<article class="post-single toolbox-page library-page">
   {{- partial "page-head.html" (dict "page" .) }}
 
   <nav class="lb-crumbs" aria-label="{{ i18n "libraryCrumbsLabel" }}">
     <a href="{{ "library/" | relLangURL }}">{{ i18n "libraryName" }}</a>
     <span class="lb-crumb-sep" aria-hidden="true">/</span>
     <a href="{{ printf "library/%s/" $key | relLangURL }}">{{ .Params.branchName }}</a>
-    <span class="lb-crumb-sep" aria-hidden="true">/</span>
-    <span class="lb-crumb-here">{{ .Title }}</span>
   </nav>
-
-  {{- with $section.summary }}
-  <p class="lb-branch-summary">{{ . }}</p>
-  {{- end }}
 
   <div class="tb-grid">
     {{- range $cards }}

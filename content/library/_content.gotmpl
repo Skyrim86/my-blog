@@ -1,5 +1,64 @@
-{{- /* 数学库（/library/）的分级页面 —— 内容适配器（Hugo content adapter，0.126+ 支持）。
+{{- /* 数学库（/library/）的分级页面 —— 内容适配器（内容适配器 = Hugo content adapter，0.126+ 支持）。
 
      为什么用适配器、而不是在 content/library/ 下放一堆 _index.md：
-     这些页面没有自己的内容，只有一条身份（我属于哪个大类 / 哪个细分），名字、范围说明、
-     计数、卡片清单全部来自 data/math-too...[truncated]
+     这些页面没有自己的内容，只有一条身份（我属于哪个大类 / 哪个细分）；名字、范围说明、
+     计数、卡片清单全部来自 data/math-toolbox.json（由 data/math-branches.yaml 决定归属）。
+     写成 23 个 _index.md 就等于把那张分支表抄第二遍 —— 表里加一个大类要记得同时加文件、
+     删一个又要记得删文件，迟早对不上。适配器每次构建现算：分支表一变，页面自动增减。
+
+     生成的三级（见 docs/features.md ㉒）：
+       /library/                      大类总览    content/library/_index.md + layouts/library/library.html
+       /library/<大类>/               细分目录    layout: library-branch，本文件生成
+       /library/<大类>/<细分>/         卡片索引    layout: library-section，本文件生成
+
+     空大类与空细分都不出页面（与「空分支不渲染」同一条口径）。
+
+     front matter 只有这些：
+       · title  —— 分支名（细分页是细分名）
+       · description —— 表里那句范围说明，page-head.html 会把它渲染成页头描述
+       · params.branch / params.section —— 两个 key，模板据此回表取名字、计数与卡片
+       · params.searchHidden —— 这几页是导航页，不进搜索索引与首页「最近更新」
+       · params.math —— 只有细分页给：卡片标题里有公式（如「与 $t$ 检验的等价性」），要加载 KaTeX
+     注意 description 必须写在**顶层**：塞进 params 里不会成为 .Description，page-head 取不到
+     （实测：页面照常构建、页头就是空白，meta description 退回「标题 - 站点名」）。
+
+     坑：Hugolib 的模板里不能写 site.Data.math-toolbox —— 字段名带连字符是模板语法错误
+     （报 bad character U+002D，且位置指向 1:1，很误导），必须 index hugo.Data "math-toolbox"。 */ -}}
+{{- $tb := index hugo.Data "math-toolbox" -}}
+{{- $cards := $tb.cards -}}
+{{- $empty := dict "mediaType" "text/markdown" "value" "" -}}
+{{- range $tb.branches -}}
+  {{- $branch := . -}}
+  {{- $bcards := where $cards "branch" $branch.key -}}
+  {{- if $bcards -}}
+    {{- $.AddPage (dict
+          "path" $branch.key
+          "kind" "page"
+          "title" $branch.name
+          "description" $branch.summary
+          "layout" "library-branch"
+          "content" $empty
+          "params" (dict
+            "searchHidden" true
+            "branch" $branch.key
+            "branchName" $branch.name)) -}}
+    {{- range $branch.sections -}}
+      {{- if where $bcards "section" .key -}}
+        {{- $.AddPage (dict
+              "path" (printf "%s/%s" $branch.key .key)
+              "kind" "page"
+              "title" .name
+              "description" .summary
+              "layout" "library-section"
+              "content" $empty
+              "params" (dict
+                "searchHidden" true
+                "math" true
+                "branch" $branch.key
+                "branchName" $branch.name
+                "section" .key
+                "sectionName" .name)) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

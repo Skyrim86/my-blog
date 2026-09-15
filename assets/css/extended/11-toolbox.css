@@ -172,7 +172,7 @@
   color: var(--secondary);
 }
 
-/* 工具库页给每个分组配一句范围说明（数学库的大类在 library-branch 上用 .lb-branch-summary） */
+/* 工具库页给每个分组配一句范围说明（数学库的范围说明走 page-head 的 description） */
 .tb-group-desc {
   margin: -0.35rem 0 0.85rem;
   font-size: 0.85rem;
@@ -548,11 +548,7 @@ body.tb-modal-open {
   opacity: 0.5;
 }
 
-.lb-crumb-here {
-  color: var(--primary);
-}
-
-/* 大类页上「细分」那一段的标题（后面跟的是本大类全部卡片数） */
+/* 大类页上「细分」那一段的标题（后面跟的是细分个数，不是卡片数） */
 .lb-sub-title {
   display: flex;
   align-items: baseline;
@@ -566,12 +562,5 @@ body.tb-modal-open {
 .lb-count {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--secondary);
-}
-
-.lb-branch-summary {
-  margin: 0.8rem 0 0;
-  font-size: 0.9rem;
-  line-height: 1.7;
   color: var(--secondary);
 }
