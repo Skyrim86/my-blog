@@ -581,6 +581,26 @@ $('new-tag-btn').addEventListener('click', async () => {
 // 免得下一条内容悄悄继承上一次的手动选择。
 const DEFAULT_PUBLISH = true;
 
+// 「创建后直接打开编辑器」的偏好也存本地（与上面同理：默认值写在 index.html 的 #create-open 上）。
+const CREATE_OPEN_KEY = 'admin-create-open';
+
+function initCreateOpenPref() {
+  const el = $('create-open');
+  if (!el) return;
+  try {
+    el.checked = localStorage.getItem(CREATE_OPEN_KEY) !== '0';
+  } catch {
+    /* 读不到就用默认的勾上 */
+  }
+  el.addEventListener('change', () => {
+    try {
+      localStorage.setItem(CREATE_OPEN_KEY, el.checked ? '1' : '0');
+    } catch {
+      /* 写不了就只在本次会话生效 */
+    }
+  });
+}
+
 $('create-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const spec = KINDS[store.kind];
@@ -624,6 +644,8 @@ $('create-form').addEventListener('submit', async (ev) => {
       await loadItems(true);
       renderCreateFields();
       $('create-publish').checked = DEFAULT_PUBLISH;
+      // 新建的多半是要接着写正文：直接开在编辑器里。批量建材料页时取消勾选，留在原地看日志。
+      if ($('create-open').checked && res.files?.length) await openInEditor(res.files[0]);
     } else {
       toast('创建失败，看下方日志', 'error');
     }
@@ -726,6 +748,7 @@ function saveTreeCollapsed() {
 // 每个条目一行：标题 + 短徽标。原先每条还要再占一行完整路径（content/courses/…），
 // 19 个文件就能把左栏撑出一屏半的滚动，而那一行信息在 title 提示和搜索里都有。
 function renderTree() {
+  renderRecent();
   const kw = $('tree-search').value.trim().toLowerCase();
   const groups = new Map();
   for (const item of store.items) {
@@ -759,6 +782,63 @@ function renderTree() {
     })
     .join('');
 }
+
+// ---------------- 最近打开 ----------------
+//
+// 树是按类型分组的，跨类型找「刚写的那篇」要翻两组以上，所以在树上方置顶最多 6 条。
+// 只记路径，标题每次从 store.items 现取：文件被删或改名后条目自然消失，不需要另写失效逻辑。
+const RECENT_KEY = 'admin-recent-files';
+const RECENT_MAX = 6;
+
+let recentPaths = (() => {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
+    return Array.isArray(v) ? v.filter((p) => typeof p === 'string') : [];
+  } catch {
+    return [];
+  }
+})();
+
+function rememberRecent(relPath) {
+  recentPaths = [relPath, ...recentPaths.filter((p) => p !== relPath)].slice(0, RECENT_MAX);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recentPaths));
+  } catch {
+    /* 隐私模式下写不了，只是记不住 */
+  }
+  renderRecent();
+}
+
+// 最近打开里同名条目很常见（每章都有「章节入口页」），所以右侧补一个短标签：
+// 入口页（index.md / _index.md）取所在目录名——它们自己的文件名是零信息的；其他取文件名去 .md。
+function shortLabel(relPath) {
+  const parts = String(relPath).split('/');
+  const last = String(parts[parts.length - 1] ?? '');
+  const stem = /^_?index\.md$/i.test(last) ? parts[parts.length - 2] ?? last : last;
+  return String(stem ?? '').replace(/\.md$/i, '');
+}
+
+function renderRecent() {
+  const box = $('tree-recent');
+  if (!box) return;
+  const rows = recentPaths.map((p) => store.items.find((i) => i.path === p)).filter(Boolean);
+  // 正在搜树时它让位：结果里就有目标，再挂一块最近打开只是噪声
+  box.hidden = rows.length === 0 || $('tree-search').value.trim() !== '';
+  if (box.hidden) return;
+  box.innerHTML =
+    '<div class="recent-head">最近打开</div>' +
+    rows
+      .map(
+        (i) =>
+          `<button type="button" class="tree-item${pending && pending.path === i.path ? ' active' : ''}" data-path="${esc(i.path)}" title="${esc(i.path)}"><span class="t">${esc(i.title)}</span><span class="badge">${esc(shortLabel(i.path))}</span></button>`
+      )
+      .join('');
+}
+
+$('tree-recent').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button[data-path]');
+  if (btn) selectFile(btn.dataset.path);
+});
 
 $('tree-search').addEventListener('input', renderTree);
 
@@ -803,6 +883,7 @@ async function selectFile(relPath) {
       bodyOriginal: data.body,
     };
     renderEditor();
+    rememberRecent(data.path);
     renderTree();
     syncEditHash();
     setPreviewFor(relPath);
@@ -895,6 +976,7 @@ function renderEditor() {
       <span class="badge" id="dirty-badge" hidden>未保存</span>
       <div class="preview-actions" style="margin-left:auto">
         <button type="button" class="ghost" id="ed-preview">预览</button>
+        <button type="button" class="ghost" id="ed-save-publish" title="保存并切到发布页（Ctrl+Shift+S）">保存并去发布</button>
         <button type="button" class="primary" id="ed-save">保存</button>
         <button type="button" class="danger" id="ed-delete">删除</button>
       </div>
@@ -967,7 +1049,9 @@ function renderEditor() {
     }
   }
 
-  $('ed-save').addEventListener('click', saveEditor);
+  // 包一层箭头函数：saveEditor 现在收 { goPublish }，直接把事件对象传进去会多出一个无关参数
+  $('ed-save').addEventListener('click', () => saveEditor());
+  $('ed-save-publish').addEventListener('click', () => saveEditor({ goPublish: true }));
   $('ed-preview').addEventListener('click', () => setPreviewFor(p.path));
   $('ed-delete').addEventListener('click', onDeleteClick);
   $('md-toolbar').addEventListener('click', onToolbar);
@@ -1022,7 +1106,9 @@ function markDirty() {
   if (item) item.classList.toggle('unsaved', dirty);
 }
 
-async function saveEditor() {
+// goPublish：保存成功后切到发布页 —— 「写完了」和「推上去」之间少一次找按钮。
+// 保存失败时（catch 分支）不跳，免得把人送到一个还没有改动的发布页。
+async function saveEditor({ goPublish = false } = {}) {
   const p = pending;
   if (!p) return;
   const changed = [];
@@ -1071,6 +1157,10 @@ async function saveEditor() {
       setPreviewFor(p.path);
     }
     refreshState();
+    if (goPublish) {
+      activateTab('publish');
+      toast('已保存，接着写提交说明就能发布', 'ok');
+    }
   } catch (err) {
     toast(`保存失败：${err.message}`, 'error');
   }
@@ -1748,6 +1838,7 @@ $('publish-btn').addEventListener('click', async () => {
     if (ev.target.id === 'ed-import-overwrite') importOverwrite = ev.target.checked;
   });
   bindDropZone($('create-drop'), onCreateDrop);
+  initCreateOpenPref();
   bindEditorDropZone();
   loadKindPref();
   renderKindPicker();
@@ -1929,8 +2020,14 @@ function insertAtCursor(text) {
 //
 // 动作、文件、正文命中混在一处：动作与文件是本地数据（store.items 早就有），
 // 正文命中走 /api/search（服务端按 mtime 缓存，敲字时每 130ms 问一次也不会重读磁盘）。
+// 命令面板选的「新建」：切到表单并把光标放进第一个字段（标题），省掉一次点击
+function focusCreateForm() {
+  $('create-fields')?.querySelector('input, textarea, select')?.focus();
+}
+
 const PALETTE_ACTIONS = [
   { label: '去「新建」', run: () => activateTab('create') },
+  { label: '新建：切到表单并聚焦第一个字段', run: () => { activateTab('create'); focusCreateForm(); } },
   { label: '去「编辑」', run: () => activateTab('edit') },
   { label: '去「发布」', run: () => activateTab('publish') },
   { label: '去「体检」', run: () => activateTab('check') },
@@ -1938,6 +2035,8 @@ const PALETTE_ACTIONS = [
   { label: '刷新预览', run: () => $('preview-reload').click() },
   { label: '重启预览', run: () => $('preview-restart').click() },
   { label: '显示 / 隐藏预览', run: () => $('preview-toggle').click() },
+  { label: '保存当前文件', run: () => saveEditor() },
+  { label: '保存并去发布', run: () => saveEditor({ goPublish: true }) },
   { label: '切换夜间模式', run: () => $('theme-toggle').click() },
 ];
 
@@ -2404,10 +2503,11 @@ function initShortcuts() {
       return;
     }
     if (mod && ev.key.toLowerCase() === 's') {
-      // 只在有打开的文件时接管：否则浏览器自己的「保存页面」不该被抢
+      // 只在有打开的文件时接管：否则浏览器自己的「保存页面」不该被抢。
+      // Shift 变体 = 保存并去发布，与编辑器头部那个按钮同一个动作。
       if (store.tab === 'edit' && pending) {
         ev.preventDefault();
-        saveEditor();
+        saveEditor({ goPublish: ev.shiftKey });
       }
       return;
     }

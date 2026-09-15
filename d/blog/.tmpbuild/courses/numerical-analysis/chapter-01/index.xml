@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>误差与浮点数 on Skyrim</title>
+    <link>https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/</link>
+    <description>Recent content in 误差与浮点数 on Skyrim</description>
+    <image>
+      <title>Skyrim</title>
+      <url>https://skyrim86.github.io/my-blog/images/site-cover.jpg</url>
+      <link>https://skyrim86.github.io/my-blog/images/site-cover.jpg</link>
+    </image>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Thu, 10 Sep 2026 16:45:21 +0800</lastBuildDate>
+    <atom:link href="https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>学习笔记</title>
+      <link>https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/notes/</link>
+      <pubDate>Thu, 10 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/notes/</guid>
+      <description>课堂内容：误差来源、有效数字、浮点数与机器精度、灾难性抵消。</description>
+    </item>
+    <item>
+      <title>作业</title>
+      <link>https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/homework/</link>
+      <pubDate>Thu, 10 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/homework/</guid>
+      <description>作业解法：有效数字与相对误差、灾难性抵消、浮点数模型。</description>
+    </item>
+  </channel>
+</rss>

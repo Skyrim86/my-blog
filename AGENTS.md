@@ -68,7 +68,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 单页的左侧跟随目录 | `layouts/_partials/{toc-rail,extend_post_content}.html`、`assets/js/toc-rail.js`、`12-toc-rail.css` | [`docs/features.md`](docs/features.md) 第 3 节 ㉓ |
 | 新内容脚手架 / 删除 | `scripts/new-content.sh` | [`docs/content.md`](docs/content.md) |
 | 标签词表 | `data/taxonomy.yaml`、`scripts/check-tags.sh` | 同上 |
-| 本地管理页（新建 / 编辑 / 发布 / 体检面板 / 命令面板 `Ctrl+K` / 插图） | `tools/admin/`（`start.sh`/`server.mjs`/`lib/`/`ui/`） | [`docs/admin.md`](docs/admin.md) |
+| 本地管理页（新建 / 编辑 / 发布 / 体检面板 / 命令面板 `Ctrl+K` / 最近打开 / 插图） | `tools/admin/`（`start.sh`/`server.mjs`/`lib/`/`ui/`） | [`docs/admin.md`](docs/admin.md) |
 | 校验与 CI | `.github/actions/validate/action.yml`、`scripts/check-*.sh`、`report-size.sh` | [`docs/architecture.md`](docs/architecture.md) |
 
 **主题本身已提供**（不要重复实现）：明暗切换、TOC、面包屑、上下篇、代码复制、阅读时间、返回顶部（`#top-link`）、OG/JSON-LD/hreflang、robots.txt 与 sitemap。

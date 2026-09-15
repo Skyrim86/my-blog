@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>学习笔记 | Skyrim</title>
+<meta name="keywords" content="数值分析, 数学, 科学计算">
+<meta name="description" content="课堂内容：误差来源、有效数字、浮点数与机器精度、灾难性抵消。">
+<meta name="author" content="Skyrim">
+<link rel="canonical" href="https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/notes/">
+<link crossorigin="anonymous" href="/my-blog/assets/css/stylesheet.b88ef51a6cf2aa2dcca1ba5cfc6bef046bebb0fcd411dca5d6352fda596b8db4.css" integrity="sha256-uI71Gmzyqi3Mobpc/GvvBGvrsPzUEdyl1jUv2llrjbQ=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://skyrim86.github.io/my-blog/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://skyrim86.github.io/my-blog/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://skyrim86.github.io/my-blog/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://skyrim86.github.io/my-blog/apple-touch-icon.png">
+<link rel="mask-icon" href="https://skyrim86.github.io/my-blog/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/notes/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script>
+<link rel="stylesheet" href="/my-blog/katex/katex.min.css">
+<link rel="stylesheet" href="/my-blog/css/bg-image.min.fcfb5c3aa38290e567e664a67ba3e0554e7d52b701a6e37b6ff346319d4d54f7.css" integrity="sha256-/PtcOqOCkOVn5mSme6PgVU59UrcBpuN7b/NGMZ1NVPc=" crossorigin="anonymous">
+<script defer src="/my-blog/js/reading-progress.min.bea6dfb9bba8d67cbd40817a15e97ddfc4865cb96c83e8df82c2160f419cc80d.js" integrity="sha256-vqbfubuo1ny9QIF6Fel938SGXLlsg&#43;jfgsIWD0GcyA0=" crossorigin="anonymous"></script>
+<script defer src="/my-blog/js/toc-rail.min.47b9626061b3f1afccc6e718137d15a7a28cb401f563f7fadd7edd4fab389d4c.js" integrity="sha256-R7liYGGz8a/MxucYE30Vp6KMtAH1Y/f63X7dT6s4nUw=" crossorigin="anonymous"></script>
+<script defer src="/my-blog/js/nav-toggle.min.ae157992d335e1d1f29064aa5088df1313b272c8990f1dcf58fdd2fdd04065eb.js" integrity="sha256-rhV5ktM14dHykGSqUIjfExOycsiZDx3PWP3S/dBAZes=" crossorigin="anonymous"
+        data-label="展开或收起导航"></script>
+<script defer src="/my-blog/js/search-shortcut.min.05b8fb4c6e14c682a45e1bb6ec73d7557ad5e767ef8f3aa95b83a99aebeb3211.js" integrity="sha256-Bbj7TG4UxoKkXhu27HPXVXrV52fvjzqpW4OpmuvrMhE=" crossorigin="anonymous"
+        data-search-url="/my-blog/search/"></script>
+<meta property="og:url" content="https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/notes/">
+  <meta property="og:site_name" content="Skyrim">
+  <meta property="og:title" content="学习笔记">
+  <meta property="og:description" content="课堂内容：误差来源、有效数字、浮点数与机器精度、灾难性抵消。">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="courses">
+    <meta property="article:published_time" content="2026-09-10T00:00:00+08:00">
+    <meta property="article:modified_time" content="2026-09-10T16:45:21+08:00">
+    <meta property="article:tag" content="数值分析">
+    <meta property="article:tag" content="数学">
+    <meta property="article:tag" content="科学计算">
+      <meta property="og:image" content="https://skyrim86.github.io/my-blog/images/site-cover.jpg">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://skyrim86.github.io/my-blog/images/site-cover.jpg">
+  <meta name="twitter:title" content="学习笔记">
+  <meta name="twitter:description" content="课堂内容：误差来源、有效数字、浮点数与机器精度、灾难性抵消。">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "课程",
+      "item": "https://skyrim86.github.io/my-blog/courses/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "数值分析",
+      "item": "https://skyrim86.github.io/my-blog/courses/numerical-analysis/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "误差与浮点数",
+      "item": "https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  4 ,
+      "name": "学习笔记",
+      "item": "https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/notes/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "学习笔记",
+  "name": "学习笔记",
+  "description": "课堂内容：误差来源、有效数字、浮点数与机器精度、灾难性抵消。",
+  "keywords": [
+    "数值分析", "数学", "科学计算"
+  ],
+  "articleBody": "1.1 误差的来源 记精确值为 xxx，近似值为 x^\\hat{x}x^，则\n绝对误差：e=x^−xe = \\hat{x} - xe=x^−x 相对误差：ε=x^−xx(x≠0)\\varepsilon = \\dfrac{\\hat{x} - x}{x}\\quad(x \\ne 0)ε=xx^−x​(x=0) 数值计算中的误差主要有四类：\n模型误差——数学模型与实际问题之间的差距； 观测误差——输入数据本身不精确； 截断误差——用有限过程代替无限过程，例如用 Taylor 展开的前几项近似函数； 舍入误差——计算机用有限位数表示实数造成。 其中 3、4 两类是数值分析真正要控制的对象。\n1.2 有效数字 若近似值 x^\\hat{x}x^ 的绝对误差不超过某一位的半个单位，则称该位及之前所有数字为有效数字。\n有效数字与相对误差的关系：若 x^\\hat{x}x^ 有 nnn 位有效数字，则\n∣ε∣≤12a1×10−(n−1) |\\varepsilon| \\le \\frac{1}{2a_1} \\times 10^{-(n-1)} ∣ε∣≤2a1​1​×10−(n−1)其中 a1a_1a1​ 是 x^\\hat{x}x^ 的首位非零数字。这说明有效数字位数直接给出相对误差的量级——位数越多，相对误差越小。\n注意：有效数字是相对概念，它衡量的是相对误差，而不是绝对误差。\n1.3 浮点数与机器精度 IEEE 754 双精度（binary64）用 64 位表示一个数：\n部分 位数 符号 1 阶码 11 尾数 52 规格化数的形式为\nx=±1.f×2e,∣e∣≤1023 x = \\pm 1.f \\times 2^{e}, \\qquad |e| \\le 1023 x=±1.f×2e,∣e∣≤102352 位尾数对应约 15~16 位十进制有效数字。机器精度（unit roundoff）\nu=2−53≈1.11×10−16 u = 2^{-53} \\approx 1.11 \\times 10^{-16} u=2−53≈1.11×10−16是实数舍入到最近浮点数的相对误差上界：\nfl(x)=x(1+δ),∣δ∣≤u \\mathrm{fl}(x) = x(1+\\delta), \\qquad |\\delta| \\le u fl(x)=x(1+δ),∣δ∣≤u1.4 舍入误差与抵消 灾难性抵消：两个相近的数相减，会把各自的有效数字大量抵消，结果的相对误差被急剧放大。\n例如用求根公式解 x2+bx+c=0x^2 + bx + c = 0x2+bx+c=0，当 b2≫4cb^2 \\gg 4cb2≫4c 时\nx1=−b+b2−4c2 x_1 = \\frac{-b + \\sqrt{b^2 - 4c}}{2} x1​=2−b+b2−4c​​分子是两个几乎相等的数相减，有效数字损失严重。改用等价的\nx1=2c−b−b2−4c x_1 = \\frac{2c}{-b - \\sqrt{b^2 - 4c}} x1​=−b−b2−4c​2c​即可避开相减，得到数值稳定的结果。\n1.5 本章要点 误差分绝对/相对两类，数值分析更关心相对误差； 有效数字位数对应相对误差的量级； 浮点运算的基本模型 fl(x)=x(1+δ)\\mathrm{fl}(x) = x(1+\\delta)fl(x)=x(1+δ)，∣δ∣≤u|\\delta| \\le u∣δ∣≤u； 避免相近数相减，必要时做代数等价变形。 ",
+  "wordCount" : "1016",
+  "inLanguage": "zh",
+  "image": "https://skyrim86.github.io/my-blog/images/site-cover.jpg","datePublished": "2026-09-10T00:00:00+08:00",
+  "dateModified": "2026-09-10T16:45:21+08:00",
+  "author":{
+    "@type": "Person",
+    "name": "Skyrim"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://skyrim86.github.io/my-blog/courses/numerical-analysis/chapter-01/notes/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Skyrim",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://skyrim86.github.io/my-blog/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="header-nav">
+        <div class="logo">
+            <a href="https://skyrim86.github.io/my-blog/" accesskey="h" title="Skyrim (Alt + H)">Skyrim</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu" class="menu">
+            <li>
+                <a href="https://skyrim86.github.io/my-blog/" title="🏠 首页">
+                    <span>🏠 首页</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://skyrim86.github.io/my-blog/library/" title="🧰 数学库">
+                    <span>🧰 数学库</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://skyrim86.github.io/my-blog/courses/" title="🎓 课程">
+                    <span>🎓 课程</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://skyrim86.github.io/my-blog/projects/" title="🚀 项目">
+                    <span>🚀 项目</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://skyrim86.github.io/my-blog/posts/" title="📝 文章">
+                    <span>📝 文章</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://skyrim86.github.io/my-blog/tags/" title="🏷️ 标签">
+                    <span>🏷️ 标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://skyrim86.github.io/my-blog/search/" title="🔍 搜索 (Alt &#43; /)" accesskey=/>
+                    <span>🔍 搜索</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://skyrim86.github.io/my-blog/about/" title="📮 关于">
+                    <span>📮 关于</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <nav class="breadcrumbs" role="navigation" aria-label="Breadcrumb">
+            <a href="/my-blog/">主页</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/my-blog/courses/">课程</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/my-blog/courses/numerical-analysis/">数值分析</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/my-blog/courses/numerical-analysis/chapter-01/">误差与浮点数</a>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+</nav>
+    <h1 class="post-title entry-hint-parent">
+      学习笔记
+    </h1>
+    <div class="post-description">
+      课堂内容：误差来源、有效数字、浮点数与机器精度、灾难性抵消。
+    </div>
+    <div class="post-meta">
+
+<span title='2026-09-10 00:00:00 +0800 CST'>2026年9月10日</span>&nbsp;·&nbsp;<span>3 分钟</span>&nbsp;·&nbsp;<span>Skyrim</span>
+
+</div>
+  </header> <details class="toc"  open>
+    <summary accesskey="c" title="(Alt + C)">
+        <span class="title">目录</span>
+    </summary>
+
+    <div class="inner"><ul>
+            <li>
+                <a href="#11-%e8%af%af%e5%b7%ae%e7%9a%84%e6%9d%a5%e6%ba%90" aria-label="1.1 误差的来源">1.1 误差的来源</a></li>
+            <li>
+                <a href="#12-%e6%9c%89%e6%95%88%e6%95%b0%e5%ad%97" aria-label="1.2 有效数字">1.2 有效数字</a></li>
+            <li>
+                <a href="#13-%e6%b5%ae%e7%82%b9%e6%95%b0%e4%b8%8e%e6%9c%ba%e5%99%a8%e7%b2%be%e5%ba%a6" aria-label="1.3 浮点数与机器精度">1.3 浮点数与机器精度</a></li>
+            <li>
+                <a href="#14-%e8%88%8d%e5%85%a5%e8%af%af%e5%b7%ae%e4%b8%8e%e6%8a%b5%e6%b6%88" aria-label="1.4 舍入误差与抵消">1.4 舍入误差与抵消</a></li>
+            <li>
+                <a href="#15-%e6%9c%ac%e7%ab%a0%e8%a6%81%e7%82%b9" aria-label="1.5 本章要点">1.5 本章要点</a>
+            </li>
+        </ul>
+    </div>
+</details>
+
+  <div class="post-content md-content"><h2 id="11-误差的来源">1.1 误差的来源<a hidden class="anchor" aria-hidden="true" href="#11-误差的来源">#</a></h2>
+<p>记精确值为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span>，近似值为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>x</mi><mo>^</mo></mover></mrow><annotation encoding="application/x-tex">\hat{x}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">^</span></span></span></span></span></span></span></span></span></span>，则</p>
+<ul>
+<li><strong>绝对误差</strong>：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi><mo>=</mo><mover accent="true"><mi>x</mi><mo>^</mo></mover><mo>−</mo><mi>x</mi></mrow><annotation encoding="application/x-tex">e = \hat{x} - x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">e</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7778em;vertical-align:-0.0833em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">^</span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span></li>
+<li><strong>相对误差</strong>：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ε</mi><mo>=</mo><mstyle displaystyle="true" scriptlevel="0"><mfrac><mrow><mover accent="true"><mi>x</mi><mo>^</mo></mover><mo>−</mo><mi>x</mi></mrow><mi>x</mi></mfrac></mstyle><mspace width="1em"/><mo stretchy="false">(</mo><mi>x</mi><mo mathvariant="normal">≠</mo><mn>0</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\varepsilon = \dfrac{\hat{x} - x}{x}\quad(x \ne 0)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">ε</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.0574em;vertical-align:-0.686em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3714em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal">x</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">^</span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord mathnormal">x</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:1em;"></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel"><span class="mrel"><span class="mord vbox"><span class="thinbox"><span class="rlap"><span class="strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="inner"><span class="mord"><span class="mrel"></span></span></span><span class="fix"></span></span></span></span></span><span class="mrel">=</span></span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">0</span><span class="mclose">)</span></span></span></span></li>
+</ul>
+<p>数值计算中的误差主要有四类：</p>
+<ol>
+<li><strong>模型误差</strong>——数学模型与实际问题之间的差距；</li>
+<li><strong>观测误差</strong>——输入数据本身不精确；</li>
+<li><strong>截断误差</strong>——用有限过程代替无限过程，例如用 Taylor 展开的前几项近似函数；</li>
+<li><strong>舍入误差</strong>——计算机用有限位数表示实数造成。</li>
+</ol>
+<p>其中 3、4 两类是数值分析真正要控制的对象。</p>
+<h2 id="12-有效数字">1.2 有效数字<a hidden class="anchor" aria-hidden="true" href="#12-有效数字">#</a></h2>
+<p>若近似值 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>x</mi><mo>^</mo></mover></mrow><annotation encoding="application/x-tex">\hat{x}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">^</span></span></span></span></span></span></span></span></span></span> 的绝对误差不超过某一位的半个单位，则称该位及之前所有数字为<strong>有效数字</strong>。</p>
+<p>有效数字与相对误差的关系：若 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>x</mi><mo>^</mo></mover></mrow><annotation encoding="application/x-tex">\hat{x}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">^</span></span></span></span></span></span></span></span></span></span> 有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span> 位有效数字，则</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>ε</mi><mi mathvariant="normal">∣</mi><mo>≤</mo><mfrac><mn>1</mn><mrow><mn>2</mn><msub><mi>a</mi><mn>1</mn></msub></mrow></mfrac><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mo stretchy="false">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msup></mrow><annotation encoding="application/x-tex">
+|\varepsilon| \le \frac{1}{2a_1} \times 10^{-(n-1)}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathnormal">ε</span><span class="mord">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.1574em;vertical-align:-0.836em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">2</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.836em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.938em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.938em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">1</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span></span></span></span></span><p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>a</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">a_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>x</mi><mo>^</mo></mover></mrow><annotation encoding="application/x-tex">\hat{x}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6944em;"></span><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">x</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.2222em;"><span class="mord">^</span></span></span></span></span></span></span></span></span></span> 的首位非零数字。这说明<strong>有效数字位数直接给出相对误差的量级</strong>——位数越多，相对误差越小。</p>
+<p>注意：有效数字是相对概念，它衡量的是相对误差，而不是绝对误差。</p>
+<h2 id="13-浮点数与机器精度">1.3 浮点数与机器精度<a hidden class="anchor" aria-hidden="true" href="#13-浮点数与机器精度">#</a></h2>
+<p>IEEE 754 双精度（binary64）用 64 位表示一个数：</p>
+<table>
+	<thead>
+			<tr>
+					<th>部分</th>
+					<th>位数</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>符号</td>
+					<td>1</td>
+			</tr>
+			<tr>
+					<td>阶码</td>
+					<td>11</td>
+			</tr>
+			<tr>
+					<td>尾数</td>
+					<td>52</td>
+			</tr>
+	</tbody>
+</table>
+<p>规格化数的形式为</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>x</mi><mo>=</mo><mo>±</mo><mn>1.</mn><mi>f</mi><mo>×</mo><msup><mn>2</mn><mi>e</mi></msup><mo separator="true">,</mo><mspace width="2em"/><mi mathvariant="normal">∣</mi><mi>e</mi><mi mathvariant="normal">∣</mi><mo>≤</mo><mn>1023</mn></mrow><annotation encoding="application/x-tex">
+x = \pm 1.f \times 2^{e}, \qquad |e| \le 1023
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord">±</span><span class="mord">1.</span><span class="mord mathnormal" style="margin-right:0.10764em;">f</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">e</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">∣</span><span class="mord mathnormal">e</span><span class="mord">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1023</span></span></span></span></span><p>52 位尾数对应约 15~16 位十进制有效数字。<strong>机器精度</strong>（unit roundoff）</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>u</mi><mo>=</mo><msup><mn>2</mn><mrow><mo>−</mo><mn>53</mn></mrow></msup><mo>≈</mo><mn>1.11</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>16</mn></mrow></msup></mrow><annotation encoding="application/x-tex">
+u = 2^{-53} \approx 1.11 \times 10^{-16}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.8641em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">53</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">1.11</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.8641em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">16</span></span></span></span></span></span></span></span></span></span></span></span></span><p>是实数舍入到最近浮点数的相对误差上界：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">l</mi></mrow><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><mi>x</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>δ</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="2em"/><mi mathvariant="normal">∣</mi><mi>δ</mi><mi mathvariant="normal">∣</mi><mo>≤</mo><mi>u</mi></mrow><annotation encoding="application/x-tex">
+\mathrm{fl}(x) = x(1+\delta), \qquad |\delta| \le u
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">fl</span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span><span class="mord">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span></span><h2 id="14-舍入误差与抵消">1.4 舍入误差与抵消<a hidden class="anchor" aria-hidden="true" href="#14-舍入误差与抵消">#</a></h2>
+<p><strong>灾难性抵消</strong>：两个相近的数相减，会把各自的有效数字大量抵消，结果的相对误差被急剧放大。</p>
+<p>例如用求根公式解 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><mi>b</mi><mi>x</mi><mo>+</mo><mi>c</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">x^2 + bx + c = 0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8974em;vertical-align:-0.0833em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.7778em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">b</span><span class="mord mathnormal">x</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>，当 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>b</mi><mn>2</mn></msup><mo>≫</mo><mn>4</mn><mi>c</mi></mrow><annotation encoding="application/x-tex">b^2 \gg 4c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8532em;vertical-align:-0.0391em;"></span><span class="mord"><span class="mord mathnormal">b</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≫</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">4</span><span class="mord mathnormal">c</span></span></span></span> 时</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>x</mi><mn>1</mn></msub><mo>=</mo><mfrac><mrow><mo>−</mo><mi>b</mi><mo>+</mo><msqrt><mrow><msup><mi>b</mi><mn>2</mn></msup><mo>−</mo><mn>4</mn><mi>c</mi></mrow></msqrt></mrow><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tex">
+x_1 = \frac{-b + \sqrt{b^2 - 4c}}{2}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.2764em;vertical-align:-0.686em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.5904em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">2</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">−</span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord sqrt"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.9134em;"><span class="svg-align" style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord" style="padding-left:0.833em;"><span class="mord"><span class="mord mathnormal">b</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7401em;"><span style="top:-2.989em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord">4</span><span class="mord mathnormal">c</span></span></span><span style="top:-2.8734em;"><span class="pstrut" style="height:3em;"></span><span class="hide-tail" style="min-width:0.853em;height:1.08em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="1.08em" viewBox="0 0 400000 1080" preserveAspectRatio="xMinYMin slice"><path d="M95,702
+c-2.7,0,-7.17,-2.7,-13.5,-8c-5.8,-5.3,-9.5,-10,-9.5,-14
+c0,-2,0.3,-3.3,1,-4c1.3,-2.7,23.83,-20.7,67.5,-54
+c44.2,-33.3,65.8,-50.3,66.5,-51c1.3,-1.3,3,-2,5,-2c4.7,0,8.7,3.3,12,10
+s173,378,173,378c0.7,0,35.3,-71,104,-213c68.7,-142,137.5,-285,206.5,-429
+c69,-144,104.5,-217.7,106.5,-221
+l0 -0
+c5.3,-9.3,12,-14,20,-14
+H400000v40H845.2724
+s-225.272,467,-225.272,467s-235,486,-235,486c-2.7,4.7,-9,7,-19,7
+c-6,0,-10,-1,-12,-3s-194,-422,-194,-422s-65,47,-65,47z
+M834 80h400000v40h-400000z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1266em;"><span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span><p>分子是两个几乎相等的数相减，有效数字损失严重。改用等价的</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>x</mi><mn>1</mn></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>c</mi></mrow><mrow><mo>−</mo><mi>b</mi><mo>−</mo><msqrt><mrow><msup><mi>b</mi><mn>2</mn></msup><mo>−</mo><mn>4</mn><mi>c</mi></mrow></msqrt></mrow></mfrac></mrow><annotation encoding="application/x-tex">
+x_1 = \frac{2c}{-b - \sqrt{b^2 - 4c}}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:2.2514em;vertical-align:-0.93em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.1966em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">−</span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord sqrt"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.9134em;"><span class="svg-align" style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord" style="padding-left:0.833em;"><span class="mord"><span class="mord mathnormal">b</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7401em;"><span style="top:-2.989em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord">4</span><span class="mord mathnormal">c</span></span></span><span style="top:-2.8734em;"><span class="pstrut" style="height:3em;"></span><span class="hide-tail" style="min-width:0.853em;height:1.08em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="1.08em" viewBox="0 0 400000 1080" preserveAspectRatio="xMinYMin slice"><path d="M95,702
+c-2.7,0,-7.17,-2.7,-13.5,-8c-5.8,-5.3,-9.5,-10,-9.5,-14
+c0,-2,0.3,-3.3,1,-4c1.3,-2.7,23.83,-20.7,67.5,-54
+c44.2,-33.3,65.8,-50.3,66.5,-51c1.3,-1.3,3,-2,5,-2c4.7,0,8.7,3.3,12,10
+s173,378,173,378c0.7,0,35.3,-71,104,-213c68.7,-142,137.5,-285,206.5,-429
+c69,-144,104.5,-217.7,106.5,-221
+l0 -0
+c5.3,-9.3,12,-14,20,-14
+H400000v40H845.2724
+s-225.272,467,-225.272,467s-235,486,-235,486c-2.7,4.7,-9,7,-19,7
+c-6,0,-10,-1,-12,-3s-194,-422,-194,-422s-65,47,-65,47z
+M834 80h400000v40h-400000z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1266em;"><span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">2</span><span class="mord mathnormal">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.93em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span><p>即可避开相减，得到数值稳定的结果。</p>
+<h2 id="15-本章要点">1.5 本章要点<a hidden class="anchor" aria-hidden="true" href="#15-本章要点">#</a></h2>
+<ul>
+<li>误差分绝对/相对两类，数值分析更关心相对误差；</li>
+<li>有效数字位数对应相对误差的量级；</li>
+<li>浮点运算的基本模型 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">l</mi></mrow><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><mi>x</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>δ</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{fl}(x) = x(1+\delta)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">fl</span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span><span class="mclose">)</span></span></span></span>，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>δ</mi><mi mathvariant="normal">∣</mi><mo>≤</mo><mi>u</mi></mrow><annotation encoding="application/x-tex">|\delta| \le u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.03785em;">δ</span><span class="mord">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">u</span></span></span></span>；</li>
+<li>避免相近数相减，必要时做代数等价变形。</li>
+</ul>
+
+
+  </div>
+
+<aside class="toc-rail" id="toc-rail">
+  <p class="toc-rail-title">目录</p>
+  <div class="toc-rail-inner"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#11-误差的来源">1.1 误差的来源</a></li>
+    <li><a href="#12-有效数字">1.2 有效数字</a></li>
+    <li><a href="#13-浮点数与机器精度">1.3 浮点数与机器精度</a></li>
+    <li><a href="#14-舍入误差与抵消">1.4 舍入误差与抵消</a></li>
+    <li><a href="#15-本章要点">1.5 本章要点</a></li>
+  </ul>
+</nav></div>
+</aside>
+
+<div class="related-content">
+  <h2 class="related-heading">🔗 相关内容</h2>
+  <ul class="related-list"><li class="related-item">
+      <a class="related-link" href="/my-blog/courses/numerical-analysis/chapter-02/notes/"><span class="related-type">课程</span><span class="related-title">学习笔记</span></a>
+    </li><li class="related-item">
+      <a class="related-link" href="/my-blog/courses/numerical-analysis/chapter-01/homework/"><span class="related-type">课程</span><span class="related-title">作业</span></a>
+    </li><li class="related-item">
+      <a class="related-link" href="/my-blog/courses/numerical-analysis/chapter-02/homework/"><span class="related-type">课程</span><span class="related-title">作业</span></a>
+    </li><li class="related-item">
+      <a class="related-link" href="/my-blog/courses/numerical-analysis/"><span class="related-type">课程</span><span class="related-title">数值分析</span></a>
+    </li><li class="related-item">
+      <a class="related-link" href="/my-blog/courses/regression-analysis/chapter-01/notes/"><span class="related-type">课程</span><span class="related-title">学习笔记（上）</span></a>
+    </li></ul>
+</div>
+
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://skyrim86.github.io/my-blog/tags/%E6%95%B0%E5%80%BC%E5%88%86%E6%9E%90/">数值分析</a></li>
+      <li><a href="https://skyrim86.github.io/my-blog/tags/%E6%95%B0%E5%AD%A6/">数学</a></li>
+      <li><a href="https://skyrim86.github.io/my-blog/tags/%E7%A7%91%E5%AD%A6%E8%AE%A1%E7%AE%97/">科学计算</a></li>
+    </ul>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2026 <a href="https://skyrim86.github.io/my-blog/">Skyrim</a></span> · 
+
+    
+    
+    <span>
+        Powered by
+        <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" id="top-link" class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up">
+        <polyline points="17 11 12 6 7 11"></polyline>
+        <polyline points="17 18 12 13 7 18"></polyline>
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var toplink = document.getElementById("top-link");
+    window.onscroll = function () {
+        const scrollThreshold = window.innerHeight;
+        if (document.body.scrollTop > scrollThreshold || document.documentElement.scrollTop > scrollThreshold) {
+            toplink.classList.remove("hidden");
+        } else {
+            toplink.classList.add("hidden");
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

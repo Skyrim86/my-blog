@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>数学工具库 on Skyrim</title>
+    <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/</link>
+    <description>Recent content in 数学工具库 on Skyrim</description>
+    <image>
+      <title>Skyrim</title>
+      <url>https://skyrim86.github.io/my-blog/images/site-cover.jpg</url>
+      <link>https://skyrim86.github.io/my-blog/images/site-cover.jpg</link>
+    </image>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <atom:link href="https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>期望与方差的运算法则（命题 1.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-1-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-1-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>条件期望、全期望律与全方差律（定义 1.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-1-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-1-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>协方差、相关系数与 Cauchy–Schwarz 不等式（定义 1.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-1-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-1-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>独立、不相关与线性组合的方差（命题 1.4）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-1-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-1-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>标准正态与卡方分布（定义 2.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>正态变量的线性组合（命题 2.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>多元正态与线性变换的封闭性（定义 2.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>幂等二次型与卡方分布（命题 2.4）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>t 分布与 F 分布的构造（定义 2.5）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-5/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-5/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Fisher 引理（命题 2.6）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-6/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-6/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>非中心卡方与二次型的期望（命题 2.7）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-7/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-2-7/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>无偏性、偏差与均方误差分解（定义 3.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>线性估计类与 BLUE（定义 3.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>极大似然估计（定义 3.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>充分统计量与因子分解定理（定义 3.4）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Cramér–Rao 不等式（命题 3.5）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-5/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-3-5/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>正交投影与最小二乘的几何（定义 4.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-4-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-4-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>幂等矩阵的特征值、秩与迹（命题 4.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-4-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-4-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>分块矩阵求逆与 Frisch–Waugh–Lovell 引理（命题 4.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-4-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-4-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>弱大数律与中心极限定理（命题 5.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-5-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-5-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Slutsky 定理与连续映射定理（命题 5.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-5-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-5-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>delta 方法（命题 5.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-5-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-5-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>二元正态的条件分布（命题 6.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-6-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-6-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>样本相关系数与 Fisher z 变换（命题 6.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-6-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/tool-6-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>简单线性回归模型（定义 2.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-2-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-2-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>中心化平方和（定义 3.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-3-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-3-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>最小二乘估计（定理 3.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-3-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-3-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>残差的正交性质（推论 3.4）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-3-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-3-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>引理 4.1</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>无偏性（定理 4.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>方差与协方差（定理 4.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Gauss–Markov（定理 4.4）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>抽样分布（定理 4.5）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-5/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-5/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>命题 4.6</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-6/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-4-6/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>残差平方和与误差方差估计（定义 5.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>残差的一个恒等式（引理 5.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>$\hat\sigma^2$ 无偏（定理 5.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 5.4</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>估计标准误（定义 5.5）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-5/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-5-5/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 6.1</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-6-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-6-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>推论 6.2</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-6-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-6-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 7.1</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>显著性检验（定义 7.4）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定义 7.5</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-5/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-5/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>命题 7.6</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-6/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-6/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>性质 7.7</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-7/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-7/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>命题 7.8</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-8/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-7-8/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>平方和分解（定理 8.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>引理 8.3</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>自由度分解（命题 8.4）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>分布（定理 8.5）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-5/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-5/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>均方（定义 8.6）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-6/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-6/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>$F$ 检验（定理 8.7）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-7/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-7/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>与 $t$ 检验的等价性（命题 8.8）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-8/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-8/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 8.9</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-9/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-8-9/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 9.1</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>与检验的等价性（命题 9.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 9.4</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定义 9.6</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-6/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-6/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 9.7</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-7/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-9-7/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>预测误差（定义 10.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-10-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-10-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 10.2</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-10-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-10-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 10.3</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-10-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-10-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>宽于置信区间，且随 $n$ 的收敛速度不同（命题 10.4）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-10-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-10-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>决定系数（定义 11.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 11.2</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>推论 11.3</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定义 11.4</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>性质 11.5</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-5/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-5/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>命题 11.6</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-6/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-11-6/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>过原点模型（定义 14.1）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-14-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-14-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 14.2</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-14-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-14-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>误差方差的无偏估计（定理 14.3）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-14-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-14-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>命题 14.4</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-14-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-14-4/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 15.1</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-15-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-15-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 15.2</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-15-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-15-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>命题 16.1</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-16-1/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-16-1/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>无条件矩（命题 16.2）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-16-2/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-16-2/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>命题 16.3</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-16-3/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-16-3/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>定理 16.4</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-16-4/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/toolbox/thm-16-4/</guid>
+      <description></description>
+    </item>
+  </channel>
+</rss>

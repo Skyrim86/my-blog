@@ -319,6 +319,11 @@ button.danger.armed { background: var(--danger); border-color: var(--danger); co
 .tree { min-width: 0; }
 .tree-body { max-height: calc(100vh - 210px); overflow: auto; border: 1px solid var(--border); border-radius: 6px; padding: 4px; }
 
+/* 最近打开：树按类型分组，跨类型找「刚写的那篇」要翻两组以上，所以置顶一块（搜索时隐藏） */
+.tree-recent { border: 1px solid var(--border); border-radius: 6px; padding: 4px; margin-bottom: 8px; }
+.tree-recent[hidden] { display: none; }
+.tree-recent .recent-head { padding: 2px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+
 .tree-group { margin-bottom: 2px; }
 
 /* 分组标题本身是折叠开关：39 个文件分 6 组，全展开时噪声比信息多 */

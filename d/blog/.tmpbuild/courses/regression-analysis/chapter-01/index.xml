@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>简单线性回归 on Skyrim</title>
+    <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/</link>
+    <description>Recent content in 简单线性回归 on Skyrim</description>
+    <image>
+      <title>Skyrim</title>
+      <url>https://skyrim86.github.io/my-blog/images/site-cover.jpg</url>
+      <link>https://skyrim86.github.io/my-blog/images/site-cover.jpg</link>
+    </image>
+    <generator>Hugo</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Tue, 15 Sep 2026 20:18:43 +0800</lastBuildDate>
+    <atom:link href="https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>学习笔记（上）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/notes/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/notes/</guid>
+      <description>§1–§6：模型假设分层（A1/A2/A3）、最小二乘与几何投影、估计量性质与 Gauss–Markov、误差方差估计、中心化形式。</description>
+    </item>
+    <item>
+      <title>学习笔记（中）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/notes-02/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/notes-02/</guid>
+      <description>§7–§11：系数与均值的假设检验、方差分析与 F 检验、区间估计与置信带、新观测的预测、决定系数。</description>
+    </item>
+    <item>
+      <title>学习笔记（下）</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/notes-03/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/notes-03/</guid>
+      <description>§12–§16 与附录：应用案例与注意事项、过原点回归、极大似然估计、随机回归量，附数学工具索引与陷阱清单。</description>
+    </item>
+    <item>
+      <title>作业</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/homework/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/homework/</guid>
+      <description>作业全解：练习 1.1、1.2，以及 ILRA 6e 第 2 章的推导型与反例型选解（数值计算型不重复录入）。</description>
+    </item>
+    <item>
+      <title>实验</title>
+      <link>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/lab/</link>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <guid>https://skyrim86.github.io/my-blog/courses/regression-analysis/chapter-01/lab/</guid>
+      <description>R 上机：导入数据、ggplot 散点、lm 拟合、残差与观测诊断图，并用 lm 的结果手算复核全部公式。</description>
+    </item>
+  </channel>
+</rss>

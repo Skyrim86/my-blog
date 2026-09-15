@@ -68,6 +68,7 @@
 
         <div class="create-tail">
           <label class="check"><input type="checkbox" id="create-publish" checked> 直接发布（<code>draft: false</code>），默认勾上；取消勾选则先当草稿</label>
+          <label class="check"><input type="checkbox" id="create-open" checked> 创建后直接打开编辑器</label>
           <div class="actions">
             <button type="submit" class="primary">创建</button>
             <span class="muted" id="create-pending"></span>
@@ -98,6 +99,7 @@
       </div>
       <div class="edit-layout">
         <aside class="tree">
+          <div id="tree-recent" class="tree-recent" hidden></div>
           <div id="tree-body" class="tree-body"><p class="muted">载入中…</p></div>
         </aside>
 
