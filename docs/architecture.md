@@ -220,7 +220,7 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是�
 | `static/safari-pinned-tab.svg` | 单色路径 | Safari 固定标签 |
 | `tools/admin/ui/ayaka.ico` | 16→256 六帧 | 管理页标签页图标 + 桌面快捷方式图标（`博客管理页.lnk` 的 `IconLocation` 指向它） |
 
-**为什么不把 `tools/admin/ui/ayaka.ico` 塞进 `static/`**：那会把 169 KB 的 256×256 帧发到线上，而站点的 `favicon.ico` 只要 16/32 两帧（3.9 KB）。站点图标和桌面图标要的尺寸集合不同，故意分成两个文件。
+**为什么不把 `tools/admin/ui/ayaka.ico` 塞进 `static/`**：那会把 169 KB 的 256×256 帧发到线上，而站点的 `favicon.ico` 只要 16/32 两帧（2.9 KB）。站点图标和桌面图标要的尺寸集合不同，故意分成两个文件。
 
 **两条独立的线**（站点换了人设，管理页可以继续用旧那张）：
 
@@ -229,7 +229,7 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是�
 | 站点图标 | `source-ojou-chibi.png`（Q 版黑长直） | 抠掉平灰背景（`ART_KEY`）压到酒红底板（`ART_PLATE`） | `static/` 下五个文件 |
 | 管理页图标 | `source-ayaka-chibi.png`（Q 版神里绫华） | 保留素材自带白底 + 冷色乘算（`APP_ART_TINT`） | `tools/admin/ui/ayaka.ico` |
 
-**素材与许可**：两张都是 safebooru 站收录的非商用同人，**没有可声明的开放许可**。站点那张原作者 `nekomoni`（X `@nekomoni`，原帖 `https://x.com/nekomoni/status/2098270238966272343`，safebooru post `7134756`）；管理页那张原作者 `maidsan_(littlemaidsan)`（Pixiv 作品 `92959293`）。管理页背景图与桌面图标这类**本地不发布**的用途直接用；站点 favicon 若要彻底规避风险，把 `--style pixel` 生成的图标覆盖上去即可（像素风素材由脚本自绘，许可干净）。
-裁切框、背景抠图容差、底板色、圆角都是脚本里的常量（`ART_CROP` / `ART_KEY` / `ART_KEY_TOL` / `ART_PLATE` / `ART_RADIUS`）：素材背景要求是一块平整的纯色，脚本按 `ART_KEY` 抠掉它、再压到 `ART_PLATE`（酒红）上——黑发压浅底太软、压深底会糊成一团，所以底板色由脚本控而不是让素材自带。换图只改这一组常量 + 换掉源文件。
+**素材与许可**：两张都是 safebooru 站收录的非商用同人，**没有可声明的开放许可**。站点那张原作者 `uni_762`（X `@uni_762`，原帖 `https://x.com/uni_762/status/2097146578435969402`，safebooru post `7126608`，胸像 + 白底）；管理页那张原作者 `maidsan_(littlemaidsan)`（Pixiv 作品 `92959293`）。管理页背景图与桌面图标这类**本地不发布**的用途直接用；站点 favicon 若要彻底规避风险，把 `--style pixel` 生成的图标覆盖上去即可（像素风素材由脚本自绘，许可干净）。
+裁切框、背景抠图容差、底板色、圆角都是脚本里的常量（`ART_CROP` / `ART_KEY` / `ART_KEY_TOL` / `ART_KEY_SOFT` / `ART_PLATE` / `ART_RADIUS`）：素材背景要求是一块平整的纯色，脚本按 `ART_KEY` 抠掉它、再压到 `ART_PLATE`（酒红）上。**容差必须远低于「肤色到背景色」的距离**：白底素材的肤白离白只有 ~27 个通道，`ART_KEY_TOL` 设成 40 就会把脸一起抠成半透明、底板透上来整张脸红掉（实测踩过）。——黑发压浅底太软、压深底会糊成一团，所以底板色由脚本控而不是让素材自带。换图只改这一组常量 + 换掉源文件。
 
 **`--check` 没进 CI**：它需要 Python + Pillow，而 `action.yml` 目前只有 Hugo + Node。图标是低频改动，本地跑一次就够；真要挂 CI，得先给复合动作加 `actions/setup-python` 与 `pip install pillow`。
