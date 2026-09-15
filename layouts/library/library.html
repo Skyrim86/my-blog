@@ -1,18 +1,19 @@
-{{- /* 数学库主页（layout: "library"）：把各门课程的卡片按**数学分支**汇总成一张索引墙。
+{{- /* 数学库总览页（layout: "library"），URL = /library/。
 
-     层级是两级：大类（概率论 / 数理统计 / 线性代数 …）→ 细分（矩与随机变量运算、抽样分布 …）。
-     数据来自 data/math-toolbox.json（生成产物），每张卡带 branch（大类）与 section（细分）两个字段，
-     来源是 data/math-branches.yaml（分支归属改那张表，见文件头注释）。
+     这一页只干一件事：列出**大类**（概率论 / 数理统计 / 线性代数 …），每张卡点进
+     /library/<大类>/。细分的目录在大类页上，卡片墙在细分页上——三级结构见
+     docs/features.md ㉒，后两级的页面由 content/library/_content.gotmpl 生成。
 
-     卡片页仍留在 /courses/<课程>/toolbox/<id>/，文库不复制卡片内容，只聚合索引
-     （一卡一页，正文只有一份，见 docs/features.md ㉑）。
+     为什么拆：80 张索引卡堆在一页时，这一页线上 4G 实测 DCL 494 ms / load 1.4 s、
+     加载期一个 103 ms 长任务，而它承担的信息只有「有哪些大类」。
+     拆开后本页是一张小目录，搜索交给站内搜索（卡片页本来就在索引里）。
 
-     索引卡复用工具库的 toolbox-teaser.html，所以搜索、筛选与弹窗都由同一份
-     assets/js/toolbox.js + 11-toolbox.css 驱动：这里的「分类」维度是大类，不是工具库的分组。 */ -}}
+     卡片页仍留在 /courses/<课程>/toolbox/<id>/，本页不复制卡片内容。 */ -}}
 {{- define "main" }}
-{{- $tb := index site.Data "math-toolbox" }}
+{{- $tb := index hugo.Data "math-toolbox" }}
+{{- $cards := $tb.cards }}
 
-<article class="post-single toolbox-page library-page">
+<article class="post-single library-page">
   {{- partial "page-head.html" (dict "page" .) }}
 
   {{- if .Content }}
@@ -22,87 +23,27 @@
   {{- end }}
 
   {{- with $tb }}
-  {{- /* 只保留真有卡片的大类与细分：空分支既不上筛选条、也不去大纲里占位 */ -}}
-  {{- $branches := slice }}
-  {{- range .branches }}
-    {{- if where $tb.cards "branch" .key }}
-      {{- $branches = $branches | append . }}
+  {{- /* 只列真有卡片的大类：空分支（数学分析 / 数值分析与科学计算 / 最优化 现在都是空的）
+         不出现在这里——分支表预置它们是为了以后导入别的课程时自动出现。 */ -}}
+  <div class="lb-branches">
+    {{- range .branches }}
+    {{- $bcards := where $cards "branch" .key }}
+    {{- if $bcards }}
+    {{- $sections := slice }}
+    {{- range .sections }}
+      {{- if where $bcards "section" .key }}{{ $sections = $sections | append . }}{{ end }}
     {{- end }}
-  {{- end }}
-
-  {{- /* 分支大纲：两级一览 + 计数，长页面上省掉来回滚动 */ -}}
-  <nav class="lb-outline" aria-label="{{ i18n "libraryOutline" }}">
-    {{- range $branches }}
-    {{- $branchCards := where $tb.cards "branch" .key }}
-    <div class="lb-outline-branch">
-      <a class="lb-outline-name" href="#branch-{{ .key }}">{{ .name }}<span class="lb-count">{{ len $branchCards }}</span></a>
-      <ul class="lb-outline-list">
-        {{- range .sections }}
-        {{- $n := len (where $branchCards "section" .key) }}
-        {{- if $n }}
-        <li><a href="#section-{{ .key }}">{{ .name }}<span class="lb-count">{{ $n }}</span></a></li>
-        {{- end }}
-        {{- end }}
-      </ul>
-    </div>
-    {{- end }}
-  </nav>
-
-  <div class="tb-toolbar">
-    <div class="tb-search">
-      <input type="search" id="tb-search" class="tb-search-input" placeholder="{{ i18n "toolboxSearch" }}"
-             autocomplete="off" spellcheck="false" aria-label="{{ i18n "toolboxSearch" }}">
-    </div>
-    <div class="tb-filters" role="group" aria-label="{{ i18n "libraryFilterLabel" }}">
-      <button type="button" class="tb-chip is-active" data-group="all">{{ i18n "toolboxAll" }}<span class="tb-chip-count">{{ len .cards }}</span></button>
-      {{- range $branches }}
-      <button type="button" class="tb-chip" data-group="{{ .key }}">{{ .name }}<span class="tb-chip-count">{{ len (where $tb.cards "branch" .key) }}</span></button>
-      {{- end }}
-    </div>
-    <p class="tb-result" id="tb-result" hidden></p>
-    <p class="tb-empty" id="tb-empty" hidden>{{ i18n "toolboxEmpty" }}</p>
-  </div>
-
-  <div class="tb-groups lb-branches">
-    {{- range $branches }}
-    {{- $branchCards := where $tb.cards "branch" .key }}
-    <section class="tb-group lb-branch" id="branch-{{ .key }}" data-group="{{ .key }}">
-      <h2 class="tb-group-title">
-        <span class="tb-group-name">{{ .name }}</span>
-        <span class="tb-group-count">{{ len $branchCards }}</span>
-      </h2>
+    <a class="lb-branch-card" href="{{ printf "library/%s/" .key | relLangURL }}">
+      <span class="lb-branch-head">
+        <span class="lb-branch-name">{{ .name }}</span>
+        <span class="lb-branch-count">{{ len $bcards }}</span>
+      </span>
       {{- with .summary }}
-      <p class="tb-group-desc">{{ . }}</p>
+      <span class="lb-branch-desc">{{ . }}</span>
       {{- end }}
-
-      {{- range .sections }}
-      {{- $cards := where $branchCards "section" .key }}
-      {{- if $cards }}
-      <div class="lb-subgroup" id="section-{{ .key }}" data-subgroup="{{ .key }}">
-        <h3 class="lb-subgroup-title">
-          <span class="lb-subgroup-name">{{ .name }}</span>
-          <span class="lb-subgroup-count">{{ len $cards }}</span>
-        </h3>
-        {{- with .summary }}
-        <p class="lb-subgroup-desc">{{ . }}</p>
-        {{- end }}
-        <div class="tb-grid">
-          {{- range $cards }}
-          {{- $url := "" }}
-          {{- with site.GetPage (printf "/courses/%s/toolbox/%s" .course .id) }}
-            {{- $url = .RelPermalink }}
-          {{- end }}
-          {{- if $url }}
-          {{- partial "toolbox-teaser.html" (dict "page" $ "card" . "url" $url) }}
-          {{- else }}
-            {{- warnf "library: 卡片 %s 没有对应的卡片页（课程 %s）" .id .course }}
-          {{- end }}
-          {{- end }}
-        </div>
-      </div>
-      {{- end }}
-      {{- end }}
-    </section>
+      <span class="lb-branch-meta">{{ i18n "libraryBranchMeta" (dict "sections" (len $sections) "cards" (len $bcards)) }}</span>
+    </a>
+    {{- end }}
     {{- end }}
   </div>
   {{- end }}

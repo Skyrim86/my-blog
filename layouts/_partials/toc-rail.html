@@ -1,8 +1,9 @@
-{{- /* 课程材料页（笔记 / 作业 / 实验）的左侧跟随目录，由 extend_post_content.html 调用。
+{{- /* 单页的左侧跟随目录（任何有 h2/h3 的页面都显示），由 extend_post_content.html 调用。
 
      目录用 Hugo 的 .TableOfContents（hugo.toml 没改 [markup.tableOfContents]，默认收 h2–h3，
-     正好对上 §x / §x.y 两级），不用主题 partials/toc.html 那份自建目录 ——
-     页内折叠目录在宽屏由 12-toc-rail.css 收起（body:has(.toc-rail)），窄屏继续用它。
+     正好对上课程材料页的 §x / §x.y 两级，项目文档页也用同一份），不用主题 partials/toc.html
+     那份自建目录 —— 页内折叠目录在宽屏由 12-toc-rail.css 收起（body.has-toc-rail），
+     窄屏继续用它。
 
      当前小节的高亮由 assets/js/reading-progress.js 负责（选择器含 .toc-rail）。 */ -}}
 {{- $toc := .TableOfContents -}}

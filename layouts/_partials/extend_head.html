@@ -73,9 +73,9 @@
 <script defer src="{{ $reader.RelPermalink }}" integrity="{{ $reader.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
-{{- /* 课程材料页（笔记 / 作业 / 实验）：把正文末尾的左侧目录栏挪到 <body> 下。
+{{- /* 单页的左侧跟随目录：把正文末尾的目录栏挪到 <body> 下。
        判据与 extend_post_content.html 里渲染目录栏的条件一致 —— 两处要一起改。 */ -}}
-{{- if and (eq .Type "courses") (eq .Kind "page") }}
+{{- if and (eq .Kind "page") (not (or (eq .Layout "toolcard") (hasPrefix .Layout "library"))) }}
 {{- $rail := resources.Get "js/toc-rail.js" | minify | fingerprint }}
 <script defer src="{{ $rail.RelPermalink }}" integrity="{{ $rail.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
@@ -83,7 +83,7 @@
 {{- /* 数学工具库：正文里出现卡片引用（.card-ref）的页面，或工具库页自身，才加载。
        脚本负责「引用 → 弹窗」与卡片墙（工具库页 / 数学库页）的筛选；文案经 data-* 传给脚本
        （JS 不能调 i18n，与 terms-filter.js 同一套做法）。 */ -}}
-{{- if or (in (slice "tools" "toolcard" "library") .Layout) (strings.Contains (string .Content) "card-ref") }}
+{{- if or (in (slice "tools" "toolcard") .Layout) (hasPrefix .Layout "library") (strings.Contains (string .Content) "card-ref") }}
 {{- $tb := resources.Get "js/toolbox.js" | minify | fingerprint }}
 <script defer src="{{ $tb.RelPermalink }}" integrity="{{ $tb.Data.Integrity }}" crossorigin="anonymous"
         data-title="{{ i18n "toolboxTitle" }}"

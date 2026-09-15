@@ -28,7 +28,7 @@
 | 换 logo 后看不到新图标 | `static/` 下是无内容指纹的静态文件 | 访客强刷即可；换图标**不要手改那些 png/ico**，改 `tools/icons/make-icons.py` 后重新生成（见 `architecture.md` 第 6 节），桌面快捷方式还要 `ie4uinit.exe -show` 刷 Explorer 的图标缓存 |
 | 改明暗颜色的代码不生效 | 监听/匹配了 `.dark` class | 主题机制是 `<html>` 上的 **`data-theme` 属性**，用 `[data-theme="dark"]` |
 | bash 脚本报 `$'\r': command not found` | 全新 checkout 得到 CRLF | `scripts/*.sh` 与 `data/*.yaml` **必须 LF**（`.gitattributes` 已用 `text eol=lf` 钉住）。内容 `.md` 允许 CRLF（Hugo 与两个校验脚本都能处理） |
-| 课程材料页的左侧目录栏不跟着滚（或整栏跑到正文末尾） | `.post-single` 上的 `backdrop-filter` 会成为 fixed 后代的**包含块**——留在正文容器里的 `position: fixed` 是相对卡片定位的，于是跟着正文一起滚 | `assets/js/toc-rail.js` 把 `#toc-rail` 挪到 `<body>` 下；显示与否挂在 `body.has-toc-rail` 上，没 JS 时不显示（正文顶部的折叠目录照旧）。见 [`features.md` 第 3 节 ㉓](features.md) |
+| 单页的左侧目录栏不跟着滚（或整栏跑到正文末尾） | `.post-single` 上的 `backdrop-filter` 会成为 fixed 后代的**包含块**——留在正文容器里的 `position: fixed` 是相对卡片定位的，于是跟着正文一起滚 | `assets/js/toc-rail.js` 把 `#toc-rail` 挪到 `<body>` 下；显示与否挂在 `body.has-toc-rail` 上，没 JS 时不显示（正文顶部的折叠目录照旧）。见 [`features.md` 第 3 节 ㉓](features.md) |
 | 同一类页面之间内容串页：A 页的侧栏/页脚出现 B 页的目录 | 主题 baseof 用 `partialCached "footer.html" . .Layout .Kind …`，同 (Layout, Kind) 的页面**共用一份渲染结果**（`extend_footer.html` 里的页面相关输出会串） | 页面相关的内容一律挂 `extend_post_content.html`（`partial`，逐页渲染）；`extend_footer.html` 只放与页面无关的东西 |
 | 目录里冒出 `HAHAHUGOSHORTCODE372s2HBHB` | 标题行里有 `{{< … >}}`：`.TableOfContents` 不执行短代码，占位符原样进目录 | 导入脚本的接线要跳过标题行（`import_course.py` 的 `SKIP_ZONE`）；正文里也别手写短代码进标题 |
 | 管理页窗口里出现 `'会自动打开' is not recognized…`，但服务起来了 | `.bat` 里混进了中文 | 见 [`admin.md` 第 12 节](admin.md#12-启动管理页bat-的硬约束) |
@@ -67,11 +67,12 @@
 - **`hugo server --baseURL` 只在首次构建生效**：实测传了 `--baseURL http://localhost:1313/my-blog/` 后，页面里的菜单/favicon 一开始确实是本机地址，但**改一个文件触发重建就又变回 `hugo.toml` 里的线上地址**——本地预览里点菜单会跳到线上站点、改了图标/样式也看不到。改用环境变量 `HUGO_BASEURL=...`（每次构建都读），实测重建前后都保持本机地址。`scripts/preview.sh` 与 `tools/admin/lib/hugo.mjs` 都走环境变量
 - **但资源级 `.Permalink`（封面/图片这类）环境变量救不了**：Hugo 在资源处理时就把 baseURL 烘进绝对地址，所以**跑过一次完整 `hugo`（用配置里的线上 baseURL）之后，正在运行的 preview 会跟着 emit 线上地址**——预览里封面变成空白框、图片 404，而页面链接还是本机的。判据：`curl 127.0.0.1:1313/my-blog/projects/ | grep 'src=".*covers'`，出现 `skyrim86.github.io` 就是中的这个。**修法：重启 preview**（顺序是「先完整构建、后起 preview」，别反过来）
 - **别在 `hugo server`（watch 模式）跑着的时候执行 `hugo --cleanDestinationDir`**：实测 server 的 watcher 会 panic 退出（`hugolib.(*HugoSites).Build` 栈），预览直接死掉。要跑完整构建就先把 preview 停掉
+- **模板里不能写 `site.Data.math-toolbox`**：Go 模板的字段名不允许连字符，写出来是 `bad character U+002D '-'` 的**语法错误**（而且报在 1:1，指向文件开头，看着像别的地方坏了）。带连字符的 data 只能用 `index hugo.Data "math-toolbox"`。同理任何 `data/` 文件名带 `-` 的都逃不掉
 - **Hugo 报公式渲染错误时会「取消剩下的页面」，所以它列出的坏页可能不全**：实测一次推送里其实有 **3** 个坏页（`问题二_证明笔记.md` 107 行的嵌套 `$`、`问题三_小证明.md` 109 行多出来的 `$`、`问题三_证明_下界.md` 160 行的 `§`），而 `hugo` 只报出前两个——渲染是并行的，报错即取消未完成的任务。**所以「修完报出来的错误」不等于构建就能过**，必须重新构建到绿；`scripts/check-math-katex.mjs`（真检，逐条试渲染）能一次扫全，上面那个第三个坏页就是这一路扫出来的
 
 ## 4. 工具与脚本
 
-- **`hugo list all` 是页面 URL 的权威来源**（`path,slug,title,date,…,permalink,kind,section`）。任何需要「这一页最终 URL 是什么」的地方都应该问它，不要自己实现 slugify + permalinks + `pathToLower`（管理页原先的第二份实现已删除）。解析它输出的两个坑：**标题里可能有逗号**（不能按逗号朴素切分）；**顶层页面的 `section` 是空字符串**
+- **`hugo list all` 是页面 URL 的权威来源**（`path,slug,title,date,…,permalink,kind,section`）。任何需要「这一页最终 URL 是什么」的地方都应该问它，不要自己实现 slugify + permalinks + `pathToLower`（管理页原先的第二份实现已删除）。解析它输出的两个坑：**标题里可能有逗号**（不能按逗号朴素切分）；**顶层页面的 `section` 是空字符串**。**例外**：content adapter 生成的页面（`/library/<大类>/`、`/library/<大类>/<细分>/`，见 docs/features.md ㉒）不在它输出里——它们没有对应的 content 文件，`.File` 也是 nil（碰 `.File.Dir` 会直接报错），要拿 URL 只能在模板里自己拼
 - **shell `case` 的通配 `*` 会跨 `/`**，不是「一层」。`check-frontmatter.sh` 里 `content/courses/*/*/index.md` 正是靠这一点覆盖 `content/courses/<课程>/<章>/<材料>/index.md`，所以新增材料目录（`lab`、`lab-02`）会自动被覆盖。改这类模式时要意识到这一点
 - **`next_weight()` 与 `next_material_weight()` 是两个函数**，别用错：前者数 `*/_index.md` 与 `*.md`（`sub`/`doc` 用），材料页是 `*/index.md`，用它永远得 1（实测踩过：`--dir lab-02` 与笔记撞成同一个 weight）
 - **`.File.Dir` 在 Windows 上给的是反斜杠**（`projects\my-blog\`）：模板里 `split (.File.Dir) "/"` 会得到 1 段，按目录深度做判断（根页 / 文档页）会全部算错，且**不报错**——表现是「某些卡片上少了一整块内容」。先 `strings.Replace $dir "\\" "/"` 再切。「标题里的逗号」「section 为空字符串」是 `hugo list all` 的两个同类坑（见上一条）

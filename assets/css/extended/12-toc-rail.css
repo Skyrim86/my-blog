@@ -1,6 +1,8 @@
 /* ============================================
-   课程材料页的左侧跟随目录（layouts/_partials/course-toc.html）
+   单页的左侧跟随目录（layouts/_partials/toc-rail.html）
    ============================================
+   - 任何有 h2/h3 的单页都渲染（课程材料页、项目文档页、文章），判据在
+     extend_post_content.html 与 extend_head.html 两处，保持一致。
    - 目录栏由 assets/js/toc-rail.js 挪到 <body> 下并给 body 加 .has-toc-rail，
      三条规则都挂在这个类下，所以没 JS 时不显示目录栏，正文顶部那份折叠目录照旧。
      （挪的原因：.post-single 的 backdrop-filter 会成为 fixed 后代的包含块，

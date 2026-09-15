@@ -1,0 +1,47 @@
+{{- /* 数学库的大类页（layout: "library-branch"），URL = /library/<大类>/。
+
+     页面由 content/library/_content.gotmpl 生成（内容适配器），front matter 里只有
+     params.branch（分支表的 key）与 searchHidden；名字、范围说明、细分目录、计数全部
+     从 data/math-toolbox.json 现算——分支表改了就跟着变，没有第二份。
+
+     本页只列**细分**（名称 + 一句范围 + 计数），卡片在细分页上。 */ -}}
+{{- define "main" }}
+{{- $tb := index hugo.Data "math-toolbox" }}
+{{- $key := .Params.branch }}
+{{- $branch := index (where $tb.branches "key" $key) 0 }}
+{{- $cards := where $tb.cards "branch" $key }}
+
+<article class="post-single library-page">
+  {{- partial "page-head.html" (dict "page" .) }}
+
+  <nav class="lb-crumbs" aria-label="{{ i18n "libraryCrumbsLabel" }}">
+    <a href="{{ "library/" | relLangURL }}">{{ i18n "libraryName" }}</a>
+    <span class="lb-crumb-sep" aria-hidden="true">/</span>
+    <span class="lb-crumb-here">{{ .Title }}</span>
+  </nav>
+
+  {{- with $branch.summary }}
+  <p class="lb-branch-summary">{{ . }}</p>
+  {{- end }}
+
+  <h2 class="lb-sub-title">{{ i18n "librarySectionsTitle" }}<span class="lb-count">{{ len $cards }}</span></h2>
+
+  <div class="lb-subs">
+    {{- range $branch.sections }}
+    {{- $scards := where $cards "section" .key }}
+    {{- if $scards }}
+    <a class="lb-sub-card" href="{{ printf "library/%s/%s/" $key .key | relLangURL }}">
+      <span class="lb-sub-head">
+        <span class="lb-sub-name">{{ .name }}</span>
+        <span class="lb-sub-count">{{ len $scards }}</span>
+      </span>
+      {{- with .summary }}
+      <span class="lb-sub-desc">{{ . }}</span>
+      {{- end }}
+    </a>
+    {{- end }}
+    {{- end }}
+  </div>
+</article>
+
+{{- end }}{{/* end main */}}

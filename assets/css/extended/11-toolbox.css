@@ -172,7 +172,7 @@
   color: var(--secondary);
 }
 
-/* 数学库（layouts/library/library.html）给每个分支配一句范围说明 */
+/* 工具库页给每个分组配一句范围说明（数学库的大类在 library-branch 上用 .lb-branch-summary） */
 .tb-group-desc {
   margin: -0.35rem 0 0.85rem;
   font-size: 0.85rem;
@@ -182,7 +182,7 @@
 .tb-grid {
   display: grid;
   /* 300px 而不是 320px：正文列宽 ~641px 时 320×2+12 放不下、只能单列，
-     卡片墙（数学库 80+ 张）会拉成一长条。300px 刚好两列，窄屏由下面的 media query 兜成单列。 */
+     卡片（细分页最多十几张、工具库页 80+ 张）会拉成一长条。300px 刚好两列，窄屏由下面的 media query 兜成单列。 */
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
   align-items: start;
@@ -433,7 +433,9 @@ body.tb-modal-open {
 }
 
 @media (max-width: 640px) {
-  .tb-grid {
+  .tb-grid,
+  .lb-branches,
+  .lb-subs {
     grid-template-columns: 1fr;
   }
 
@@ -450,100 +452,126 @@ body.tb-modal-open {
   }
 }
 
-/* ---------- 数学库（/library/）：大类 → 细分 两级 ----------
-   大类用 .tb-group（筛选按钮切换的就是它，见 assets/js/toolbox.js），
-   细分是库页独有的 .lb-subgroup：只作视觉分组，不参与筛选；卡全被筛掉时整块收起。 */
-.lb-branches {
-  margin-top: 1.4rem;
-}
-
-.lb-subgroup {
-  margin: 1.3rem 0 0;
-}
-
-.lb-subgroup[hidden] {
-  display: none;
-}
-
-.lb-subgroup-title {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  margin: 0 0 0.15rem;
-  font-size: 0.98rem;
-  font-weight: 600;
-}
-
-.lb-subgroup-count {
-  font-size: 0.76rem;
-  font-weight: 400;
-  color: var(--secondary);
-  opacity: 0.8;
-}
-
-.lb-subgroup-desc {
-  margin: 0 0 0.7rem;
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--secondary);
-}
-
-/* 分支大纲：两级一览 + 计数，省掉在 80 多张卡里来回滚 */
-.lb-outline {
+/* ---------- 数学库（/library/）：大类 → 细分 → 卡片 三级 ----------
+   三级各有自己的 layout（library / library-branch / library-section），页面由
+   content/library/_content.gotmpl 生成：总览页列大类卡，大类页列细分卡，细分页才是卡片墙。
+   这里只管前两级的目录卡与面包屑；卡片墙仍用 .tb-grid / .tb-teaser（见上）。 */
+.lb-branches,
+.lb-subs {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 0.7rem 1.5rem;
-  margin: 1.1rem 0 1.3rem;
-  padding: 1rem 1.1rem;
-  background: var(--code-bg);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 1.3rem;
+  align-items: start;
+}
+
+.lb-branch-card,
+.lb-sub-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.85rem 1rem;
+  background: var(--entry);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  color: var(--primary);   /* 卡本身是 <a>，把链接色压回正文色 */
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-.lb-outline-branch {
-  min-width: 0;
+.lb-branch-card:hover,
+.lb-sub-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  color: var(--primary);
 }
 
-.lb-outline a {
+.lb-branch-head,
+.lb-sub-head {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  color: var(--primary);
-  text-decoration: none;
+  gap: 8px;
 }
 
-.lb-outline a:hover {
-  color: var(--accent);
-}
-
-.lb-outline-name {
-  font-size: 0.95rem;
+.lb-branch-name,
+.lb-sub-name {
+  font-size: 1rem;
   font-weight: 600;
 }
 
-.lb-outline-list {
-  margin: 0.3rem 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.85rem;
-}
-
-.lb-outline-list a {
-  color: var(--secondary);
-}
-
-.lb-outline-list a:hover {
-  color: var(--accent);
-}
-
-.lb-outline-list li {
-  margin: 0.12rem 0;
-}
-
-.lb-count {
+.lb-branch-count,
+.lb-sub-count {
   margin-left: auto;
   font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
   color: var(--secondary);
   opacity: 0.8;
+}
+
+.lb-branch-desc,
+.lb-sub-desc {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--secondary);
+}
+
+/* 大类卡底部那行「N 个细分 · M 张卡」，用 margin-top:auto 压到卡底，一排卡对齐 */
+.lb-branch-meta {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  font-size: 0.76rem;
+  color: var(--secondary);
+  opacity: 0.85;
+}
+
+/* 大类页 / 细分页的面包屑：这两页的 title 就是分支名，得靠它指出自己在哪一支 */
+.lb-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0.9rem 0 0;
+  font-size: 0.85rem;
+  color: var(--secondary);
+}
+
+.lb-crumbs a {
+  color: var(--secondary);
+  text-decoration: none;
+}
+
+.lb-crumbs a:hover {
+  color: var(--accent);
+}
+
+.lb-crumb-sep {
+  opacity: 0.5;
+}
+
+.lb-crumb-here {
+  color: var(--primary);
+}
+
+/* 大类页上「细分」那一段的标题（后面跟的是本大类全部卡片数） */
+.lb-sub-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 1.6rem 0 0;
+  padding-bottom: 0.4rem;
+  font-size: 1.05rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.lb-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--secondary);
+}
+
+.lb-branch-summary {
+  margin: 0.8rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--secondary);
 }

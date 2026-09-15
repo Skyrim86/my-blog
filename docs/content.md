@@ -154,12 +154,15 @@ python tools/course-import/import_course.py --check    # 只比对（CI 不跑�
 | `content/courses/<课程>/<chapter>/<材料>/index.md` 的**正文** | 课程项目的 `笔记/`、`作业/`、`实验/` 里的 md。front matter 仍由 `new-content.sh` 生成，脚本只替换正文；正文里**写结论的名字**（「由全方差律」），脚本按名字表换成 `{{< tool "1.2" "全方差律" >}}`；残留的旧写法 `【工具 k.m】` 会让导入报错退出 |
 | `data/math-toolbox.json` | `工具/00_数学工具.md`（按 `## k 名称` 分 6 组，条目形如 `### 名字 {#tool-1-2}` + 可选 `<!-- 别名: … -->`）+ 各模块笔记里的定理/定义/命题块；每张卡另加 `kind`（类别：定义/定理/命题…）、`num`（编号，卡片角落的小字）、`course`（属于哪门课）、`branch`（大类）与 `section`（细分）|
 | `data/math-branches.yaml` | **不是产物**：数学库（`/library/`）的**两级**分支清单（大类 → 细分）+ 卡片归属规则，手写维护，见 docs/features.md ㉒ |
+| `content/library/<大类>/`、`content/library/<大类>/<细分>/` 的页面 | **不是文件**：由 `content/library/_content.gotmpl`（Hugo content adapter）按 `data/math-branches.yaml` 现算生成——分支表加一项就自动多一页。所以这几个 URL 不在 `hugo list all` 的输出里，`check-sections.sh` 也看不见它们 |
 | `content/courses/<课程>/toolbox/<id>/index.md` | 与上同一批卡片：一张卡一个页面，front matter 由脚本生成、正文为空，模板按目录名从 data 取内容 |
 | `实验/<lab>/figs/*.png` | 直接复制进对应材料页的 bundle |
 
 **改内容一律改课程项目里的 md，再重跑导入**——博客侧这几类文件是生成产物，手改会在下次导入时被覆盖。
 
 一条笔记太长时按 § 拆成多页（`MODULES["notes"]` 里的 `first`/`last` 指定保留哪几节）：1575 行、2500 多个数学区渲染出来约 2.5 MB，会撞 `report-size.sh` 的单页预算。
+
+项目文档页（`content/projects/<项目>/<子项目>/*.md`）同样受单页预算约束，但没有导入管线可用，得手工拆：把附录这类**不参与正文推导**的整块（伪代码、代码清单）搬成同目录下的一页（先例：问题三的附录 A/B → 《问题三_参考实现》，`math: false` 关掉 KaTeX，主页附录处留一行指向新页）。手工拆的**唯一代价是锚点**——外部书签指向 `问题三/#附录-b…` 会失效，站内引用则要跟着改（grep `问题三.md》` 之类）。
 
 ## 8. URL 与内容的关系
 

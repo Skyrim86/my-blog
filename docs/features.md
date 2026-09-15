@@ -106,13 +106,13 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
 
-只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout。`archives` 那条现在没有对象了——归档页 2026-09-15 删除——留着是为了它回来时不用再想起这件事）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a`、`.toc-rail a`（课程材料页的左侧目录，见 ㉓）加 `.active`。
+只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout。`archives` 那条现在没有对象了——归档页 2026-09-15 删除——留着是为了它回来时不用再想起这件事）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a`、`.toc-rail a`（单页的左侧目录栏，见 ㉓）加 `.active`。
 
 **不要用 `requestAnimationFrame` 做节流**：隐藏标签页里 rAF 不触发，切回来会拿到过期状态——`terms-filter.js` 已经踩过同一个坑，这里直接同步算。
 
 **几何量必须缓存**：正文与每个目录项的绝对偏移只在「重新测量」时算一次，滚动路径上只做 `window.scrollY` 的算术。原来的写法每次 scroll 都要对正文调 `getBoundingClientRect()` 与 `offsetHeight`、再对每个目录项逐个取 rect，而最重的公式页有 1082 KB HTML / 1.68 万个 `<span>`。用 CDP 的 Performance 计数器量（`.shots/jank.py`，110 次滚动）：旧写法 `ScriptDuration` 0.019~0.020 s，缓存后 0.004~0.005 s，**滚动脚本开销降到 1/4**。失效时机是 `resize` / `load` / `document.fonts.ready` / `ResizeObserver(.post-single)`，最后一条是为了兜住「图片或字体迟到导致正文高度变了」。
 
-**偏移排序后再扫描**：课程材料页上同时有两个目录（正文顶部的折叠目录 + 左侧跟随目录，见 ㉓），两组指向同一批标题，拼在一起不再单调递增，而扫描逻辑是「遇到更大的 `top` 就 break」——不排序的话第一组一结束就收手，左侧目录永远不会亮（实测 `inlineActive: 1 / railActive: 0`）。`marks` 现在按 `top` 稳定排序，同一个标题上的两份目录由靠后出现的那份（左侧栏）拿到高亮。
+**偏移排序后再扫描**：同一页上常同时有两个目录（正文顶部的折叠目录 + 左侧跟随目录，见 ㉓），两组指向同一批标题，拼在一起不再单调递增，而扫描逻辑是「遇到更大的 `top` 就 break」——不排序的话第一组一结束就收手，左侧目录永远不会亮（实测 `inlineActive: 1 / railActive: 0`）。`marks` 现在按 `top` 稳定排序，同一个标题上的两份目录由靠后出现的那份（左侧栏）拿到高亮。
 
 ### ⑭ 搜索快捷键与 `?q=` 预填 — `assets/js/search-shortcut.js`
 
@@ -172,24 +172,25 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - 卡片页不参与标签体系（`toolbox/_index.md` 的 `cascade` 清空 `tags`），也不进 sitemap 与搜索索引（`sitemap.disable` + `searchHidden`）。
 - 卡内的 `[名字](#card-tool-1-1)` 会被 `toolbox-md.html` 在渲染后改写成目标卡片页地址（Hugo 会把纯 fragment 链接补成「当前页地址 + #锚点」）；卡片不引用自己。
 
-### ㉒ 数学库（跨课程卡片墙，按数学分支分组）— `layouts/library/library.html` + `data/math-branches.yaml`
+### ㉒ 数学库（跨课程卡片索引，按数学分支三级拆分）— `content/library/_content.gotmpl` + `layouts/library/*` + `data/math-branches.yaml`
 
-`/library/`（导航里排在首页之后）把各门课程的卡片按**数学分支**汇总成一张索引墙。它不新建内容，只是 ㉑ 那批卡片的第二个视图：
+`/library/`（导航里排在首页之后）把各门课程的卡片按**数学分支**汇总成索引。它不新建内容，只是 ㉑ 那批卡片的第二个视图。**三级**：`/library/`（大类）→ `/library/<大类>/`（细分目录）→ `/library/<大类>/<细分>/`（卡片墙）。
 
-- **数据**：仍是 `data/math-toolbox.json`，每张卡多三个字段 —— `course`（卡片属于哪门课）、`branch`（大类）与 `section`（细分）。归属规则写在 `data/math-branches.yaml`（**不是**生成产物）：`branches` 是**两级**结构（大类 → `sections` 细分，每个细分带一句 `summary`），`assign` 按 `cards > nums > groups > modules > courses` 取第一个命中，都没命中落到 `default`。调某张卡的归属改这张表，再重跑导入；导入时会校验细分 key 不重复、`assign` 与 `default` 都指向真实存在的细分（写错就报错退出，而不是在页面上静默错分）。
-- **两级渲染**：大类是 `.tb-group[data-group]`（筛选按钮切换的就是它），细分是库页独有的 `.lb-subgroup`——只做视觉分组、不参与筛选，卡被筛空时由 `toolbox.js` 整块收起（否则筛「概率论」时别的分支下会留下一排空标题）。页面顶部另有一张**分支大纲**（大类 + 全部细分 + 计数 + 跳转锚点），省掉在 80 多张卡里来回滚。
-- **筛选维度是大类**：`assign.nums` 让课程定理卡按节号落到细分（`thm-7-*` → 参数的检验、`thm-8-*` → 方差分析与 F 检验……），细到节的粒度才配得上「每个分支再细分」。
-- **页面**：`content/library/_index.md`（section，`layout: "library"`，`math: true`——卡片名字里带公式的条目要渲染）只铺索引卡，卡片页仍留在 `/courses/<课程>/toolbox/<id>/` —— 卡片正文只有一份，一卡一页的体积账（㉑）不受影响。
-- **交互复用**：搜索、筛选、弹窗全部沿用 `assets/js/toolbox.js` 与 `11-toolbox.css`。筛选维度从「工具库分组」换成「大类」不需要新脚本 —— `toolbox.js` 只按 `.tb-group[data-group]` 与 chip 的 `data-group` 配对，两个页面共用同一份。**注意脚本的加载判据在 `extend_head.html` 的 layout 白名单里**（`"tools" "toolcard" "library"`）：新页面想用卡片墙或卡片引用，先把它加进那个 `slice`，否则脚本不加载、筛选静默失效（踩过，页面看起来完全正常）。
-- **空分支不渲染**：分支表里预置的大类若一张卡都没有（现在有「数学分析」「数值分析与科学计算」「最优化」），既不上筛选条也不出分组；以后导入别的课程就自动出现。
-- **卡片页底部**给两个返回入口：「本课程工具库」与「数学库」。正文里的 `{{< tool/thm >}}` 引用在数学库页上也会按卡片自己的 `course` 找到正确工具库（`card-ref.html` 的第二级查找），不再依赖「当前页属于哪门课」。
+- **数据**：仍是 `data/math-toolbox.json`，每张卡多三个字段 —— `course`（卡片属于哪门课）、`branch`（大类）与 `section`（细分）。归属规则写在 `data/math-branches.yaml`（**不是**生成产物）：`branches` 是**两级**结构（大类 → `sections` 细分，每个细分带一句 `summary`），`assign` 按 `cards > nums > groups > modules > courses` 取第一个命中，都没命中落到 `default`。调某张卡的归属改这张表，再重跑导入；导入时会校验细分 key 不重复、`assign` 与 `default` 都指向真实存在的细分（写错就报错退出，而不是在页面上静默错分）。**细分 key 现在还是 URL 的一段**（`/library/statistics/stat-ols/`），改 key = 改 URL。
+- **页面由内容适配器生成**（`content/library/_content.gotmpl`，Hugo content adapter）：大类页与细分页**没有**对应的 md 文件，构建时从 `data/math-toolbox.json` 现算——分支表加一个大类就自动多一页，删一个就自动少一页，不存在「文件与表漂移」。写成 23 个 `_index.md` 就是把那张表抄第二遍，迟早对不上。适配器只往页面里塞两个 key（`params.branch` / `params.section`）加 `searchHidden`，名字、范围说明、计数、卡片清单全部在模板里现取。
+- **三个 layout 各管一级**：`layout: "library"`（总览，`content/library/_index.md`）、`layout: "library-branch"`（大类页：列本大类的细分 + 计数 + 一句范围）、`layout: "library-section"`（细分页：铺本细分最多十几张索引卡）。后两个的 front matter 全由适配器给。
+- **为什么拆**：原先一页铺 80 张索引卡 + 分支大纲，线上 4G 实测 DCL 494 ms / load 1.4 s、加载期一个 103 ms 长任务、滚动区 6588 px，而它承担的信息只是「有哪些大类」。拆开后 `/library/` 14 KB（原先 68.7 KB）、只列 3 张大类卡，**连 KaTeX 都不加载**（原先这页为 4 个公式名加载 `katex.min.css` + 6 个 woff2 共 107 KB）。索引页现在没有搜索框：卡片名本来就在站内搜索索引里（卡片页是 regular page），不必在库页里再实现一份。
+- **空分支不出页面**：分支表里预置的大类若一张卡都没有（现在有「数学分析」「数值分析与科学计算」「最优化」），既不出卡片也不出页面；以后导入别的课程就自动出现。总览页因此现在只列 3 个大类。
+- **细分页才是卡片墙**，交互沿用 `assets/js/toolbox.js`：点索引卡就地弹窗（按需抓卡片页），没有 JS 就直接跳卡片页。脚本的加载判据在 `extend_head.html`：`in (slice "tools" "toolcard") .Layout` **或 `hasPrefix .Layout "library"`**（三级同前缀，加一级不用回来改）；toc-rail 的排除判据同样按前缀写，两处一起改（见 ㉓）。总览页 / 大类页已经没有 `.tb-group` 与筛选条，筛选只服务工具库页；细分页不再需要搜索或筛选（最多 11 张卡）。
+- **卡片页底部**给两个返回入口：「本课程工具库」与「数学库」。正文里的 `{{< tool/thm >}}` 引用在任何页面上都按卡片自己的 `course` 找到正确工具库（`card-ref.html` 的第二级查找），不再依赖「当前页属于哪门课」。
+- **`searchHidden: true`**：三级页面都是导航页，不进搜索索引（`layouts/index.json`）也不进首页「最近更新」——首页那份 `RegularPages` 过滤本来就排除 `searchHidden`。
 
-### ㉓ 课程材料页的左侧跟随目录 — `_partials/course-toc.html` + `assets/js/toc-rail.js` + `12-toc-rail.css`
+### ㉓ 单页的左侧跟随目录 — `_partials/toc-rail.html` + `assets/js/toc-rail.js` + `12-toc-rail.css`
 
-点开笔记（以及作业、实验）时，宽屏左侧有一栏跟随滚动的目录；窄屏不显示，仍用正文顶部那份折叠目录。
+点开任何一个有 h2/h3 的单页（课程材料页、项目文档页、文章、关于页）时，宽屏左侧有一栏跟随滚动的目录；窄屏不显示，仍用正文顶部那份折叠目录。2026-09-15 之前只对课程材料页生效，之后放开到全部单页——公式密集的项目文档页（`projects/cmc2026/**`）正是最需要它的一类页面。
 
-- **范围**：`Type == "courses"` 且 `Kind == "page"` 的页面，判据同时写在 `extend_post_content.html`（渲染）与 `extend_head.html`（脚本）里，**两处要一起改**。
-- **目录内容**：Hugo 的 `.TableOfContents`（默认 h2–h3，正好对上 §x / §x.y），不用主题 `toc.html` 那份 Scratch 撑嵌套的自建目录。它的标题文本是**原始 Markdown**，所以还要 `replaceRE` 去掉 `$…$` 定界符（构建期渲染的 KaTeX 不会进目录，留着就是裸的 `$F$`）——注意 `replaceRE` 的返回值不是 `template.HTML`，末尾必须补 `| safeHTML`，否则整段目录被转义成文本（踩过）。
+- **范围**：`Kind == "page"` 且排除 `layout: toolcard` / `layout: library` 两个自定义 layout（它们不走主题 `single.html`，`extend_post_content.html` 根本不会被调用，页面本身也没有正文小标题）。判据同时写在 `extend_post_content.html`（渲染）、`extend_head.html`（脚本）与 `toc-rail.html` 内部对 `.TableOfContents` 的判据里，**三处要一起改**。放开前后的实测：挂上目录栏的页面由 9 个（全是课程材料页）增至 27 个（+18：项目文档页、关于页，含拆页新增的《问题三_参考实现》）。
+- **目录内容**：Hugo 的 `.TableOfContents`（默认 h2–h3，正好对上课程材料页的 §x / §x.y，项目文档页用同一份），不用主题 `toc.html` 那份 Scratch 撑嵌套的自建目录。它的标题文本是**原始 Markdown**，所以还要 `replaceRE` 去掉 `$…$` 定界符（构建期渲染的 KaTeX 不会进目录，留着就是裸的 `$F$`）——注意 `replaceRE` 的返回值不是 `template.HTML`，末尾必须补 `| safeHTML`，否则整段目录被转义成文本（踩过）。
 - **为什么由 JS 挪到 `<body>` 下**：`.post-single` 上的 `backdrop-filter` 会成为 fixed 后代的包含块，目录留在正文容器里就是「跟着正文滚」而不是跟随视口（实测滚动 2500px 后 top 由 170px 变成 -1943px）。`assets/js/toc-rail.js` 把 `#toc-rail` 移到 `body` 末尾并给 `body` 加 `.has-toc-rail`——**显示与否挂在这个类上**，所以没 JS 时目录栏不出现、正文顶部的折叠目录照旧，不会出现「两个都没有」。
 - **为什么不能挂在 `extend_footer.html`**：主题 baseof 用 `partialCached "footer.html" . .Layout .Kind …`，同 (Layout, Kind) 的页面共用一份渲染结果——笔记页的 `.Type`、`.Section`、`.TableOfContents` 会串成**第一个被缓存页面**的那份（实测三个不同材料页拿到完全相同的调试值）。要页面相关内容就得用 `extend_post_content.html`（`partial`，逐页渲染）。
 - **断点 1240px**：正文列 720px 居中，左右各留约 600px，240px 的目录栏 + 间距放得下，`left: max(16px, …)` 兜住临界宽度；宽屏下正文顶部那份折叠目录由 `body.has-toc-rail .post-single > .toc { display: none }` 收起。
@@ -222,6 +223,21 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 | 整站输出（`report-size.sh`） | 9833 KB | 18983 KB（新增「回归分析」课程：3 页笔记 + 作业 + 实验 + 80 张工具卡页；预算 12 → 24 MB） |
 | 滚动脚本开销（最重页，110 次滚动） | 0.019~0.020 s | 0.004~0.005 s |
 
+### 2026-09-15 追加五：数学库 `/library/` 拆成三级（一页 80 张卡 → 一页一张目录）
+
+线上量到的病：`/library/` 单页铺 80 张索引卡 + 分支大纲，线上 4 G 实测（`.shots/startjank.py --arms libperf-arms-live.json`）DCL 494 ms / load 1405 ms / 加载期一个 **103 ms** 长任务 / 滚动区 6588 px，而它承担的信息只是「有哪些大类」。
+
+改法与拆法见 ㉒。**前后对账用同一个方法量**（真窗口 + CDP 4 G 节流，`startjank.py --arms .shots/libperf-before-after.json`）：改前那份不是旧数据，是用 `git worktree add --detach D:/blog/.shots/before-lib HEAD` 把已发布的站点单独构建、另起一个 `serve_public.py` 量出来的（本机 TTFB 两边都是 4 ms，可直接比）。
+
+| 页面（4 G 节流） | HTML | DOM | DCL | load | 长任务 | 打开后 0–1 s 的掉帧 |
+|---|---|---|---|---|---|---|
+| 改前 `/library/`（80 张卡一页） | 67 KB | 777 | 498 ms | 670 ms | **119 ms** | 4 帧 > 7 ms，max 121 ms |
+| 改后 `/library/`（3 张大类卡） | **11 KB** | **134** | 365 ms | 473 ms | 无 | 1 帧 > 25 ms，max 42 ms |
+| 改后 `/library/statistics/`（12 个细分） | 15 KB | 184 | 291 ms | 291 ms | 无 | max 30 ms |
+| 改后 `/library/statistics/stat-properties/`（最重细分，11 张卡） | 19 KB | 211 | 286 ms | 425 ms | 无 | 0 帧 > 7 ms |
+
+另外两个附带收益：滚动区由 6588 px 变成**一屏**（`scrolled 0`）；`/library/` 不再加载 KaTeX（原先为 4 个公式名付 `katex.min.css` 23 KB + 6 个 woff2 107 KB，现在只有细分页付）。整站输出 18983 → 18480 KB（`report-size.sh`），搜索索引 0 条 library 记录（三级页面都 `searchHidden`，卡片名本来就在索引里）。
+
 ### 最重的页面到底重在哪
 
 `projects/cmc2026/problem-03/问题三/`：raw HTML **1082 KB**（gzip 133 KB）、DOM **23561 个元素**（其中 `<span>` 16820 个、`<math>` 751 个）、4 G 下 DCL **3.4 s**。整站 HTML 占总输出的 91%。**这不是可以靠压缩解决的部分**——KaTeX 的 HTML 排版树本身就是这么多节点。
@@ -230,12 +246,26 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 - `render-passthrough.html` 的 `output` 从 `htmlAndMathml` 改成 `html`：整站 9957 → 8065 KB（−19%），最重页 1082 → 902 KB（−17%），DOM 只少 4%。代价是丢掉 MathML，屏幕阅读器与复制公式都退化。**性价比不够，保持 `htmlAndMathml`。**
 - `.post-single` 的 `backdrop-filter: blur(8px)` 是**页面那么高**的元素，本来怀疑它是滚动卡顿源。用 `jank.py` 在 4 G 与本机各量了一轮，`TaskDuration` / `LayoutCount` / 帧间隔都测不出差异（headless 下 rAF 帧间隔恒定 6.05 ms，该探针对合成器侧的开销不敏感）。**测不出问题就不动它**——它同时承担正文可读性。
+- **KaTeX 字形预加载**（`<link rel=preload as=font>` 按本页出现的类名挑字形）：本地延迟模型（`.shots/serve_delay.py`，每请求 +300 ms，HTTP/1.1）下**无效**——首个字体请求确实从 686 ms 提前到 333 ms，但最后一个字体到达时间不变（1265 → 1252 ms），FCP 反而从 802 退到 932 ms（4 次重复，离散 ±10 ms）。原因是浏览器对单主机只有 6 条连接，9 个字形（133 KB）一起挤进去，把阻断首屏的 CSS 往后排。生产的 Fastly 走 HTTP/2 多路复用，不会再排队，**但线上没有实测，所以没合并**（真要试：合并后跑一次 `.shots/startjank.py --arms <线上 arms>` 对 FCP 与字体到达时间，不达标就撤）。
+
+### 2026-09-15 追加四：拆掉最重页的附录
+
+`projects/cmc2026/problem-03/问题三/` 原来 1082 KB / 23566 元素，其中附录 A 伪代码 + 附录 B Python 参考实现（4 个 `<pre>`、1245 行）单独占 380 KB / 7321 元素。按 § 拆页先例搬成《问题三_参考实现》（`math: false`，不加载 KaTeX 样式与字形）：
+
+| | 主页面前 | 主页面后 | 新页 |
+|---|---|---|---|
+| raw HTML | 1082 KB | **658 KB** | 454 KB |
+| DOM 元素 | 23566 | **16222** | 7597 |
+| 最长长任务（headless，warm） | 97 ms | **64 ms**（模型估 60~100，见 `.shots/q3-split-plan.md`） | 52 ms |
+| 该页排序 | 全站第 1 重 | 第 8 重 | — |
+
+同一手术对 M1 三页笔记与作业页还有余量（`courses/regression-analysis/chapter-01/`：作业 1060 KB、notes-02 992 KB、notes 977 KB，现已是全站最重的三页）。
 
 ### 还剩下的（已知、暂不动）
 
 **2026-09-15 追加**：一门公式密集的课程（回归分析 M1）让整站 +9.2 MB —— 最重的单页 1082 KB（M1 笔记按 § 拆成 3 页才压回预算内），80 张工具卡页各约 40 KB 页面框架 + 卡片内容。单页预算不变（1638 KB），整站预算 12 → 24 MB。**没有**为了压体积去掉 MathML（理由见上面「试过并否决」）。
 
-- KaTeX 在公式页加载 6 个 woff2 共 **107 KB**、`katex.min.css` 23 KB；只在真有公式的页面加载（`extend_head.html` 的三条件判据）。要再降只能做字体子集化，收益不确定、维护成本高。
+- KaTeX 在公式页**按需**加载 woff2 字形（`katex.min.css` 里 20 个 `@font-face`，浏览器只取页面真正用到的那几个）：M1 笔记页最多见 9 个共 **133 KB**（`Math-Italic`、`Main-Bold`、`Math-BoldItalic`、`Caligraphic`、`AMS`、`Size1~3` 等），`katex.min.css` 23 KB。早期记的「6 个 107 KB」是 `startjank.py` 的 resources 列表被截断后的低估，准数请用 `.shots/fonttruth.py` 量 `document.fonts`。只在真有公式的页面加载（`extend_head.html` 的三条件判据）。要再降只能做字体子集化，收益不确定、维护成本高。
 - 每个页面都多一次 59 字节的 `css/bg-image.css`（渲染阻塞）。它和主样式表是**并行**下载的（不是串行），FCP 实测没有差别，所以不值得为它把背景图 URL 硬编码进 CSS 或往模板里写 `<style>`。
 
 ### 打开页面头几秒的卡顿（2026-09-15 追加三）

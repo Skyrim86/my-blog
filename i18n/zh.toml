@@ -125,13 +125,18 @@ other = "搜索编号、标题或内容，例如「Gauss」「4.4」「方差」
 [toolboxFilterLabel]
 other = "按分类筛选"
 
-# 数学库页（layouts/library/library.html）的两级分支：大类 → 细分
-[libraryFilterLabel]
-other = "按大类筛选"
+# 数学库页（layouts/library/*）：三级结构，大类 → 细分 → 卡片
+# 大类卡上的一行小字（占位符是 Go 模板写法，配 dict 传参——写成 {sections} 会被 go-i18n 当模板吃掉，渲染成空串）
+[libraryBranchMeta]
+other = "{{ .sections }} 个细分 · {{ .cards }} 张卡"
 
-# 数学库页顶部的分支大纲（区段名，读屏用）
-[libraryOutline]
-other = "数学分支大纲"
+# 大类页上「细分」那一段的标题
+[librarySectionsTitle]
+other = "细分"
+
+# 面包屑区段名（读屏用）
+[libraryCrumbsLabel]
+other = "所在分支"
 
 # 卡片页底部「返回数学库」的链接文字（卡片页同时保留返回本课程工具库）
 [libraryName]
