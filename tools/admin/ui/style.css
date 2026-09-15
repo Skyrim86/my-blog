@@ -40,11 +40,40 @@ html[data-theme="dark"] {
 
 * { box-sizing: border-box; }
 
+/* 底色交给 <html>、body 置透明，否则会盖住 z-index:-1 的背景层。
+   和站点（00-theme.css）是同一个坑，理由见 docs/features.md ⑫。 */
+html {
+  background-color: var(--bg);
+}
+
 body {
   margin: 0;
-  background: var(--bg);
+  background: transparent;
   color: var(--fg);
   font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+/* 背景层：神里绫华插画 + 一层按明暗主题换强度的蒙版。
+   蒙版不做成「图片变淡」而是压一层纯色，和站点的做法一致——正文对比度靠它保证，
+   面板本身还有自己的不透明度。 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, rgba(236, 241, 250, .50) 0%, rgba(238, 242, 250, .62) 55%, rgba(240, 243, 250, .74) 100%),
+    url("/ayaka-bg.webp");
+  background-size: cover, cover;
+  background-position: center, center 40%;
+  background-repeat: no-repeat, no-repeat;
+}
+
+html[data-theme="dark"] body::before {
+  background-image:
+    linear-gradient(180deg, rgba(16, 18, 23, .60) 0%, rgba(16, 18, 23, .74) 55%, rgba(16, 18, 23, .86) 100%),
+    url("/ayaka-bg.webp");
 }
 
 code {
@@ -67,7 +96,10 @@ a { color: var(--accent); }
   align-items: center;
   gap: 10px;
   padding: 7px 14px;
-  background: var(--card);
+  /* 半透明 + 毛玻璃：滚动时背景图从顶栏下面透出来，和站点顶栏观感一致 */
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  backdrop-filter: saturate(150%) blur(10px);
+  -webkit-backdrop-filter: saturate(150%) blur(10px);
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
@@ -141,8 +173,8 @@ kbd {
 #main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 7px var(--preview-w, 40vw);
-  gap: 0 10px;
-  padding: 14px;
+  gap: 0 12px;
+  padding: 16px;
   align-items: start;
 }
 
@@ -154,7 +186,9 @@ kbd {
 
 .panel {
   display: none;
-  background: var(--card);
+  /* 面板透出后面的背景图：纯不透明的话背景图只剩 16px 一圈，等于没加。
+     74% 是实测折中——正文对比度 9:1 以上（AAA 只要 7:1），再低才开始影响 12px 提示文字。 */
+  background: color-mix(in srgb, var(--card) 66%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;

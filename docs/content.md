@@ -145,4 +145,4 @@ bash scripts/new-content.sh remove   <content 路径> [--with-bundle] [--dry-run
 - 项目页同样由目录名决定（`/projects/<项目>/`），分层项目再多一层（`/projects/cmc2026/problem-01/solution/`）
 - 文章 URL 由 `[permalinks]` + `:slug`（取自标题）决定
 - **改 URL 需谨慎**：giscus 用 `mapping='title'`，所以**改标题既会换 URL、也会丢评论关联**；改目录名只换 URL、评论不丢。改标题后外部链接会一起失效，管理页因此提供了 `slug` 字段用于把 URL 固定下来
-- 项目页与课程页都**不在**归档页与首页列表中（`mainSections=['posts']` 只放行文章），但**都会**进搜索引擎索引（`site.RegularPages`）、`sitemap.xml` 与 `/categories/`。词条页只列 regular page：平铺项目页正常出现；`CMC2026` 是 section 形式的项目，**它自己**不在词条页里，但它下面的文档页（靠 cascade 拿到标签）会正常出现
+- 项目页与课程页都**不在**首页列表中（`mainSections=['posts']` 只放行文章；曾经也影响归档页，但归档页已于 2026-09-15 删除，见 architecture.md 第 3 节），但**都会**进搜索引擎索引（`site.RegularPages`）、`sitemap.xml` 与 `/categories/`。词条页只列 regular page：平铺项目页正常出现；`CMC2026` 是 section 形式的项目，**它自己**不在词条页里，但它下面的文档页（靠 cascade 拿到标签）会正常出现

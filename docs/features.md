@@ -100,13 +100,17 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 两个连带改动，少一个背景就不可见或正文发糊：`html` 承担底色，**`body` 的背景必须置透明**（主题原版给 `body` 设了 `--theme`，会盖住 `z-index:-1` 的背景层）；`.list` 也置透明（主题给它设了 `--code-bg`）。正文可读性改由 `.post-single` 的半透明卡片（`--surface` + `backdrop-filter`）保证，卡片/列表项本来就自带不透明底色。
 
-背景图 `assets/images/bg-anime-night.jpg`（1280×717，191 KB）取自 Pixabay，按 **Pixabay Content License**（免费商用、无需署名）发布，页面为 `pixabay.com/illustrations/anime-wallpaper-sea-manga-comic-7914238/`。**换图时同步改这一行记录**（出处与许可是仓库里唯一会过期的东西）。
+背景图 `assets/images/bg-anime-night.webp`（1280×717，55 KB）取自 Pixabay，按 **Pixabay Content License**（免费商用、无需署名）发布，页面为 `pixabay.com/illustrations/anime-wallpaper-sea-manga-comic-7914238/`。**换图时同步改这一行记录**（出处与许可是仓库里唯一会过期的东西）。
+
+**为什么是 WebP**：原 JPEG 191 KB，而它是**每个页面**都要下载的资源（`body::before` 的 CSS 背景，不能懒加载），在 4 G 模拟下光它一项就占 521 ms。转成 WebP q=70 后 55 KB，同一张图渲染到画布上的像素差最大 7/255、均值 0.15/255——背景上压着 84%~97% 的蒙版，压缩痕迹在页面上不可见。换图时别退回 JPEG。
 
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
 
-只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a` 加 `.active`。
+只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout。`archives` 那条现在没有对象了——归档页 2026-09-15 删除——留着是为了它回来时不用再想起这件事）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a` 加 `.active`。
 
 **不要用 `requestAnimationFrame` 做节流**：隐藏标签页里 rAF 不触发，切回来会拿到过期状态——`terms-filter.js` 已经踩过同一个坑，这里直接同步算。
+
+**几何量必须缓存**：正文与每个目录项的绝对偏移只在「重新测量」时算一次，滚动路径上只做 `window.scrollY` 的算术。原来的写法每次 scroll 都要对正文调 `getBoundingClientRect()` 与 `offsetHeight`、再对每个目录项逐个取 rect，而最重的公式页有 1082 KB HTML / 1.68 万个 `<span>`。用 CDP 的 Performance 计数器量（`.shots/jank.py`，110 次滚动）：旧写法 `ScriptDuration` 0.019~0.020 s，缓存后 0.004~0.005 s，**滚动脚本开销降到 1/4**。失效时机是 `resize` / `load` / `document.fonts.ready` / `ResizeObserver(.post-single)`，最后一条是为了兜住「图片或字体迟到导致正文高度变了」。
 
 ### ⑭ 搜索快捷键与 `?q=` 预填 — `assets/js/search-shortcut.js`
 
@@ -133,3 +137,31 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 ## 5. 总览页标题
 
 `/tags/`、`/categories/`、`/series/` 三个总览页的标题由 `content/<taxonomy>/_index.md` 提供。**不要**再新建 `content/tags.md` 之类带 `url` 的普通页面去覆盖它们——那会把 `kind=taxonomy` 的列表页顶替成普通文章页（曾因此让「标签」入口整页空白）。
+
+## 6. 性能账（2026-09-15 实测）
+
+量法：`D:\blog\.shots\perf.py`（自管 Edge headless + CDP，`--throttle 4g` 按 4 Mbps/70 ms 模拟）与 `.shots/jank.py`（滚动期间读 CDP Performance 计数器）。**下面每个数字都要能复跑**，改完外观/资源后重跑一次对账。
+
+| 指标 | 改前 | 改后 |
+|---|---|---|
+| 首页 4 G 传输（含 dev 的 `livereload.js` 78.6 KB） | 321.3 KB · load 828 ms | 195.4 KB · load 581 ms |
+| 首页 4 G 传输（只算线上会下的） | 242.7 KB | 116.8 KB |
+| 站点背景图 | 191.4 KB（JPEG） | 65.5 KB（WebP） |
+| `static/favicon.ico` | 3.3 KB | 3.9 KB（16/32 两帧；256 帧挪去了管理页图标） |
+| `static/apple-touch-icon.png` | 5.7 KB | 14 KB（180×180 真彩原本 61 KB，量化到 256 色） |
+| 整站输出（`report-size.sh`） | 9957 KB | 9833 KB |
+| 滚动脚本开销（最重页，110 次滚动） | 0.019~0.020 s | 0.004~0.005 s |
+
+### 最重的页面到底重在哪
+
+`projects/cmc2026/problem-03/问题三/`：raw HTML **1082 KB**（gzip 133 KB）、DOM **23561 个元素**（其中 `<span>` 16820 个、`<math>` 751 个）、4 G 下 DCL **3.4 s**。整站 HTML 占总输出的 91%。**这不是可以靠压缩解决的部分**——KaTeX 的 HTML 排版树本身就是这么多节点。
+
+试过并**否决**的两条路，别再重复试：
+
+- `render-passthrough.html` 的 `output` 从 `htmlAndMathml` 改成 `html`：整站 9957 → 8065 KB（−19%），最重页 1082 → 902 KB（−17%），DOM 只少 4%。代价是丢掉 MathML，屏幕阅读器与复制公式都退化。**性价比不够，保持 `htmlAndMathml`。**
+- `.post-single` 的 `backdrop-filter: blur(8px)` 是**页面那么高**的元素，本来怀疑它是滚动卡顿源。用 `jank.py` 在 4 G 与本机各量了一轮，`TaskDuration` / `LayoutCount` / 帧间隔都测不出差异（headless 下 rAF 帧间隔恒定 6.05 ms，该探针对合成器侧的开销不敏感）。**测不出问题就不动它**——它同时承担正文可读性。
+
+### 还剩下的（已知、暂不动）
+
+- KaTeX 在公式页加载 6 个 woff2 共 **107 KB**、`katex.min.css` 23 KB；只在真有公式的页面加载（`extend_head.html` 的三条件判据）。要再降只能做字体子集化，收益不确定、维护成本高。
+- 每个页面都多一次 59 字节的 `css/bg-image.css`（渲染阻塞）。它和主样式表是**并行**下载的（不是串行），FCP 实测没有差别，所以不值得为它把背景图 URL 硬编码进 CSS 或往模板里写 `<style>`。

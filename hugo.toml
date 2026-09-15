@@ -54,8 +54,10 @@ pagerSize = 10
 # 核心参数配置
 # ============================================
 [params]
-  # 主内容区：首页列表、归档、上下篇导航只统计这些 section。
-  # 不把 courses 放进来，避免课程章节混进博客归档与上下篇导航。
+  # 主内容区：文章列表与上下篇导航只统计这些 section。
+  # 不把 courses 放进来，避免课程章节混进文章列表与上下篇导航。
+  # 注意“归档”一页已于 2026-09-15 删除（posts 下当时 0 篇文章，页面渲染出来是空的）：
+  # 它的判据同样是 mainSections，写文章后若要恢复，把 content/archives.md 加回来即可。
   mainSections = ['posts']
 
   # 启用 OG/twitter meta 的开关
@@ -119,7 +121,7 @@ pagerSize = 10
 # 站点背景图：assets/ 下的路径，由 extend_head.html 经资源管线交给 00-theme.css 的 --bg-image。
 # 留空字符串即关闭背景（退回纯色主题）。换图直接替换该文件即可，深浅两种蒙版在 CSS 里。
 [params.appearance]
-  backgroundImage = 'images/bg-anime-night.jpg'
+  backgroundImage = 'images/bg-anime-night.webp'
 
 # 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html
 [params.home]
@@ -177,12 +179,6 @@ pagerSize = 10
   name = '📝 文章'
   url = '/posts/'
   weight = 40
-
-[[menu.main]]
-  identifier = 'archives'
-  name = '📚 归档'
-  url = '/archives/'
-  weight = 50
 
 [[menu.main]]
   identifier = 'tags'

@@ -19,6 +19,7 @@ tools/admin/
 ├── server.mjs      # HTTP 服务：静态页 + JSON API（新建/删除/编辑/词表/git/发布）
 ├── lib/            # 业务模块：content / frontmatter / taxonomy / git / hugo / exec / checks / search / asset / ci
 └── ui/             # index.html + app.js + style.css（原生前端，无框架无构建）
+                    # + ayaka-bg.webp（背景图）+ ayaka.ico（标签页与桌面快捷方式图标）
 ```
 
 **它是现有脚本的界面外壳，不是替代品**：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），**删除调 `new-content.sh remove`**，读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制。
@@ -263,3 +264,14 @@ CI 这块走 `curl` 而不是 Node 的 `fetch`：这台机器上 `fetch` 直连 
 - CI 状态要有能连 `api.github.com` 的通道（本机得靠代理，见第 17 节）。拿不到时那块只显示「读不到」，**不影响发布本身**
 - 拖入 .md 的客户端上限 **4MB**（更大会被拒；服务端 JSON 请求体上限是 8MB）
 - `start.sh` 的 `usage()` 用 `sed -n '2,14p' "$0"` 打印文件头注释——**改文件头时行号要一起调**（注释块是第 2–14 行）
+
+## 20. 外观：背景图与图标
+
+管理页的背景图是 Q 版神里绫华（`ui/ayaka-bg.webp`，2560×1458，1.6 px 高斯模糊后 WebP q=78，146 KB）。
+
+- 接线方式和站点用的是同一套：`html` 承担底色、`body` 置透明、`body::before` 固定层放 `linear-gradient(蒙版) + url("/ayaka-bg.webp")`。**`body` 忘了置透明就整张图看不见**（和 `00-theme.css` 那个坑一样，理由见 `features.md` ⑫）
+- 蒙版按主题换强度（浅色 .50→.74、暗色 .60→.86），`.panel` 用 `color-mix(in srgb, var(--card) 66%, transparent)` 让面板也透出背景。**这组数值是量出来的不是猜的**：截图取样算 WCAG 对比度，浅色 10.9:1、暗色 12.1:1，都在 AAA（7:1）以上；面板从 84% 一路调到 66%，实际约束不是对比度而是「再低背景就喧宾夺主」
+- 顶栏 `color-mix(... 82% ...)` + `backdrop-filter`，滚动时背景从下面透出来
+- 换图：把新图放进 `ui/`（**必须是平铺文件名**——`server.mjs` 的 `serveStatic` 只接受 `[A-Za-z0-9._-]+`，不支持子目录），改 `style.css` 里的 `url()`。新增扩展名要同时加进 `STATIC_TYPES`（`.webp` / `.png` 已加）
+- **`ayaka.ico`（169 KB，16→256 六帧）只给本地用**：管理页标签页图标 + 桌面快捷方式。桌面快捷方式 `博客管理页.lnk` 的 `IconLocation` 指向它；换图标后 Explorer 有缓存，跑 `ie4uinit.exe -show` 或注销一次才刷新
+- 图标与站点那套同源，都由 `tools/icons/make-icons.py` 生成（素材出处与许可见 `architecture.md` 第 6 节）

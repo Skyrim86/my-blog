@@ -24,7 +24,7 @@
 | 长文里明明有的词搜不到 | 索引正文被截断到每页前 400 字（有意为之） | 预期行为，不是 bug；要改调 `layouts/index.json` 的 `truncate 400` 并同步 `fuseOpts.keys`。见 [`features.md` 第 3 节 ⑪](features.md) |
 | 「标签」入口整页空白 | 新建了 `content/tags.md` 之类带 `url` 的普通页，把 `kind=taxonomy` 的列表页顶替成了普通文章页 | 总览页标题只写在 `content/<taxonomy>/_index.md`，不要再建同名普通页 |
 | 导航栏某个入口 404，或 `/posts/` 这类列表页整页消失 | 该 section 目录没有 `_index.md`：Hugo 给的是**隐式 section**，页面靠子页面撑着，最后一篇内容被删掉时列表页与所有指向它的入口一起 404。实例：`content/posts/` 曾经只有一篇占位文章 | 用 `bash scripts/new-content.sh section <路径> --title 标题` 补列表页。现在 `check-sections.sh`（阻断，拦「有子页面却没列表页」）与 `check-links.mjs`（同站绝对链接也在检查范围内）都会拦住它，`remove` 也拒绝单独删 `_index.md` |
-| 换 logo 后看不到新图标 | `static/` 下是无内容指纹的静态文件 | 访客强刷即可；换 logo 直接覆盖 `favicon.ico`、`favicon-16x16.png`、`favicon-32x32.png`、`apple-touch-icon.png`、`safari-pinned-tab.svg` 五个文件，无需改代码 |
+| 换 logo 后看不到新图标 | `static/` 下是无内容指纹的静态文件 | 访客强刷即可；换图标**不要手改那些 png/ico**，改 `tools/icons/make-icons.py` 后重新生成（见 `architecture.md` 第 6 节），桌面快捷方式还要 `ie4uinit.exe -show` 刷 Explorer 的图标缓存 |
 | 改明暗颜色的代码不生效 | 监听/匹配了 `.dark` class | 主题机制是 `<html>` 上的 **`data-theme` 属性**，用 `[data-theme="dark"]` |
 | bash 脚本报 `$'\r': command not found` | 全新 checkout 得到 CRLF | `scripts/*.sh` 与 `data/*.yaml` **必须 LF**（`.gitattributes` 已用 `text eol=lf` 钉住）。内容 `.md` 允许 CRLF（Hugo 与两个校验脚本都能处理） |
 | 管理页窗口里出现 `'会自动打开' is not recognized…`，但服务起来了 | `.bat` 里混进了中文 | 见 [`admin.md` 第 12 节](admin.md#12-启动管理页bat-的硬约束) |
@@ -74,4 +74,4 @@
 - **课程/项目的 URL 由目录名决定**，改名即改 URL（文章不同：URL 由 `[permalinks]` + 取自标题的 `:slug` 决定）。改标题既换 URL 又丢评论关联，所以管理页提供了 `slug` 字段把 URL 固定下来。详见 [`content.md` 第 8 节](content.md#8-url-与内容的关系)
 - **材料页的目录名与它在页面上的名字、位置无关**：入口页卡片取 `title`/`icon`/`weight`，所以新增材料类型不需要动模板
 - **课程材料页的附件不用文件名前缀**：bundle 里除图片外的资源都会进下载区
-- **项目页与课程页不在归档页与首页列表里**（`mainSections=['posts']` 只放行文章），但**都会**进搜索索引、`sitemap.xml` 与 `/categories/`。词条页只列 regular page —— `CMC2026` 这种 section 形式的项目**它自己**不在词条页里，但它下面的文档页（靠 cascade 拿到标签）会正常出现
+- **项目页与课程页不在首页列表里**（`mainSections=['posts']` 只放行文章），但**都会**进搜索索引、`sitemap.xml` 与 `/categories/`。词条页只列 regular page —— `CMC2026` 这种 section 形式的项目**它自己**不在词条页里，但它下面的文档页（靠 cascade 拿到标签）会正常出现

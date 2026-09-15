@@ -44,14 +44,14 @@ my-blog/
 │   │   └── 09-home.css        #     首页头像光环 / 快捷入口 / 最近更新
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
-│   │   └── bg-anime-night.jpg #   站点背景图（来源与许可：docs/features.md 第 12 节）
+│   │   └── bg-anime-night.webp#   站点背景图（来源与许可：docs/features.md 第 12 节）
 │   └── js/                    #   自定义 JS 源码，经 extend_head.html minify+fingerprint 后外链
 │       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
 │       ├── reading-progress.js   # 阅读进度条 + 目录高亮（只在单页加载）
 │       ├── search-shortcut.js    # Ctrl/⌘+K 与「/」快捷键 + 搜索页 ?q= 预填
 │       └── terms-filter.js       # 标签/分类/系列总览页的词条筛选框
 ├── content/                   # 站点内容（详见 docs/content.md）
-│   ├── about.md  archives.md  search.md
+│   ├── about.md  search.md                       # archives.md 已于 2026-09-15 删除（见第 3 节）
 │   ├── categories/ tags/ series/ _index.md   # 三套分类法的总览页标题
 │   ├── courses/<课程>/        # _index.md 主页 + <chapter-0N>/（notes|homework|lab 材料页）
 │   ├── posts/<slug>/index.md  # 文章用 Page Bundle（封面图放同目录）
@@ -87,6 +87,9 @@ my-blog/
 │   ├── preview.sh             # 本地预览（hugo server -D）
 │   ├── upgrade-hugo.sh        # Hugo + KaTeX 一键同步升级
 │   └── pin-actions.mjs        # 把 Actions 的 uses 从可变标签改成 commit SHA
+├── tools/icons/               # 图标生成（见第 6 节；不参与 Hugo 构建）
+│   ├── make-icons.py          #   生成 static/ 下的全部图标 + 管理页图标
+│   └── source-ayaka-chibi.png #   图标素材（Q 版神里绫华，出处见第 6 节）
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）
 │   ├── start.sh               #   启动器（.bat 调它）
 │   ├── server.mjs             #   HTTP 服务：静态页 + JSON API
@@ -94,7 +97,8 @@ my-blog/
 │   └── ui/                    #   index.html + app.js + style.css
 ├── static/                    # 原样发布（无内容指纹）
 │   ├── images/site-cover.jpg  #   默认 OG 分享图（头像不在这里，见 assets/images/）
-│   ├── favicon.ico  favicon-16x16.png  favicon-32x32.png  apple-touch-icon.png
+│   ├── favicon.ico  favicon-16x16.png  favicon-32x32.png  apple-touch-icon.png  safari-pinned-tab.svg
+│   │                          #   全部由 tools/icons/make-icons.py 生成（见第 6 节），不要手改
 │   ├── katex/                 #   自托管 KaTeX：katex.min.css + fonts/*.woff2（版本必须与 Hugo 配对）
 │   ├── BingSiteAuth.xml  googledfe2280ece06bc5c.html   # 站长验证
 ├── .github/
@@ -123,12 +127,12 @@ my-blog/
 | `[taxonomies]` | 三套分类法：`tags`、`categories`、**`series`（自定义，支撑系列导航）** |
 | `[outputs]` | 首页输出 `HTML + RSS + JSON`。**JSON 索引供 Fuse.js 搜索使用，勿删**（字段由 `layouts/index.json` 决定） |
 | `[permalinks]` | 文章 URL 格式 `/:year/:month/:slug/`。改动会破坏已发布链接 |
-| `[params]` | `env='production'`、`mainSections=['posts']`（首页列表/归档/上下篇只统计文章）、阅读时间/TOC(默认展开)/面包屑/上下篇/代码复制/RSS 按钮开；`images=['images/site-cover.jpg']` 为默认 OG 图；`DateFormat='2006年1月2日'`。**与主题默认等价的三个开关（`defaultTheme`/`ShowShareButtons`/`disableThemeToggle`）已刻意删掉**，不要再加回来 |
+| `[params]` | `env='production'`、`mainSections=['posts']`（文章列表与上下篇只统计文章）、阅读时间/TOC(默认展开)/面包屑/上下篇/代码复制/RSS 按钮开；`images=['images/site-cover.jpg']` 为默认 OG 图；`DateFormat='2006年1月2日'`。**与主题默认等价的三个开关（`defaultTheme`/`ShowShareButtons`/`disableThemeToggle`）已刻意删掉**，不要再加回来 |
 | `[params.cover]` | `responsiveImages`、`linkFullImages`（点击封面看原图）开启 |
 | `[params.giscus]` | 评论全部参数；`mapping='title'` 按标题关联 Discussion；`theme='light'` 是初始值，实际由同步脚本动态切换 |
 | `[params.profileMode]` | **首页是 Profile Mode**（头像 + 标题 + 副标题，无按钮）；要加按钮用 `[[params.profileMode.buttons]]` |
 | `[params.fuseOpts]` | 搜索权重 `['title','permalink','summary','tags','content']`。**keys 里出现的字段必须由 `layouts/index.json` 实际输出**，改一处要同步另一处 |
-| `[[menu.main]]` | 8 个导航项，weight 十进位留插入空间：首页(10)/课程(20)/项目(30)/文章(40)/归档(50)/标签(60)/搜索(70)/关于(80) |
+| `[[menu.main]]` | 7 个导航项，weight 十进位留插入空间：首页(10)/课程(20)/项目(30)/文章(40)/标签(60)/搜索(70)/关于(80)。**50 是空出来的**——原来放「归档」，2026-09-15 删除：`mainSections=['posts']` 而 `content/posts/` 下 0 篇文章，页面渲染出来只有标题和 RSS 图标。写够文章想恢复，把 `content/archives.md` 加回来（4 行 front matter，主题自带 `layouts/archives.html`），并把导航项加回 weight=50 |
 | `[markup.highlight]` | monokai 主题，行号开启 |
 | `[markup.goldmark.extensions.passthrough]` | 公式的 delimiters（`$`、`$$`、`\(\)`、`\[\]`）——**单 `$` 必须显式写**，passthrough 默认不含它。改这里要同步看 `layouts/_markup/render-passthrough.html` |
 | `[imaging]` | 图片质量 75、lanczos |
@@ -184,3 +188,29 @@ Hugo 默认不清空目标目录（`Cleaned` 恒为 0），所以只要曾经跑
 **`themes/PaperMod/layouts/` 与 `assets/` 刻意没有剪**，这不是偷懒而是结论：**Hugo 会静默容忍缺失的 partial** —— 主题 `_partials/head.html` 无条件调用的 `google_analytics.html` 在站点与主题里**都不存在**，而 og:/JSON-LD 照常渲染、构建一直是绿的。既然构建成功无法证明删模板文件安全，而 `layouts/` 里那些死文件（`share_icons.html`、`home_info.html`、8 个 shortcode、被站点覆盖的 `index.json`）总共不到 40 KB，就不值得为它承担「某条只走一次的渲染路径被删掉、且没人发现」的风险。
 
 **要再剪主题，只能按引用分析逐个确认，不能靠「构建还过」来验证。** 升级上游后这些被删的文件会重新出现，需要按本节清单再剪一次。
+
+## 6. 图标（`tools/icons/`）
+
+`static/` 下五个图标**全部是生成产物**，唯一事实源是 `tools/icons/make-icons.py`：
+
+```bash
+python tools/icons/make-icons.py                 # 重新生成（默认 --style art）
+python tools/icons/make-icons.py --style pixel   # 换成脚本自绘的像素风
+python tools/icons/make-icons.py --preview OUT   # 只渲染预览图，不写盘
+python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是否一致（本地用，没进 CI）
+```
+
+| 产物 | 尺寸 | 用在哪 |
+|---|---|---|
+| `static/favicon.ico` | 16/32 两帧 | 旧浏览器兜底 |
+| `static/favicon-16x16.png`、`favicon-32x32.png` | 16、32 | 主题 `head.html` 默认引用 |
+| `static/apple-touch-icon.png` | 180（256 色量化） | iOS 收藏/主屏 |
+| `static/safari-pinned-tab.svg` | 单色路径 | Safari 固定标签 |
+| `tools/admin/ui/ayaka.ico` | 16→256 六帧 | 管理页标签页图标 + 桌面快捷方式图标（`博客管理页.lnk` 的 `IconLocation` 指向它） |
+
+**为什么不把 `tools/admin/ui/ayaka.ico` 塞进 `static/`**：那会把 169 KB 的 256×192 帧发到线上，而站点的 `favicon.ico` 只要 16/32 两帧（3.9 KB）。站点图标和桌面图标要的尺寸集合不同，故意分成两个文件。
+
+**素材与许可**：`source-ayaka-chibi.png` 是 safebooru 站收录的 Q 版神里绫华同人（Pixiv 作品 `92959293`，作者 `maidsan_(littlemaidsan)`），非商用二次创作，**没有可声明的开放许可**。所以：管理页背景图与桌面图标这类**本地不发布**的用途直接用；站点 favicon 也用了它，若要彻底规避风险，把 `--style pixel` 生成的图标覆盖上去即可（像素风素材由脚本自绘，许可干净）。
+裁切框、色调、圆角都是脚本里的常量（`ART_CROP` / `ART_TINT` / `ART_RADIUS`），换图只改这三个 + 换掉源文件。
+
+**`--check` 没进 CI**：它需要 Python + Pillow，而 `action.yml` 目前只有 Hugo + Node。图标是低频改动，本地跑一次就够；真要挂 CI，得先给复合动作加 `actions/setup-python` 与 `pip install pillow`。

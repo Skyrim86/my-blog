@@ -74,7 +74,9 @@
         <section class="home-recent">
             <div class="home-recent-head">
                 <h2>{{ i18n "homeRecent" }}</h2>
-                <a href="{{ "archives/" | absLangURL }}">{{ i18n "homeRecentAll" }}</a>
+                {{- /* 「全部内容」原本指向 /archives/；归档页已删（见 hugo.toml 的 mainSections 注释），
+                       改指 /categories/ —— 它是唯一按类型覆盖全站页面的总览入口。 */ -}}
+                <a href="{{ "categories/" | absLangURL }}">{{ i18n "homeRecentAll" }}</a>
             </div>
             <ul class="home-recent-list">
                 {{- range . }}

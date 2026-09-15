@@ -544,6 +544,8 @@ const STATIC_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.png': 'image/png',
 };
 
 async function serveStatic(res, urlPath) {
