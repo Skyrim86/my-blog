@@ -104,7 +104,12 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     for name, spec in COVERS.items():
         path = out / f"{name}.webp"
-        build(spec).save(path, format="WEBP", quality=88, method=6)
+        # 原子写：先落到同目录的 .tmp，再 os.replace 换名。
+        # 直接写目标文件时，正在跑的 hugo server（watch）会读到写了一半的 WebP，
+        # 报 "failed to load image config: image: unknown format" 并中断那一次重建。
+        tmp = path.with_name(path.name + ".tmp")
+        build(spec).save(tmp, format="WEBP", quality=88, method=6)
+        tmp.replace(path)
         print(f"wrote {path} ({path.stat().st_size // 1024} KB)")
     if not a.preview:
         print("提示：front matter 里写 cover.image = 'images/covers/<name>.webp' 即可生效")

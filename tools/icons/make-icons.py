@@ -461,18 +461,29 @@ def main():
 
     for name, obj in outputs.items():
         path = STATIC / name
-        if isinstance(obj, str):
-            path.write_text(obj, encoding="utf-8")
-        elif isinstance(obj, bytes):
-            path.write_bytes(obj)
-        else:
-            obj.save(path)
+        write_atomic(path, obj)
         print("wrote", path.relative_to(ROOT).as_posix(), path.stat().st_size, "B")
     for path, blob in ((STATIC / "favicon.ico", ico), (APP_ICO, app_ico)):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(blob)
+        write_atomic(path, blob)
         print("wrote", path.relative_to(ROOT).as_posix(), path.stat().st_size, "B")
     return 0
+
+
+def write_atomic(path, data):
+    """原子写：先落到同目录的 .tmp 再换名。
+
+    直接写目标文件时，正在跑的 hugo server（watch）会读到写了一半的图，
+    报 "failed to load image config: image: unknown format" 并中断那一次重建（实测踩过）。
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    if isinstance(data, str):
+        tmp.write_text(data, encoding="utf-8")
+    elif isinstance(data, bytes):
+        tmp.write_bytes(data)
+    else:  # PIL.Image：临时文件名没有扩展名，格式要显式给
+        data.save(tmp, format=path.suffix.lstrip(".").upper())
+    tmp.replace(path)
 
 
 def png_bytes(im, quantize=False):
