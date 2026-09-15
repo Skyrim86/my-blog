@@ -21,7 +21,8 @@ import os
 import random
 import sys
 
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+import numpy as np
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -130,6 +131,35 @@ def site_backgrounds():
     save(dark, "assets/images/bg-velvet-night.webp")
 
 
+def city_lady_background():
+    """城市夜景 + 黑发少女（提灯背影）：把 source-lady-slice.webp 大羽化叠到 bg-night-city.webp 右侧。
+
+    为什么不抠干净再叠：人物周围的夜空/山体在城市夜景的暗部里本来就看不见，
+    大羽化（inset 0.24 + 高斯 38）之后只有白裙、黑发和提灯这几个高对比部分浮出来，
+    抠图留下的那点背景反而成了「她站的山坡」。抠太干净反而会出现一圈贴纸边。
+    蒙版（CSS 里那层）不在这里压——它由 00-theme.css 负责，这样换蒙版不用重跑脚本。"""
+    night = Image.open(os.path.join(ROOT, "assets", "images", "bg-night-city.webp")).convert("RGB").resize((1600, 900), Image.LANCZOS)
+    sl = Image.open(os.path.join(ROOT, "tools", "backgrounds", "source-lady-slice.webp")).convert("RGBA")
+    h = int(900 * 0.86)
+    w = int(sl.width * h / sl.height)
+    rgb = ImageEnhance.Color(sl.convert("RGB")).enhance(0.85)
+    a = np.asarray(rgb).astype("float32")
+    a[..., 2] = np.clip(a[..., 2] + 14, 0, 255)          # 加蓝，和夜景色温统一
+    p = Image.fromarray(a.astype("uint8"), "RGB").resize((w, h), Image.LANCZOS).convert("RGBA")
+    yy, xx = np.mgrid[0:h, 0:w]
+    d = np.sqrt(((xx / (w - 1) * 2 - 1)) ** 2 + ((yy / (h - 1) * 2 - 1)) ** 2)
+    alpha = Image.fromarray(((np.clip((1 - d) / 0.76, 0, 1) ** 1.9) * 255).astype("uint8"), "L").filter(ImageFilter.GaussianBlur(38))
+    p.putalpha(alpha)
+    inner = alpha.filter(ImageFilter.MinFilter(11))
+    edge = ImageChops.subtract(alpha, inner).filter(ImageFilter.GaussianBlur(3))
+    glow = Image.new("RGBA", p.size, (150, 205, 255, 0))
+    glow.putalpha(edge.point(lambda v: int(v * 0.35)))
+    p = Image.alpha_composite(p, glow)
+    canvas = night.convert("RGBA")
+    canvas.alpha_composite(p, (1600 - w - 40, 900 - h + 30))
+    save(canvas.convert("RGB"), os.path.join("assets", "images", "bg-night-city-lady.webp"), quality=78)
+
+
 def frost_background(name, top, bottom, flake_color, flake_alpha, petal_color,
                      light_color, light_alpha, net_alpha):
     """管理页一张：霜雪樱花。1920×1200（管理页是本地工具，尺寸放宽一点无所谓）。"""
@@ -167,6 +197,7 @@ def admin_backgrounds():
 if __name__ == "__main__":
     site_backgrounds()
     city_background()
+    city_lady_background()
     # 管理页的「霜雪质感」两张是备选：管理页当前用的是绫华壁纸（见 docs/admin.md §20），
     # 只有想换回纯质感时才生成，所以要显式加 --frost。
     if "--frost" in sys.argv:

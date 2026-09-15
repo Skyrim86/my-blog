@@ -104,6 +104,7 @@ python tools/course-import/import_course.py --check   # 只比对：博客是否
 | 要改的东西 | 先读 |
 |---|---|
 | 目录布局、`hugo.toml` 任一项、CI / 部署 / 新增校验 | [`docs/architecture.md`](docs/architecture.md) |
+| 要不要换框架 / 前后端分离（**已否决，别再提议**） | [`docs/architecture.md`](docs/architecture.md) 第 7 节 |
 | 内容结构、front matter、`cascade`、标签词表、脚手架参数、附件 | [`docs/content.md`](docs/content.md) |
 | 评论 / 系列 / 筛选框 / 相关内容 / 搜索索引 / 项目面板等具体功能 | [`docs/features.md`](docs/features.md) |
 | 公式渲染、passthrough 定界符、升级 Hugo、公式显示错乱 | [`docs/formulas.md`](docs/formulas.md) |

@@ -122,7 +122,7 @@ pagerSize = 10
 # 两张分开：浅色主题用象牙纸（浅底），深色主题用墨绒夜（墨底）。留空字符串即关闭该主题的背景。
 # 换图直接替换文件即可；深浅两种蒙版在 assets/css/extended/00-theme.css 里。
 [params.appearance]
-  backgroundImage = 'images/bg-night-city.webp'
+  backgroundImage = 'images/bg-night-city-lady.webp'
   backgroundImageLight = 'images/bg-ivory-paper.webp'
 
 # 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html

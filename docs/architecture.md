@@ -108,7 +108,9 @@ my-blog/
 │   └── make-covers.py         #   渐变 + 底纹 + 标题字，写 assets/images/covers/*.webp
 ├── tools/backgrounds/         # 背景图生成（不参与 Hugo 构建）
 │   ├── make-backgrounds.py    #   站点 2 张质感图（`--frost` 时额外生成管理页的霜雪备选）
-│   └── make-admin-bg.py       #   管理页绫华插画 → 深/浅两版（见 docs/admin.md §20）
+│   ├── make-admin-bg.py       #   管理页绫华插画 → 深/浅两版（见 docs/admin.md §20）
+│   ├── source-night-city.jpg  #   站点深色背景的底图（画师作品，个人使用；见 features.md ⑫）
+│   ├── source-lady-slice.webp #   叠加用的黑发少女切片（带 alpha，同上）
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）
 │   ├── start.sh               #   启动器（.bat 调它）
 │   ├── server.mjs             #   HTTP 服务：静态页 + JSON API
