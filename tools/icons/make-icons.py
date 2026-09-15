@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""生成站点图标（Q 版黑长直大小姐）：static/favicon.ico / favicon-16x16.png /
-favicon-32x32.png / apple-touch-icon.png / safari-pinned-tab.svg。
+"""生成图标，分两条独立的线：
+
+  站点图标（static/favicon.ico / favicon-16x16.png / favicon-32x32.png /
+  apple-touch-icon.png / safari-pinned-tab.svg）：**Q 版黑长直大小姐**，
+  素材 source-ojou-chibi.png，抠掉平灰背景压到酒红底板上。
+
+  管理页图标（tools/admin/ui/ayaka.ico，只本地用 + 桌面快捷方式）：**Q 版神里绫华**，
+  素材 source-ayaka-chibi.png，保留素材自带白底只压一层冷色。两条线互不影响：
+  站点换人设时管理页可以继续用旧那张。
 
 为什么要有这个脚本：图标是二进制产物，手改一次就没人知道它从哪来。这里把「图」按风格定义成
 可复现的输入，脚本负责栅格化成各尺寸——改裁切框、改色只改本文件。
@@ -33,7 +40,7 @@ from PIL import Image, ImageChops, ImageDraw
 ROOT = Path(__file__).resolve().parents[2]
 STATIC = ROOT / "static"
 # 管理页的图标（同时是桌面快捷方式用的那个）——放在 tools/admin/ui/ 下，由管理页直接提供服务
-APP_ICO = ROOT / "tools" / "admin" / "ui" / "chibi.ico"
+APP_ICO = ROOT / "tools" / "admin" / "ui" / "ayaka.ico"
 
 ICO_SITE_SIZES = (16, 32)
 ICO_APP_SIZES = (16, 32, 48, 64, 128, 256)
@@ -276,6 +283,35 @@ def art_render(base, size, radius_scale=ART_RADIUS):
     return plate
 
 
+# ---- 管理页图标（独立素材：Q 版神里绫华） ----
+# 与站点那条线无关：站点换了人设，管理页仍用这张。白底素材在浅色标签栏里没有边界，
+# 所以保留素材自己的白底、只压一层冷色乘算（这也是站点图标早先的做法）。
+APP_ART = Path(__file__).with_name("source-ayaka-chibi.png")
+APP_ART_CROP = (186, 21, 643, 479)   # 头部（含发饰与侧发），源图 1000x1000
+APP_ART_TINT = (228, 238, 252)
+
+
+def app_source():
+    """裁出绫华的头部，保留素材自带的白底。"""
+    im = Image.open(APP_ART)
+    if im.mode != "RGB":
+        im = im.convert("RGB")
+    return im.crop(APP_ART_CROP)
+
+
+def app_render(size, radius_scale=ART_RADIUS):
+    im = app_source().resize((size, size), Image.LANCZOS)
+    im = ImageChops.multiply(im, Image.new("RGB", (size, size), APP_ART_TINT))
+    radius = max(2, round(size * radius_scale))
+    out = im.convert("RGBA")
+    mask = Image.new("L", out.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, out.size[0] - 1, out.size[1] - 1], radius=radius, fill=255
+    )
+    out.putalpha(mask)
+    return out
+
+
 def art_mask_grid(base, n=N, cell=16):
     """从抠好的人物取剪影，供 safari-pinned-tab 用。
 
@@ -426,7 +462,8 @@ def main():
     # 的真图会让每个访客多下 ~160 KB——图标本身成了页面上最重的东西。
     ico = ico_bytes([(sz, source_at(sz)) for sz in ICO_SITE_SIZES])
     # 管理页那个图标兼作 Windows 桌面快捷方式图标，需要大尺寸（资源管理器的大图标视图）。
-    app_ico = ico_bytes([(sz, source_at(sz)) for sz in ICO_APP_SIZES])
+    # 管理页图标走自己那条线（绫华）：与站点人设解耦，站点换图不影响它
+    app_ico = ico_bytes([(sz, app_render(sz)) for sz in ICO_APP_SIZES])
 
     drift = []
     if a.check:
