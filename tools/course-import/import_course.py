@@ -28,6 +28,11 @@ import shutil
 import sys
 from pathlib import Path
 
+try:
+    import yaml  # 读 data/math-branches.yaml；CI 不跑导入，只有本地需要
+except ImportError:  # pragma: no cover
+    yaml = None
+
 REPO = Path(__file__).resolve().parents[2]
 DEFAULT_PROJECT = Path(r"D:\1.Study\course\回归分析")
 COURSE = "regression-analysis"
@@ -56,6 +61,8 @@ THM_HEAD = re.compile(
     r"^\*\*(定理|命题|推论|引理|定义|性质)\s*([0-9]+(?:\.[0-9]+)*)?\s*(?:（([^）]*)）)?\*\*\s*"
 )
 TOOL_JSON = REPO / "data" / "math-toolbox.json"
+# 数学库（/library/）的分支体系：卡片 → 数学分支的归属规则（改这里，不改生成产物）
+BRANCHES_FILE = REPO / "data" / "math-branches.yaml"
 
 FM_RE = re.compile(r"\A---\r?\n.*?\r?\n---\r?\n", re.S)
 
@@ -286,7 +293,48 @@ def parse_note_theorems(path: Path, module: str, chapter: str, material: str) ->
     return groups, cards
 
 
-def build_toolbox(project: Path) -> dict:
+def load_branches(path: Path) -> dict:
+    """读数学库的分支表（data/math-branches.yaml）：分支清单 + 卡片归属规则。"""
+    if yaml is None:
+        raise SystemExit("✗ 读 %s 需要 PyYAML（pip install pyyaml）" % path)
+    if not path.exists():
+        raise SystemExit("✗ 找不到分支表 %s" % path)
+    cfg = yaml.safe_load(read_text(path)) or {}
+    branches = cfg.get("branches") or []
+    if not branches:
+        raise SystemExit("✗ %s 里没有 branches" % path)
+    keys = [b.get("key") for b in branches]
+    if any(not k for k in keys):
+        raise SystemExit("✗ %s 有分支缺 key" % path)
+    if len(set(keys)) != len(keys):
+        raise SystemExit("✗ %s 的分支 key 有重复" % path)
+    if cfg.get("default") not in keys:
+        raise SystemExit("✗ %s 的 default=%s 不在 branches 里" % (path, cfg.get("default")))
+    return cfg
+
+
+# 归属规则的匹配顺序：细 → 粗。groups 与 modules 都查 card["group"]，
+# 但工具卡的分组号（"1"–"6"）与课程定理卡的模块号（"M1"）不会互相命中，所以共用一个字段。
+BRANCH_LOOKUPS = ("cards", "groups", "modules", "courses")
+
+
+def branch_of(card: dict, cfg: dict) -> str:
+    """卡片 → 分支 key：cards > groups > modules > courses > default。"""
+    assign = cfg.get("assign") or {}
+    valid = {b["key"] for b in cfg["branches"]}
+    for table in BRANCH_LOOKUPS:
+        value = card.get("id") if table == "cards" else card.get("group")
+        if table == "courses":
+            value = card.get("course")
+        hit = (assign.get(table) or {}).get(value)
+        if hit:
+            if hit not in valid:
+                raise SystemExit("✗ 分支表 assign.%s 里的 %s 不在 branches 中" % (table, hit))
+            return hit
+    return cfg["default"]
+
+
+def build_toolbox(project: Path, cfg: dict) -> dict:
     groups: list[dict] = []
     cards: list[dict] = []
     tool_file = project / "工具" / "00_数学工具.md"
@@ -311,8 +359,16 @@ def build_toolbox(project: Path) -> dict:
         for key in ("body", "proof", "usage", "note"):
             card.setdefault(key, "")
     cards = [c for c in cards if c.get("body") or c.get("proof")]
+    # 每张卡记住自己属于哪门课、哪个数学分支：数学库（/library/）靠这两个字段跨课程汇总
+    for card in cards:
+        card["course"] = COURSE
+        card["branch"] = branch_of(card, cfg)
     return {
         "note": "由 tools/course-import/import_course.py 从课程项目生成，勿手改。",
+        "courses": [{"key": COURSE, "name": "回归分析"}],
+        # 分支清单来自 data/math-branches.yaml（不是生成产物），模板按 key 取卡片
+        "branches": [{"key": b["key"], "name": b.get("name", b["key"]), "summary": b.get("summary", "")}
+                     for b in cfg["branches"]],
         "groups": groups,
         "cards": cards,
     }
@@ -421,7 +477,7 @@ def main() -> int:
                 for png in sorted(figs.glob("*")):
                     plan.append(("copy", dst.parent / "figs" / png.name, png))
 
-    toolbox = build_toolbox(project)
+    toolbox = build_toolbox(project, load_branches(BRANCHES_FILE))
     plan.append(("json", TOOL_JSON, toolbox))
 
     # 每张卡片一个页面（理由见 card_page_md），并清掉已不属于任何卡片的孤儿目录

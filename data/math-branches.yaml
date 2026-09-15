@@ -1,0 +1,50 @@
+# 数学库（/library/）的分支体系 —— 卡片按数学分支归类的唯一事实源。
+#
+# tools/course-import/import_course.py 导入时读这张表，把 branch 写进
+# data/math-toolbox.json（生成产物，勿手改）；layouts/library/library.html 按它分组。
+# 调整某张卡的归属改这里，然后重跑导入脚本。
+#
+# branches 的顺序 = 数学库页面上的分组顺序；summary 显示在分组标题下。
+branches:
+  - key: probability
+    name: 概率论
+    summary: "概率空间、随机变量与矩、常见分布、收敛性"
+  - key: statistics
+    name: 数理统计
+    summary: "估计与检验、抽样分布、回归与线性模型"
+  - key: linear-algebra
+    name: 线性代数
+    summary: "矩阵运算、投影与二次型、秩与分块"
+  - key: analysis
+    name: 数学分析
+    summary: "极限与连续、微分与积分、级数与不等式"
+  - key: numerical
+    name: 数值分析与科学计算
+    summary: "误差与稳定性、数值线性代数、微分方程数值解"
+  - key: optimization
+    name: 最优化
+    summary: "凸性、无约束与约束问题、数值算法"
+  - key: misc
+    name: 未分类
+    summary: "还没有分支归属的卡片——这一组非空就说明某张卡漏了归属"
+
+# 卡片 → 分支的匹配规则，自上而下取第一个命中的：
+#   cards   按卡片 id（如 thm-4-4、tool-1-1）—— 最细，最优先
+#   groups  按工具卡的分组号（工具/00_数学工具.md 里 `## k 名称` 的 k）
+#   modules 按课程定理卡的模块号（笔记文件里的 M1 / M2 …）
+#   courses 按课程目录名 —— 最粗
+# 都没命中 → default。
+assign:
+  cards: {}
+  groups:
+    "1": probability
+    "2": probability
+    "3": statistics
+    "4": linear-algebra
+    "5": statistics
+    "6": statistics
+  modules:
+    M1: statistics
+  courses:
+    regression-analysis: statistics
+default: misc

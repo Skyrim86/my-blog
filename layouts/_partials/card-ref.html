@@ -25,7 +25,8 @@
 {{- $label := .label -}}
 {{- if and (not $label) $card -}}{{- $label = $card.label -}}{{- end -}}
 {{- if not $label -}}{{- $label = $id -}}{{- end -}}
-{{- /* 卡片所在的工具库：先按当前页所属课程找，找不到再退回全站第一个 layout: tools 的页面 */ -}}
+{{- /* 卡片所在的工具库：先按当前页所属课程找，再按卡片自己的课程找（数学库这类跨课程页面
+      从这里命中），最后退回全站第一个 layout: tools 的页面 */ -}}
 {{- $tbPage := false -}}
 {{- with $page -}}
   {{- $file := replace (.File.Path | default "") "\\" "/" -}}
@@ -34,6 +35,11 @@
     {{- with site.GetPage (printf "/courses/%s/toolbox" (index $parts 1)) -}}
       {{- $tbPage = . -}}
     {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if and (not $tbPage) $card -}}
+  {{- with site.GetPage (printf "/courses/%s/toolbox" $card.course) -}}
+    {{- $tbPage = . -}}
   {{- end -}}
 {{- end -}}
 {{- if and (not $tbPage) $page -}}

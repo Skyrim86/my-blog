@@ -125,6 +125,14 @@ other = "搜索编号、标题或内容，例如「Gauss」「4.4」「方差」
 [toolboxFilterLabel]
 other = "按分类筛选"
 
+# 数学库页（layouts/library/library.html）的筛选条：维度是数学分支，不是工具库分组
+[libraryFilterLabel]
+other = "按分支筛选"
+
+# 卡片页底部「返回数学库」的链接文字（卡片页同时保留返回本课程工具库）
+[libraryName]
+other = "数学库"
+
 [toolboxAll]
 other = "全部"
 

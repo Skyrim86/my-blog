@@ -152,7 +152,8 @@ python tools/course-import/import_course.py --check    # 只比对（CI 不跑�
 | 产物 | 来源 |
 |---|---|
 | `content/courses/<课程>/<chapter>/<材料>/index.md` 的**正文** | 课程项目的 `笔记/`、`作业/`、`实验/` 里的 md。front matter 仍由 `new-content.sh` 生成，脚本只替换正文；正文里的 `【工具 k.m】` 会换成 `{{< tool "k.m" >}}` |
-| `data/math-toolbox.json` | `工具/00_数学工具.md`（按 `## k 名称` 分 6 组）+ 各模块笔记里的定理/定义/命题块 |
+| `data/math-toolbox.json` | `工具/00_数学工具.md`（按 `## k 名称` 分 6 组）+ 各模块笔记里的定理/定义/命题块；每张卡另加 `course`（属于哪门课）与 `branch`（数学分支，归属规则来自 `data/math-branches.yaml`）|
+| `data/math-branches.yaml` | **不是产物**：数学库（`/library/`）的分支清单 + 卡片归属规则，手写维护，见 docs/features.md ㉒ |
 | `content/courses/<课程>/toolbox/<id>/index.md` | 与上同一批卡片：一张卡一个页面，front matter 由脚本生成、正文为空，模板按目录名从 data 取内容 |
 | `实验/<lab>/figs/*.png` | 直接复制进对应材料页的 bundle |
 

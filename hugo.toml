@@ -163,6 +163,12 @@ pagerSize = 10
   weight = 10
 
 [[menu.main]]
+  identifier = 'library'
+  name = '🧰 数学库'
+  url = '/library/'
+  weight = 15
+
+[[menu.main]]
   identifier = 'courses'
   name = '🎓 课程'
   url = '/courses/'

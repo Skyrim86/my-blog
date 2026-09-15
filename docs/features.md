@@ -169,6 +169,16 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - 卡片页不参与标签体系（`toolbox/_index.md` 的 `cascade` 清空 `tags`），也不进 sitemap 与搜索索引（`sitemap.disable` + `searchHidden`）。
 - 卡内的 `[【工具 1.1】](#card-tool-1-1)` 会被 `toolbox-md.html` 在渲染后改写成目标卡片页地址（Hugo 会把纯 fragment 链接补成「当前页地址 + #锚点」）。
 
+### ㉒ 数学库（跨课程卡片墙，按数学分支分组）— `layouts/library/library.html` + `data/math-branches.yaml`
+
+`/library/`（导航里排在首页之后）把各门课程的卡片按**数学分支**汇总成一张索引墙。它不新建内容，只是 ㉑ 那批卡片的第二个视图：
+
+- **数据**：仍是 `data/math-toolbox.json`，每张卡多两个字段 —— `course`（卡片属于哪门课）与 `branch`（哪个分支）。归属规则写在 `data/math-branches.yaml`（**不是**生成产物）：`assign` 按 `cards > groups > modules > courses` 取第一个命中，都没命中落到 `default`。调某张卡的归属改这张表，再重跑导入。
+- **页面**：`content/library/_index.md`（section，`layout: "library"`）只铺索引卡，卡片页仍留在 `/courses/<课程>/toolbox/<id>/` —— 卡片正文只有一份，一卡一页的体积账（㉑）不受影响。
+- **交互复用**：搜索、筛选、弹窗全部沿用 `assets/js/toolbox.js` 与 `11-toolbox.css`。筛选维度从「工具库分组」换成「分支」不需要新脚本 —— `toolbox.js` 只按 `.tb-group[data-group]` 与 chip 的 `data-group` 配对，两个页面共用同一份。**注意脚本的加载判据在 `extend_head.html` 的 layout 白名单里**（`"tools" "toolcard" "library"`）：新页面想用卡片墙或卡片引用，先把它加进那个 `slice`，否则脚本不加载、筛选静默失效（踩过，页面看起来完全正常）。
+- **空分支不渲染**：分支表里预置的分支若一张卡都没有（现在有「数学分析」「数值分析与科学计算」「最优化」），既不上筛选条也不出分组；以后导入别的课程就自动出现。
+- **卡片页底部**给两个返回入口：「本课程工具库」与「数学库」。正文里的 `{{< tool/thm >}}` 引用在数学库页上也会按卡片自己的 `course` 找到正确工具库（`card-ref.html` 的第二级查找），不再依赖「当前页属于哪门课」。
+
 ## 4. 四处有意的主题模板覆盖
 
 除上述 hook 之外，仓库里有四处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。

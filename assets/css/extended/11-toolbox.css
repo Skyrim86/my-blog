@@ -172,9 +172,18 @@
   color: var(--secondary);
 }
 
+/* 数学库（layouts/library/library.html）给每个分支配一句范围说明 */
+.tb-group-desc {
+  margin: -0.35rem 0 0.85rem;
+  font-size: 0.85rem;
+  color: var(--secondary);
+}
+
 .tb-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* 300px 而不是 320px：正文列宽 ~641px 时 320×2+12 放不下、只能单列，
+     卡片墙（数学库 80+ 张）会拉成一长条。300px 刚好两列，窄屏由下面的 media query 兜成单列。 */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
   align-items: start;
 }

@@ -18,7 +18,12 @@
   <div class="tb-single">
     {{- partial "toolbox-card.html" (dict "page" $ "card" . "base" $.Parent.RelPermalink) }}
   </div>
-  <p class="tb-back"><a href="{{ $.Parent.RelPermalink }}">← {{ i18n "toolboxBack" }}</a></p>
+  <p class="tb-back">
+    <a href="{{ $.Parent.RelPermalink }}">← {{ i18n "toolboxBack" }}</a>
+    {{- with site.GetPage "/library" }}
+    <a href="{{ .RelPermalink }}">← {{ i18n "libraryName" }}</a>
+    {{- end }}
+  </p>
   {{- end }}
 </article>
 
