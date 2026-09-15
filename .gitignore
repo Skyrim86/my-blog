@@ -3,6 +3,11 @@ public/
 resources/
 .hugo_build.lock
 
+# 临时构建目录：`hugo -d /d/blog/xxx` 这类 MSYS 路径不会被原生程序翻译，
+# 会静默在 <cwd>/d/blog/xxx 建一棵树；同理 `-d .tmpbuild`。两者都曾被 git add -A 吞进提交。
+.tmpbuild/
+d/
+
 # 系统文件
 Thumbs.db
 .DS_Store

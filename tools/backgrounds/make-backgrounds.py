@@ -19,6 +19,7 @@
 import math
 import os
 import random
+import sys
 
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -150,4 +151,7 @@ def admin_backgrounds():
 
 if __name__ == "__main__":
     site_backgrounds()
-    admin_backgrounds()
+    # 管理页的「霜雪质感」两张是备选：管理页当前用的是绫华壁纸（见 docs/admin.md §20），
+    # 只有想换回纯质感时才生成，所以要显式加 --frost。
+    if "--frost" in sys.argv:
+        admin_backgrounds()

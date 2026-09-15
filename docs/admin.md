@@ -280,9 +280,11 @@ CI 这块走 `curl` 而不是 Node 的 `fetch`：这台机器上 `fetch` 直连 
 风格是神里绫华：冰蓝（`--accent`）、霜白（`--bg` / `--card`）、樱花粉（`--sakura`，只做点缀），`--gold` 只用在细描边。整套令牌在 `style.css` 顶部，装饰细节在文件末尾的「霜雪细节」段。
 
 - **对比度按 WCAG AA 卡过**：浅色 `--accent #3a76a4` 配白字 4.9:1、`--muted #4e6b80` 在底色上 5.2:1；深色 `--accent #7fc0e8` 配深字 9.3:1。**`--sakura` 只有 2.6:1，只能做装饰，不许当正文色或按钮底色**。面板是 `color-mix(in srgb, var(--card) 66%, transparent)`，按合成公式（66% 面板 + 34% 背景层）折下来浅色正文 15.6:1、次要文字 5.5:1，深色 15.2:1 / 7.5:1。
-- **背景图是程序生成的质感图**（`ui/frost-light.webp` 8 KB / `ui/frost-dark.webp` 27 KB，都是 1920×1200）：霜白或夜蓝的底渐变 + 霜花 + 樱瓣 + 菱形网纹。深浅主题各一张、在 `body::before` 里换 `url()`——把浅图压黑只会发灰。生成脚本是 `tools/backgrounds/make-backgrounds.py`（站点那两张也在里面，种子固定可复现），**改完脚本要回页面截图核对**，生成图与蒙版压过的效果差得很远。
-- **刻意不放人像**：背景在 66% 半透明面板后面会透出来，人像特写放在这个位置只会抢戏（拿一张绫华坐姿插画铺满屏试过，面板后面露出来的就是腿）。`ui/ayaka-bg.webp` 那张插画因此不再被引用，但**留在仓库里备用**：想换回人物背景，把它指回 `body::before` 的 `url()`，并把蒙版调回 `.50→.74` / `.60→.86` 即可。
-- 接线方式和站点用的是同一套：`html` 承担底色、`body` 置透明、`body::before` 固定层放 `linear-gradient(蒙版) + url("/frost-light.webp")`。**`body` 忘了置透明就整张图看不见**（和 `00-theme.css` 那个坑一样，理由见 `features.md` ⑫）
+- **背景图是绫华壁纸的两版处理**（`ui/ayaka-night.webp` 94 KB / `ui/ayaka-snow.webp` 47 KB，均 1920×1080）：深色主题用原色调的夜景（冰晶 + 青色光，本身就是冷色，配夜蓝底正好）；浅色主题用**处理出来的霜白版**（提亮 + 重度去饱和 + 左上偏重的霜白渐变 + 轻度模糊）——直接把原图压在浅色蒙版下会变成一块灰，青绿冰晶遇上白蒙版就是脏。两版由 `tools/backgrounds/make-admin-bg.py` 生成，源图 `tools/backgrounds/source-ayaka.jpg`（1920×1080，418 KB）**入库**：不存源图这两张就不可复现。
+- **出处**：Wallhaven `wallhaven.cc/w/6o2wkq`（神里绫华，画师作品）。它只服务本地工具——`tools/**` 不参与 Hugo 构建，不会发到线上；换图时记得改这一行记录。
+- **构图要求：人物靠边、画面散**。面板 66% 半透明又几乎占满宽度，背景只在四周露出一点，居中的大特写会被面板盖掉大半（原来那张坐姿插画就是这么不合适的）。曲线救不了构图——要换图先按这条筛。
+- 想回到「没有人像的纯霜雪质感」：跑 `python tools/backgrounds/make-backgrounds.py --frost` 生成 `ui/frost-{light,dark}.webp`，再把 `body::before` 的 `url()` 指过去（默认不生成，免得仓库里躺两张没人用的图）。
+- 接线方式和站点用的是同一套：`html` 承担底色、`body` 置透明、`body::before` 固定层放 `linear-gradient(蒙版) + url("/ayaka-snow.webp")`。**`body` 忘了置透明就整张图看不见**（和 `00-theme.css` 那个坑一样，理由见 `features.md` ⑫）
 - 蒙版浅色 `.30→.68`、暗色 `.52→.80`。**面板从 84% 一路调到 66% 的约束不是对比度而是「再低背景就喧宾夺主」**——这条结论没变，换背景图也不影响
 - 顶栏 `color-mix(... 82% ...)` + `backdrop-filter`，滚动时背景从下面透出来
 - 换图：把新图放进 `ui/`（**必须是平铺文件名**——`server.mjs` 的 `serveStatic` 只接受 `[A-Za-z0-9._-]+`，不支持子目录），改 `style.css` 里的 `url()`。新增扩展名要同时加进 `STATIC_TYPES`（`.webp` / `.png` 已加）
