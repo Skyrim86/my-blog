@@ -13,7 +13,9 @@
   z-index: 50;
   transform: scaleX(0);
   transform-origin: 0 50%;
-  background: linear-gradient(90deg, var(--accent), #7fd4e8);
+  /* 渐变的第二端用 --accent-2（冷银紫），是 00-theme.css 的主题次要色；
+     原来写死的 #7fd4e8 是旧蓝色板的残留，换主题时会跟主色打架 */
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
   opacity: 0;
   transition: opacity .25s ease;
   pointer-events: none;

@@ -19,7 +19,8 @@ tools/admin/
 ├── server.mjs      # HTTP 服务：静态页 + JSON API（新建/删除/编辑/词表/git/发布）
 ├── lib/            # 业务模块：content / frontmatter / taxonomy / git / hugo / exec / checks / search / asset / ci
 └── ui/             # index.html + app.js + style.css（原生前端，无框架无构建）
-                    # + ayaka-bg.webp（背景图）+ ayaka.ico（标签页与桌面快捷方式图标）
+                    # + frost-light/dark.webp（背景图，程序生成）+ ayaka-bg.webp（备用插画）
+                    # + ayaka.ico（标签页与桌面快捷方式图标）
 ```
 
 **它是现有脚本的界面外壳，不是替代品**：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），**删除调 `new-content.sh remove`**，读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制。
@@ -274,12 +275,15 @@ CI 这块走 `curl` 而不是 Node 的 `fetch`：这台机器上 `fetch` 直连 
 - 拖入 .md 的客户端上限 **4MB**（更大会被拒；服务端 JSON 请求体上限是 8MB）
 - `start.sh` 的 `usage()` 用 `sed -n '2,14p' "$0"` 打印文件头注释——**改文件头时行号要一起调**（注释块是第 2–14 行）
 
-## 20. 外观：背景图与图标
+## 20. 外观：霜雪背景、配色与图标
 
-管理页的背景图是 Q 版神里绫华（`ui/ayaka-bg.webp`，2560×1458，1.6 px 高斯模糊后 WebP q=78，146 KB）。
+风格是神里绫华：冰蓝（`--accent`）、霜白（`--bg` / `--card`）、樱花粉（`--sakura`，只做点缀），`--gold` 只用在细描边。整套令牌在 `style.css` 顶部，装饰细节在文件末尾的「霜雪细节」段。
 
-- 接线方式和站点用的是同一套：`html` 承担底色、`body` 置透明、`body::before` 固定层放 `linear-gradient(蒙版) + url("/ayaka-bg.webp")`。**`body` 忘了置透明就整张图看不见**（和 `00-theme.css` 那个坑一样，理由见 `features.md` ⑫）
-- 蒙版按主题换强度（浅色 .50→.74、暗色 .60→.86），`.panel` 用 `color-mix(in srgb, var(--card) 66%, transparent)` 让面板也透出背景。**这组数值是量出来的不是猜的**：截图取样算 WCAG 对比度，浅色 10.9:1、暗色 12.1:1，都在 AAA（7:1）以上；面板从 84% 一路调到 66%，实际约束不是对比度而是「再低背景就喧宾夺主」
+- **对比度按 WCAG AA 卡过**：浅色 `--accent #3a76a4` 配白字 4.9:1、`--muted #4e6b80` 在底色上 5.2:1；深色 `--accent #7fc0e8` 配深字 9.3:1。**`--sakura` 只有 2.6:1，只能做装饰，不许当正文色或按钮底色**。面板是 `color-mix(in srgb, var(--card) 66%, transparent)`，按合成公式（66% 面板 + 34% 背景层）折下来浅色正文 15.6:1、次要文字 5.5:1，深色 15.2:1 / 7.5:1。
+- **背景图是程序生成的质感图**（`ui/frost-light.webp` 8 KB / `ui/frost-dark.webp` 27 KB，都是 1920×1200）：霜白或夜蓝的底渐变 + 霜花 + 樱瓣 + 菱形网纹。深浅主题各一张、在 `body::before` 里换 `url()`——把浅图压黑只会发灰。生成脚本是 `tools/backgrounds/make-backgrounds.py`（站点那两张也在里面，种子固定可复现），**改完脚本要回页面截图核对**，生成图与蒙版压过的效果差得很远。
+- **刻意不放人像**：背景在 66% 半透明面板后面会透出来，人像特写放在这个位置只会抢戏（拿一张绫华坐姿插画铺满屏试过，面板后面露出来的就是腿）。`ui/ayaka-bg.webp` 那张插画因此不再被引用，但**留在仓库里备用**：想换回人物背景，把它指回 `body::before` 的 `url()`，并把蒙版调回 `.50→.74` / `.60→.86` 即可。
+- 接线方式和站点用的是同一套：`html` 承担底色、`body` 置透明、`body::before` 固定层放 `linear-gradient(蒙版) + url("/frost-light.webp")`。**`body` 忘了置透明就整张图看不见**（和 `00-theme.css` 那个坑一样，理由见 `features.md` ⑫）
+- 蒙版浅色 `.30→.68`、暗色 `.52→.80`。**面板从 84% 一路调到 66% 的约束不是对比度而是「再低背景就喧宾夺主」**——这条结论没变，换背景图也不影响
 - 顶栏 `color-mix(... 82% ...)` + `backdrop-filter`，滚动时背景从下面透出来
 - 换图：把新图放进 `ui/`（**必须是平铺文件名**——`server.mjs` 的 `serveStatic` 只接受 `[A-Za-z0-9._-]+`，不支持子目录），改 `style.css` 里的 `url()`。新增扩展名要同时加进 `STATIC_TYPES`（`.webp` / `.png` 已加）
 - **`ayaka.ico`（169 KB，16→256 六帧）只给本地用**：管理页标签页图标 + 桌面快捷方式。桌面快捷方式 `博客管理页.lnk` 的 `IconLocation` 指向它；换图标后 Explorer 有缓存，跑 `ie4uinit.exe -show` 或注销一次才刷新

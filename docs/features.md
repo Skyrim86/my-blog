@@ -92,17 +92,22 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **改索引字段时必须同步 `fuseOpts.keys`**，否则多输出的字段搜不到、keys 里多写的字段则无效。
 
-### ⑫ 主题外观与站点背景 — `00-theme.css` + `extend_head.html` 生成的 `css/bg-image.css`
+### ⑫ 主题外观与站点背景 — `00-theme.css` + `13-ornament.css` + `extend_head.html` 生成的 `css/bg-image.css`
 
-设计令牌集中在 `assets/css/extended/00-theme.css`（`00-` 前缀保证合并时排在最前，01~09 都建立在它上面）：只覆盖主题的 CSS 变量（配色、`--radius`）与少数全局选择器，不动主题组件；另加 `--accent` / `--surface` / `--shadow-*` 三个自定义令牌供各组件复用。深色一律用 `[data-theme="dark"]`。
+风格叫「墨与蔷薇」：底色是墨（深色带一点紫，不是纯黑），强调是蔷薇红，次要强调是冷银紫；浅色主题也不是白纸，是冷调象牙配墨黑字。设计令牌集中在 `assets/css/extended/00-theme.css`（`00-` 前缀保证合并时排在最前，01~13 都建立在它上面）：只覆盖主题的 CSS 变量（配色、`--radius`）与少数全局选择器，不动主题组件；另加 `--accent` / `--accent-2` / `--accent-soft` / `--surface` / `--rule` / `--shadow-*` 几个自定义令牌供各组件复用。深色一律用 `[data-theme="dark"]`。
 
-**背景图不写死在 CSS 里**：唯一事实源是 `hugo.toml` 的 `[params.appearance] backgroundImage`；`extend_head.html` 用 `resources.Get` 取到带子路径前缀的 `RelPermalink`，再由 `resources.FromString` 生成一张只含 `--bg-image` 定义的小 CSS 外链。于是模板里不写 `<style>`、CSS 里不硬编码 `/my-blog/`、换图只改一行配置；**留空字符串即关闭背景**，退回纯色主题。
+- **`--accent` 的门槛是「能不能当正文颜色」**：浅色 `#8c2f48` 对 `--theme` 7.4:1、深色 `#d89aab` 10.1:1，次要色 `--accent-2`（冷银紫）5.6:1。AA 的正文线是 4.5:1，**改色先按这条线卡**，不是「看着够亮」。
+- **标题走衬线、正文保持黑体**（`02-typography.css` 末尾）：标题族一套系统衬线栈（Palatino / Songti SC / SimSun …），正文换衬线会掉可读性。**不下载中文字体**——一套思源宋体 5 MB 起，而它是每个页面都要加载的资源。
+- **纯装饰单独一层**（`13-ornament.css`）：标题左侧短竖线、分隔线中央菱形、列表卡片左侧细线、页脚渐隐线、目录当前项高亮。判断标准是「删掉它页面只是变朴素，不该坏」——组件样式仍归 01~12 各自的文件。
+- 圆角从主题默认收窄到 7px：硬朗线条是这套风格的一部分，12px 那套偏「卡片 App」。
 
-两个连带改动，少一个背景就不可见或正文发糊：`html` 承担底色，**`body` 的背景必须置透明**（主题原版给 `body` 设了 `--theme`，会盖住 `z-index:-1` 的背景层）；`.list` 也置透明（主题给它设了 `--code-bg`）。正文可读性改由 `.post-single` 的半透明卡片（`--surface` + `backdrop-filter`）保证，卡片/列表项本来就自带不透明底色。
+**背景图不写死在 CSS 里**：唯一事实源是 `hugo.toml` 的 `[params.appearance]`，**两张分开**——`backgroundImage` 给深色主题（墨绒夜）、`backgroundImageLight` 给浅色主题（象牙纸）。`extend_head.html` 用 `resources.Get` 取到带子路径前缀的 `RelPermalink`，再由 `resources.FromString` 生成一张只含这两个变量的小 CSS 外链。于是模板里不写 `<style>`、CSS 里不硬编码 `/my-blog/`、换图只改一行配置；**两个键都留空即关闭背景**，退回纯色主题。
 
-背景图 `assets/images/bg-anime-night.webp`（1280×717，55 KB）取自 Pixabay，按 **Pixabay Content License**（免费商用、无需署名）发布，页面为 `pixabay.com/illustrations/anime-wallpaper-sea-manga-comic-7914238/`。**换图时同步改这一行记录**（出处与许可是仓库里唯一会过期的东西）。
+分两张是必须的：同一张夜色图压在 84% 的浅色蒙版下不是背景，是一块脏灰（换图时实测过——浅色页右上角留了一块明显的灰白光斑）。分主题之后任一主题只请求自己那张。
 
-**为什么是 WebP**：原 JPEG 191 KB，而它是**每个页面**都要下载的资源（`body::before` 的 CSS 背景，不能懒加载），在 4 G 模拟下光它一项就占 521 ms。转成 WebP q=70 后 55 KB，同一张图渲染到画布上的像素差最大 7/255、均值 0.15/255——背景上压着 84%~97% 的蒙版，压缩痕迹在页面上不可见。换图时别退回 JPEG。
+背景图 `assets/images/bg-velvet-night.webp`（1600×900，4 KB）与 `bg-ivory-paper.webp`（1600×900，3 KB）都是**程序生成的纯质感**：底渐变 + 斜纹 + 落瓣，没有具象元素——具象的东西压上 90% 的蒙版之后剩下的不是「月亮」而是一块灰白斑。两张图连同管理页那两张，由 `tools/backgrounds/make-backgrounds.py` 一次生成（随机种子固定，可复现；改色改密度就改末尾 `build()` / `site_backgrounds()` 的参数，改完回页面截图核对，别只看生成图）。
+
+**为什么体积这么重要**：背景是**每个页面**都要下载的资源（`body::before` 的 CSS 背景，不能懒加载）。原 JPEG 191 KB 在 4 G 模拟下光它一项就占 521 ms，转 WebP q=70 后 55 KB；现在这两张是同一量级再降一个数量级（3~4 KB），因为图里已经没有细节可压。换图时**别退回 JPEG**，也别在背景里塞细节。
 
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
 
@@ -196,6 +201,12 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **为什么不能挂在 `extend_footer.html`**：主题 baseof 用 `partialCached "footer.html" . .Layout .Kind …`，同 (Layout, Kind) 的页面共用一份渲染结果——笔记页的 `.Type`、`.Section`、`.TableOfContents` 会串成**第一个被缓存页面**的那份（实测三个不同材料页拿到完全相同的调试值）。要页面相关内容就得用 `extend_post_content.html`（`partial`，逐页渲染）。
 - **断点 1240px**：正文列 720px 居中，左右各留约 600px，240px 的目录栏 + 间距放得下，`left: max(16px, …)` 兜住临界宽度；宽屏下正文顶部那份折叠目录由 `body.has-toc-rail .post-single > .toc { display: none }` 收起。
 - **当前小节高亮**沿用 `reading-progress.js`（选择器含 `.toc-rail a`，见 ⑬ 的排序说明）。
+
+### ㉔ 装饰层（墨与蔷薇的细部）— `13-ornament.css`
+
+标题左侧的短竖线、正文分隔线中央的菱形、列表卡片左侧的细线、页脚上沿的渐隐线、目录当前项的蔷薇色标记。单独成文件是为了让它**可以整体拿掉**：删掉本文件页面只是变朴素，不该坏——这就是判断一条规则该写进装饰层还是写进组件文件（01~12）的标准。配色令牌与背景层见 ⑫。
+
+两个写法约定：装饰只用 `--accent` / `--accent-2` / `--accent-soft` / `--rule` 这几个令牌，不写死色值（深浅两套主题才自动跟随）；凡是会改盒模型的装饰（`border` / `padding`）都要换成不吃布局的写法（`inset box-shadow`）——目录项和卡片在 hover 时跳一下，就是这里出的错。
 
 ## 4. 四处有意的主题模板覆盖
 

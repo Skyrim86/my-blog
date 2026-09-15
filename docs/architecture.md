@@ -42,11 +42,15 @@ my-blog/
 │   │   ├── 07-related.css     #     相关内容区块
 │   │   ├── 08-reader.css      #     阅读进度条 + 目录当前项 + 正文卡片
 │   │   ├── 09-home.css        #     首页头像光环 / 快捷入口 / 最近更新
-│   │   └── 10-nav.css         #     窄屏导航折叠（配合 assets/js/nav-toggle.js）
+│   │   ├── 10-nav.css         #     窄屏导航折叠（配合 assets/js/nav-toggle.js）
+│   │   ├── 11-toolbox.css     #     数学工具卡片墙 + 正文引用弹窗
+│   │   ├── 12-toc-rail.css    #     单页左侧跟随目录
+│   │   └── 13-ornament.css    #     装饰层：标题竖线 / 分隔线菱形 / 页脚渐隐线（第 3 节 ㉔）
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
 │   │   ├── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
-│   │   └── bg-anime-night.webp#   站点背景图（来源与许可：docs/features.md 第 12 节）
+│   │   ├── bg-velvet-night.webp   # 深色主题背景（程序生成的质感图，见 docs/features.md ⑫）
+│   │   └── bg-ivory-paper.webp    # 浅色主题背景（同上；两张分开的原因见 ⑫）
 │   └── js/                    #   自定义 JS 源码，经 extend_head.html minify+fingerprint 后外链
 │       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
 │       ├── reading-progress.js   # 阅读进度条 + 目录高亮（只在单页加载）
@@ -102,6 +106,8 @@ my-blog/
 │   └── source-ayaka-chibi.png #   管理页图标素材（Q 版神里绫华，两条线互不影响）
 ├── tools/covers/              # 列表卡片封面生成（不参与 Hugo 构建）
 │   └── make-covers.py         #   渐变 + 底纹 + 标题字，写 assets/images/covers/*.webp
+├── tools/backgrounds/         # 背景图生成（不参与 Hugo 构建）
+│   └── make-backgrounds.py    #   站点 2 张 + 管理页 2 张，程序生成的纯质感（见 features.md ⑫）
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）
 │   ├── start.sh               #   启动器（.bat 调它）
 │   ├── server.mjs             #   HTTP 服务：静态页 + JSON API

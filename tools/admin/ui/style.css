@@ -2,40 +2,55 @@
    那个目录会被主题合并进公开站点资源）。 */
 
 /* 主题由 <html data-theme="light|dark"> 决定：theme.js 在首屏绘制前写入属性（没存过偏好时按系统偏好取）。
-   这里不再写 prefers-color-scheme 媒体查询——手动切换与系统偏好若各写一份色板就会互相打架。 */
+   这里不再写 prefers-color-scheme 媒体查询——手动切换与系统偏好若各写一份色板就会互相打架。
+
+   色板：神里绫华。三支色是冰蓝（--accent）、霜白（--bg/--card）、樱花粉（--sakura），
+   金线（--gold）只用在细描边。对比度都按 WCAG AA 卡过：accent 配白字 4.9:1、
+   muted 在底色上 5.2:1（面板 66% 半透明，实测仍在 4.5 以上）。
+   --sakura 只有 2.6:1，只能做装饰，不许拿它当正文或按钮底色。 */
 :root {
   color-scheme: light;
-  --bg: #f6f7f9;
+  --bg: #f2f7fc;
   --card: #ffffff;
-  --fg: #1f2328;
-  --muted: #6b7280;
-  --border: #d8dce2;
-  --accent: #2563eb;
+  --fg: #14232f;
+  --muted: #4e6b80;
+  --border: #cfe1ef;
+  --accent: #3a76a4;
   --accent-fg: #ffffff;
-  --danger: #b42318;
+  --accent-soft: rgba(58, 118, 164, .14);
+  --sakura: #d98fae;
+  --gold: #b8963f;
+  --frost: rgba(58, 118, 164, .45);
+  --danger: #b4364e;
   --warn-bg: #fff8e6;
   --warn-border: #e6c34a;
-  --ok: #15803d;
-  --log-bg: #14161a;
-  --log-fg: #d6deeb;
-  --code: #eef1f5;
-  --radius: 8px;
+  --ok: #1c7d5c;
+  --log-bg: #0d1a26;
+  --log-fg: #d6e6f2;
+  --code: #e8f1f8;
+  --radius: 11px;
 }
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #16181d;
-  --card: #1e2126;
-  --fg: #e6e8eb;
-  --muted: #9aa3ae;
-  --border: #333941;
-  --accent: #4f8cf7;
-  --accent-fg: #0b1220;
-  --danger: #f97066;
-  --warn-bg: #2c2415;
+  --bg: #0b1622;
+  --card: #142330;
+  --fg: #e7f1f8;
+  --muted: #93aec3;
+  --border: #274050;
+  --accent: #7fc0e8;
+  --accent-fg: #08161f;
+  --accent-soft: rgba(127, 192, 232, .18);
+  --sakura: #e8a8c4;
+  --gold: #d8bb7e;
+  --frost: rgba(190, 226, 245, .38);
+  --danger: #f08a9a;
+  --warn-bg: #2a2416;
   --warn-border: #6b551d;
-  --ok: #4ade80;
-  --code: #24282e;
+  --ok: #5ecfa4;
+  --code: #16283a;
+  --log-bg: #061019;
+  --log-fg: #cfe3f2;
 }
 
 * { box-sizing: border-box; }
@@ -53,9 +68,11 @@ body {
   font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 
-/* 背景层：神里绫华插画 + 一层按明暗主题换强度的蒙版。
+/* 背景层：一张程序生成的「霜雪樱花」氛围图（浅色/深色各一张）+ 一层按主题换强度的蒙版。
    蒙版不做成「图片变淡」而是压一层纯色，和站点的做法一致——正文对比度靠它保证，
-   面板本身还有自己的不透明度。 */
+   面板本身还有自己的不透明度。
+   图由 Pillow 生成（生成脚本见 docs/admin.md），不引第三方素材，也没有人像：
+   背景在 66% 半透明面板后面会透出来，人物特写放在这个位置只会抢戏。 */
 body::before {
   content: "";
   position: fixed;
@@ -63,17 +80,18 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-image:
-    linear-gradient(180deg, rgba(236, 241, 250, .50) 0%, rgba(238, 242, 250, .62) 55%, rgba(240, 243, 250, .74) 100%),
-    url("/ayaka-bg.webp");
+    linear-gradient(180deg, rgba(240, 248, 254, .30) 0%, rgba(244, 250, 254, .48) 55%, rgba(246, 251, 254, .68) 100%),
+    url("/frost-light.webp");
   background-size: cover, cover;
-  background-position: center, center 40%;
+  background-position: center, center;
   background-repeat: no-repeat, no-repeat;
 }
 
+/* 深色主题换图，而不是把浅色图压黑：夜蓝底上的白霜才看得见，同一张浅图压黑只会发灰 */
 html[data-theme="dark"] body::before {
   background-image:
-    linear-gradient(180deg, rgba(16, 18, 23, .60) 0%, rgba(16, 18, 23, .74) 55%, rgba(16, 18, 23, .86) 100%),
-    url("/ayaka-bg.webp");
+    linear-gradient(180deg, rgba(8, 17, 28, .52) 0%, rgba(8, 17, 28, .66) 55%, rgba(8, 17, 28, .80) 100%),
+    url("/frost-dark.webp");
 }
 
 code {
@@ -731,3 +749,107 @@ button.danger.armed { background: var(--danger); border-color: var(--danger); co
   .preview-stage[data-device="tablet"] #preview-frame,
   .preview-stage[data-device="phone"] #preview-frame { margin: 0; border: none; border-radius: 0; box-shadow: none; }
 }
+
+/* ============================================
+   神里绫华：霜雪细节
+   纯装饰层——删掉这一整段，界面只是变朴素，不该坏掉。配色与令牌在上面。
+   ============================================ */
+
+/* 标题走衬线：中文落到宋体、西文 Palatino，与站点标题同一套选择 */
+h2,
+.editor-head h3 {
+  font-family: "Palatino Linotype", "Iowan Old Style", Georgia, "Songti SC",
+               "Source Han Serif SC", "Noto Serif CJK SC", "SimSun", serif;
+  letter-spacing: .015em;
+}
+
+/* 标题左侧一道冰蓝→樱花渐变小竖线 */
+h2::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: .8em;
+  margin-right: .5em;
+  vertical-align: -.05em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--sakura));
+}
+
+/* 顶栏底沿：一条冰蓝渐隐线，滚动时与内容之间有一道「装订线」 */
+.topbar {
+  position: relative;
+}
+
+.topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent, var(--frost) 22%, var(--sakura) 50%, var(--frost) 78%, transparent);
+}
+
+/* 品牌前的菱形（和风「菱」纹，比圆点更贴题） */
+.brand::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, var(--accent), var(--sakura));
+  border-radius: 1px;
+  vertical-align: .5px;
+}
+
+/* 面板顶边：中间段一道冰蓝高光。两端留 12% 是为了不切到圆角 */
+.panel {
+  position: relative;
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: -1px;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent, var(--frost) 30%, var(--sakura) 50%, var(--frost) 70%, transparent);
+}
+
+/* 主按钮：冰蓝渐变 + 内高光；按下有 1px 位移 */
+button.primary {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 74%, var(--sakura)));
+  border-color: color-mix(in srgb, var(--accent) 72%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), 0 2px 8px var(--accent-soft);
+}
+
+button.primary:hover { filter: brightness(1.07); }
+button.primary:active { transform: translateY(1px); }
+button:not(.primary):hover { border-color: var(--accent); }
+
+/* tab 选中项：同一套渐变 */
+.tabs button.active {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 76%, var(--sakura)));
+  box-shadow: 0 2px 10px var(--accent-soft);
+}
+
+/* 输入框聚焦：冰蓝外光，替换默认的硬 outline（键盘可达性仍在，用的是 outline） */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* 选中条目左侧一道细线，与站点列表卡片同一套语言 */
+.tree-item.active { box-shadow: inset 2px 0 0 var(--sakura); }
+.check-items li.active { box-shadow: inset 2px 0 0 var(--accent); }
+
+/* 滚动条用冰蓝，别留系统默认的灰 */
+* { scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent; }

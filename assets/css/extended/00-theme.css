@@ -1,49 +1,65 @@
 /* ============================================
-   设计令牌 + 站点背景（本文件靠 00- 前缀排在最前，01~09 的规则都建立在这些变量上）
+   设计令牌 + 站点背景（本文件靠 00- 前缀排在最前，01~13 的规则都建立在这些变量上）
+
+   风格：墨与蔷薇 —— 底色是墨（深色带一点紫，不是纯黑）、强调是蔷薇红（暗而正，
+   不刺眼的粉），次要强调是冷银紫。浅色主题也不是白纸，是冷调象牙，配墨黑字。
+   装饰层（细线、菱形、竖线之类）在 13-ornament.css，本文件只管令牌。
 
    - 只覆盖主题的 CSS 变量与少数全局选择器；组件级样式归各自编号的文件
    - 暗色适配一律用 [data-theme="dark"]（主题给 <html> 设该属性，不是 .dark class）
-   - 背景图 URL 由 extend_head.html 生成到 css/bg-image.css 的 --bg-image，
+   - 背景图 URL 由 extend_head.html 生成到 css/bg-image.css 里，两个变量：
+     --bg-image-light（浅色主题用的象牙纸）、--bg-image-dark（深色主题用的墨绒夜）。
      这里不写死路径，站点在 /my-blog/ 子路径下也不用改本文件
    - 底色交给 <html>、body 设透明，负 z-index 的背景层才透得出来
    ============================================ */
 :root {
-  --accent: #5b6ee0;
-  --accent-soft: rgba(91, 110, 224, .12);
-  --surface: rgba(252, 253, 255, .80);
-  --surface-border: rgba(20, 22, 32, .08);
-  --shadow-card: 0 2px 10px rgba(18, 22, 40, .06);
-  --shadow-lift: 0 10px 28px rgba(18, 22, 40, .13);
+  /* 强调色按「能当正文颜色用」定：蔷薇红对 --theme 的对比度 7.4:1，
+     银紫 5.6:1，都过 WCAG AA（正文 4.5:1）。改色时先按这条线卡。 */
+  --accent: #8c2f48;
+  --accent-soft: rgba(140, 47, 72, .10);
+  --accent-2: #6b5a8c;
+  --accent-2-soft: rgba(107, 90, 140, .10);
 
-  --theme: #f7f8fc;
+  --surface: rgba(252, 251, 253, .80);
+  --surface-border: rgba(22, 20, 27, .09);
+  --rule: rgba(22, 20, 27, .10);          /* 装饰细线：比 --border 更淡，只做层级暗示 */
+  --shadow-card: 0 2px 10px rgba(18, 14, 24, .07);
+  --shadow-lift: 0 12px 30px rgba(18, 14, 24, .16);
+
+  --theme: #f7f5f8;
   --entry: #ffffff;
-  --primary: #15171f;
-  --secondary: #6b7186;
-  --tertiary: #e7eaf3;
-  --content: #262a36;
-  --code-bg: #f1f3f9;
-  --code-block-bg: #1b1e28;
-  --border: #e5e8f1;
-  --radius: 10px;
+  --primary: #16141b;
+  --secondary: #5f5968;
+  --tertiary: #e8e4ec;
+  --content: #2c2a33;
+  --code-bg: #f2eff5;
+  --code-block-bg: #16141b;
+  --border: #e5e1e9;
+  /* 圆角收窄到 7px：大小姐风是硬朗的直线条，12px 那套圆角偏「卡片 App」 */
+  --radius: 7px;
 }
 
 :root[data-theme="dark"] {
-  --accent: #97a4ff;
-  --accent-soft: rgba(151, 164, 255, .16);
-  --surface: rgba(20, 23, 33, .74);
-  --surface-border: rgba(255, 255, 255, .08);
-  --shadow-card: 0 2px 10px rgba(0, 0, 0, .35);
-  --shadow-lift: 0 12px 30px rgba(0, 0, 0, .5);
+  --accent: #d89aab;
+  --accent-soft: rgba(216, 154, 171, .16);
+  --accent-2: #b4a3d6;
+  --accent-2-soft: rgba(180, 163, 214, .16);
 
-  --theme: #0e1017;
-  --entry: #161a24;
-  --primary: #e7eaf5;
-  --secondary: #98a0b6;
-  --tertiary: #242938;
-  --content: #c4c9d8;
-  --code-bg: #171b26;
-  --code-block-bg: #12151d;
-  --border: #222735;
+  --surface: rgba(20, 18, 25, .76);
+  --surface-border: rgba(255, 255, 255, .08);
+  --rule: rgba(255, 255, 255, .10);
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, .40);
+  --shadow-lift: 0 12px 30px rgba(0, 0, 0, .55);
+
+  --theme: #0b0a0f;
+  --entry: #141219;
+  --primary: #ece9f0;
+  --secondary: #9d96a6;
+  --tertiary: #262232;
+  --content: #c8c4d0;
+  --code-bg: #17151e;
+  --code-block-bg: #100e15;
+  --border: #262330;
 }
 
 html {
@@ -55,8 +71,10 @@ body {
   background: transparent;
 }
 
-/* 背景层：一层渐变蒙版压在插画上。深色模式蒙版更重，
-   是为了让正文对比度落在 WCAG AA 以内，不是「图不好看」。 */
+/* 背景层：一层渐变蒙版压在质感图上（浅色主题用象牙纸，深色主题用墨绒夜）。
+   两张图都是程序生成的纯质感（底渐变 + 斜纹 + 落瓣，没有具象元素）：
+   具象的东西压上 90% 的蒙版之后剩下的不是「月亮」而是一块灰白斑。
+   浅色那边图本身就接近底色，所以蒙版比换图前薄一档，只负责保住正文对比度。 */
 body::before {
   content: "";
   position: fixed;
@@ -64,17 +82,17 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-image:
-    linear-gradient(180deg, rgba(247, 248, 252, .84) 0%, rgba(247, 248, 252, .93) 52%, rgba(247, 248, 252, .97) 100%),
-    var(--bg-image, none);
+    linear-gradient(180deg, rgba(247, 245, 248, .55) 0%, rgba(247, 245, 248, .70) 52%, rgba(247, 245, 248, .85) 100%),
+    var(--bg-image-light, none);
   background-size: cover, cover;
-  background-position: center, center 34%;
+  background-position: center, center 30%;
   background-repeat: no-repeat, no-repeat;
 }
 
 :root[data-theme="dark"] body::before {
   background-image:
-    linear-gradient(180deg, rgba(14, 16, 23, .76) 0%, rgba(14, 16, 23, .89) 52%, rgba(14, 16, 23, .95) 100%),
-    var(--bg-image, none);
+    linear-gradient(180deg, rgba(11, 10, 15, .72) 0%, rgba(11, 10, 15, .85) 52%, rgba(11, 10, 15, .92) 100%),
+    var(--bg-image-dark, none);
 }
 
 /* 列表容器默认有一层不透明底色，会挡住背景；由卡片自己承担可读性 */
@@ -89,6 +107,16 @@ body::before {
   border-bottom: 1px solid var(--surface-border);
   backdrop-filter: saturate(150%) blur(10px);
   -webkit-backdrop-filter: saturate(150%) blur(10px);
+}
+
+/* 顶栏下沿一条 1px 的蔷薇渐隐线：滚动时它和内容之间有一道「装订线」 */
+.header::after {
+  content: "";
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%, var(--accent-soft) 18%, var(--accent) 50%, var(--accent-soft) 82%, transparent 100%);
+  opacity: .55;
 }
 
 /* 页脚同样处理，避免底部出现一块死白/死黑 */
@@ -125,5 +153,5 @@ a {
 }
 
 .post-content img {
-  border-radius: 8px;
+  border-radius: 6px;
 }

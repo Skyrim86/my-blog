@@ -1,0 +1,139 @@
+/* ============================================
+   装饰层：墨与蔷薇的细部（13- 排在各组件文件之后）
+
+   只负责「线、角、点」这类纯装饰，不重写布局，也不重新定义配色令牌（那些在
+   00-theme.css）。判断标准：删掉本文件，页面应该只是变朴素，不该坏掉。
+   ============================================ */
+
+/* ---------- 正文标题：一道蔷薇短线 ---------- */
+
+/* 主题给 .post-content h2 自带下边框，再叠一道左侧竖线会显花，
+   所以装饰只加在标题文字左侧，且用主题下边框不覆盖的方式（inline 元素，不参与布局） */
+.post-content :is(h2, h3)::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: .78em;
+  margin-right: .5em;
+  vertical-align: -.04em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+
+/* ---------- 分隔线：渐隐细线 + 中心菱形 ---------- */
+
+.post-content hr {
+  border: 0;
+  height: 15px;
+  margin: 2.4em 0;
+  position: relative;
+  background: linear-gradient(90deg, transparent, var(--rule) 18%, var(--rule) 82%, transparent)
+              center / 100% 1px no-repeat;
+}
+
+.post-content hr::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -5px 0 0 -5px;
+  transform: rotate(45deg);
+  background: var(--theme);
+  border: 1px solid var(--accent);
+}
+
+/* ---------- 引用块：蔷薇竖线 + 极淡底 ---------- */
+
+/* 覆盖 02-typography.css 里那条（那里把竖线给了 --secondary，行高与不斜体沿用） */
+.post-content blockquote {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 6px 6px 0;
+  padding-inline-end: .9rem;
+}
+
+/* ---------- 链接：下划线细而收，hover 才实 ---------- */
+
+.post-content a {
+  color: var(--accent);
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  text-decoration-thickness: 1px;
+}
+
+.post-content a:hover {
+  text-decoration-color: var(--accent);
+}
+
+/* ---------- 列表卡片：左侧一道细线，hover 时点亮 ---------- */
+
+article.post-entry {
+  border-left: 2px solid var(--accent-soft);
+  transition: border-color .3s ease, box-shadow .3s ease, transform .3s ease;
+}
+
+article.post-entry:hover {
+  border-left-color: var(--accent);
+}
+
+/* ---------- 列表页标题区：右上角一枚菱形 ---------- */
+
+.page-header {
+  position: relative;
+  overflow: hidden;
+}
+
+.page-header::after {
+  content: "";
+  position: absolute;
+  right: -14px;
+  top: -14px;
+  width: 40px;
+  height: 40px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, var(--accent-soft), transparent 70%);
+  border-left: 1px solid var(--accent-soft);
+}
+
+/* ---------- 首页头像：双环 ---------- */
+
+.profile img {
+  box-shadow: 0 0 0 1px var(--surface-border),
+              0 0 0 7px color-mix(in srgb, var(--accent) 12%, transparent),
+              0 0 0 8px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* ---------- 目录栏当前项：蔷薇色 + 左侧细线 ---------- */
+
+.toc a:hover,
+.toc-rail a:hover {
+  color: var(--accent);
+}
+
+.toc a.active,
+.toc-rail a.active {
+  color: var(--accent);
+  /* 12-toc-rail.css 的 .active 只有 color + font-weight，这里补一道左侧细线。
+     用 inset box-shadow 而不是 border-left：不改变盒模型，不会让目录项抖一下。 */
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* ---------- 页脚：一行小字，压一层渐隐线 ---------- */
+
+.footer {
+  position: relative;
+}
+
+.footer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%, var(--accent-soft) 30%, var(--accent-2-soft) 70%, transparent 100%);
+}
+
+.footer a:hover {
+  color: var(--accent);
+}

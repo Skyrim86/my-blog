@@ -47,3 +47,19 @@ body {
 .post-content pre {
   font-family: "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
 }
+
+/* ---------- 标题衬线（「墨与蔷薇」的主要辨识点） ----------
+
+   标题走衬线、正文保持黑体：正文换衬线会掉可读性，标题换衬线才出气质。
+   不下载中文字体——一套思源宋体 5MB 起，而它是每个页面都要加载的资源；
+   改走系统衬线栈：Windows 落到宋体/SimSun、macOS 落到 Songti SC、
+   Linux 落到 Noto Serif CJK。西文用 Palatino/Georgia，比默认无衬线更有信纸感。 */
+.post-content :is(h1, h2, h3, h4, h5, h6),
+.entry-title,
+.post-title,
+.page-header h1,
+.profile .profile_inner h1 {
+  font-family: "Palatino Linotype", "Iowan Old Style", Georgia, "Songti SC",
+               "Source Han Serif SC", "Noto Serif CJK SC", "SimSun", serif;
+  letter-spacing: .015em;
+}

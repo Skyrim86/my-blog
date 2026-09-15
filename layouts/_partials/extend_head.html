@@ -58,12 +58,25 @@
 {{- end }}
 
 {{- /* 站点背景图：把 assets/ 下的图片解析成带子路径前缀的 URL，写进一张生成的 CSS
-       （模板里不写 <style>，也不在 CSS 里硬编码 /my-blog/）。hugo.toml 里留空即关闭背景。 */ -}}
+       （模板里不写 <style>，也不在 CSS 里硬编码 /my-blog/）。hugo.toml 里留空即关闭背景。
+
+       两张图：backgroundImage 给深色主题（夜色墨绒），backgroundImageLight 给浅色主题（象牙纸）。
+       分两张是必须的——同一张夜色图压在 84% 的浅色蒙版下不是「背景」而是一块脏灰。
+       两者都可留空，各自回退到纯色。变量写进同一张外链 CSS，浏览器只请求当前主题用到的那张。 */ -}}
+{{- $bgVars := slice }}
 {{- with site.Params.appearance.backgroundImage }}
 {{- with resources.Get . }}
-{{- $bgCss := resources.FromString "css/bg-image.css" (printf ":root{--bg-image:url('%s')}" .RelPermalink) | minify | fingerprint }}
-<link rel="stylesheet" href="{{ $bgCss.RelPermalink }}" integrity="{{ $bgCss.Data.Integrity }}" crossorigin="anonymous">
+{{- $bgVars = $bgVars | append (printf "--bg-image-dark:url('%s')" .RelPermalink) }}
 {{- end }}
+{{- end }}
+{{- with site.Params.appearance.backgroundImageLight }}
+{{- with resources.Get . }}
+{{- $bgVars = $bgVars | append (printf "--bg-image-light:url('%s')" .RelPermalink) }}
+{{- end }}
+{{- end }}
+{{- with $bgVars }}
+{{- $bgCss := resources.FromString "css/bg-image.css" (printf ":root{%s}" (delimit $bgVars ";")) | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $bgCss.RelPermalink }}" integrity="{{ $bgCss.Data.Integrity }}" crossorigin="anonymous">
 {{- end }}
 
 {{- /* 阅读进度条 + 目录高亮：只在真正走单页模板的页面上加载（与 giscus 的判据同源：
