@@ -25,6 +25,20 @@ other = "本章内容"
 [courseAttachmentCount]
 other = "{{ .count }} 个附件"
 
+# 章节入口页的材料分组标题（见 layouts/courses/chapter.html）。
+# 组别按材料目录名归类：notes* / homework* / lab*，其余进「其他」。
+[courseGroupNotes]
+other = "笔记"
+
+[courseGroupHomework]
+other = "习题"
+
+[courseGroupLab]
+other = "实验"
+
+[courseGroupOther]
+other = "其他"
+
 # 章节目录里每个章节的材料数与最近更新（见 layouts/_partials/course-index.html）
 [courseChapterMaterials]
 other = "{{ .count }} 篇材料"

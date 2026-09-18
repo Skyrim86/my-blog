@@ -205,14 +205,23 @@ function activateTab(name, { silent = false } = {}) {
 
 // ---------------- 新建 ----------------
 
-// 一章可以建哪些材料页。章目录下**任何** leaf bundle 都会被章入口页列为材料卡片
-// （标题、图标、顺序取自 front matter，与目录名无关），所以同一章可以有第二个实验 ——
-// 实验的表单里有「目录名」字段，填 lab-02 即可。
+// 一章可以建哪些材料页。章目录下**任何** leaf bundle 都会被章入口页列为材料卡片，
+// 而入口页按**目录名**把它们分进「笔记 / 习题 / 实验」三组（认不出的落进「其他」）：
+// notes* → 笔记、homework* → 习题、lab* → 实验。同一组可以有多页 —— 三个材料类型的表单
+// 都带「目录名」字段，填 notes-02 / homework-02 / lab-02 即可（权重自动接着排）。
 const MATERIAL_CHOICES = [
   { value: 'notes', label: '📖 学习笔记' },
   { value: 'homework', label: '📝 作业' },
   { value: 'lab', label: '🧪 实验' },
 ];
+
+// 「目录名」字段在三个材料类型里共用一份说明：它现在有两层后果 ——
+// 决定 URL 的目录，也决定这页在章节入口页上属于哪一组（界面上别再把它当成纯内部文件名）。
+const DIR_HINT = {
+  notes: '留空 = notes。同一章要放第二份笔记就填 notes-02（权重自动接着排），并把标题也改开（如「学习笔记（中）」）——两页同标题在章节页上分不出来。notes* 都列在「笔记」组下',
+  homework: '留空 = homework。同一章第二份作业填 homework-02，同样记得改标题。homework* 在章节页上列在「习题」组下',
+  lab: '留空 = lab。同一章要放第二个实验就填 lab-02（权重自动接着排）。lab* 在章节页上列在「实验」组下',
+};
 
 const KINDS = {
   post: {
@@ -254,7 +263,7 @@ const KINDS = {
         type: 'checks',
         options: MATERIAL_CHOICES,
         default: ['notes', 'homework'],
-        hint: '勾哪些就建哪些；不勾则只建入口页，之后可用「笔记 / 作业 / 实验」单独补',
+        hint: '勾哪些就建哪些；不勾则只建入口页，之后可用「笔记 / 作业 / 实验」单独补。入口页会按材料的目录名把它们分成「笔记 / 习题 / 实验」三组显示，同一组可以有多页',
       },
     ],
   },
@@ -265,6 +274,7 @@ const KINDS = {
     fields: [
       { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
+      { k: 'dir', label: '目录名', hint: DIR_HINT.notes },
       { k: 'title', label: '标题', hint: '留空用骨架默认「学习笔记」' },
       { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
       { k: 'description', label: '描述', type: 'textarea' },
@@ -277,6 +287,7 @@ const KINDS = {
     fields: [
       { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
+      { k: 'dir', label: '目录名', hint: DIR_HINT.homework },
       { k: 'title', label: '标题', hint: '留空用骨架默认「作业」' },
       { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
       { k: 'description', label: '描述', type: 'textarea' },
@@ -289,7 +300,7 @@ const KINDS = {
     fields: [
       { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
-      { k: 'dir', label: '目录名', hint: '留空 = lab；同一章要放第二个实验就填 lab-02（权重自动接着排）' },
+      { k: 'dir', label: '目录名', hint: DIR_HINT.lab },
       { k: 'title', label: '标题', hint: '留空用骨架默认「实验」' },
       { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
       { k: 'description', label: '描述', type: 'textarea' },
@@ -384,7 +395,8 @@ function selectKind(kind) {
   if (!changed) return;
   store.createTags.clear();
   store.createCats.clear();
-  renderCreateFields();
+  // 材料目录名跟着类型走，不能跨类型带过去（见 renderCreateFields 的说明）
+  renderCreateFields({ resetFields: ['dir'] });
 }
 
 // 下拉选项由服务端下发（见 GET /api/content/list 的 options），前端不重复实现路径推导。
@@ -427,9 +439,14 @@ function renderKindPicker() {
   $('kind-picker').innerHTML = `<div class="kind-row">${rows}</div>${subs}`;
 }
 
-function renderCreateFields() {
+// resetFields：切类型时要丢掉的字段值。字段值默认按**字段名**跨类型带过去（`笔记 → 作业`
+// 保留已填的标题，是有意的），但 `dir` 不能这么带：它的正确取值是跟着类型走的（notes / homework /
+// lab），把「笔记」里填的 notes-02 带到「作业」上，会去建一个叫 notes-02 的作业页 —— 重的会撞上
+// 同名目录、轻的也会让那页在章节入口页上落到「笔记」组。
+function renderCreateFields({ resetFields = [] } = {}) {
   const spec = KINDS[store.kind];
   const snapshot = snapshotCreateFields();
+  for (const k of resetFields) delete snapshot[k];
   const html = spec.fields
     .map((f) => {
       const id = `cf-${f.k}`;
@@ -747,14 +764,23 @@ function saveTreeCollapsed() {
 
 // 每个条目一行：标题 + 短徽标。原先每条还要再占一行完整路径（content/courses/…），
 // 19 个文件就能把左栏撑出一屏半的滚动，而那一行信息在 title 提示和搜索里都有。
+// 树的分组标题。材料页按**章节入口页上的分组**分（笔记 / 习题 / 实验 / 其他材料），与站点
+// 那张入口页一致；其余仍按类型名。分组由服务端按目录名算好（lib/content.mjs 的 materialGroupOf），
+// 前端不重新实现。目录名认不出来时它会落到「其他材料」—— 那正是站点上会显示成「其他」的那几页。
+function treeGroupOf(item) {
+  return item.groupLabel ? item.groupLabel : item.typeLabel;
+}
+
 function renderTree() {
   renderRecent();
   const kw = $('tree-search').value.trim().toLowerCase();
   const groups = new Map();
   for (const item of store.items) {
-    if (kw && !`${item.title} ${item.path}`.toLowerCase().includes(kw)) continue;
-    if (!groups.has(item.typeLabel)) groups.set(item.typeLabel, []);
-    groups.get(item.typeLabel).push(item);
+    // 分组名也进搜索词：材料页的「笔记 / 习题 / 实验」并不总写在标题里
+    if (kw && !`${item.title} ${item.path} ${treeGroupOf(item)}`.toLowerCase().includes(kw)) continue;
+    const label = treeGroupOf(item);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(item);
   }
   const shown = [...groups.values()].reduce((n, list) => n + list.length, 0);
   $('tree-count').textContent = kw ? `${shown} / ${store.items.length} 个文件` : `${store.items.length} 个文件`;
@@ -865,6 +891,9 @@ async function selectFile(relPath) {
       path: data.path,
       type: data.type,
       typeLabel: data.typeLabel,
+      // 材料页在章节入口页上属于哪一组（服务端按目录名算；非材料页是 null）
+      group: data.group ?? null,
+      groupLabel: data.groupLabel ?? null,
       schema: data.schema,
       values: data.values,
       indents: data.indents,
@@ -924,6 +953,25 @@ function renderEditor() {
         store.state?.siteTimeZone ?? 'UTC'
       )}）的今天是 ${esc(store.state?.siteToday ?? '')}。Hugo 默认不构建未来日期的内容，CI 不会发布它——要么把日期改成今天或更早，要么就当作排期稿。</div>`
     : '';
+  // 材料页：它落在章节入口页的哪一组完全由**目录名**决定（notes* → 笔记 / homework* → 习题 /
+  // lab* → 实验，其余 → 其他）。规则只写在 layouts/courses/chapter.html 里，这里只是把结果显示
+  // 出来 —— 目录名一旦不合形状，那页会悄悄从「笔记」掉进「其他」，此前在管理页里看不出来。
+  const materialDir = p.type === 'material' ? (p.path.split('/').slice(-2)[0] ?? '') : '';
+  const isMaterial = p.type === 'material';
+  const materialChip =
+    isMaterial && p.groupLabel
+      ? `<span class="chip ${p.group === 'other' ? 'warn' : ''}" title="章节入口页按目录名分组，这页列在「${esc(
+          p.groupLabel
+        )}」组下">章节页：${esc(p.groupLabel)}</span>`
+      : '';
+  const groupNotice =
+    isMaterial && p.group === 'other'
+      ? `<div class="notice"><strong>这页在章节入口页上会落到「其他」组：</strong>入口页按目录名分组
+          （<code>notes*</code> → 笔记、<code>homework*</code> → 习题、<code>lab*</code> → 实验），而这页的目录名是
+          <code>${esc(materialDir)}</code>，三种形状都对不上。想让它在站点上正常归类，就把目录改成上面三种之一
+          （管理页不能改目录名，用 <code>git mv</code> 或在资源管理器里改名，改完回这里刷新）；如果想让它自成一类，
+          则要同时改 <code>layouts/courses/chapter.html</code> 的分组表与 <code>i18n/zh.toml</code> 的组名。</div>`
+      : '';
 
   const fieldHtml = p.schema.fields
     .filter((f) => f.kind !== 'child')
@@ -971,6 +1019,7 @@ function renderEditor() {
     <div class="editor-head">
       <h3>${esc(val('title') || p.path)}</h3>
       <span class="chip">${esc(p.typeLabel)}</span>
+      ${materialChip}
       <span class="chip ${isTrue('draft') ? 'warn' : 'ok'}">${isTrue('draft') ? '草稿' : '已发布'}</span>
       ${val('math') === '' || val('math') === undefined ? '<span class="chip">math 继承</span>' : ''}
       <span class="badge" id="dirty-badge" hidden>未保存</span>
@@ -984,6 +1033,7 @@ function renderEditor() {
     <p class="hint">${esc(p.path)}${p.hasFrontMatter ? '' : '　（这个文件原本没有 front matter，保存带字段的改动会自动补一个区块）'}　<span class="hint">拖入 .md 可替换正文</span></p>
     ${dirtyWarn}
     ${warn}
+    ${groupNotice}
     ${futureNotice}
     <div id="ed-delete-notice"></div>
     <div class="fields">${fieldHtml}</div>

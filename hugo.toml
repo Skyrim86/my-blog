@@ -166,12 +166,12 @@ pagerSize = 10
 # 外观与首页
 # ============================================
 # 站点背景图：assets/ 下的路径，由 extend_head.html 经资源管线生成 --bg-image-light / --bg-image-dark。
-# 两张分开、且是两个**不同时刻的画面**：浅色主题用日间（淡天青天空 + 城市剪影 + 日光晕），
-# 深色主题用夜景城市照片。方向相反，切换主题像换了个时辰，不是换壁纸。
+# 两张都是**实拍照片**、且是两个不同时刻的同一座城市：浅色主题用日间（大团积云 + 曼哈顿天际线），
+# 深色主题用夜景。方向相反，切换主题像换了个时辰，不是换壁纸。
 # 留空字符串即关闭该主题的背景。换图直接替换文件即可；深浅两种蒙版在 assets/css/extended/00-theme.css 里。
 [params.appearance]
   backgroundImage = 'images/bg-night-city.webp'
-  backgroundImageLight = 'images/bg-daylight.webp'
+  backgroundImageLight = 'images/bg-daylight-city.webp'
 
 # 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html
 [params.home]

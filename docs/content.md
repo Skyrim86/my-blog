@@ -27,10 +27,12 @@ content/courses/<课程>/<chapter-0N>/lab/index.md        # leaf bundle，🧪
 
 - **课程主页**由 `layouts/courses/course.html` 渲染：面包屑 + 标题 + `unit` 说明 + 自动章节目录（按 `weight` 排序，显示「第 N 章」、可点的材料徽章、`N 篇材料 · 更新于 …`）+ 大纲正文
 - **课程规划与进度**：front matter 的 `plan` 列表（`weight` / `title` / `summary`）+ 正文里一行 `{{< course-plan >}}`，渲染成进度条与「已发布 / 计划中」对照表。已发布判定按 `title` 与子章节标题**逐字相同**（课程会跳章，按 weight 会算错），详见 docs/features.md 第 ⑯ 项
-- **章节入口页**由 `layouts/courses/chapter.html` 渲染：把本章子页面列成入口卡片（名字取 `title`、图标取 `icon`、顺序取 `weight`）。**笔记、作业、实验不堆在同一页**，必须从这里分开进入
+- **章节入口页**由 `layouts/courses/chapter.html` 渲染：把本章子页面按**类型分组**列成入口卡片（组名取 i18n 的 `courseGroup*`，卡片的名字取 `title`、图标取 `icon`、组内顺序取 `weight`）。**笔记、作业、实验不堆在同一页**，必须从这里分开进入
 - **材料页**走主题 `single.html`：正文即内容，附件区由 `extend_post_content.html` 注入 `course-downloads.html`
 
-**模板不认目录名，只认「章下面的 regular page」**（`chapter.html` 是 `.RegularPages.ByWeight`）。所以材料类型可以自由扩展：`lab`、用 `--dir lab-02` 建出的第二个实验、甚至临时加一页别的，**加材料页不需要改任何模板/CSS/i18n**。
+**分组只认目录名，不认 front matter**：`notes`、`notes-02` → 笔记组，`homework` → 习题组，`lab`、`lab-02` → 实验组，其余一律进「其他」组。上一版是「不认目录名、只认章下面的 regular page」的一列平铺，2026-09-18 改成分组（要求来自使用侧：一章里笔记三页、作业实验各一页时，平铺看不出哪几页是一类）。取目录名而不是加一个 front matter 字段，是因为目录名**本来就是**材料的身份：`scripts/new-content.sh` 的子命令就叫 `notes|homework|lab`，`archetypes/lab.md` 里也写着「同一章要放多个实验时用 `--dir` 指定目录名（如 `lab-02`）」。所以已有的材料页一个都不用改，也没有新字段要同步到 `check-editor-schema.mjs`。
+
+代价是**新增材料类型时要知道它会落到「其他」组**：`exam` 这类新目录名会照常显示、不会消失，但组名是「其他」——想要自己的组就改 `chapter.html` 的 `$groups`/`$known` 与 `i18n/zh.toml`。认不出目录名（非 `[a-z]+[-_0-9]*` 形状）时同样归「其他」。
 
 三种规范材料的骨架是 `archetypes/notes.md`(weight 1, 📖) / `homework.md`(2, 📝) / `lab.md`(3, 🧪)，三者的键必须保持一致——`scripts/check-editor-schema.mjs` 用一份字段表覆盖它们。
 

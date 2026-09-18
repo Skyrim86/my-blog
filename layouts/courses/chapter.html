@@ -1,6 +1,19 @@
 {{- /* 章节目录页：列出本章可进入的内容（学习笔记 / 作业 / 实验 等子页面）。
-     仅当章节 _index.md 设置 layout: "chapter" 时命中。 */ -}}
+     仅当章节 _index.md 设置 layout: "chapter" 时命中。
+
+     材料按类型**分组**显示（组名见 i18n 的 courseGroup*）——分组取自**目录名**，不取 front matter：
+     notes、notes-02 → 笔记；homework → 习题；lab、lab-02 → 实验。目录名本来就是材料身份
+     （scripts/new-content.sh 的子命令、archetypes 里「同一章要放多个实验时用 --dir 指定目录名」
+     都是按它走的），所以材料页不必为此多写一个字段，已有的页也不用补。
+     不认识的目录名落到最后一组「其他」：新加一种材料时它会照常出现在页面上，不会凭空消失。 */ -}}
 {{- define "main" }}
+
+{{- $groups := slice
+      (dict "key" "notes" "label" (i18n "courseGroupNotes"))
+      (dict "key" "homework" "label" (i18n "courseGroupHomework"))
+      (dict "key" "lab" "label" (i18n "courseGroupLab"))
+      (dict "key" "other" "label" (i18n "courseGroupOther")) }}
+{{- $known := slice "notes" "homework" "lab" }}
 
 <article class="course-chapter">
   {{- partial "page-head.html" (dict "page" .) }}
@@ -9,26 +22,39 @@
   {{- with $materials }}
   <nav class="course-entries">
     <h2 class="course-entries-heading">{{ i18n "courseMaterials" }}</h2>
-    <ul class="course-entry-list">
-      {{- range . }}
-      {{- $count := len (where .Resources "MediaType.MainType" "!=" "image") }}
-      <li class="course-entry">
-        <a class="course-entry-link" href="{{ .RelPermalink }}">
-          <span class="course-entry-icon" aria-hidden="true">{{ .Params.icon | default "📄" }}</span>
-          <span class="course-entry-main">
-            <span class="course-entry-title">{{ .Title }}</span>
-            {{- with .Description }}
-            <span class="course-entry-desc">{{ . }}</span>
-            {{- end }}
-            {{- if gt $count 0 }}
-            <span class="course-entry-meta">{{ i18n "courseAttachmentCount" (dict "count" $count) }}</span>
-            {{- end }}
-          </span>
-          <span class="course-entry-arrow" aria-hidden="true">→</span>
-        </a>
-      </li>
-      {{- end }}
-    </ul>
+    {{- range $group := $groups }}
+    {{- $items := slice }}
+    {{- range $material := $materials }}
+    {{- $kind := replaceRE "^([a-z]+)[-_0-9]*$" "$1" (path.Base $material.Path) }}
+    {{- if not (in $known $kind) }}{{ $kind = "other" }}{{ end }}
+    {{- if eq $kind $group.key }}{{ $items = $items | append $material }}{{ end }}
+    {{- end }}
+    {{- with $items }}
+    <section class="course-group" aria-labelledby="course-group-{{ $group.key }}">
+      <h3 class="course-group-heading" id="course-group-{{ $group.key }}">{{ $group.label }}</h3>
+      <ul class="course-entry-list">
+        {{- range . }}
+        {{- $count := len (where .Resources "MediaType.MainType" "!=" "image") }}
+        <li class="course-entry">
+          <a class="course-entry-link" href="{{ .RelPermalink }}">
+            <span class="course-entry-icon" aria-hidden="true">{{ .Params.icon | default "📄" }}</span>
+            <span class="course-entry-main">
+              <span class="course-entry-title">{{ .Title }}</span>
+              {{- with .Description }}
+              <span class="course-entry-desc">{{ . }}</span>
+              {{- end }}
+              {{- if gt $count 0 }}
+              <span class="course-entry-meta">{{ i18n "courseAttachmentCount" (dict "count" $count) }}</span>
+              {{- end }}
+            </span>
+            <span class="course-entry-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        {{- end }}
+      </ul>
+    </section>
+    {{- end }}
+    {{- end }}
   </nav>
   {{- end }}
 

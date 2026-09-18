@@ -52,10 +52,12 @@ my-blog/
 │   │   └── 17-a11y.css        #     跳过导航链接 + .sr-only（见 features.md 第 4 节的第 7 处覆盖）
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
-│   │   ├── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
-│   ├── mascot.webp         # 看板娘半身像（从 tools/icons/ 那份素材抠出来，见 ㉕）
-│   ├── bg-velvet-night.webp   # 深色主题备选背景（程序生成，当前未使用，见 docs/features.md ⑫）
-│   │   └── bg-daylight.webp        # 浅色主题背景：日间（天青天空 + 城市剪影 + 日光晕，见 ⑫）
+│   │   ├── mascot.webp        #   看板娘半身像（从 tools/icons/ 那份素材抠出来，见 ㉕）
+│   │   ├── bg-night-city.webp #   深色主题背景：夜景城市照片（见 docs/features.md ⑫）
+│   │   ├── bg-daylight-city.webp # 浅色主题背景：日间城市照片（见 ⑫）
+│   │   ├── bg-daylight-sky.webp  # 浅色主题备选背景（程序生成，当前未使用，见 ⑫）
+│   │   ├── bg-velvet-night.webp  # 深色主题备选背景（程序生成，当前未使用，见 ⑫）
+│   │   └── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
 │   └── js/                    #   自定义 JS 源码，经 extend_head.html minify+fingerprint 后外链
 │       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
 │       ├── reading-progress.js   # 阅读进度条 + 目录高亮（只在单页加载）
@@ -134,14 +136,14 @@ my-blog/
 ├── tools/covers/              # 列表卡片封面生成（不参与 Hugo 构建）
 │   └── make-covers.py         #   渐变 + 底纹 + 标题字，写 assets/images/covers/*.webp
 ├── tools/backgrounds/         # 背景图生成（不参与 Hugo 构建）
-│   ├── make-backgrounds.py    #   站点 2 张质感图（`--frost` 时额外生成管理页的霜雪备选）
+│   ├── make-backgrounds.py    #   站点背景：日间城市照片 + 夜景城市照片 + 两张生成备选（`--frost` 时额外生成管理页霜雪备选）
 │   ├── make-admin-bg.py       #   管理页绫华插画 → 深/浅两版（见 docs/admin.md §20）
-│   ├── make-mascot.py        #   站点图标素材 → 右位看板娘透明图（白底抠图，见 features.md ㉕）
-│   ├── make-mascot-left.py   #   左位看板娘生成器（**该看板娘已于 2026-09-18 从站点移除**，脚本与源图保留以便再生成，见 features.md ㉕）
-│   └── source-mascot-left.jpg#   左位素材来源（113 KB）
-│   └── source-lady-slice.webp #   城市夜景上那位提灯少女的切片（同上）
-│   ├── source-night-city.jpg  #   站点深色背景的底图（画师作品，个人使用；见 features.md ⑫）
-│   ├── source-lady-slice.webp #   叠加用的黑发少女切片（带 alpha，同上）
+│   ├── make-mascot.py         #   站点图标素材 → 右位看板娘透明图（白底抠图：色差切背景 + 去污染 + 预乘缩放，见 features.md ㉕）
+│   ├── make-mascot-left.py    #   左位看板娘生成器（**该看板娘已于 2026-09-18 从站点移除**，脚本与源图保留以便再生成，见 features.md ㉕）
+│   ├── source-night-city.jpg  #   深色背景的底图（夜景城市，358 KB，出处见 features.md ⑫）
+│   ├── source-daylight-city.jpg # 浅色背景的底图（日间城市，2048×1365，346 KB，Unsplash，同上）
+│   ├── source-mascot-left.jpg #   左位素材来源（113 KB，当前未使用）
+│   └── source-lady-slice.webp #   城市夜景上那位提灯少女的切片（当前未使用）
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）
 │   ├── start.sh               #   启动器（.bat 调它）
 │   ├── server.mjs             #   HTTP 服务：静态页 + JSON API

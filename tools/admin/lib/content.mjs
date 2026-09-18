@@ -61,12 +61,13 @@ export function classify(relPath) {
     if (seg.length === 3 && seg[2] === '_index.md') return 'course-home';
     if (seg.length === 4 && seg[3] === '_index.md') return 'chapter';
     // 章目录下的 leaf bundle 一律是材料页。不写死 notes/homework：
-    // 材料类型可以再扩展（lab、用 --dir 建出的 lab-02…），模板本身也只认「章下面的 regular page」。
+    // 材料类型可以再扩展（lab、用 --dir 建出的 lab-02…）。**但目录名会影响章节页把它归到哪一组**
+    // （章节入口页按目录名分「笔记 / 习题 / 实验」，见下面的 materialGroupOf），所以界面上要把
+    // 这件事显示出来，别让它变成藏在目录名里的暗规则。
     if (seg.length === 5 && seg[4] === 'index.md' && /^chapter-/.test(seg[2])) {
       return 'material';
     }
-  }
-  if (seg[0] === 'projects') {
+  }  if (seg[0] === 'projects') {
     if (seg.length === 2 && seg[1] === '_index.md') return 'projects-list';
     if (seg.length === 3 && seg[2] === 'index.md') return 'project';
     if (seg.length === 3 && seg[2] === '_index.md') return 'project-home';
@@ -104,6 +105,41 @@ const TYPE_LABEL = {
 
 export function typeLabel(type) {
   return TYPE_LABEL[type] ?? type;
+}
+
+// ---------- 材料页在章节入口页上属于哪一组 ----------
+//
+// 章节入口页（`layouts/courses/chapter.html`）按**目录名**把材料分进「笔记 / 习题 / 实验」，
+// 认不出的落进「其他」。管理页要在两处显示同一件事：编辑树上按组显示、编辑器头上一个徽章
+// —— 目录名一旦不在这张表里，那页在站点上就会从「笔记」掉进「其他」，而这在管理页里原本看不见。
+//
+// **唯一事实源是那个模板**，这里是第二份实现：规则（`^([a-z]+)[-_0-9]*$` 取前缀 → 查表）与
+// 分组清单都抄自它，改分组要两边一起改。这与 hugo.toml 的 fuseOpts ↔ layouts/index.json
+// 是同一类「改一处必须同步另一处」，原因也一样：两边在不同语言/不同进程里，没有共享常量的地方。
+// 组名在这里只是界面文案（真实站点的组名走 i18n 的 courseGroup*），所以不必与站点逐字相同。
+const MATERIAL_GROUPS = [
+  { id: 'notes', label: '笔记', prefixes: ['notes'] },
+  { id: 'homework', label: '习题', prefixes: ['homework'] },
+  { id: 'lab', label: '实验', prefixes: ['lab'] },
+];
+
+// 认不出目录名时的兜底组：站点那页会显示在「其他」里，管理页叫「其他材料」是为了在树的
+// 分组标题里不与其他类型（文章 / 项目…）混在一起。
+export const MATERIAL_GROUP_FALLBACK = { id: 'other', label: '其他材料' };
+
+export function materialGroupOf(relPath) {
+  const seg = String(relPath).replace(/\\/g, '/').split('/');
+  const dir = seg.length >= 2 ? seg[seg.length - 2] : '';
+  const m = /^([a-z]+)[-_0-9]*$/.exec(dir);
+  const name = m ? m[1] : '';
+  return MATERIAL_GROUPS.find((g) => g.prefixes.includes(name)) ?? MATERIAL_GROUP_FALLBACK;
+}
+
+// 树与编辑器要的那两个字段：非材料页为 null（调用方据此决定是否显示徽章）。
+function materialGroupFields(relPath, type) {
+  if (type !== 'material') return { group: null, groupLabel: null };
+  const g = materialGroupOf(relPath);
+  return { group: g.id, groupLabel: g.label };
 }
 
 // 与 scripts/check-frontmatter.sh 对齐的硬性要求：title 一律必填；content/posts|courses|projects
@@ -371,6 +407,8 @@ export async function readContentFile(repoRoot, relPath) {
     path: rel,
     type,
     typeLabel: typeLabel(type),
+    // 材料页在章节入口页上的分组（非材料页为 null）：界面上显示它，好让「目录名决定分组」可见
+    ...materialGroupFields(rel, type),
     schema: editorSchema(type),
     hasFrontMatter: parsed.hasFm,
     // 缺哪些必填键（空数组 = 校验能过）。draft 只认「键不存在」，true/false 都算已写。
@@ -525,6 +563,7 @@ export async function listContent(repoRoot) {
       path: rel,
       type,
       typeLabel: typeLabel(type),
+      ...materialGroupFields(rel, type),
       title: parsed.values.title || titleFromBody(parsed.body) || rel.replace(/^content\//, ''),
       draft: parseBool(parsed.values.draft, false),
       math: parseBool(parsed.values.math, false),

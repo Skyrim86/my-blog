@@ -103,6 +103,36 @@
   margin-bottom: 0.85rem;
 }
 
+/* 材料分组（笔记 / 习题 / 实验，见 layouts/courses/chapter.html）：组名是二级标题，
+   比「本章内容」小一档、走次要色，前面一道蔷薇短线——与正文标题同一套装饰语言，
+   那条规则写在 13-ornament.css 里、只作用于 .post-content 内部，所以这里要自己写一次。 */
+.course-group {
+  margin-bottom: 1.4rem;
+}
+
+.course-group:last-child {
+  margin-bottom: 0;
+}
+
+.course-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--secondary);
+}
+
+.course-group-heading::before {
+  content: "";
+  flex: none;
+  width: 3px;
+  height: 1em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+
 .course-entry-list {
   list-style: none;
   margin: 0;

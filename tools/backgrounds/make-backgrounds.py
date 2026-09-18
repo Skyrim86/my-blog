@@ -10,12 +10,17 @@
 #
 # 用法：python tools/backgrounds/make-backgrounds.py
 # 产物（直接覆盖仓库里的图，随机种子固定所以可复现）：
-#   assets/images/bg-daylight.webp       浅色主题（日间：淡天青 → 象牙 + 城市剪影）
+#   assets/images/bg-daylight-city.webp  浅色主题（日间城市照片：积云 + 曼哈顿天际线，见 daylight_city_background）
+#   assets/images/bg-daylight-sky.webp   浅色主题的程序生成备选（当前**未使用**）
 #   assets/images/bg-night-city.webp     深色主题（夜景城市照片，见 city_background）
 #   assets/images/bg-velvet-night.webp   深色主题的程序质感备选（当前**未使用**）
 #   assets/images/bg-night-city-lady.webp 夜城 + 提灯少女（当前**未使用**）
 #   tools/admin/ui/frost-dark.webp       管理页深色主题（--frost 才生成）
 #   tools/admin/ui/frost-light.webp      管理页浅色主题（--frost 才生成）
+#
+# 两张真图（日间城市 / 夜景城市）的源图都在本目录：source-daylight-city.jpg、source-night-city.jpg。
+# **"为什么要生成"这条规则对不带人物的纯景照片不适用**：只要画面是「大团云」或「亮窗对暗天」
+# 这类小尺度对比，就压得住蒙版（依据见下）。反过来，具象的插画/人物在浅色主题下会变成一块脏斑。
 #
 # 改色/改密度就改文件末尾那几行 build() 的参数；改完回到页面上截图核对，
 # 别只看生成图——蒙版压过之后差得很远。
@@ -152,10 +157,10 @@ def skyline(im, horizon, color, top_alpha, bot_alpha, blur, min_w, max_w, min_h,
 
 
 def daylight_background():
-    """浅色主题：日间 —— 淡天青到象牙的天空 + 底缘城市剪影 + 右上日光晕。
+    """浅色主题的**程序生成备选**：日间 —— 淡天青到象牙的天空 + 底缘城市剪影 + 右上日光晕。
 
-    与夜间那张成对：夜间是「上暗下略亮的墨紫 + 月亮 + 亮窗城市」，这里方向全部反过来，
-    所以两个主题切换时观感是「换了个时刻」而不是「换了张壁纸」。
+    当前**未使用**（浅色主题用的是 daylight_city_background 那张日间城市照片），保留是为了
+    想换回「纯生成」时不必重写：把 hugo.toml 的 backgroundImageLight 指过来即可。
     """
     w, h = 1600, 900
     random.seed(917)
@@ -167,11 +172,38 @@ def daylight_background():
                  top_alpha=10, bot_alpha=96, blur=1.1,
                  min_w=34, max_w=96, min_h=40, max_h=132)
     im = petals(im, 16, (150, 78, 100), (12, 26), (16, 30), 2.2)
-    save(im, os.path.join("assets", "images", "bg-daylight.webp"))
+    save(im, os.path.join("assets", "images", "bg-daylight-sky.webp"))
+
+
+def daylight_city_background():
+    """浅色主题那张真图：source-daylight-city.jpg → assets/images/bg-daylight-city.webp。
+
+    与夜间那张成对（都是城市），方向相反：夜间是「暗天 + 亮窗」，这里是「亮天 + 暗城」。
+    选它的理由是它**压得住蒙版**：上半张是大团积云的边缘，下半张是牙签一样细的天际线轮廓——
+    这两样都是小尺度明暗对比，正是 55%~85% 白蒙版吃不掉的东西（依据见文件头）。蒙版压过之后
+    剩下的是一层「有云的日光」，而不是一块灰白斑。
+
+    取景裁到 16:9 时**贴底裁**（丢掉画面上缘的云）：bg 的 background-position 是 center 30%，
+    窄高视口里露出来的是图的上半部分，天际线本来就在靠下位置，贴底裁才不会把它顶出去。
+
+    出处：Unsplash，Carli Jean，https://unsplash.com/photos/Gk6YgzmrLgM（Unsplash License，
+    可自由使用）。原始 5000×3333 压到 2048 宽存 tools/backgrounds/source-daylight-city.jpg（346 KB，
+    与 source-night-city.jpg 的 358 KB 同一量级；留 1.28 倍出图宽度的余量，将来想换取景还有得裁）。
+    调色只做轻微去饱和 + 掺一点主题底色，不重绘。
+    """
+    src = os.path.join(ROOT, "tools", "backgrounds", "source-daylight-city.jpg")
+    im = Image.open(src).convert("RGB")
+    w, h = im.size
+    ch = round(w * 9 / 16)
+    im = im.crop((0, h - ch, w, h)).resize((1600, 900), Image.LANCZOS)
+    im = ImageEnhance.Brightness(im).enhance(1.02)
+    im = ImageEnhance.Color(im).enhance(0.86)                                # 天空别太蓝，浅色主题压不住
+    im = Image.blend(im, Image.new("RGB", im.size, (250, 247, 250)), 0.07)   # 掺主题底色，与蒙版同温
+    save(im, os.path.join("assets", "images", "bg-daylight-city.webp"), quality=72)
 
 
 def site_backgrounds():
-    """站点背景：日间（生成）与夜间质感备选（生成）。尺寸 1600×900（整屏铺满，够 cover 即可）。"""
+    """站点背景：日间（生成备选）与夜间质感备选（生成）。尺寸 1600×900（整屏铺满，够 cover 即可）。"""
     w, h = 1600, 900
 
     daylight_background()
@@ -252,6 +284,7 @@ def admin_backgrounds():
 
 if __name__ == "__main__":
     site_backgrounds()
+    daylight_city_background()
     city_background()
     city_lady_background()
     # 管理页的「霜雪质感」两张是备选：管理页当前用的是绫华壁纸（见 docs/admin.md §20），

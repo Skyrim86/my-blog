@@ -48,12 +48,14 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 |---|---|---|
 | Giscus 评论 + 主题跟随 | `layouts/_partials/comments.html`、`assets/js/giscus-theme-sync.js` | [`docs/features.md`](docs/features.md) |
 | 系列文章导航 | `_partials/series-posts.html`、`03-widgets.css` | 同上 |
-| 课程主页 / 章节入口页 | `layouts/courses/course.html`、`chapter.html`、`_partials/course-*.html`、`04-course.css` | [`docs/content.md`](docs/content.md) |
+| 课程主页 / 章节入口页（材料按 笔记/习题/实验 分组，组别取**目录名**） | `layouts/courses/course.html`、`chapter.html`、`_partials/course-*.html`、`04-course.css` | [`docs/content.md`](docs/content.md) 第 2 节 |
+| 站点背景图（浅色：日间城市照片 / 深色：夜景城市照片）+ 蒙版 | `hugo.toml` 的 `[params.appearance]`、`00-theme.css` 的 `body::before`、`tools/backgrounds/make-backgrounds.py`（**生成产物，不要手改 assets/images/bg-*.webp**） | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（含对比度实测与出处） |
+| 右下角看板娘（透明底抠图） | `_partials/extend_footer.html`、`14-mascot.css`、`tools/backgrounds/make-mascot.py`（**生成产物，不要手改 assets/images/mascot.webp**） | [`docs/features.md`](docs/features.md) 第 3 节 ㉕ |
 | 项目元信息（技术栈 + 源码） | `_partials/project-meta.html`、`05-project.css` | [`docs/content.md`](docs/content.md) |
 | 相关内容区块 | `_partials/related-content.html`、`07-related.css` | [`docs/features.md`](docs/features.md) |
 | 词条筛选框 | `assets/js/terms-filter.js`、`06-terms-filter.css` | 同上 |
 | 搜索索引 | `layouts/index.json` + `hugo.toml` 的 `fuseOpts.keys`（**改一处必须同步另一处**） | 同上 |
-| 站点外观（配色 / 深色令牌 / 背景图） | `assets/css/extended/00-theme.css`、`03`…`13` 组件样式、`hugo.toml` 的 `[params.appearance]` | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（令牌与背景图）与 ㉔（装饰层） |
+| 站点外观（配色 / 深色令牌 / 装饰层） | `assets/css/extended/00-theme.css`、`03`…`13` 组件样式 | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（令牌）与 ㉔（装饰层） |
 | 图标（favicon / apple-touch / 桌面快捷方式） | `tools/icons/make-icons.py`（**生成产物，不要手改 static/ 下的 png/ico**） | [`docs/architecture.md`](docs/architecture.md) 第 6 节 |
 | 阅读进度条 / 目录当前项 | `assets/js/reading-progress.js`、`08-reader.css` | 同上 |
 | 无障碍（跳过链接 / 动态列表播报 / `sr-only`） | `layouts/baseof.html`（第 7 处覆盖）、`assets/css/extended/17-a11y.css`、`assets/js/a11y-announce.js`、`terms-filter.js` 与 `list-tools.js` 里的 `role="status"` | [`docs/features.md`](docs/features.md) 第 4 节 |
