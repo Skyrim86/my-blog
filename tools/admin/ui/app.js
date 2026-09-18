@@ -230,10 +230,14 @@ const KINDS = {
     cats: true,
     series: true,
     fields: [
-      { k: 'slug', label: '目录名（slug）', required: true, hint: '英文短横线；决定 URL /:year/:month/:slug/' },
       { k: 'title', label: '标题' },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea', hint: '列表页与摘要使用' },
+      {
+        k: 'slug',
+        label: '目录名（slug）',
+        hint: '可以留空：留空就由标题自动派生（中文标题会派生成 post-2026-09-18 这样的日期名）。文章 URL 与目录名无关 —— 固定链接是 /:year/:month/:slug，:slug 取自「固定链接」字段或标题',
+      },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', hint: '列表页与摘要使用', more: true },
     ],
   },
   course: {
@@ -244,8 +248,8 @@ const KINDS = {
       { k: 'name', label: '课程目录名', required: true, hint: '如 numerical-analysis' },
       { k: 'title', label: '课程名' },
       { k: 'unit', label: '分区单位', type: 'select', options: ['章', '周'] },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', more: true },
     ],
   },
   chapter: {
@@ -255,8 +259,8 @@ const KINDS = {
     fields: [
       { k: 'course', label: '所属课程', type: 'select', source: 'courses', required: true },
       { k: 'title', label: '章节标题', required: true },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', more: true },
       {
         k: 'materials',
         label: '本章材料',
@@ -276,8 +280,8 @@ const KINDS = {
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
       { k: 'dir', label: '目录名', hint: DIR_HINT.notes },
       { k: 'title', label: '标题', hint: '留空用骨架默认「学习笔记」' },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', more: true },
     ],
   },
   homework: {
@@ -289,8 +293,8 @@ const KINDS = {
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
       { k: 'dir', label: '目录名', hint: DIR_HINT.homework },
       { k: 'title', label: '标题', hint: '留空用骨架默认「作业」' },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', more: true },
     ],
   },
   lab: {
@@ -302,8 +306,8 @@ const KINDS = {
       { k: 'chapter', label: '所属章节', type: 'select', source: 'chapters', required: true, hint: '只列已有章节；新章节请用「章节」' },
       { k: 'dir', label: '目录名', hint: DIR_HINT.lab },
       { k: 'title', label: '标题', hint: '留空用骨架默认「实验」' },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', more: true },
     ],
   },
   project: {
@@ -313,8 +317,8 @@ const KINDS = {
     fields: [
       { k: 'name', label: '项目目录名', required: true },
       { k: 'title', label: '项目名' },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', more: true },
       { k: 'repo', label: '仓库地址' },
       { k: 'layered', label: '分层项目（下面还要放子项目）', type: 'bool' },
     ],
@@ -327,8 +331,8 @@ const KINDS = {
       { k: 'project', label: '所属项目（分层项目）', type: 'select', source: 'projectHomes', required: true },
       { k: 'name', label: '子项目目录名', required: true },
       { k: 'title', label: '子项目名' },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', more: true },
     ],
   },
   doc: {
@@ -339,8 +343,8 @@ const KINDS = {
       { k: 'projectPath', label: '所属目录', type: 'select', source: 'projectDirs', required: true, hint: '可选项来自 content/projects 下已有的目录' },
       { k: 'name', label: '文档名', required: true, hint: '不要带 .md' },
       { k: 'title', label: '标题' },
-      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天' },
-      { k: 'description', label: '描述', type: 'textarea' },
+      { k: 'date', label: '日期', hint: '格式 2026-09-12；留空用骨架里的今天', more: true },
+      { k: 'description', label: '描述', type: 'textarea', more: true },
       { k: 'noMath', label: '纯文字（不加载 KaTeX 样式）', type: 'bool' },
     ],
   },
@@ -447,8 +451,7 @@ function renderCreateFields({ resetFields = [] } = {}) {
   const spec = KINDS[store.kind];
   const snapshot = snapshotCreateFields();
   for (const k of resetFields) delete snapshot[k];
-  const html = spec.fields
-    .map((f) => {
+  const fieldHtml = (f) => {
       const id = `cf-${f.k}`;
       const hint = f.hint ? `<span class="hint">${esc(f.hint)}</span>` : '';
       const req = f.required ? '<span class="hint">必填</span>' : '';
@@ -479,10 +482,24 @@ function renderCreateFields({ resetFields = [] } = {}) {
         return `<div class="field"><label for="${id}">${esc(f.label)} ${req} ${hint}</label><textarea id="${id}" data-field="${f.k}" rows="2"></textarea></div>`;
       }
       return `<div class="field"><label for="${id}">${esc(f.label)} ${req} ${hint}</label><input type="text" id="${id}" data-field="${f.k}"></div>`;
-    })
-    .join('');
-  $('create-fields').innerHTML = html;
+  };
+  // more: true 的字段折进「更多选项」（日期留空就是骨架里的今天、描述多数时候空着、系列只有
+  // 文章用得上），首屏只留下必填和常用项。它们仍然可改，只是不再抢注意力。
+  const primary = spec.fields.filter((f) => !f.more);
+  const folded = spec.fields.filter((f) => f.more);
+  $('create-fields').innerHTML = primary.map(fieldHtml).join('');
+  $('create-more-fields').innerHTML = folded.map(fieldHtml).join('');
   restoreCreateFields(snapshot);
+  // 折起来的字段里已经有值（拖入 .md 带进来的日期/描述，或上次填过）就自动展开，
+  // 别让「导入的值」藏在收起的区块里让人以为没生效。
+  const more = $('create-more');
+  if (more) {
+    const hasValue = folded.some((f) => {
+      const v = snapshot[f.k];
+      return f.type === 'checks' ? Array.isArray(v) && v.length > 0 : String(v ?? '').trim() !== '';
+    });
+    if (hasValue) more.open = true;
+  }
   // 「所属章节」的选项依赖「所属课程」，所以换课程时要重算一次
   if (spec.fields.some((f) => f.source === 'chapters')) {
     $('cf-course')?.addEventListener('change', (ev) => fillChapterOptions(ev.target.value));
@@ -500,10 +517,12 @@ function renderCreateFields({ resetFields = [] } = {}) {
   $('cat-hint').textContent = store.taxonomy.categories.join('、') || '（空）';
 }
 
-// 重渲染表单（例如刚往词表里加了新词）不该把用户已经填好的内容清掉
+// 重渲染表单（例如刚往词表里加了新词）不该把用户已经填好的内容清掉。
+// 选择器用 #create-form（而不是 #create-fields）：折进「更多选项」的字段不在 #create-fields 里，
+// 漏掉它们会在每次重渲染时把日期/描述清空。
 function snapshotCreateFields() {
   const snap = {};
-  for (const el of document.querySelectorAll('#create-fields [data-field]')) {
+  for (const el of document.querySelectorAll('#create-form [data-field]')) {
     // 多选框组（checks）：同名元素共用 data-field，靠 data-cvalue 区分，收集成数组
     if (el.dataset.cvalue !== undefined) {
       const arr = snap[el.dataset.field] ?? [];
@@ -517,7 +536,8 @@ function snapshotCreateFields() {
 }
 
 function restoreCreateFields(snap) {
-  for (const el of document.querySelectorAll('#create-fields [data-field]')) {
+  // 同 snapshotCreateFields：必须覆盖「更多选项」里的那些字段
+  for (const el of document.querySelectorAll('#create-form [data-field]')) {
     const v = snap[el.dataset.field];
     if (v === undefined) continue;
     if (el.dataset.cvalue !== undefined) {
@@ -622,7 +642,8 @@ $('create-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const spec = KINDS[store.kind];
   const form = { kind: store.kind, publish: $('create-publish').checked };
-  for (const el of $('create-fields').querySelectorAll('[data-field]')) {
+  // #create-form 而不是 #create-fields：折进「更多选项」的字段（日期 / 描述）也要收进来
+  for (const el of $('create-form').querySelectorAll('[data-field]')) {
     // 多选框组（checks）收集成数组，交给服务端拼成 --materials
     if (el.dataset.cvalue !== undefined) {
       const arr = form[el.dataset.field] ?? [];
@@ -639,10 +660,7 @@ $('create-form').addEventListener('submit', async (ev) => {
   }
   if (spec.tags) form.tags = [...store.createTags];
   if (spec.cats) form.categories = [...store.createCats];
-  if (spec.series) {
-    const series = $('create-series').value.trim();
-    if (series) form.series = series;
-  }
+  // 系列已经是一个普通的 data-field 字段（在「更多选项」里），通用收集已经放进 form.series 了
   form.allowNewTags = spec.tags && store.createTags.size > 0;
   // 拖入的 .md：正文由服务端通过 stdin 交给 new-content.sh，front matter 仍来自 archetypes/
   if (store.import) form.body = store.import.body;
@@ -680,6 +698,8 @@ function printScriptResult(res) {
   log.hidden = false;
   let text = '';
   if (Array.isArray(res.scriptArgs)) text += `▸ new-content.sh ${res.scriptArgs.map((a) => (a.includes(' ') ? JSON.stringify(a) : a)).join(' ')}\n`;
+  // 目录名留空时是服务端派生的，得说一声 —— 否则用户不知道文件建到哪个目录了
+  if (res.derivedSlug) text += `▸ 目录名留空，已按标题派生为「${res.derivedSlug}」（文章 URL 不受它影响）\n`;
   if (res.addedTerms?.length) text += `▸ 新标签已写入词表：${res.addedTerms.join('、')}\n`;
   if (res.mathFix?.count > 0) text += `▸ 已自动修正 ${res.mathFix.count} 处公式写法（\\* / § / 圈号 → KaTeX 的正规写法）：不修的话 KaTeX 会让整站构建失败\n`;
   if (res.stdout) text += res.stdout;
@@ -884,8 +904,18 @@ $('tree-body').addEventListener('click', (ev) => {
 
 let pending = null; // { path, schema, values, indents, cover, changed:Map, coverChanged:Map, body }
 
+// 编辑器里折进「更多选项」的低频字段：改一次基本不再动。
+//   weight —— 只有同级材料/章节要调顺序时才用
+//   math   —— 课程材料页的 math 由课程主页 cascade 下发，页面自己通常不写（头部有「math 继承」徽章）
+//   icon   —— 只有材料页用
+// 它们仍然可改（折叠不等于隐藏），只是不再占据首屏。**不要**把 front matter 校验要求必填的键
+// （title / date / draft）折进来：缺必填项时那个红色提示要能一眼看到（见 docs/admin.md 第 6.1 节）。
+const EDITOR_LOW_FREQ = new Set(['weight', 'math', 'icon']);
+
 async function selectFile(relPath) {
   try {
+    // 切走之前先把还在防抖里的本地暂存补上，否则刚敲的那段会丢
+    flushDraftNow();
     const data = await api.get(`/api/content/file?path=${encodeURIComponent(relPath)}`);
     pending = {
       path: data.path,
@@ -973,9 +1003,7 @@ function renderEditor() {
           则要同时改 <code>layouts/courses/chapter.html</code> 的分组表与 <code>i18n/zh.toml</code> 的组名。</div>`
       : '';
 
-  const fieldHtml = p.schema.fields
-    .filter((f) => f.kind !== 'child')
-    .map((f) => {
+  const renderField = (f) => {
       const id = `ef-${f.key}`;
       const hint = f.hint ? `<span class="hint">${esc(f.hint)}</span>` : '';
       let control;
@@ -1003,8 +1031,17 @@ function renderEditor() {
       const type = f.kind === 'number' ? 'number' : 'text';
       control = `<input type="${type}" id="${id}" data-ekey="${f.key}" data-kind="${f.kind}" value="${esc(val(f.key) ?? '')}">`;
       return `<div class="field"><label for="${id}">${esc(f.label)} ${hint}</label>${control}</div>`;
-    })
-    .join('');
+  };
+
+  // 低频字段折进「更多选项」：改一次基本不再动的那些。它们仍然可改，只是不再占首屏。
+  const editable = p.schema.fields.filter((f) => f.kind !== 'child');
+  const fieldHtml = editable.filter((f) => !EDITOR_LOW_FREQ.has(f.key)).map(renderField).join('');
+  const folded = editable.filter((f) => EDITOR_LOW_FREQ.has(f.key));
+  const foldedHtml = folded.length
+    ? `<details class="more-options"><summary>更多选项<span class="hint">${folded
+        .map((f) => esc(f.label))
+        .join(' / ')}</span></summary><div class="fields">${folded.map(renderField).join('')}</div></details>`
+    : '';
 
   const coverHtml =
     p.type === 'post'
@@ -1030,13 +1067,15 @@ function renderEditor() {
         <button type="button" class="danger" id="ed-delete">删除</button>
       </div>
     </div>
-    <p class="hint">${esc(p.path)}${p.hasFrontMatter ? '' : '　（这个文件原本没有 front matter，保存带字段的改动会自动补一个区块）'}　<span class="hint">拖入 .md 可替换正文</span></p>
+    <p class="hint">${esc(p.path)}${p.hasFrontMatter ? '' : '　（这个文件原本没有 front matter，保存带字段的改动会自动补一个区块）'}　<span class="hint">拖入 .md 可替换正文</span><span class="hint" id="ed-preview-note" hidden title="右侧 iframe 是 Hugo 渲染好的页面，也就是上一次保存的版本；保存后会自动刷新">　· 有未保存改动，右侧预览还是上次保存的版本</span></p>
     ${dirtyWarn}
     ${warn}
     ${groupNotice}
     ${futureNotice}
     <div id="ed-delete-notice"></div>
+    <div id="ed-draft-notice"></div>
     <div class="fields">${fieldHtml}</div>
+    ${foldedHtml}
     ${coverHtml}
     <div class="field">
       <label>正文<span class="hint">Markdown；公式写 $...$ 或 $$...$$，裸写美元符号要写成 \\$</span></label>
@@ -1107,6 +1146,7 @@ function renderEditor() {
   $('md-toolbar').addEventListener('click', onToolbar);
   // 重新渲染（换文件、保存后刷新）必须解除已武装的删除 —— 否则「确认删除」会落到另一个文件上
   resetDeleteArm();
+  renderDraftNotice();
 }
 
 function chipsHtml(options, selected, filter) {
@@ -1154,6 +1194,131 @@ function markDirty() {
   else store.unsaved.delete(pending.path);
   const item = $('tree-body')?.querySelector('button.tree-item.active');
   if (item) item.classList.toggle('unsaved', dirty);
+  // 右侧 iframe 里是 Hugo 渲染好的**已保存**版本 —— 有未保存改动时明确说一句，
+  // 否则「改了正文但预览没变」看起来像预览坏了。
+  const note = $('ed-preview-note');
+  if (note) note.hidden = !dirty;
+  syncDraft(dirty);
+}
+
+// ---------------- 未保存草稿的本地暂存 ----------------
+//
+// 有未保存改动时关掉标签页（或浏览器崩了），正文就没了：beforeunload 只能拦一次确认。
+// 这里把编辑器里的当前内容按文件路径存进 localStorage，下次打开这个文件时若发现暂存的正文
+// 与磁盘上的不一样，就提示「上次还有没保存的改动」并给「恢复 / 丢弃」两个选择。
+//
+// 只写浏览器本地，**不碰磁盘** —— 所以不会出现「半成品被 push-blog.sh 的 git add -A 带上去」
+// 这种事（那正是 AGENTS.md 反复提醒的风险）。单文件超过 400KB 就不暂存（localStorage 通常
+// 只有 5MB），并给一条提示，而不是静默截断出一份半截正文。
+const DRAFT_KEY = 'admin-drafts';
+const DRAFT_MAX_CHARS = 400 * 1024;
+let draftTimer = null;
+
+function readDrafts() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch {
+    return {}; // 隐私模式 / 存了坏数据
+  }
+}
+
+function writeDrafts(drafts) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+  } catch {
+    /* 配额满或不可写：放弃暂存，不影响编辑 */
+  }
+}
+
+function getDraft(path) {
+  const entry = readDrafts()[path];
+  return entry && typeof entry.body === 'string' ? entry : null;
+}
+
+function dropDraft(path) {
+  const drafts = readDrafts();
+  if (!(path in drafts)) return;
+  delete drafts[path];
+  writeDrafts(drafts);
+}
+
+function putDraft(path, body) {
+  const drafts = readDrafts();
+  if (body.length > DRAFT_MAX_CHARS) {
+    if (path in drafts) {
+      delete drafts[path];
+      writeDrafts(drafts);
+    }
+    toast('正文超过 400KB，本次不做本地暂存（请及时保存）', 'error');
+    return;
+  }
+  drafts[path] = { body, at: Date.now() };
+  writeDrafts(drafts);
+}
+
+// 输入时防抖写暂存；不脏了（保存成功 / 手动还原）就立刻清掉对应条目。
+function syncDraft(dirty) {
+  if (!pending) return;
+  const path = pending.path;
+  const body = pending.body ?? '';
+  clearTimeout(draftTimer);
+  if (!dirty) {
+    draftTimer = null;
+    dropDraft(path);
+    return;
+  }
+  draftTimer = setTimeout(() => {
+    draftTimer = null;
+    putDraft(path, body);
+  }, 600);
+}
+
+// 切文件/关页面前把还没落盘的暂存补上，免得丢掉最后 0.6 秒里敲的字。
+function flushDraftNow() {
+  if (draftTimer === null || !pending) return;
+  clearTimeout(draftTimer);
+  draftTimer = null;
+  putDraft(pending.path, pending.body ?? '');
+}
+
+// 「上次还有没保存的改动」提示：只在暂存正文与磁盘正文不同时出现。
+function renderDraftNotice() {
+  const el = $('ed-draft-notice');
+  if (!el || !pending) return;
+  const draft = getDraft(pending.path);
+  if (!draft || draft.body === pending.bodyOriginal) {
+    el.innerHTML = '';
+    return;
+  }
+  const when = new Date(draft.at);
+  const stamp = Number.isNaN(when.getTime()) ? '' : when.toLocaleString();
+  el.innerHTML = `<div class="notice"><strong>这个文件有未保存的本地暂存：</strong>
+      上次离开时正文与磁盘上的不一样（暂存于 ${esc(stamp)}）。
+      暂存只在浏览器本地，没有写到磁盘上。
+      <div class="inline" style="margin-top:6px">
+        <button type="button" class="ghost" id="ed-draft-restore">恢复暂存的正文</button>
+        <button type="button" class="ghost" id="ed-draft-drop">丢弃暂存</button>
+      </div></div>`;
+  $('ed-draft-restore').addEventListener('click', () => {
+    const ta = $('ed-body');
+    if (!ta) return;
+    ta.value = draft.body;
+    pending.body = draft.body;
+    pending.bodyDirty = pending.body !== pending.bodyOriginal;
+    $('ed-lint').innerHTML = lintHtml(pending.body);
+    markDirty();
+    // 恢复之后这块提示就该消失：内容已经在编辑器里了，再留着两个按钮毫无意义
+    //（未保存的状态由头部的「未保存」徽章与左栏条目的标记继续表示）。
+    // 暂存条目本身**不删** —— 现在编辑器里的内容与磁盘仍然不同，下次打开这个文件还要能恢复。
+    el.innerHTML = '';
+    toast('已恢复暂存的正文，别忘了点「保存」', 'ok');
+  });
+  $('ed-draft-drop').addEventListener('click', () => {
+    dropDraft(pending.path);
+    renderDraftNotice();
+    toast('已丢弃暂存');
+  });
 }
 
 // goPublish：保存成功后切到发布页 —— 「写完了」和「推上去」之间少一次找按钮。
@@ -1195,7 +1360,7 @@ async function saveEditor({ goPublish = false } = {}) {
     }
     p.bodyOriginal = p.body;
     p.bodyDirty = false;
-    markDirty();
+    markDirty(); // 不脏了 → 顺便把本地暂存条目清掉
     if (fixedCount > 0) toast(`已保存，并自动修正 ${fixedCount} 处公式写法（\\* / § / 圈号）`, 'ok');
     else toast(res.changed ? '已保存' : '没有变化，未写盘', 'ok');
     await loadItems(true);
@@ -2565,6 +2730,8 @@ function initShortcuts() {
   });
   // 有未保存改动时拦一下：这个界面的保存按钮不显眼，误关一次就等于白写
   window.addEventListener('beforeunload', (ev) => {
+    // 关页面前把还在防抖里的本地暂存补上 —— 用户点「离开」时，最后几笔编辑也要留下来
+    flushDraftNow();
     if (store.unsaved.size === 0 && !store.publishing) return;
     ev.preventDefault();
     ev.returnValue = '';

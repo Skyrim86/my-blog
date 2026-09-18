@@ -4,6 +4,15 @@
 #
 # 用法：bash scripts/check-tags.sh
 # 退出码：0 = 全部命中词表；1 = 有未登记的词（或发现了无法解析的写法）
+#
+# ---- 性能：为什么不是「每文件一次 awk + 每标签一次 sed/tr」 ----
+# 本脚本原先对每个文件调一次 awk，再对每个标签调两次 sed（拆数组、去空白引号），大小写比对
+# 还要两次 `printf | tr`。在 Linux 上无所谓，但在 Windows 的 Git Bash 里每次进程创建约 21ms、
+# 每次命令替换（fork）约 8ms（实测数字见 check-frontmatter.sh 的头部说明）。
+#
+# 现在：**一次 awk 扫过全部文件**，直接把行内数组拆成 `文件<TAB>标签` 逐行输出，块列表写法单独
+# 打一个标记；bash 侧只做词表比对（大小写用 `${var,,}` 内建，不再 spawn tr）。
+# 判定规则与输出逐字未变 —— 改这里请拿一份带缺陷的 content/ 对拍新旧输出。
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -33,10 +42,11 @@ in_vocab() { # $1=标签；0=命中，1=未命中
   return 1
 }
 
-ci_hint() { # 大小写不一致时给个提示
+# 大小写不一致时给个提示。大小写折叠用 bash 内建 `${var,,}`，不再 spawn tr。
+ci_hint() { # $1=标签；命中则打印词表里的写法
   local t
   for t in "${TERMS[@]}"; do
-    if [ "$(printf '%s' "$t" | tr '[:upper:]' '[:lower:]')" = "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" ]; then
+    if [ "${t,,}" = "${1,,}" ]; then
       printf '%s' "$t"
       return 0
     fi
@@ -48,43 +58,49 @@ unknown_count=0
 block_count=0
 checked=0
 
-# 取文件的 front matter（首个 --- 区块），输出 TAGS<TAB>值 或 BLOCK
-extract() {
-  awk '
-    BEGIN { n = 0 }
-    /^---[[:space:]]*$/ { n++; if (n == 2) exit; next }
-    n != 1 { next }
-    /^[[:space:]]*tags:[[:space:]]*\[/ {
-      v = $0
-      sub(/^[[:space:]]*tags:[[:space:]]*/, "", v)
-      print "INLINE\t" v
-      next
-    }
-    /^[[:space:]]*tags:[[:space:]]*$/ { print "BLOCK"; next }
-  ' "$1"
-}
+# 文件清单顺序沿用原先的 `find … | sort`，所以报告行序不变。
+FILES=()
+while IFS= read -r f; do FILES+=("$f"); done \
+  < <(find content -name '*.md' -type f | sort)
 
 PAIRS="$(mktemp)"
 trap 'rm -f "$PAIRS"' EXIT
 
-while IFS= read -r f; do
-  while IFS=$'\t' read -r kind val; do
-    if [ "$kind" = "BLOCK" ]; then
-      echo "  ! $f：tags 用了块列表写法，本脚本只解析行内数组，可能漏检" >&2
-      echo "    建议改成：tags: [\"标签一\", \"标签二\"]" >&2
-      block_count=$((block_count + 1))
-      continue
-    fi
-    # 拆行内数组：去方括号 → 按逗号切 → 去空白与引号
-    # 末尾补一个换行，否则 tr 产生的最后一项没有行终止符，会被 read 丢掉
-    { printf '%s' "$val" | sed 's/^[[:space:]]*\[//; s/\][[:space:]]*$//' | tr ',' '\n'; echo; } \
-      | while IFS= read -r raw; do
-        t="$(printf '%s' "$raw" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^"//; s/"$//')"
-        [ -z "$t" ] && continue
-        echo "$f	$t"
-      done
-  done < <(extract "$f")
-done < <(find content -name '*.md' -type f | sort) > "$PAIRS"
+# 一次扫描：抽首个 --- 区块里的 tags。
+#   输出 `文件<TAB>T<TAB>标签`  —— 行内数组 tags: ["a", "b"] 拆成逐个标签
+#   输出 `文件<TAB>B<TAB>`      —— 块列表写法（键后面换行再列 - 项），本脚本读不出来，只报警
+# 与原实现一致：只认 `tags:` 开头的行（含缩进，所以课程主页 cascade 里的 tags 也会被扫到），
+# 行内数组按逗号朴素切分（标签里含逗号会被切开），去掉首尾空白与包裹的引号，空项跳过。
+while IFS=$'\t' read -r f kind t; do
+  if [ "$kind" = "B" ]; then
+    echo "  ! $f：tags 用了块列表写法，本脚本只解析行内数组，可能漏检" >&2
+    echo "    建议改成：tags: [\"标签一\", \"标签二\"]" >&2
+    block_count=$((block_count + 1))
+    continue
+  fi
+  printf '%s\t%s\n' "$f" "$t" >> "$PAIRS"
+done < <(awk '
+    { sub(/\r$/, "") }
+    FNR == 1 { n = 0 }
+    /^---[ \t]*$/ { n++; next }
+    n != 1 { next }
+    /^[ \t]*tags:[ \t]*\[/ {
+      v = $0
+      sub(/^[ \t]*tags:[ \t]*\[/, "", v)
+      sub(/\][ \t]*$/, "", v)
+      cnt = split(v, item, ",")
+      for (i = 1; i <= cnt; i++) {
+        tag = item[i]
+        sub(/^[ \t]*/, "", tag)
+        sub(/[ \t]*$/, "", tag)
+        sub(/^"/, "", tag)
+        sub(/"$/, "", tag)
+        if (tag != "") print FILENAME "\tT\t" tag
+      }
+      next
+    }
+    /^[ \t]*tags:[ \t]*$/ { print FILENAME "\tB\t"; next }
+  ' ${FILES[@]+"${FILES[@]}"})
 
 while IFS=$'\t' read -r f t; do
   [ -z "$t" ] && continue

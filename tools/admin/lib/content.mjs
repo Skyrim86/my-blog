@@ -551,27 +551,62 @@ function titleFromBody(body) {
   return m ? m[1] : '';
 }
 
+// 按 (路径, mtime, size) 缓存每个文件的解析结果。
+//
+// 为什么需要它：`/api/state` 被前端每 6 秒轮询一次，而它要算「哪些是草稿、哪些排期在未来」
+// —— 都得先有完整文件清单。原先每次轮询都重新读盘 + 解析全部 markdown（150 个文件约 45ms，
+// 一小时 600 次），纯属重复劳动。
+//
+// 这里学 lib/search.mjs 那套（正文行按 mtime+size 缓存）：文件没动就复用上次的解析结果，
+// 每次轮询退化成 150 次 stat（几毫秒）。**没有引入新鲜度代价** —— mtime 变了就自动重解析，
+// 所以别的会话在外面改文件、或管理页自己写盘，下一次列表就能看到，不必显式失效。
+const itemCache = new Map(); // abs → { mtimeMs, size, item }
+
+async function readItemCached(repoRoot, abs) {
+  let st;
+  try {
+    st = await fs.stat(abs);
+  } catch {
+    return null; // 读不到（刚被删掉）——交给调用方跳过
+  }
+  const hit = itemCache.get(abs);
+  if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.item;
+
+  const rel = relFromRoot(repoRoot, abs);
+  const type = classify(rel);
+  const parsed = parseFrontMatter(await fs.readFile(abs, 'utf8'));
+  const item = {
+    path: rel,
+    type,
+    typeLabel: typeLabel(type),
+    ...materialGroupFields(rel, type),
+    title: parsed.values.title || titleFromBody(parsed.body) || rel.replace(/^content\//, ''),
+    draft: parseBool(parsed.values.draft, false),
+    math: parseBool(parsed.values.math, false),
+    weight: parseNumber(parsed.values.weight, 0),
+    date: parsed.values.date,
+    tags: parsed.values.tags,
+    hasFrontMatter: parsed.hasFm,
+  };
+  itemCache.set(abs, { mtimeMs: st.mtimeMs, size: st.size, item });
+  return item;
+}
+
 export async function listContent(repoRoot) {
   const root = contentRoot(repoRoot);
-  const files = await walk(root, []);
+  const files = (await walk(root, [])).sort();
   const items = [];
-  for (const abs of files.sort()) {
-    const rel = relFromRoot(repoRoot, abs);
-    const type = classify(rel);
-    const parsed = parseFrontMatter(await fs.readFile(abs, 'utf8'));
-    items.push({
-      path: rel,
-      type,
-      typeLabel: typeLabel(type),
-      ...materialGroupFields(rel, type),
-      title: parsed.values.title || titleFromBody(parsed.body) || rel.replace(/^content\//, ''),
-      draft: parseBool(parsed.values.draft, false),
-      math: parseBool(parsed.values.math, false),
-      weight: parseNumber(parsed.values.weight, 0),
-      date: parsed.values.date,
-      tags: parsed.values.tags,
-      hasFrontMatter: parsed.hasFm,
-    });
+  const seen = new Set();
+  for (const abs of files) {
+    seen.add(abs);
+    // 逐项 await：stat 与解析都很轻，串行反而比一次性并发 150 个文件句柄更稳（Windows 上尤甚）
+    // eslint-disable-next-line no-await-in-loop
+    const item = await readItemCached(repoRoot, abs);
+    if (item) items.push(item);
+  }
+  // 文件被删/改名后，缓存里那些条目要清掉，否则这个 Map 会随着增删一直长
+  for (const abs of itemCache.keys()) {
+    if (!seen.has(abs)) itemCache.delete(abs);
   }
   // 文章按日期倒序，其余按类型分组后按 weight、路径排。
   const order = ['post', 'course-home', 'chapter', 'material', 'project', 'project-home', 'project-section', 'project-doc', 'page', 'taxonomy-page', 'courses-list', 'projects-list', 'posts-list', 'section-list', 'other'];
@@ -693,6 +728,40 @@ export async function previewUrl(repoRoot, basePath, relPath, values) {
 // 所以日志里显示的命令就是真正跑的那条。
 
 const MATERIAL_KINDS = ['notes', 'homework', 'lab'];
+
+// 新建文章时「目录名（slug）」留空的兜底：从标题派生一个**唯一且 ASCII** 的目录名。
+//
+// 为什么可以自动派生：文章的 URL 与目录名无关 —— posts 的固定链接是 /:year/:month/:slug，
+// 而那个 :slug 取自 front matter 的 slug（没写就用标题）。所以目录名只是一层内部组织，
+// 唯一的作用是别撞名。此前新建文章必须先手打一个英文短横线目录名，正是这一步卡住了
+// 「先写标题」的自然流程。
+//
+// 为什么要求 ASCII：目录名会被 content/ 路径与 git 引用，而非 ASCII 会触发 new-content.sh
+// 的「slug 含非 ASCII 字符」警告；中文标题若直接当目录名，每建一篇文章都刷一条警告，
+// 警告一多就没人看了。所以：标题能得出 ASCII slug 就用它（Hugo 使用笔记 → hugo-使用笔记 不行，
+// 退到日期名），否则用 post-<站点今天>，重名时依次加 -2 / -3。
+export function derivePostDirSlug(title, { today = '', existing = [] } = {}) {
+  const derived = hugoSlug(title);
+  const stem = /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(derived) ? derived : `post-${today || 'draft'}`;
+  const taken = new Set(existing);
+  if (!taken.has(stem)) return stem;
+  for (let i = 2; i < 1000; i++) {
+    const candidate = `${stem}-${i}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+  return `${stem}-${Date.now()}`;
+}
+
+// 现有文章目录名（content/posts/<dir>/index.md → <dir>），给上面的重名检查用。
+// 列表页 content/posts/_index.md 不是目录名（它自己就被 index.md 后缀替换成了 "_index.md"），
+// 分层目录（posts/a/b/index.md）也不是文章目录，两者都排除。
+export function postDirNames(items) {
+  const prefix = `${CONTENT_DIR}/posts/`;
+  return items
+    .filter((i) => i.path.startsWith(prefix))
+    .map((i) => i.path.slice(prefix.length).replace(/\/index\.md$/, ''))
+    .filter((d) => d !== '' && d !== '_index.md' && !d.includes('/'));
+}
 
 export function buildCreateArgs(form) {
   const kind = String(form.kind ?? '');

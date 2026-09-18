@@ -58,8 +58,36 @@ fi
 # 合法的换行符，盲替换会改坏多行公式/矩阵——所以用真检的机制**改完试渲染通过才写盘**
 # （本来能解析的公式一律不碰）。同样在算 dirty 之前跑，修出来的改动才进这次 commit。
 # 修不干净时不在这里中止：下面那两道阻断检查会把剩余的报出来并中止，口径只有一处。
+# 公式内容预检（只读，约 0.14 秒）：它本来是下面 dirty 分支里的一道阻断检查，这里提前跑一次，
+# 兼作「要不要跑上面那趟昂贵的公式真检 --fix」的判据。
+#
+# 为什么能这么判：--fix 只对**渲染失败**的公式试三种候选修法，而其中唯一还没被上一趟
+# （fix-math-escapes）覆盖的就是「JSON 双重转义」（`\\theta`）—— 而那正是预检会报的
+# `doublebs` 指纹。所以预检通过 ⇒ 没有双重转义 ⇒ --fix 无事可做，跑它只是把全部数学区
+# 再试渲染一遍，实测 7.6 秒。预检不通过时照旧跑 --fix（它可能把双重转义修好）。
+#
+# 代价说清楚：这是一次「拿时间换覆盖面」的取舍。跳过 --fix 后，若出现**预检看不见、只有真检
+# 才测得出**的公式错误，就失去了自动修复的机会 —— 但下面那道阻断的真检仍会把它报出来并中止
+# 推送，方向是「拦住」而不是「蒙混过去」。预检通过时结果可复用（之后没有任何写盘），
+# 不通过时下面会**重跑**一次，看到的是 --fix 修完之后的文件。
+ms_pre_log=""
+ms_pre_code=0
+ms_pre_reuse=0
+if [ -f scripts/check-math-syntax.mjs ] && command -v node >/dev/null 2>&1; then
+  ms_pre_log="$(node scripts/check-math-syntax.mjs 2>&1)" || ms_pre_code=$?
+  if [ "$ms_pre_code" -eq 0 ]; then ms_pre_reuse=1; fi
+fi
+
+# 公式真检自动修复：`\\theta` 这类 JSON 双重转义要"去掉一层"才对，但 `\\` 在 LaTeX 里本身是
+# 合法的换行符，盲替换会改坏多行公式/矩阵——所以用真检的机制**改完试渲染通过才写盘**
+# （本来能解析的公式一律不碰）。同样在算 dirty 之前跑，修出来的改动才进这次 commit。
+# 修不干净时不在这里中止：下面那两道阻断检查会把剩余的报出来并中止，口径只有一处。
 if [ -f scripts/check-math-katex.mjs ]; then
-  if command -v node >/dev/null 2>&1; then
+  if ! command -v node >/dev/null 2>&1; then
+    echo "  ⚠ 找不到 node，跳过公式真检自动修复（CI 仍会检查）"
+  elif [ "$ms_pre_reuse" = "1" ]; then
+    echo "▸ 公式真检自动修复：公式内容预检通过，没有要修的双重转义，本次跳过（省一次全量试渲染）"
+  else
     echo "▸ 公式真检自动修复（双重转义：验证后才写盘）"
     if mkfix_log="$(node scripts/check-math-katex.mjs --fix 2>&1)"; then
       printf '%s\n' "$mkfix_log" | sed 's/^/  /'
@@ -67,8 +95,6 @@ if [ -f scripts/check-math-katex.mjs ]; then
       printf '%s\n' "$mkfix_log" | sed 's/^/  /'
       echo "  ⚠ 有公式自动修不了；下面两道检查会列出来并中止。"
     fi
-  else
-    echo "  ⚠ 找不到 node，跳过公式真检自动修复（CI 仍会检查）"
   fi
 fi
 
@@ -141,12 +167,16 @@ if [ -n "$dirty" ]; then
   # 107/160 行）；另外 Hugo 报渲染错误时会取消剩下的页面，它列出的坏页可能不全，这一步能一次扫全。
   if [ -f scripts/check-math-syntax.mjs ]; then
     echo "▸ 公式内容预检"
-    if ! ms_log="$(node scripts/check-math-syntax.mjs 2>&1)"; then
-      printf '%s\n' "$ms_log" | sed 's/^/  /'
+    # 上面为「要不要跑 --fix」已经跑过一次：预检通过时结果可直接复用（此后没有任何写盘）；
+    # 预检不通过时那次 --fix 可能已经改过文件，必须重跑，否则会拿着旧结果误报。
+    if [ "$ms_pre_reuse" != "1" ]; then
+      ms_pre_log="$(node scripts/check-math-syntax.mjs 2>&1)" || ms_pre_code=$?
+    fi
+    printf '%s\n' "$ms_pre_log" | sed 's/^/  /'
+    if [ "$ms_pre_code" -ne 0 ]; then
       echo "✗ 公式内容预检未通过，已中止（未提交、未推送）。"
       exit 1
     fi
-    printf '%s\n' "$ms_log" | sed 's/^/  /'
   fi
 
   # 公式真检：**阻断**。快检只认已知几类写法，这一步把每个数学区逐条交给 Hugo 内嵌的 KaTeX

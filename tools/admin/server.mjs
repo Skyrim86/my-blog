@@ -27,12 +27,14 @@ import {
   classify,
   courseDirs,
   createdFiles,
+  derivePostDirSlug,
   editorSchema,
   layeredProjectDirs,
   listContent,
   invalidatePermalinks,
   parseFrontMatter,
   planFiles,
+  postDirNames,
   previewUrl,
   projectDirs,
   readContentFile,
@@ -47,7 +49,7 @@ import { resolveBash, runScript, git } from './lib/exec.mjs';
 import { checkItems, runCheckById } from './lib/checks.mjs';
 import { searchContent, invalidateSearchCache } from './lib/search.mjs';
 import { saveAsset } from './lib/asset.mjs';
-import { actionsStatus, invalidateActionsCache } from './lib/ci.mjs';
+import { actionsStatus, invalidateActionsCache, warmProxyProbe } from './lib/ci.mjs';
 import { splitFrontMatter, setField, setChildField, yamlList, yamlStr } from './lib/frontmatter.mjs';
 // 公式里的 `\*` 不是 KaTeX 命令，一处就能让整站构建失败（见 docs/formulas.md 第 3 节）。
 // 扫描与修法只有 scripts/fix-math-escapes.mjs 那一份实现，这里与 CLI、push-blog.sh 共用。
@@ -295,9 +297,23 @@ async function handleCreate(body) {
     }
   }
 
-  const argv = buildCreateArgs({ ...body, allowNewTags: false });
+  // 文章的目录名（slug）留空时替用户派生一个（见 content.mjs 的 derivePostDirSlug）：
+  // 「新建文章」不该卡在「先想一个英文短横线目录名」上，那时人通常只想先把标题写下来。
+  // 目录名对文章 URL 没有影响（posts 的固定链接是 /:year/:month/:slug，:slug 来自 front matter
+  // 或标题），所以这里只需要一个唯一、ASCII 的名字。用户自己填了就照用，不覆盖。
+  let derivedSlug = '';
+  if (body.kind === 'post' && String(body.slug ?? '').trim() === '') {
+    const items = await listContentCached().catch(() => []);
+    derivedSlug = derivePostDirSlug(body.title ?? '', {
+      today: todayInTz(SITE_TZ),
+      existing: postDirNames(items),
+    });
+    body = { ...body, slug: derivedSlug };
+  }
+
   // 上面已经把新词写进词表了，所以这里不再传 --new-tag：脚本不会遇到「词表外的标签」，
   // 日志里显示的也就是真正需要的那条命令。
+  const argv = buildCreateArgs({ ...body, allowNewTags: false });
   // 拖入 .md 的正文不进 argv（可能很大、含任意字符）：argv 里只有 --body-stdin 开关，
   // 文本本身作为 stdin 喂给脚本，由 new-content.sh 写进该子命令创建的主页面。
   // 正文里会让 KaTeX 报错的写法（`\*`、`§`、圈号）会让构建失败，落盘前先过一遍同一份修法。
@@ -319,6 +335,8 @@ async function handleCreate(body) {
     files: createdFiles(result.stdout),
     addedTerms,
     kind: body.kind,
+    // 目录名是替用户派生的时候回传，界面把它打出来（否则用户不知道文件建到哪个目录了）
+    derivedSlug,
     mathFix: { count: mathFix.count, fixes: mathFix.fixes },
   };
 }
@@ -744,6 +762,9 @@ server.listen(args.port, args.host, async () => {
   console.log(`▸ 管理页：http://${shown}:${args.port}/`);
   console.log(`  仓库根：${REPO_ROOT}`);
   console.log(`  站点子路径：${BASE_PATH}`);
+  // 代理探测挂后台（不 await）：它只服务发布页那块 CI 状态，而同步探一次要 8 秒
+  // —— 那 8 秒以前是挡在「双击启动到浏览器打开」之间的（见 lib/ci.mjs 的说明）。
+  warmProxyProbe();
   if (!bashInfo.ok) console.error(`✗ bash 不可用：${bashInfo.error}`);
   if (args.host === '0.0.0.0') {
     console.error('⚠ 已绑定 0.0.0.0：同网段的任何设备都能打开管理页，而它是可以执行命令的。用完请尽快关闭。');

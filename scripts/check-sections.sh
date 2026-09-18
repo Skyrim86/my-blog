@@ -21,6 +21,13 @@
 #
 # 用法：bash scripts/check-sections.sh
 # 退出码：0 = 合规；1 = 有缺 _index.md 或 bundle 类型冲突的目录
+#
+# ---- 性能：为什么目录名用参数展开、页面数一次算完 ----
+# 本脚本原先对每个目录的每一层祖先调一次 `dirname`，对没有列表页的目录还要 `find | wc | tr`
+# 数一遍页面。Windows 的 Git Bash 里每次进程创建约 21ms（实测：200 次 `head -1` = 4.06s），
+# 134 个目录 × 每层一次 dirname 就是 5 秒以上 —— 实测本脚本要 8.05 秒。
+# 现在目录名用 `${d%/*}` 参数展开，各目录的递归 .md 数量由**一次 awk** 顺着文件路径累加出来，
+# 扫描之后不再有任何 spawn。判定规则与输出逐字未变 —— 改这里请拿一份带缺陷的 content/ 对拍。
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -33,19 +40,45 @@ sections=0
 
 fail() { echo "✗ $*"; errors=$((errors + 1)); }
 
+# ---------- 一次算完：每个目录下（递归）有多少个 .md 页面 ----------
+# 原实现是 `find "$dir" -type f -name '*.md' | wc -l`，对每个目录都要跑一遍。这里顺着每个
+# 文件的路径把它的**每一层祖先目录**都 +1，一次得到全部目录的递归计数（键是 content/ 开头的相对路径）。
+declare -A PAGES=()
+while IFS=$'\t' read -r d c; do PAGES["$d"]="$c"; done < <(
+  find "$CONTENT_DIR" -type f -name '*.md' | awk -F/ '
+    {
+      p = ""
+      for (i = 1; i < NF; i++) {
+        p = (i == 1) ? $i : p "/" $i
+        cnt[p]++
+      }
+    }
+    END { for (d in cnt) print d "\t" cnt[d] }
+  '
+)
+
 # 目录是否位于某个 leaf bundle 内部（祖先目录里有 index.md）。
 # bundle 内的子目录是资源目录，不是 section，不该要求它带 _index.md。
+# 目录名改用参数展开（原先每层一次 dirname spawn）；没有斜杠可删时就到底了。
 in_leaf_bundle() { # $1 = 目录
-  local d
-  d="$(dirname "$1")"
-  while [ "$d" != "." ] && [ "$d" != "/" ] && [ "$d" != "$CONTENT_DIR" ]; do
-    if [ -f "$d/index.md" ]; then return 0; fi
-    d="$(dirname "$d")"
+  local d="${1%/*}"
+  while :; do
+    case "$d" in
+      .|/|"$CONTENT_DIR"|'') return 1 ;;
+    esac
+    [ -f "$d/index.md" ] && return 0
+    case "$d" in
+      */*) d="${d%/*}" ;;
+      *) return 1 ;;
+    esac
   done
-  return 1
 }
 
-while IFS= read -r dir; do
+DIRS=()
+while IFS= read -r dir; do DIRS+=("$dir"); done \
+  < <(find "$CONTENT_DIR" -type d | LC_ALL=C sort)
+
+for dir in ${DIRS[@]+"${DIRS[@]}"}; do
   if [ "$dir" = "$CONTENT_DIR" ]; then continue; fi
   if in_leaf_bundle "$dir"; then continue; fi
 
@@ -63,7 +96,7 @@ while IFS= read -r dir; do
   fi
 
   # 没有 _index.md：只有它下面确实还有页面时，才是「隐式 section」
-  pages="$(find "$dir" -type f -name '*.md' | wc -l | tr -d '[:space:]')"
+  pages="${PAGES["$dir"]-0}"
   if [ "$pages" -eq 0 ]; then continue; fi
 
   rel="${dir#"$CONTENT_DIR"/}"
@@ -71,7 +104,7 @@ while IFS= read -r dir; do
   echo "    它下面现在有 $pages 个 .md 页面，Hugo 还能生成该列表页只是因为它们还在；"
   echo "    子页面一删空，列表页本身与所有指向它的入口（导航栏、首页、正文链接）会一起 404。"
   echo "    修法：bash scripts/new-content.sh section $rel --title \"标题\""
-done < <(find "$CONTENT_DIR" -type d | LC_ALL=C sort)
+done
 
 if [ "$errors" -eq 0 ]; then
   echo "✓ 结构校验通过：$sections 个 section 目录都有 _index.md"

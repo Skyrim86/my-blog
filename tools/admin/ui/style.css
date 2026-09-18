@@ -638,6 +638,14 @@ button.danger.armed { background: var(--danger); border-color: var(--danger); co
 .about summary { cursor: pointer; color: var(--muted); }
 .about p { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
 
+/* 「更多选项」折叠块（新建表单的日期/描述/系列，编辑器的 weight/math/icon）：
+   和 .about / .vocab 一样只是把低频项收起来，不隐藏 —— 展开后字段与主区完全一致。 */
+.more-options { margin-top: 14px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+.more-options > summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.more-options > summary .hint { margin-left: 8px; }
+.more-options[open] > summary { margin-bottom: 8px; }
+.more-options .fields { margin-top: 0; }
+
 /* 勾选「直接发布」与「创建」同一行：原来两行各占一截，中间还夹着说明 */
 .create-tail { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 14px; }
 .create-tail .check { margin: 0; }

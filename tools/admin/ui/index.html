@@ -46,6 +46,17 @@
       <form id="create-form" autocomplete="off">
         <div id="create-fields" class="fields"></div>
 
+        <!-- 低频字段：日期（留空即骨架里的今天）、描述、系列。默认收起，减少首屏要面对的选项；
+             拖入 .md 带进来值时这里会自动展开（见 renderCreateFields），不会让导入的值藏在里面 -->
+        <details class="more-options" id="create-more">
+          <summary>更多选项<span class="hint">日期 / 描述 / 系列</span></summary>
+          <div id="create-more-fields" class="fields"></div>
+          <div class="field" id="create-series-wrap">
+            <label for="create-series">系列<span class="hint">只有文章用得上；填了会自动生成同系列导航，多个系列用逗号分隔</span></label>
+            <input type="text" id="create-series" data-field="series">
+          </div>
+        </details>
+
         <div class="field" id="create-tags-wrap">
           <label>标签<span class="hint">勾选即用；词表里没有的词在下面新增</span></label>
           <input type="search" id="tag-search" placeholder="筛选标签…">
@@ -59,11 +70,6 @@
         <div class="field" id="create-cats-wrap">
           <label>分类<span class="hint">词表里只有 <span id="cat-hint"></span></span></label>
           <div class="chips selectable" id="cat-chips"></div>
-        </div>
-
-        <div class="field" id="create-series-wrap">
-          <label for="create-series">系列<span class="hint">填了会自动生成同系列导航；多个系列用逗号分隔</span></label>
-          <input type="text" id="create-series">
         </div>
 
         <div class="create-tail">
@@ -143,11 +149,12 @@
       </div>
 
       <div class="pub-cols">
-        <details class="pub-col" open>
+        <!-- 默认收起：这两块是「查证用」的，不该跟「提交说明 + 发布按钮」抢首屏 -->
+        <details class="pub-col">
           <summary>比工作区更新：最近提交</summary>
           <div id="commit-list" class="list"></div>
         </details>
-        <details class="pub-col" open>
+        <details class="pub-col">
           <summary>CI 状态（GitHub Actions）<button type="button" class="ghost tiny" id="ci-refresh">刷新</button></summary>
           <div id="ci-list" class="list"></div>
         </details>

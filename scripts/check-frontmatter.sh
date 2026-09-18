@@ -20,15 +20,37 @@
 #   c. 两个页面 title 完全相同 —— 列表页与搜索结果里分不出谁是谁
 #   d. 处在 cascade 之下的项目文档自己写了 tags —— 会丢掉项目级标签
 #   e. 正文含公式、又会出现在列表卡片里的页面缺 summary —— 卡片摘要会显示成错乱公式
+#
+# ---- 为什么不是「每个文件一串子进程」 ----
+# 本脚本原先对每个文件要调约 26 次外部命令（head / tr / awk×5 / cut / grep×3 …）。这在 Linux
+# 上无所谓，但在 Windows 的 Git Bash 里每次进程创建约 21ms（实测：200 次 `head -1` = 4.06s，
+# 而 1000 次 bash 内建循环 = 25ms），150 个文件就是约 3600 次 spawn —— 实测这一项独占一次
+# `push-blog.sh` 的 102 秒里的 **72.6 秒**，而检查逻辑本身是毫秒级的。
+#
+# 现在改成：**一次 awk 扫描**（把每个文件的顶层键值、正文有没有公式、有没有 front matter 块
+# 一次性抽成 TSV）+ **bash 内建判断**（关联数组查键、参数展开取目录名、case 匹配路径）。
+# 扫描之后不再有任何 spawn。判定规则与输出逐字未变 —— 改这里请拿一份**带缺陷的 content/**
+# 对拍新旧输出（本仓库做过：覆盖缺 front matter / 缺 title / 坏日期 / 未来日期 / section 与
+# 材料页写 tags / cascade 下自带 tags / 未知键 / 公式缺 summary / 重复标题 / 块列表 等分支）。
+#
+# **awk 只用 POSIX 特性**（sub / index / split / FNR / FILENAME / ERE 字符类，不用 gawk 专有的
+# gensub、ENDFILE、数组的数组）：本机 Git Bash 是 gawk，而 CI 的 ubuntu runner 上 `awk` 可能是
+# mawk —— 用了 gawk 专有语法会在本地全绿、CI 上静默给出错结果（不是报错，是结果不对）。
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
 # 站点时区是 Asia/Shanghai（hugo.toml 顶层）。CI 跑在 UTC，所以这里也按东八区取「今天」，
 # 否则东八区早上 8 点前的构建会把当天日期的页面误判成「未来」。
+# 注意：scripts/check-consistency.mjs 的规则 D 直接从本文件的文本里抽这个 TZ 值，
+# 改写成别的形式（如引入 TZ_NAME 常量）会让那条检查取不到值而失败。
 TODAY="$(TZ=Asia/Shanghai date +%F)"
 
 # 已知顶层键。没列出的键只警告、不阻断（Hugo 与主题本身还有很多合法 page 参数）。
+# 注意：scripts/check-consistency.mjs 的规则 E 是**从这个文件的文本里**抽下面这个 KNOWN_KEYS
+# 赋值块（正则匹配到第一个引号为止），再去比对 archetypes/ 与管理页字段表里的顶层键。
+# 所以：① 别把它改成数组或另起变量名；② 上面的注释里也不要写出「KNOWN_KEYS 加引号」的样子，
+# 否则正则先命中注释、抽出一段空词表，规则 E 就会报一堆假的「没登记」错误（踩过）。
 KNOWN_KEYS="title description date draft weight summary math layout url placeholder
 tags categories series icon repo unit cascade cover slug lastmod publishDate expiryDate
 # plan：课程主页的规划清单（见 layouts/_shortcodes/course-plan.html），值是一个列表
@@ -38,104 +60,120 @@ KNOWN_KEYS=" $(printf '%s' "$KNOWN_KEYS" | tr -s '[:space:]' ' ') "
 
 errors=0
 warns=0
-files=0
 TITLE_FILE="$(mktemp)"
 trap 'rm -f "$TITLE_FILE"' EXIT
 
 fail() { echo "✗ $*"; errors=$((errors + 1)); }
 warn() { echo "  ⚠ $*"; warns=$((warns + 1)); }
 
-# 取 front matter 块内的**顶层**键值（0 缩进），输出 KEY<TAB>VALUE。
-# 缩进行（cascade 的子键、cover 的子键）与 "- target:" 这类列表项都不会命中。
-fm_top() {
-  awk '
+# ---------- 文件清单 ----------
+# 顺序沿用原先的 `find … | sort`（不用 LC_ALL=C：那会改变中文文件名的排序，也就改变了报告行序）。
+FILES=()
+while IFS= read -r f; do FILES+=("$f"); done \
+  < <(find content -name '*.md' -type f | sort)
+FILE_COUNT="${#FILES[@]}"
+
+# ---------- 一次扫描，抽出后面全部判断要用的东西 ----------
+#
+# awk 输出 TSV（首列是 tag）：
+#   F <file> <key> <value>   front matter 块内的**顶层**键值（只认 0 缩进、形如 `key:` 的行；
+#                            cascade / cover 的子键与 "- target:" 这类列表项都不会命中）
+#   M <file>                 正文（第 2 个 --- 之后）里出现过 $，即含公式
+#   N <file>                 首行不是 ---，即没有 front matter 块
+#
+# `n` 数的是 --- 分隔行的出现次数：n==1 是 front matter 块内、n>=2 是正文
+# —— 与原实现里 fm_top / body_has_math 的分界完全相同。
+declare -A HAS=() VAL=() MATH=() NO_FM=() KEYS=()
+while IFS=$'\t' read -r tag file a b; do
+  case "$tag" in
+    F)
+      # 同名的顶层键只认**第一个**（与原 get_val 里 first-match-then-exit 一致）；
+      # KEYS 保留出现顺序，供后面的「未知顶层键」逐条检查。
+      if [ -z "${HAS["$file|$a"]+x}" ]; then HAS["$file|$a"]=1; VAL["$file|$a"]="$b"; fi
+      KEYS["$file"]="${KEYS["$file"]-} $a"
+      ;;
+    M) MATH["$file"]=1 ;;
+    N) NO_FM["$file"]=1 ;;
+  esac
+done < <(awk '
     { sub(/\r$/, "") }
-    BEGIN { n = 0 }
-    /^---[[:space:]]*$/ { n++; if (n == 2) exit; next }
-    n != 1 { next }
-    /^[A-Za-z_][A-Za-z0-9_.-]*[[:space:]]*:/ {
-      k = $0; sub(/[[:space:]]*:.*/, "", k)
-      v = $0; sub(/^[^:]*:[[:space:]]*/, "", v)
-      sub(/[[:space:]]+#.*$/, "", v)
-      sub(/[[:space:]]*$/, "", v)
-      print k "\t" v
+    FNR == 1 { n = 0; math = 0; if ($0 != "---") print "N\t" FILENAME }
+    /^---[ \t]*$/ { n++; next }
+    n == 1 && /^[A-Za-z_][A-Za-z0-9_.-]*[ \t]*:/ {
+      k = $0; sub(/[ \t]*:.*/, "", k)
+      v = $0; sub(/^[^:]*:[ \t]*/, "", v)
+      sub(/[ \t]+#.*$/, "", v)
+      sub(/[ \t]*$/, "", v)
+      print "F\t" FILENAME "\t" k "\t" v
+      next
     }
-  ' "$1"
-}
+    n >= 2 && !math && index($0, "$") > 0 { math = 1; print "M\t" FILENAME }
+  ' ${FILES[@]+"${FILES[@]}"})
 
-has_key() { # $1=KEY<TAB>VALUE 列表, $2=键
-  printf '%s\n' "$1" | cut -f1 | grep -qx "$2"
-}
-
-# 正文（front matter 块之后）里有没有公式。判据是 `$`：AGENTS 明令禁止把裸 `$` 写进正文，
-# 所以正文里的 `$` 一定是公式定界符。代价是只用 `\(…\)` 写公式的页面漏检。
-body_has_math() {
-  awk '
-    { sub(/\r$/, "") }
-    /^---[[:space:]]*$/ { n++; next }
-    n >= 2 { print }
-  ' "$1" | grep -q '\$'
-}
+# 键值一律写成关联数组的**直接展开**（`${VAL["$rel|date"]-}`），不要包成 `$(get_val …)`
+# 这类命令替换：命令替换要 fork，而 Cygwin 的 fork 实测约 8ms —— 每个文件 5–6 次就把这一趟
+# 从 0.4 秒拉到 8 秒（这是本次改造里最后一个、也是最不直观的性能陷阱）。
+# 判空用 `${VAL["$rel|key"]-}`，判存在用 `${HAS["$rel|key"]+x}`。
 
 # 这一页是不是处在某个 cascade 之下？判据是**祖先目录里存在 _index.md**，而不是写死项目名，
 # 所以以后新建的分层项目自动生效。只从页面所在目录往上找到 content/projects 为止：
 # 平铺项目（content/projects/<项目>/index.md）下面没有 _index.md，标签本来就该写在自己身上。
-under_cascade() {
-  local d
-  d="$(dirname "$1")"
-  while [ "$d" != "content/projects" ] && [ "$d" != "." ] && [ "$d" != "/" ]; do
+# 目录名用参数展开取（原先每层一次 dirname spawn）；没有斜杠可删时就到底了。
+under_cascade() { # $1 = 文件相对路径
+  local d="${1%/*}"
+  while :; do
+    case "$d" in
+      content/projects|.|/|'') return 1 ;;
+    esac
     [ -f "$d/_index.md" ] && return 0
-    d="$(dirname "$d")"
+    case "$d" in
+      */*) d="${d%/*}" ;;
+      *) return 1 ;;
+    esac
   done
-  return 1
 }
 
-get_val() { # $1=KEY<TAB>VALUE 列表, $2=键
-  printf '%s\n' "$1" | awk -F'\t' -v k="$2" '$1 == k { print $2; exit }'
-}
-
-while IFS= read -r f; do
-  files=$((files + 1))
-  rel="$f"
-
+# ---------- 逐文件判断（顺序与原先一致，报告行序不变） ----------
+for rel in ${FILES[@]+"${FILES[@]}"}; do
   # 1) 必须有 front matter 块。不能只看「有没有 ---」（正文里的分隔线也会命中），
   #    所以要求**第一行**就是 ---。
-  if [ "$(head -1 "$f" | tr -d '\r')" != "---" ]; then
+  if [ -n "${NO_FM["$rel"]+x}" ]; then
     fail "$rel：没有 front matter 块（首行必须是 ---）"
     continue
   fi
 
-  pairs="$(fm_top "$f")"
   # title 去掉包裹的引号再比较（本仓库的 title 统一写双引号，带引号查重会看不出「同名」）
-  title="$(get_val "$pairs" title | sed 's/^"//; s/"$//')"
+  title="${VAL["$rel|title"]-}"
+  title="${title#\"}"
+  title="${title%\"}"
 
   # 2) title 必填（所有页面，含 section 与词条列表页）
-  if ! has_key "$pairs" title || [ -z "$title" ]; then
+  if [ -z "${HAS["$rel|title"]+x}" ] || [ -z "$title" ]; then
     fail "$rel：缺 title（页面 <title>、OG、JSON-LD 与 giscus 关联键都依赖它）"
   fi
 
   is_index=0
-  case "$(basename "$f")" in _index.md) is_index=1 ;; esac
+  case "$rel" in */_index.md) is_index=1 ;; esac
 
   # 3) date / draft：只对「有日期语义」的三个 section 下的非 _index.md 生效。
   #    顶层独立页（about/archives/search）按 Hugo 惯例不带 date/draft，故不在此列。
   case "$rel" in
     content/posts/*|content/courses/*|content/projects/*)
       if [ "$is_index" -eq 0 ]; then
-        has_key "$pairs" date  || fail "$rel：缺 date"
-        has_key "$pairs" draft || fail "$rel：缺 draft"
+        [ -n "${HAS["$rel|date"]+x}" ]  || fail "$rel：缺 date"
+        [ -n "${HAS["$rel|draft"]+x}" ] || fail "$rel：缺 draft"
       fi
       ;;
   esac
 
   # 4) date 格式 + a) 未来日期
-  d="$(get_val "$pairs" date)"
+  d="${VAL["$rel|date"]-}"
   if [ -n "$d" ]; then
     case "$d" in
       [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*) ;;
       *) fail "$rel：date「$d」不是 YYYY-MM-DD 开头（Hugo 解析不了会退回零值）" ;;
     esac
-    if [ "$(get_val "$pairs" draft)" != "true" ] && [ "${d:0:10}" \> "$TODAY" ]; then
+    if [ "${VAL["$rel|draft"]-}" != "true" ] && [ "${d:0:10}" \> "$TODAY" ]; then
       warn "$rel：date $d 在未来而 draft 不是 true —— CI 不构建未来内容，这一页不会上线"
     fi
   fi
@@ -143,7 +181,7 @@ while IFS= read -r f; do
   # 5) section 页不许写顶层 tags/categories
   if [ "$is_index" -eq 1 ]; then
     for k in tags categories; do
-      if has_key "$pairs" "$k"; then
+      if [ -n "${HAS["$rel|$k"]+x}" ]; then
         fail "$rel：section 页写了顶层 $k —— 应写进 cascade 并加 target: {kind: page}，否则 /$k/ 计数虚高而词条页里不出现"
       fi
     done
@@ -156,7 +194,7 @@ while IFS= read -r f; do
   case "$rel" in
     content/courses/*/*/index.md)
       for k in tags categories; do
-        if has_key "$pairs" "$k"; then
+        if [ -n "${HAS["$rel|$k"]+x}" ]; then
           fail "$rel：课程材料页写了顶层 $k —— 会整体丢掉课程主页 cascade 下发的标签"
         fi
       done
@@ -166,7 +204,7 @@ while IFS= read -r f; do
   # d) 处在 cascade 之下的项目文档自带 tags（只警告：这是有意的取舍）
   case "$rel" in
     content/projects/*)
-      if [ "$is_index" -eq 0 ] && under_cascade "$rel" && has_key "$pairs" tags; then
+      if [ "$is_index" -eq 0 ] && [ -n "${HAS["$rel|tags"]+x}" ] && under_cascade "$rel"; then
         warn "$rel：自带 tags 会整体丢掉项目主页 cascade 下发的标签（cascade 只填空、不合并）"
       fi
       ;;
@@ -180,26 +218,22 @@ while IFS= read -r f; do
   #    注意：这里**不能**用 `math: true` 做判据 —— 课程材料页的 math 来自课程主页 cascade，
   #    页面自身 front matter 里并没有这个键。也不能把 summary 写进 archetypes（空字符串会被
   #    Hugo 当成「已设置」，卡片反而变成空白），所以只能靠这条警告盯住。
-  if [ "$is_index" -eq 0 ] && ! has_key "$pairs" summary \
-    && [ "$(get_val "$pairs" searchHidden)" != "true" ]; then
-    case "$(get_val "$pairs" layout)" in
+  if [ "$is_index" -eq 0 ] && [ -z "${HAS["$rel|summary"]+x}" ] \
+    && [ "${VAL["$rel|searchHidden"]-}" != "true" ] \
+    && [ -n "${MATH["$rel"]+x}" ]; then
+    case "${VAL["$rel|layout"]-}" in
       toolcard|search|archives) ;;
-      *)
-        if body_has_math "$rel"; then
-          warn "$rel：正文含公式但没写 summary —— 列表卡片摘要会是错乱公式，请补 summary（可抄 description）"
-        fi
-        ;;
+      *) warn "$rel：正文含公式但没写 summary —— 列表卡片摘要会是错乱公式，请补 summary（可抄 description）" ;;
     esac
   fi
 
-  # b) 未知顶层键
-  while IFS=$'\t' read -r k _v; do
-    [ -z "$k" ] && continue
+  # b) 未知顶层键（KEYS 里按出现顺序记着这个文件的所有顶层键）
+  for k in ${KEYS["$rel"]-}; do
     case "$KNOWN_KEYS" in
       *" $k "*) ;;
       *) warn "$rel：顶层键「$k」不在已知集合里（拼错？）" ;;
     esac
-  done <<< "$pairs"
+  done
 
   # c) 收集 title，末尾统一查重。只排除 archives/search 这两个独立 layout 的工具页
   #    （它们的标题是「归档」「搜索」，与内容页重名没有意义）。
@@ -207,12 +241,12 @@ while IFS= read -r f; do
   #    mapping='pathname' 之后评论不再串页，查重的理由变成「列表页/搜索结果里分不出谁是谁」，
   #    对材料页同样成立，所以现在一并统计。
   if [ "$is_index" -eq 0 ] && [ -n "$title" ]; then
-    case "$(get_val "$pairs" layout)" in
+    case "${VAL["$rel|layout"]-}" in
       archives|search) ;;
       *) printf '%s\t%s\n' "$title" "$rel" >> "$TITLE_FILE" ;;
     esac
   fi
-done < <(find content -name '*.md' -type f | sort)
+done
 
 # c) title 查重
 dup_titles="$(cut -f1 "$TITLE_FILE" | sort | uniq -d)"
@@ -227,9 +261,9 @@ fi
 echo
 if [ "$errors" -eq 0 ]; then
   if [ "$warns" -eq 0 ]; then
-    echo "✓ front matter 校验通过：$files 个文件，无错误无警告"
+    echo "✓ front matter 校验通过：$FILE_COUNT 个文件，无错误无警告"
   else
-    echo "✓ front matter 校验通过：$files 个文件，$warns 条警告（不阻断，请自行判断）"
+    echo "✓ front matter 校验通过：$FILE_COUNT 个文件，$warns 条警告（不阻断，请自行判断）"
   fi
   exit 0
 fi

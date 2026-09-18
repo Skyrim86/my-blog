@@ -61,17 +61,12 @@ fi
 
 [ "$NO_PREVIEW" = "1" ] && PASSTHROUGH+=("--no-preview")
 
-# CI 状态（发布页那块）要访问 api.github.com。这台机器上直连会超时、本地代理能通，
-# 所以启动时探一次。端口不写死：按常见顺序试，谁能连上就用谁；都连不上就跳过，
-# CI 面板显示「读不到」，其余功能不受影响。已有 HTTPS_PROXY 时不覆盖用户的设置。
-if [ -z "${ADMIN_PROXY:-}" ] && [ -z "${HTTPS_PROXY:-}" ] && [ -z "${https_proxy:-}" ]; then
-  for _p in 7891 7890 10809 1080; do
-    if curl -sS -m 3 -x "http://127.0.0.1:${_p}" https://api.github.com/rate_limit >/dev/null 2>&1; then
-      export ADMIN_PROXY="http://127.0.0.1:${_p}"
-      break
-    fi
-  done
-fi
+# CI 状态（发布页那块）要访问 api.github.com，而这台机器上直连会超时、本地代理能通。
+# **代理探测不在这里做了**：以前这里按 7891 → 7890 → 10809 → 1080 同步探一遍，本机没有代理
+# 在跑时四次全超时，实测让「双击启动到浏览器打开」多等 8.1 秒（8774ms → 624ms 的差别），
+# 而它只服务 CI 那一小块。现在由 tools/admin/lib/ci.mjs 在服务启动后**后台**探：先 TCP 探端口，
+# 端口确实开着才用 curl 验证它真能代理，真正要读 CI 时才等结果。
+# 已经设了 ADMIN_PROXY / HTTPS_PROXY 的话，ci.mjs 直接用，不探测。
 
 open_url() {
   local url="$1"
