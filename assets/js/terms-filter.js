@@ -51,6 +51,16 @@
   empty.textContent = self.dataset ? (self.dataset.empty || '') : '';
   empty.hidden = true;
 
+  /* 读屏播报：筛选把列表改短了，但读屏不会自动报告 DOM 变化，用户敲完关键词听不到任何反馈。
+     单独挂一个 .sr-only 的 role="status"（隐含 aria-live="polite" + aria-atomic），
+     每次筛选后写入条数；一条都没匹配时改播「没有匹配的词条」，比「显示 0 / 11 个词条」有用。
+     注意 apply() 只在用户输入时调用 —— 页面刚打开时别播报，那时读者还没做任何操作。 */
+  var status = document.createElement('p');
+  status.className = 'sr-only';
+  status.setAttribute('role', 'status');
+
+  var resultTpl = (self.dataset && self.dataset.result) || '';
+
   box.appendChild(input);
   /* 插在**第一块组标题之前**（而不是第一个列表之前）：后者会把输入框塞进「标题 ↔ 它的列表」
      中间（实测截图里「数学」下面先出现输入框、再出现数学的五个词条），而且会让下面
@@ -60,6 +70,7 @@
   var anchor = firstGroup.title || firstGroup.list;
   anchor.parentNode.insertBefore(box, anchor);
   box.parentNode.insertBefore(empty, box.nextSibling);
+  box.parentNode.insertBefore(status, empty.nextSibling);
 
   function apply() {
     var query = input.value.trim().toLowerCase();
@@ -80,6 +91,12 @@
       group.title.hidden = !any;
     });
     empty.hidden = shown !== 0;
+    /* 文案与可见的 empty 同源（data-empty），只是零匹配时换成它来播报。
+       只在文字真的变了才写：重复写入同样的文本会让部分读屏反复播报。 */
+    var said = shown === 0
+      ? (self.dataset ? (self.dataset.empty || '') : '')
+      : resultTpl.replace('{shown}', String(shown)).replace('{total}', String(items.length));
+    if (status.textContent !== said) status.textContent = said;
   }
 
   // 同步过滤：词条只有几十个，遍历成本可忽略。

@@ -106,7 +106,9 @@
   counter-increment: project-index;
 }
 
-.project-index-item:hover {
+/* 补 :focus-within，理由同 .course-index-item：键盘焦点也要有与鼠标一致的抬升反馈 */
+.project-index-item:hover,
+.project-index-item:focus-within {
   border-color: var(--secondary);
   transform: translateY(-2px);
 }

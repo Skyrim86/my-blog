@@ -18,7 +18,13 @@
   position: static;
   display: block;
   height: auto;
+  /* 下面三条是「div 换成 h1」后为保持视觉不变而补的：h1 自带 margin-block-start 与更大的
+     字重，不压掉的话那个大数字会往下掉一段、并且从细体变粗体。
+     font-weight 用 inherit 而不是写死 400 —— 它继承到的正是原来 div 的字重（body 的 normal），
+     将来若调整 body 字重，这里跟着走。 */
+  margin-top: 0;
   margin-bottom: .4rem;
+  font-weight: inherit;
   font-size: clamp(88px, 16vw, 148px);
   line-height: 1;
   color: var(--primary);

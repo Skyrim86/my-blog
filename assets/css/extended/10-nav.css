@@ -1,12 +1,52 @@
 /* ============================================
-   窄屏导航折叠
+   导航与分页的交互
 
-   - 起因：主题这份 PaperMod 的 #menu 在窄屏是 flex-wrap 换行，7 个菜单项折成两行，
+   一、菜单项的悬停反馈（2026-09-18 补）
+   主题只写了 .menu .active（当前页），**从来没有 .menu a:hover** —— 实测真实鼠标移上去时
+   color / background / text-decoration / opacity 全都不变，8 项主导航点上去毫无反馈。
+   这里按 .active 的视觉语言补一套：同样用 2px 下划线 + 同样偏移，但换成强调色，
+   这样「悬停」与「当前页」不会混为一谈（后者保留 --primary 字色 + 500 字重）。
+   刻意不动 padding：菜单是 flex 行 + column-gap 布局，加内边距会改宽度、让换行点提前。
+
+   二、分页按钮（2026-09-18 补）
+   主题的 .pagination a 是个反色药丸（--primary 底 + --theme 字），同样没有悬停态。
+   只换底色不换尺寸，避免翻页时按钮跳动。
+
+   三、窄屏导航折叠
+   - 起因：主题这份 PaperMod 的 #menu 在窄屏是 flex-wrap 换行，8 个菜单项折成两行，
      顶栏被顶高、正文被往下推。
    - 折叠逻辑在 assets/js/nav-toggle.js：它给 <html> 加 .has-nav-toggle 并插入按钮，
      下面所有收起规则都挂在这个类下，所以禁用 JS 时菜单照主题原样显示。
    - 断点与主题的 .header-nav 移动端断点保持一致（640px）。
    ============================================ */
+
+/* ---------- 菜单项悬停 ---------- */
+.menu a {
+  transition: color .18s ease;
+}
+
+.menu a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.3rem;
+  text-decoration-thickness: 2px;
+}
+
+/* 当前页标记（主题那份）保持原样，只声明优先级关系：悬停在当前页上也走强调色，
+   否则「点自己」会看起来像没反应。 */
+.menu .active:hover {
+  color: var(--accent);
+}
+
+/* ---------- 分页 ---------- */
+.pagination a {
+  transition: background-color .18s ease;
+}
+
+.pagination a:hover {
+  background: var(--accent);
+}
 
 .nav-toggle {
   display: none;

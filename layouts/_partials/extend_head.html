@@ -23,7 +23,18 @@
 {{- $termsFilter := resources.Get "js/terms-filter.js" | minify | fingerprint }}
 <script defer src="{{ $termsFilter.RelPermalink }}" integrity="{{ $termsFilter.Data.Integrity }}" crossorigin="anonymous"
         data-placeholder="{{ i18n "termsFilterPlaceholder" (dict "name" .Title) }}"
-        data-empty="{{ i18n "termsFilterEmpty" }}"></script>
+        data-empty="{{ i18n "termsFilterEmpty" }}"
+        data-result="{{ i18n "termsFilterResult" }}"></script>
+{{- end }}
+
+{{- /* 搜索结果的读屏播报：只挂在搜索页。结果列表由**主题**的 fastsearch.js 异步写入
+       且没有 aria-live，这份脚本用 MutationObserver 观察条数变化并写进一个 .sr-only 的
+       role="status" 节点（不覆盖主题模板的理由见脚本头部注释）。 */ -}}
+{{- if eq .Layout "search" }}
+{{- $a11y := resources.Get "js/a11y-announce.js" | minify | fingerprint }}
+<script defer src="{{ $a11y.RelPermalink }}" integrity="{{ $a11y.Data.Integrity }}" crossorigin="anonymous"
+        data-count="{{ i18n "searchResultCount" }}"
+        data-none="{{ i18n "searchNoResult" }}"></script>
 {{- end }}
 
 {{- /* 数学公式（KaTeX）：公式已在**构建期**由 layouts/_markup/render-passthrough.html 渲染成
@@ -60,7 +71,8 @@
 {{- /* 站点背景图：把 assets/ 下的图片解析成带子路径前缀的 URL，写进一张生成的 CSS
        （模板里不写 <style>，也不在 CSS 里硬编码 /my-blog/）。hugo.toml 里留空即关闭背景。
 
-       两张图：backgroundImage 给深色主题（夜色墨绒），backgroundImageLight 给浅色主题（象牙纸）。
+       两张图：backgroundImage 给深色主题（夜间城市照片），backgroundImageLight 给浅色主题（日间：
+       淡天青天空 + 城市剪影 + 日光晕）。两者方向相反，切换主题的观感是「换了个时辰」而不是「换了张壁纸」。
        分两张是必须的——同一张夜色图压在 84% 的浅色蒙版下不是「背景」而是一块脏灰。
        两者都可留空，各自回退到纯色。变量写进同一张外链 CSS，浏览器只请求当前主题用到的那张。 */ -}}
 {{- $bgVars := slice }}

@@ -101,17 +101,25 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **纯装饰单独一层**（`13-ornament.css`）：标题左侧短竖线、分隔线中央菱形、列表卡片左侧细线、页脚渐隐线、目录当前项高亮。判断标准是「删掉它页面只是变朴素，不该坏」——组件样式仍归 01~12 各自的文件。
 - 圆角从主题默认收窄到 7px：硬朗线条是这套风格的一部分，12px 那套偏「卡片 App」。
 
-**背景图不写死在 CSS 里**：唯一事实源是 `hugo.toml` 的 `[params.appearance]`，**两张分开**——`backgroundImage` 给深色主题（墨绒夜）、`backgroundImageLight` 给浅色主题（象牙纸）。`extend_head.html` 用 `resources.Get` 取到带子路径前缀的 `RelPermalink`，再由 `resources.FromString` 生成一张只含这两个变量的小 CSS 外链。于是模板里不写 `<style>`、CSS 里不硬编码 `/my-blog/`、换图只改一行配置；**两个键都留空即关闭背景**，退回纯色主题。
+**背景图不写死在 CSS 里**：唯一事实源是 `hugo.toml` 的 `[params.appearance]`，**两张分开**——`backgroundImage` 给深色主题（夜景城市照片）、`backgroundImageLight` 给浅色主题（日间：淡天青天空 + 城市剪影 + 日光晕）。`extend_head.html` 用 `resources.Get` 取到带子路径前缀的 `RelPermalink`，再由 `resources.FromString` 生成一张只含这两个变量的小 CSS 外链。于是模板里不写 `<style>`、CSS 里不硬编码 `/my-blog/`、换图只改一行配置；**两个键都留空即关闭背景**，退回纯色主题。
 
 分两张是必须的：同一张夜色图压在 84% 的浅色蒙版下不是背景，是一块脏灰（换图时实测过——浅色页右上角留了一块明显的灰白光斑）。分主题之后任一主题只请求自己那张。
 
-深色主题用的是**真图**：`assets/images/bg-night-city.webp`（1600×900，127 KB，夜景城市 + 星空）。蒙版同步放松到 `.54→.84`——原来的 `.72→.92` 把真图压没了，那正是「看不出有背景」的原因。放宽是安全的：正文可读性由 `.post-single` / `.page-header` 的 `--surface`（76% 不透明 + `backdrop-filter`）与列表卡片自己承担，不靠这层蒙版。**代价要认清**：127 KB 对一张每页都下载的资源不算小（原来的纯质感图是 4 KB），换来的是首屏与页面边缘真的有气氛。出处：Wallhaven `wallhaven.cc/w/wy6vqx`（画师作品，个人使用），源图压到 1600 宽存 `tools/backgrounds/source-night-city.jpg`（358 KB），由 `make-backgrounds.py` 的 `city_background()` 处理。
+**两张是两个「时刻」，方向相反**：夜间是上暗下亮的墨紫 + 月亮 + 亮窗城市，日间是上淡天青下象牙 + 日光晕 + 蓝灰城市剪影。切换主题的观感因此是「换了个时辰」而不是「换了张壁纸」。
+
+深色主题用的是**真图**：`assets/images/bg-night-city.webp`（1600×900，127 KB，夜景城市 + 星空）。蒙版同步放松到 `.54→.84`——原来的 `.72→.92` 把真图压没了，那正是「看不出有背景」的原因。放宽是安全的：正文可读性由 `.post-single` / `.page-header` 的 `--surface`（76% 不透明 + `backdrop-filter`）与列表卡片自己承担，不靠这层蒙版。**代价要认清**：127 KB 对一张每页都下载的资源不算小（纯质感图是 4 KB），换来的是首屏与页面边缘真的有气氛。出处：Wallhaven `wallhaven.cc/w/wy6vqx`（画师作品，个人使用），源图压到 1600 宽存 `tools/backgrounds/source-night-city.jpg`（358 KB），由 `make-backgrounds.py` 的 `city_background()` 处理。
 
 **另有一版把黑发少女叠在城市上的合成图**（Wallhaven `wallhaven.cc/w/6lwmy7`，源切片 `source-lady-slice.webp`，函数 `city_lady_background()`）——上线后撤回了：压在蒙版下她显得突兀。人物这个位置改由右下角的看板娘承担（见 ㉕），那才是「人是人、背景是背景」的做法。合成版文件 `bg-night-city-lady.webp` 与脚本都留着，想切回去只改 `hugo.toml` 一行。
 
 **（下面是已撤回那版的留档，做法本身仍有参考价值）人物是叠上去的，不是抠干净的**：抠图（GrabCut）会把人物周围一大块夜空/山体一起带下来，抠太干净又会出现一圈贴纸边。实际做法是「大羽化 + 冷调统一」（椭圆 inset 0.24、高斯 38、蓝通道 +14）——只让白裙、黑发和提灯这几个高对比部分浮出来，被带下来的那点背景在城市夜景的暗部里反而成了「她站的山坡」。调参时别只看合成图，要看**压过蒙版的页面截图**：蒙版会把中低对比的部分直接吃掉，合成图上「还行」的东西在页面上可能就是没有。
 
-浅色主题仍是**程序生成的纯质感图**：`assets/images/bg-ivory-paper.webp`（1600×900，4 KB，象牙纸 + 蔷薇暗纹 + 落瓣）。为什么浅色不上真图：暗色图压上 84% 的浅色蒙版不是「背景」而是一块脏灰（换图时实测过——浅色页右上角留了一块明显的灰白光斑）。`bg-velvet-night.webp`（4 KB）现在是备选。两张质感图由 `tools/backgrounds/make-backgrounds.py` 生成（随机种子固定，可复现；改色改密度就改 `site_backgrounds()` 的参数，改完回页面截图核对，别只看生成图）。管理页那边是另一回事——面板只盖住中间、背景看得见，用的是真实插画，见 `docs/admin.md` §20。
+浅色主题是**程序生成的日间场景**：`assets/images/bg-daylight.webp`（1600×900，6 KB，天青→象牙渐变 + 底缘城市剪影 + 日光晕 + 落瓣），由 `make-backgrounds.py` 的 `daylight_background()` 生成。**2026-09-18 之前它是「象牙纸」质感**（近纯色 + 暗纹 + 落瓣，4 KB）——问题是近纯色在 55~85% 的蒙版下等于不存在，于是深色有背景、浅色看起来是白纸，两边不对称。换成日间场景后两个主题才成对。
+
+**为什么日间不上真图和具象插画，而是「剪影 + 渐变」**：浅色蒙版同样压到 55~85%，具象画面在这个位置剩下的不是氛围而是一块灰白斑（换图时实测过）。夜景那张照片之所以压得住，靠的是「亮窗对暗天」那种**小尺度**的明暗对比；日间这边对应的就是「淡蓝灰建筑对近白天空」——同样是细碎结构，所以能活过蒙版。这条经验写在 `make-backgrounds.py` 的文件头与 `skyline()` 的注释里：**要上具象元素，它的明暗对比必须是细碎的小尺度，不能是一整块**。
+
+`bg-velvet-night.webp`（4 KB，程序生成的墨绒夜）是深色主题的**备选**，当前未使用。生成脚本随机种子固定、可复现（实测重跑夜城那两张的字节完全一致）；**注意浅色那张换图会让 `bg-velvet-night.webp` 的字节也变** —— 它的随机数种子相互独立了，重跑一次即可，别以为脚本产生了随机噪音。改色改密度就改 `site_backgrounds()` / `daylight_background()` 的参数，改完回页面截图核对，别只看生成图。管理页那边是另一回事——面板只盖住中间、背景看得见，用的是真实插画，见 `docs/admin.md` §20。
+
+**也量过对比度**：背景换亮之后实测了 367 个文字元素的对比度（把 `body::before` 的蒙版合成进背景色再算 WCAG 比值），**最低 5.51:1，0 个低于 AA 4.5:1**。改背景或改蒙版后应当重跑这个检查——方法是在页面里遍历可见文字元素、向上合成背景色、算 `(L1+0.05)/(L2+0.05)`。
 
 **为什么体积这么重要**：背景是**每个页面**都要下载的资源（`body::before` 的 CSS 背景，不能懒加载）。原 JPEG 191 KB 在 4 G 模拟下光它一项就占 521 ms，转 WebP q=70 后 55 KB；现在这两张是同一量级再降一个数量级（3~4 KB），因为图里已经没有细节可压。换图时**别退回 JPEG**，也别在背景里塞细节。
 
@@ -227,16 +235,17 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 两个写法约定：装饰只用 `--accent` / `--accent-2` / `--accent-soft` / `--rule` 这几个令牌，不写死色值（深浅两套主题才自动跟随）；凡是会改盒模型的装饰（`border` / `padding`）都要换成不吃布局的写法（`inset box-shadow`）——目录项和卡片在 hover 时跳一下，就是这里出的错。
 
-### ㉕ 看板娘（左右各一位，固定在下沿）— `layouts/_partials/extend_footer.html` + `14-mascot.css`
+### ㉕ 看板娘（右下角一位，固定在下沿）— `layouts/_partials/extend_footer.html` + `14-mascot.css`
 
-左下与右下各一位，`position: fixed` 贴视口下沿，点击进「关于」页。
+右下角一位，`position: fixed` 贴视口下沿，点击进「关于」页。
 
-- **左位**：黑发公主切（黑白漫画风）`assets/images/mascot-left.webp`，素材 Wallhaven `wallhaven.cc/w/1jm3ew`（来源入库 `tools/backgrounds/source-mascot-left.jpg`，提取脚本 `make-mascot-left.py`）。原图右侧带一块纯黑背景，与人物黑发同色、按颜色分不开，提取时整列裁掉（x > 0.76），再在 CSS 里用 `mask-image` 从 58% 起渐隐——**淡出必须早于裁切线**，否则右缘会出现「头发被切平」的一刀。
+**2026-09-18：左下角那位（黑发公主切）已按要求移除。** 同时删掉了模板里那一段、`.mascot--left` 的定位与右缘羽化 `mask-image`、i18n 的 `mascotLabelLeft`、以及已发布的 `assets/images/mascot-left.webp`。**生成脚本 `tools/backgrounds/make-mascot-left.py` 与源图 `source-mascot-left.jpg` 保留**（所以那个 webp 随时能再生成）；想恢复的话，`git log` 这次提交能看到原来的模板与 CSS。删的时候要留意：`--float-bottom` 是看板娘与「返回顶部 / 一键到底」两个按钮**共用**的变量，只摘左位、别动它。
+
 - **右位**：与站点图标同源的少女 `assets/images/mascot.webp`（站点图标那份白底素材 → `tools/backgrounds/make-mascot.py` 抠图，38 KB）。**白底抠图的坑**：不能只按亮度删（水手服的领子也是白的），要按「与画布边缘连通的白色区域」判背景；而 `connectedComponentsWithStats` 把非前景像素标成 **label 0**，图像最外圈只要有一个非白像素，0 就会进「边界标签」集合，整个暗色人物被判成背景、alpha 全 0（预览里只剩脸和领子几个白块）——**边界标签里必须减掉 0**。
-- **尺寸用高度控制**（`height: clamp(168px, 16.5vw, 286px)`）：两张图宽高比差得多，用宽度会让两人一高一矮。左位往上提（`bottom: 18px`）——她是「头 + 肩」构图、脸在图片上部，按右位那样压到视口外会切掉下半张脸。
-- **窗口变窄时不是「两人一起缩到看不见」**，而是分三档：≥1400px 两位全尺寸；900~1400px 两位等比缩小；≤900px 只留右位；≤640px 全隐藏（正文列贴边，再挂人像就是挡内容）。这一条是被明确要求过的，别改成「一起缩」。
+- **尺寸用高度控制**（`height: clamp(168px, 16.5vw, 286px)`）：用宽度会被宽高比带偏。
+- **窗口变窄时分档缩**，不是「一直缩到看不见」：≥1400px 全尺寸；900~1400px 等比缩小；≤900px 再缩一档（150px）；≤640px 全隐藏（正文列贴边，再挂人像就是挡内容）。这一条是被明确要求过的，别改成「一起缩」。
 - **为什么用 `extend_footer.html`**：主题 `footer.html` 里调它一次、且不是 `partialCached`（缓存串页的坑见 ㉓），位置在 `<body>` 末尾，`fixed` 不受父级 containing block 影响。
-- 深色主题给两位补冷光描边（黑发贴墨底会糊），浅色主题只留投影；`prefers-reduced-motion` 下关掉 hover 上浮。`.top-link` 抬到看板娘头顶，**改看板娘高度时这个偏移要跟着改**。
+- 深色主题给她补冷光描边（黑发贴墨底会糊），浅色主题只留投影；`prefers-reduced-motion` 下关掉 hover 上浮。`.top-link` 抬到看板娘头顶，**改看板娘高度时这个偏移要跟着改**。
 
 ### ㉖ 列表卡片的摘要走 front matter `summary` — 数据纪律，没有代码
 
@@ -300,16 +309,18 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **一键到底**：与主题的「返回顶部」配成一对（`#bottom-link` 复用主题 `.top-link` 的外观，只覆写 `bottom` 与图标）。位置由 `14-mascot.css` 的 `--float-bottom` 统一控制 —— 那个值原本在四个断点里各写一遍给 `.top-link`，现在两个按钮共用一个变量；到顶在上、到底在下（到底占的是原来到顶的位置，那个位置是照着看板娘头顶调好的）。
 - **为什么用 `<button>` 而不是 `<a href="#bottom">`**：主题 `footer.html` 给全站 `a[href^="#"]` **逐个元素**挂了点击代理（`scrollIntoView` + 对非 `#top` 的锚点 `pushState`），那是**同一个元素**上的另一个监听器，`stopPropagation` 拦不住 —— 实测地址栏会留下 `#bottom`。button 不在那个选择器里，行为完全由自己的脚本掌控（语义也更准：这是动作，不是导航）。没 JS 时主题的 noscript 样式会把 `.top-link` 一起隐藏，不会留下点不动的按钮。
 
-## 4. 六处有意的主题模板覆盖
+## 4. 八处有意的主题模板覆盖
 
-除上述 hook 之外，仓库里有六处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
+除上述 hook 之外，仓库里有八处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
 
 1. `layouts/courses/course.html`（`layout: "course"`）与 `layouts/courses/chapter.html`（`layout: "chapter"`）：列表页没有任何 hook，而这两页分别需要自动章节目录与入口卡片。两个模板都很小、只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`，页头共用 `course-header.html`），且只有显式写了 `layout` 的页面才命中，不影响 `/courses/` 列表页与文章页。**改外观请优先改 `04-course.css`**
 2. `layouts/index.json`：该模板无 hook 可挂，而正文截断无法从配置实现
 3. `layouts/_partials/index_profile.html`：首页在 profileMode 下由主题 `list.html` 直接调用它，没有 hook 可挂，而首页需要「快捷入口 + 最近更新」两块内容。改这一处时对照 `themes/PaperMod/layouts/_partials/index_profile.html`，确认主题侧是否有新变化需要合并
 4. `layouts/_partials/post_meta.html`：**唯一一处「复制主题 partial 再加一行」**（第 ⑱ 项）。它是列表卡片与详情页共用的元信息块，没有 hook 可挂，而卡片要一块计数/标签。与前三处不同：这里**逐字保留**主题实现，只在末尾调用 `card-chips.html`，主题升级时对照 diff 手工合并即可。若哪天主题给它加了 hook，优先换回 hook
-5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是六处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
+5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是七处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
 6. `layouts/taxonomy.html`（第 ㉛ 项）：`/tags/`、`/categories/` 总览页要把词条按学科分块展示（见 `data/tag-groups.yaml`），而主题那份是平铺。markup 与主题版保持一致（`ul.terms-tags` + 计数 `sup`），只把「一个 ul」改成「每组一个 ul」，`terms-filter.js` 已同步适配
+7. `layouts/baseof.html`（第 ㉞ 项）：跳过导航链接与 `lang` 属性。**这一处与前面六处的理由不同** —— 不是「原件短」或「没有 hook 可挂」，而是**位置本身不可达**：要改的一处在 `<html>` 上、一处在 `<body>` 开头，而主题的四个 hook 分别在 `<head>` 内与 `</body>` 之前，谁都够不到。主题原件 31 行，逐字保留、只差三处（详见下节 ㉞），主题升级时与 `themes/PaperMod/layouts/baseof.html` 逐行对拍即可。**注意它是全站每个页面的渲染入口**，改动后要按页型抽查（首页 / section / term / 单页 / 404 / search）
+8. `layouts/_partials/templates/schema_json.html`（第 ㉟ 项）：**逐字保留主题实现、只删掉 BlogPosting 的 `articleBody` 字段**（主题原件 129 行，本文件 128 行 + 一段说明注释），与第 4 条 `post_meta.html` 是同一手法。它把整篇正文 `plainify` 后复制进 `<head>` 的 JSON-LD 里；本站正文是构建期渲染的 KaTeX，plainify 之后公式文本会出现三遍（MathML 表示 + TeX annotation + katex-html 字形文本），于是这个字段既大又低质 —— 实测重页单页 25–27 KB、占该页 gzip 的 17–20%。删它安全：`articleBody` 在 schema.org 里是**可选**字段，Google 富结果不使用，仓库里也没有任何东西依赖它（`check-seo.mjs` 对它零断言，已核对）。**升级主题时与主题那份逐行对拍，确认差异仍然只有这一行。** 删改后务必确认 JSON-LD 仍是合法 JSON（`JSON.parse` 每个 `ld+json` 块），语法坏了爬虫那边是静默失效
 
 **另有一处是「移位置」而不是「覆盖」**：`layouts/_default/{library,library-branch,library-section,toolcard}.html`。它们原本在 `layouts/library/` 与 `layouts/courses/` 下，2026-09-18 加了 CS 库之后搬到 `layouts/_default/` —— Hugo 的布局查找是 `layouts/<section>/<layout>.html` 优先，`layout: library` 只在 section 恰好叫 `library` 时命中（数学库是撞上的），CS 库的 section 是 `cs`，于是**静默回落到主题列表页**。`_default/` 是任何 section 的通用回落位，front matter 里的 `layout:` 一个都不用改。教训记在 [`traps.md`](traps.md)。
 
@@ -327,6 +338,52 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **404 页**：覆盖主题模板（第 4 节第 5 条）。404 大字沿用主题的 `.not-found` 类，下面补一句提示与三个入口（回到首页 / 搜一下 / 逛数学库）；文案全走 i18n。**必须把主题 `.not-found` 的 `position: absolute` 收回正常流**（`15-extras.css`），否则加进去的内容会跟那个 160px 的大数字重叠。
 - **页脚 RSS**：首页走 profileMode，不渲染 `list.html` 里那个带 RSS 图标的 `page-header`，所以「订阅」在全站唯一稳定的位置是页脚 hook。它与页面无关（全站同一个地址），符合 [`traps.md`](traps.md) 对 `extend_footer` 的约束。
 - 两处样式都在 `15-extras.css`：它们各自太小，不值得各起一个编号文件。
+
+### ㉞ 无障碍：跳过链接、`lang` 与动态列表播报 — `baseof.html` + `17-a11y.css` + `a11y-announce.js`
+
+2026-09-18 体检的结论：这个站此前**没有任何一项无障碍基础件** —— 没有跳过导航链接、没有 `sr-only` 工具类、动态更新的列表没有一处 `aria-live`，`lang` 还是 `zh`。前两项补上了，第三项按页面逐个补。
+
+**跳过导航链接**（`layouts/baseof.html`，第 4 节第 7 条）。页头有 8 项导航，键盘用户此前每次都要 Tab 穿过它们才能到正文。要点：
+
+- 它是 `<body>` 的**第一个**子元素 —— 顺序即功能，放到别处就没有意义了。
+- 落点是 `<main class="main" id="main-content" tabindex="-1">`。**`tabindex="-1"` 不能省**：只加 `id` 的话锚点跳转只移动滚动位置、不移动焦点，键盘用户再按 Tab 仍然从页首开始，等于白跳。
+- CSS 用 `position: fixed` + `transform: translateY(-250%)` 藏起来，而不是常见的 `left: -9999px`：后者在 RTL 或窄屏下可能撑出横向滚动条，且依赖「负值够大」这个隐含前提。`transform` 不影响 Tab 顺序，所以它始终可达。聚焦时回到左上角，`z-index: 100`（站上现有最大值是主题的 99）。
+- 落点元素上明确写了 `outline: none`：焦点确实进了正文，但给整片正文描一圈 2px 强调色在视觉上像是渲染坏了。只取消这一个元素，全局 `:focus-visible` 不受影响。
+
+**`lang="zh-CN"`**。`hugo.toml` 里 `[languages.zh] locale = 'zh-CN'` 早就生效了（`og:locale` 一直是 `zh_CN`、RSS 一直是 `zh-CN`），只有 `<html lang>` 没跟上 —— 它取的是 `site.Language`，即语言**键** `zh`。改成 `site.Language.Locale` 即可。**不要**为了这个去把语言键改名成 `zh-CN`：那会让 Hugo 去找 `i18n/zh-CN.toml`，而站点文案在 `i18n/zh.toml`，一旦 i18n 的基语言回退不生效，全站 UI 文案会变成空串或键名。同理 `dir` 用的是 `.Language.Direction`（`.Language.LanguageDirection` 在 Hugo 0.158 起报废弃告警）。
+
+**动态列表播报**。三处列表会原地重写内容，而读屏不会自动报告 DOM 变化，用户敲完关键词听不到任何反馈：
+
+| 位置 | 做法 | 文案键 |
+|---|---|---|
+| 搜索结果（`#searchResults`） | `assets/js/a11y-announce.js`：MutationObserver 观察条数，写进一个 `.sr-only` 的 `role="status"` 节点 | `searchResultCount` / `searchNoResult` |
+| `/tags/` 词条筛选 | `terms-filter.js` 自建 `.sr-only` 的 `role="status"` | `termsFilterResult` / `termsFilterEmpty` |
+| section / term 页的排序与标签筛选 | `list-tools.js` 给已有的可见结果行加 `role="status"` | 复用 `listToolsResult` |
+
+三个必须注意的点：
+
+- **搜索页那处没覆盖主题模板**。`#searchResults` 在 `themes/PaperMod/layouts/search.html` 里，为一条播报再加一处覆盖不划算（第 4 节已经有七处了），所以改用脚本挂观察者。若哪天要改成覆盖模板，先想清楚第 4 节那句「不要整份复制主题模板」。
+- **零条结果的歧义**。主题的 `fastsearch.js` 把「输入为空」与「没有匹配」都渲染成空列表（`renderResults([])` 被两条路径共用），所以零条时必须回头看输入框：为空是清空操作，**什么都不该播报**；有输入才是真的没搜到。
+- **只在文字真的变了才写** `textContent`。重复写入同样的文本会让部分读屏反复播报，所以三处都加了 `if (x !== said)` 的比较。
+
+**没做的（有意）**：没有换焦点可见样式（主题那套 `:focus-visible` 的 2px 强调色轮廓对比度足够）、没有做颜色对比度复审（`00-theme.css` 头部记着强调色 7.4:1、次要强调 5.6:1，都过 WCAG AA）、没有引入任何无障碍测试工具。最实际的下一步是拿读屏器手动过一遍搜索页与标签页 —— 静态断言测不出播报行为（要有真实焦点）。
+
+### ㉟ 删掉 JSON-LD 的 `articleBody` — `layouts/_partials/templates/schema_json.html`
+
+见第 4 节第 8 条（那是第 8 处主题覆盖）。这里只记**怎么验**与**别再犯的错**：改动后必须逐个 `JSON.parse` 产物里的 `<script type="application/ld+json">` 块 —— 删字段很容易留下一个悬空逗号或漏掉逗号，而**语法坏掉的 JSON-LD 没有任何构建期报错**，爬虫那边是静默失效（`check-seo.mjs` 不查 JSON-LD 的语法）。
+
+实测收益（2026-09-18，`hugo --minify --gc --cleanDestinationDir` 后）：`BlogPosting` 块从约 25,000 B 降到 **821 B**，最重页 gzip 108 KB → 75 KB（−31%），整站 gzip 3260 KB → 2934 KB。
+
+### ㊱ 正文的横向溢出与交互反馈 — `08-reader.css` + `10-nav.css` + 卡片各自的 CSS
+
+**行间公式会撑宽整页**（2026-09-18 修）。`.katex-display` 是 `overflow-x: visible`，而它内部 `white-space: nowrap`，公式不折行：实测 380px 视口下一行 924px 的公式把整个文档撑到 **957px**，右侧内容被裁掉、得左右拖动整页才能读完。修法是给 `.post-content .katex-display` 加滚动容器（`08-reader.css`，**不加媒体查询** —— 正文栏 720px 也小于 924px，桌面同样会中招）。修完实测视口 370px 时文档宽度也是 370px，22 个行间公式里 17 个变成独立滚动容器。
+
+- **`overflow-y` 必须显式写 `hidden`**：只写 `overflow-x: auto` 时另一轴会从 `visible` 变成 `auto`，而公式的上下标、根号常常溢出内容盒一两像素，那一轴就会冒出纵向滚动条。
+- **宽表格不用管**：主题 `reset.css` 把 `table` 放进了 `display: block` 那一组并给了 `overflow-x: auto`，实测 380px 下 table 的 `scrollWidth` 大于 `clientWidth`，是表内滚动、不撑页面。（第一次排查时用「元素宽度 > 视口宽度」当判据，把 `thead`/`td` 也算成了溢出源 —— **判据必须带上「祖先是否有裁剪」**：祖先有 `overflow` 非 `visible` 的元素是被包住的，不撑页面。按这个判据重测，真正的溢出源只有 KaTeX。）
+
+**桌面导航此前没有任何悬停反馈**：主题只写了 `.menu .active`，**从来没有 `.menu a:hover`** —— 实测真实鼠标移上去时 color / background / text-decoration / opacity 全都不变。`10-nav.css` 里补了一套，沿用 `.active` 的视觉语言（2px 下划线 + 同样偏移）但换成 `--accent`，这样「悬停」与「当前页」不会混淆。分页按钮（反色药丸）同样没有悬停态，一并补上，**只换底色不换尺寸**以免翻页时按钮跳动。这类补规则**不要动 padding/gap**：菜单是 flex 行布局，加内边距会让换行点提前，顶栏在中间宽度就多折一行。
+
+**三个自定义列表卡片缺 `:focus-within`**：主题的 `.post-entry` 自带（`post-entry.css:58`），而 `.course-index-item` / `.project-index-item` / `.home-recent-item` 原先只有 `:hover`，键盘用户 Tab 进去拿不到鼠标那样的反馈。三处的 `:focus-within` 都写在各自 `:hover` 规则旁边（`04` / `05` / `09`）。
 
 ## 5. 总览页标题
 

@@ -136,9 +136,12 @@
       if (result) {
         var filtered = selected.length > 0;
         result.hidden = !filtered;
-        result.textContent = label('result', '{shown}/{total}')
+        var said = label('result', '{shown}/{total}')
           .replace('{shown}', String(shown))
           .replace('{total}', String(order.length));
+        /* 只在文字真的变了才写：result 是 role="status"（见下面创建处），
+           重复写入同样的文本会让部分读屏反复播报。 */
+        if (result.textContent !== said) result.textContent = said;
       }
       if (empty) empty.hidden = shown !== 0;
     }
@@ -179,6 +182,11 @@
       result = document.createElement('p');
       result.className = 'lt-result';
       result.hidden = true;
+      /* 这一行既给人看也给读屏听：筛选后条数变了，读屏不会自动报告 DOM 变化，
+         role="status"（隐含 aria-live="polite" + aria-atomic）让它每次改写都被播报。
+         只给 result 挂、不给下面那条 empty 挂：零匹配时 result 会播「显示 0 / 12 条」，
+         再播一遍「没有匹配的条目」是重复的。 */
+      result.setAttribute('role', 'status');
       bar.appendChild(result);
 
       empty = document.createElement('p');

@@ -43,7 +43,10 @@
   transition: border-color 0.2s;
 }
 
-.course-index-item:hover {
+/* :focus-within 与 :hover 成对：主题的 .post-entry 自带 :focus-within（post-entry.css:58），
+   而这张自定义卡片原先只有 :hover，键盘用户 Tab 进卡片里的链接时拿不到鼠标那样的反馈。 */
+.course-index-item:hover,
+.course-index-item:focus-within {
   border-color: var(--secondary);
 }
 

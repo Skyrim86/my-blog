@@ -83,6 +83,11 @@ other = "在{{ .name }}中筛选…"
 [termsFilterEmpty]
 other = "没有匹配的词条"
 
+# {shown} / {total} 同样是脚本替换的占位符（单花括号）。
+# 这一条只给 .sr-only 的播报节点用，页面上不显示 —— 词条页的可见反馈是列表本身在变。
+[termsFilterResult]
+other = "显示 {shown} / {total} 个词条"
+
 # ---------- 相关内容区块（见 layouts/_partials/related-content.html） ----------
 # 按共享标签 / 系列把文章、课程、项目互相串联
 [relatedTitle]
@@ -104,6 +109,11 @@ other = "页面"
 # ---------- 导航（见 assets/js/nav-toggle.js） ----------
 [navToggleLabel]
 other = "展开或收起导航"
+
+# 跳过导航链接（见 layouts/baseof.html）。它是 <body> 的第一个可聚焦元素，
+# 键盘用户 Tab 一下就能越过 8 项导航直达正文。
+[skipToContent]
+other = "跳到正文"
 
 # ---------- 首页（见 layouts/_partials/index_profile.html） ----------
 # 快捷入口（复用主导航，aria-label 用）
@@ -173,12 +183,9 @@ other = "这张卡片的固定链接"
 other = "返回数学工具库"
 
 # ---------- 看板娘（见 layouts/_partials/extend_footer.html） ----------
-# 右下角固定半身像的可访问名；它就是站点图标那位
+# 右下角固定半身像的可访问名；她就是站点图标那位
 [mascotLabel]
 other = "看板娘（点开关于页）"
-
-[mascotLabelLeft]
-other = "看板娘・公主切（点开关于页）"
 
 # ---------- 页脚 RSS 入口（见 layouts/_partials/extend_footer.html） ----------
 # 首页走 profileMode，不渲染 list.html 里那个带 RSS 图标的 page-header，
@@ -234,3 +241,13 @@ other = "回到首页"
 
 [notFoundSearch]
 other = "搜一下"
+
+# ---------- 列表结果播报（见 assets/js/a11y-announce.js） ----------
+# 搜索结果由主题的 fastsearch.js 异步写入 #searchResults，且该容器在主题模板里没有 aria-live，
+# 读屏用户得不到任何反馈。这里的文案由站点脚本经 data-* 取到后写进一个 .sr-only 的
+# role="status" 节点。{count} 是脚本替换的占位符（单花括号，别写成 Go 模板的 {{ }}）。
+[searchResultCount]
+other = "找到 {count} 条结果"
+
+[searchNoResult]
+other = "没有找到结果"

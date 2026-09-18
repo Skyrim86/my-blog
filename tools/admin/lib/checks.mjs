@@ -14,6 +14,15 @@ import { resolveBash } from './exec.mjs';
 // blocking：失败是否阻断发布（与 push-blog.sh 的阻断项一致，只影响界面上的措辞与颜色）
 const ITEMS = [
   {
+    id: 'consistency',
+    label: '校验清单一致性',
+    runtime: 'node',
+    argv: ['scripts/check-consistency.mjs'],
+    fast: true,
+    blocking: true,
+    hint: 'CI / push-blog / 本面板三处的校验清单、阻断口径、时区、front matter 键表是否已分叉',
+  },
+  {
     id: 'sections',
     label: '分区结构',
     runtime: 'bash',
@@ -21,6 +30,26 @@ const ITEMS = [
     fast: true,
     blocking: true,
     hint: '每个分区目录都要有 _index.md，缺了它列表页连同导航入口一起 404',
+  },
+  {
+    id: 'cards',
+    label: '卡片页与数据一致性',
+    runtime: 'node',
+    // cs 是当前唯一用 gen-cards 生成卡片页的库；加了别的库要在这里补一项
+    argv: ['scripts/gen-cards.mjs', 'cs', '--check'],
+    fast: true,
+    blocking: true,
+    hint: '改了 data/cs-toolbox.json 却忘记重生成卡片页时，正文还是旧的，而构建不会报错',
+  },
+  {
+    id: 'escapes',
+    label: '公式转义',
+    runtime: 'node',
+    // 不带 --fix：体检面板只报告，写盘由管理页的保存/新建与 push-blog.sh 负责
+    argv: ['scripts/fix-math-escapes.mjs'],
+    fast: true,
+    blocking: true,
+    hint: '数学区里的 `\\*`、`§`、圈号 ①②③ —— 会让 KaTeX 报错、整站构建中止',
   },
   {
     id: 'frontmatter',

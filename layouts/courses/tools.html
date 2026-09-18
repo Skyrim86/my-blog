@@ -6,7 +6,7 @@
      为什么不在这一页直接铺满卡片正文：80 张卡片的 KaTeX 排版树约 3 MB，
      超过 scripts/report-size.sh 的单页 1.6 MB 预算。 */ -}}
 {{- define "main" }}
-{{- $tb := index site.Data "math-toolbox" }}
+{{- $tb := index hugo.Data "math-toolbox" }}
 {{- $tbURL := .RelPermalink }}
 
 <article class="post-single toolbox-page">

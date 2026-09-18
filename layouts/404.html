@@ -6,7 +6,10 @@
        assets/css/extended/15-extras.css（要把主题那份 absolute 定位收回正常流才能往下面放内容）。 */ -}}
 {{- define "main" }}
 <div class="not-found-page">
-  <div class="not-found">404</div>
+  {{- /* 用 h1 而不是 div：这一页此前不含任何标题元素，文档大纲里它是个无标题页面
+         （读屏的「按标题跳转」在这页无处可去）。「404」本身就是这页的标题，交给 h1 即可。
+         尺寸与字重由 15-extras.css 固化，视觉与原来的 div 一致。 */ -}}
+  <h1 class="not-found">404</h1>
   <p class="not-found-hint">{{ i18n "notFoundHint" }}</p>
   <nav class="not-found-links" aria-label="{{ i18n "notFoundLinks" }}">
     <a href="{{ site.Home.RelPermalink }}">{{ i18n "notFoundHome" }}</a>

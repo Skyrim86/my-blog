@@ -37,6 +37,11 @@ enableGitInfo = true
   #   · 只删这一行、留下文件更糟：/series/ 会退化成普通空 section（页面照样在），
   #     而 `new-content.sh post --series X` 与管理页的「系列」输入框会变成**静默无效**的功能。
   # 所以要用连载功能就直接用；真要彻底移除，得连文件、CLI 选项与管理页字段一起清。
+  #
+  # 2026-09-18 决定：**保留**。它不产生任何可见副作用（空词条页只进 sitemap），
+  # 而移除需要同时动 4 处（本行、content/series/_index.md、new-content.sh 的 --series、
+  # 管理页的系列输入框），拆一半会比留着更危险 —— 那会让 CLI 与管理页出现静默无效的字段。
+  # 所以这一项不是「忘了清理的开关」，是登记在册的保留项，别再当成待清理项。
   series = 'series'
 
 
@@ -48,7 +53,17 @@ enableGitInfo = true
     weight = 1
 # 启用 RSS
 [outputs]
-  home = ['HTML', 'RSS', 'JSON']  # JSON 用于搜索功能
+  home = ['HTML', 'RSS', 'JSON', 'LLMS']  # JSON 用于搜索功能，LLMS 见下面的输出格式定义
+
+# 站点索引（public/llms.txt）：给 AI 爬虫/摘要工具一份「本站有哪些页面」的清单。
+# 模板是主题里那份递归版 themes/PaperMod/layouts/llms.txt —— 它一直在仓库里，但此前没有
+# 对应的输出格式，所以从来没产出过文件（典型的「有实现没开关」）。
+[outputFormats.LLMS]
+  mediaType = 'text/plain'
+  baseName = 'llms'
+  isPlainText = true
+  # 不写进 <head> 的 <link rel="alternate">：它是给机器读的站点清单，不是本页的替代表示。
+  notAlternative = true
 
 # 分页设置
 [pagination]
@@ -67,8 +82,12 @@ pagerSize = 10
 [params]
   # 主内容区：文章列表与上下篇导航只统计这些 section。
   # 不把 courses 放进来，避免课程章节混进文章列表与上下篇导航。
-  # 注意“归档”一页已于 2026-09-15 删除（posts 下当时 0 篇文章，页面渲染出来是空的）：
-  # 它的判据同样是 mainSections，写文章后若要恢复，把 content/archives.md 加回来即可。
+  #
+  # **当前 posts 下有 0 篇文章**（只有 _index.md），所以凡是拿 mainSections 当判据的东西
+  # 现在都是惰性的 —— 首页不渲染文章列表、ShowPostNavLinks 不产出任何 HTML。这是**预期状态**，
+  # 不是坏配置：写进第一篇之后它们会自行生效，不用改这里。同类处置还有两处，口径一致：
+  #   · “归档”页 2026-09-15 删除（posts 空时渲染出来是空页）—— 要恢复就把 content/archives.md 加回来；
+  #   · 导航里的「文章」入口 2026-09-18 摘掉（点进去是空列表页）—— 写第一篇后按 weight = 40 加回来。
   mainSections = ['posts']
 
   # 启用 OG/twitter meta 的开关
@@ -99,7 +118,11 @@ pagerSize = 10
   # 显示面包屑导航
   ShowBreadCrumbs = true
 
-  # 显示文章上下篇导航
+  # 显示文章上下篇导航。
+  # 判据是 themes/PaperMod/layouts/_partials/post_nav_links.html 第 1–2 行：
+  # `where site.RegularPages "Type" "in" mainSections` 且页数 > 1。
+  # mainSections 只有 posts、而 posts 下 0 篇，所以这个开关**目前在站上不产出任何 HTML**
+  # （不是坏了，是还没有文章）。写进第一篇后自动生效，届时无需改动本行。
   ShowPostNavLinks = true
   # 显示代码复制按钮
   ShowCodeCopyButtons = true
@@ -143,11 +166,12 @@ pagerSize = 10
 # 外观与首页
 # ============================================
 # 站点背景图：assets/ 下的路径，由 extend_head.html 经资源管线生成 --bg-image-light / --bg-image-dark。
-# 两张分开：浅色主题用象牙纸（浅底），深色主题用墨绒夜（墨底）。留空字符串即关闭该主题的背景。
-# 换图直接替换文件即可；深浅两种蒙版在 assets/css/extended/00-theme.css 里。
+# 两张分开、且是两个**不同时刻的画面**：浅色主题用日间（淡天青天空 + 城市剪影 + 日光晕），
+# 深色主题用夜景城市照片。方向相反，切换主题像换了个时辰，不是换壁纸。
+# 留空字符串即关闭该主题的背景。换图直接替换文件即可；深浅两种蒙版在 assets/css/extended/00-theme.css 里。
 [params.appearance]
   backgroundImage = 'images/bg-night-city.webp'
-  backgroundImageLight = 'images/bg-ivory-paper.webp'
+  backgroundImageLight = 'images/bg-daylight.webp'
 
 # 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html
 [params.home]
@@ -271,7 +295,12 @@ pagerSize = 10
 # ============================================
 # 安全设置（允许内联脚本等，Giscus 等需要）
 # ============================================
+# allow 只列**实际会用到**的外部程序：构建期只有 KaTeX 走 Hugo 内嵌实现（不 exec）、
+# 资源管线只做 concat/minify/fingerprint（不 exec），enableGitInfo 由 go-git 直接读仓库
+# （也不 exec）。原先还列了 dart-sass-embedded / postcss / npx / go —— 站上没有任何
+# Sass、PostCSS 或 Hugo Modules 管线，那四项是照抄主题默认值留下的，2026-09-18 删除。
+# 日后真加 PostCSS/Tailwind 时再把对应的加回来（Hugo 会明确报 "exec 被禁用"，不难诊断）。
 [security]
   [security.exec]
-    allow = ['^dart-sass-embedded$', '^go$', '^npx$', '^postcss$', '^git$']
+    allow = ['^git$']
     osEnv = ['(?i)^((HTTPS?|NO)_PROXY|PATH|EXTENSIONS|DIR)$']

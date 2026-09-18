@@ -129,7 +129,9 @@
   transition: border-color .2s ease, transform .2s ease;
 }
 
-.home-recent-item:hover {
+/* 补 :focus-within，理由同 .course-index-item：键盘焦点也要有与鼠标一致的抬升反馈 */
+.home-recent-item:hover,
+.home-recent-item:focus-within {
   border-color: var(--accent);
   transform: translateY(-1px);
 }

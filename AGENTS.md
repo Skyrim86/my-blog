@@ -17,14 +17,14 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 2. **标签只从 `data/taxonomy.yaml` 取**，不要手打；新词加 `--new-tag`（脚本自动写回词表）。词表格式被 shell grep 解析，**不要改成嵌套 YAML**
 3. **标签只打在 regular page 上**：section 页（课程主页、章节入口页、项目页、子项目页）写 `tags`/`categories` 是**无效且有害**的（`/tags/` 计数虚高、词条页里却不出现）。课程/项目的标签写在主页的 `cascade` 里并加 `target: {kind: page}`；写作用范围用 **`target`**，不要用已弃用的 `_target`
 4. **`cascade` 只填空、不合并**：子孙页一旦自己写了 `tags`（**空数组也算「已定义」**），继承来的标签会被**整体丢弃**。所以课程材料页与分层项目的子项目页/文档页**不要写 tags**
-5. **不要整份复制主题模板**。用主题 hook：覆盖 `layouts/_partials/` 下的 `extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 即生效。新建自定义 partial 放 `layouts/_partials/`（带下划线），不要用 `layouts/partials/` 或 `layouts/_default/`；自定义 layout 模板放 `layouts/<section>/<layout>.html`（如 `layouts/projects/project-home.html`，由 front matter 的 `layout:` 命中，不是复制主题模板）——**例外**：多个 section 共用的 layout 必须放 `layouts/_default/<layout>.html`，因为查找是 `layouts/<section>/<layout>.html` 优先，section 名与 layout 名不相等时前者永远命中不了（2026-09-18 的 CS 库踩过，见 docs/traps.md）。**六处有意的覆盖**：`layouts/courses/{course,chapter}.html`、`layouts/index.json`、`layouts/_partials/index_profile.html`、`layouts/_partials/post_meta.html`（只逐字保留主题实现 + 末尾追加一行）、`layouts/404.html`（主题原件只有 3 行）、`layouts/taxonomy.html`（词条按学科分块，见 docs/features.md 第 4 节）
+5. **不要整份复制主题模板**。用主题 hook：覆盖 `layouts/_partials/` 下的 `extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 即生效。新建自定义 partial 放 `layouts/_partials/`（带下划线），不要用 `layouts/partials/` 或 `layouts/_default/`；自定义 layout 模板放 `layouts/<section>/<layout>.html`（如 `layouts/projects/project-home.html`，由 front matter 的 `layout:` 命中，不是复制主题模板）——**例外**：多个 section 共用的 layout 必须放 `layouts/_default/<layout>.html`，因为查找是 `layouts/<section>/<layout>.html` 优先，section 名与 layout 名不相等时前者永远命中不了（2026-09-18 的 CS 库踩过，见 docs/traps.md）。**八处有意的覆盖**：`layouts/courses/{course,chapter}.html`、`layouts/index.json`、`layouts/_partials/index_profile.html`、`layouts/_partials/post_meta.html`（只逐字保留主题实现 + 末尾追加一行）、`layouts/404.html`（主题原件只有 3 行）、`layouts/taxonomy.html`（词条按学科分块，见 docs/features.md 第 4 节）、`layouts/baseof.html`（跳过链接 + `lang=zh-CN`；**它不是「原件短所以覆盖」，而是位置本身不可达** —— 要改的一处在 `<html>` 上、一处在 `<body>` 开头，而四个 hook 都够不到这两处。全站每个页面都过这个文件，改它要按页型抽查，见 docs/features.md 第 4 节）、`layouts/_partials/templates/schema_json.html`（逐字保留主题实现、**只删掉 BlogPosting 的 `articleBody`** —— 它把整篇正文复制进 `<head>`，实测占重页 gzip 的 17–20%。升级主题时与主题那份对拍，确认差异仍只有这一行）
 6. **JS 放 `assets/js/*.js`**，由 `extend_head.html` 用 `resources.Get | minify | fingerprint` 接线外链；不要内联 `<script>`（无 lint、无压缩、内联 defer 无效）。**CSS 放 `assets/css/extended/`**，一个职责一个文件、用 `NN-` 前缀控制合并顺序；模板里不要写 `<style>`
 7. **面向访客的文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}`；JS 里的文案走自己 `<script>` 标签的 `data-*` 属性（模板侧用 `i18n` 填值），不要硬编码中文
 8. **复用主题 CSS 变量**（`--theme`/`--border`/`--secondary` 等）；暗色适配用 **`[data-theme="dark"]`**（主题机制是 `<html>` 上的属性），写 `.dark` 永远不触发
 9. **配置一律进 `hugo.toml`**，模板里读 `site.Params.xxx`；`timeZone = 'Asia/Shanghai'` 与 `[outputs] home` 的 `'JSON'` **勿删**（前者决定当天文章能否上线，后者决定搜索是否可用）
 10. **主题已提供的东西不要自己写**：先 grep `themes/PaperMod/layouts/` 与 `themes/PaperMod/assets/css/`。**`themes/PaperMod/` 不直接改**，要扩展行为优先用 hook，其次在 `hugo.toml` 找开关
 11. **能问工具的就不要自己实现**：页面 URL 问 `hugo list all`（它输出每页 `path,permalink`），front matter 模板认 `archetypes/`，词表格式认 `data/taxonomy.yaml`
-12. **新增校验加进 `.github/actions/validate/action.yml`**（不要在某个 workflow 里单独写，否则 `checks.yml` 与 `deploy.yml` 分叉），并想清楚是**阻断**（内容正确性：缺 front matter、坏链、公式错版）还是**只警告**（内部一致性：词表、编辑器字段表）
+12. **新增校验加进 `.github/actions/validate/action.yml`**（不要在某个 workflow 里单独写，否则 `checks.yml` 与 `deploy.yml` 分叉），并想清楚是**阻断**（内容正确性：缺 front matter、坏链、公式错版）还是**只警告**（内部一致性：词表、编辑器字段表）。**同一份校验清单有三处登记**：`action.yml`（唯一事实源）、`scripts/push-blog.sh`（本地推送）、`tools/admin/lib/checks.mjs` 的 `ITEMS`（管理页体检面板）。**CI 里阻断的每一项，另外两处都必须有** —— `node scripts/check-consistency.mjs` 会强制断言这件事（CI 独有、只警告的项不要求同步）。加校验时忘了同步另两处的后果是具体的：push-blog 少一项 = 本地全绿推上去才被拦；体检面板少一项 = 面板谎报通过
 13. **改 URL 需谨慎**：URL 由 `[permalinks]`、目录名、文章标题（`:slug` 取自标题）决定。giscus 用 `mapping='pathname'`（2026-09-18 从 `'title'` 改来，同名标题会串页），**评论跟着 URL 走**：文章改标题既换 URL 又丢评论关联；课程/项目页的评论只受目录名影响。管理页的 `slug` 字段可把文章 URL 固定下来
 15. **课程内容与数学工具库是生成产物**：`content/courses/regression-analysis/**` 的正文、`data/math-toolbox.json`、`content/courses/*/toolbox/<id>/index.md` 全部由 `python tools/course-import/import_course.py` 从课程项目生成（脚本里默认写的是 `D:\\1.Study\\course\\回归分析`，2026-09-18 实测本机在 `D:\\Study\\courses\\回归分析` —— **跑之前先确认，需要时用 `--project` 指定**）。改内容改**课程项目里的 md**再重跑导入；手改博客这边的产物会在下次导入时被覆盖（`--check` 只比对不写盘）。**例外**：数学库的分支归属在 `data/math-branches.yaml`，那张表是手写的（两级：大类 → 细分），改它 + 重跑导入即可（见 docs/features.md ㉒）；`/library/` 下的大类页与细分页**不是文件**，由 `content/library/_content.gotmpl`（Hugo content adapter）按那张表现算生成，改表即改页面。正文里的数学引用**写结论的名字**、不写「工具 k.m」——脚本按名字表自动接上卡片链接
 14. **管理页（`tools/admin/`）受同样约束**：界面资源只能放 `tools/admin/ui/`（放进 `assets/**` 会被主题合并进公开站点资源 = 把管理界面发到线上）；写盘一律转交 `new-content.sh`/`push-blog.sh`，不要在 Node 里另写一套 front matter 或发布逻辑
@@ -56,6 +56,9 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 站点外观（配色 / 深色令牌 / 背景图） | `assets/css/extended/00-theme.css`、`03`…`13` 组件样式、`hugo.toml` 的 `[params.appearance]` | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（令牌与背景图）与 ㉔（装饰层） |
 | 图标（favicon / apple-touch / 桌面快捷方式） | `tools/icons/make-icons.py`（**生成产物，不要手改 static/ 下的 png/ico**） | [`docs/architecture.md`](docs/architecture.md) 第 6 节 |
 | 阅读进度条 / 目录当前项 | `assets/js/reading-progress.js`、`08-reader.css` | 同上 |
+| 无障碍（跳过链接 / 动态列表播报 / `sr-only`） | `layouts/baseof.html`（第 7 处覆盖）、`assets/css/extended/17-a11y.css`、`assets/js/a11y-announce.js`、`terms-filter.js` 与 `list-tools.js` 里的 `role="status"` | [`docs/features.md`](docs/features.md) 第 4 节 |
+| JSON-LD 结构化数据（删掉了 `articleBody`） | `layouts/_partials/templates/schema_json.html`（第 8 处覆盖，逐字保留主题实现只删一行） | [`docs/features.md`](docs/features.md) 第 4 节第 8 条 + ㉟ |
+| 正文横向溢出（行间公式滚动）/ 导航与分页悬停 | `assets/css/extended/08-reader.css`、`10-nav.css`，卡片的 `:focus-within` 在 `04`/`05`/`09` | [`docs/features.md`](docs/features.md) ㊱ |
 | 首页（头像 / 快捷入口 / 最近更新） | `_partials/index_profile.html`（整份覆盖）、`09-home.css`、`hugo.toml` 的 `[params.home]` | 同上 |
 | 搜索快捷键（`Ctrl+K` / `/`）/ 搜索页 `?q=` 预填 | `assets/js/search-shortcut.js` | 同上 |
 | 数学公式（构建期 KaTeX） | `layouts/_markup/render-passthrough.html`、`static/katex/` | [`docs/formulas.md`](docs/formulas.md) |
@@ -85,7 +88,7 @@ python tools/course-import/import_course.py           # 课程项目 → 博客�
 python tools/course-import/import_course.py --check   # 只比对：博客是否落后于课程项目
 ```
 
-跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`；公式相关的都在**构建前**跑：`node scripts/fix-math-escapes.mjs`（机械修复，`--fix` 修、`--selftest` 自测规则）、`node scripts/check-math-syntax.mjs`（快检）、`node scripts/check-math-katex.mjs`（真检，`--selftest` 自测机制；`--fix` 验证后才写盘地修双重转义）。
+跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-consistency.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`report-size.sh --fresh`；公式相关的都在**构建前**跑：`node scripts/fix-math-escapes.mjs`（机械修复，`--fix` 修、`--selftest` 自测规则）、`node scripts/check-math-syntax.mjs`（快检）、`node scripts/check-math-katex.mjs`（真检，`--selftest` 自测机制；`--fix` 验证后才写盘地修双重转义）。
 
 ## 6. 别做
 

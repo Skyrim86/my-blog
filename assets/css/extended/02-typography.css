@@ -42,10 +42,13 @@ body {
   font-style: normal;   /* 中文不适合斜体 */
 }
 
-/* 代码块中文字体兜底 */
+/* 代码块中文字体兜底。
+   原先首位写的是 "JetBrains Mono"，但全站没有任何 @font-face 去加载它（站点零 webfont 是
+   有意设计），所以那一项永远命中不了、实际一直渲染成 Consolas —— 2026-09-18 体检时删掉。
+   要用等宽字体就自托管并在此加 @font-face，别只留一个名字。 */
 .post-content code,
 .post-content pre {
-  font-family: "JetBrains Mono", Consolas, "Microsoft YaHei", monospace;
+  font-family: Consolas, "Microsoft YaHei", monospace;
 }
 
 /* ---------- 标题衬线（「墨与蔷薇」的主要辨识点） ----------

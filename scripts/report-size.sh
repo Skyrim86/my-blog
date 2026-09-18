@@ -19,6 +19,13 @@ cd "$(git rev-parse --show-toplevel)"
 MAX_PAGE_KB="${MAX_PAGE_KB:-1638}"   # 单页 raw HTML 上限 1.6 MB（现状最重约 1318 KB）
 MAX_TOTAL_KB="${MAX_TOTAL_KB:-24576}" # 整站输出上限 24 MB（2026-09-15：新增「回归分析」课程 —— 拆成 3 页的 M1 笔记 + 作业 + 实验，以及 80 张数学工具卡页（一卡一页，见 tools/course-import/），整站 10.0 → 19.0 MB；单页预算不变）
 MAX_INDEX_KB="${MAX_INDEX_KB:-52}"   # 搜索索引上限 52 KB（现状 39 KB，含页内标题 headings；历史上曾涨到 49 KB）
+# 压缩后的预算（2026-09-18 加）。**这两条才是「访客实际下载多少」**：raw 那条量的是磁盘上的字节，
+# 而公式页的 raw 里绝大部分是 KaTeX 逐符号生成的 <span>，压缩比极高 —— 实测最重一页
+# raw 913 KB → gzip 108 KB（8.5×），整站 19037 KB → 3260 KB（5.8×）。线上由 Pages 的
+# gzip/brotli 兜着，所以 raw 那 1.6 MB 的预算在描述真实传输量时是失真的。
+# 两条都保留、都阻断：raw 更敏感（内容一涨就动，能在早期报警），压缩后才是用户视角。
+MAX_COMP_PAGE_KB="${MAX_COMP_PAGE_KB:-160}"    # 单页 gzip 上限（现状 108 KB）
+MAX_COMP_TOTAL_KB="${MAX_COMP_TOTAL_KB:-4608}" # 整站 gzip 上限 4.5 MB（现状 3260 KB）
 
 DIR="public"
 TMP=""
@@ -85,6 +92,51 @@ find "$DIR" -name '*.html' -type f -printf '%s\t%p\n' | sort -rn | head -10 | wh
 done
 
 echo
+echo "▸ 压缩后体积（gzip -6，访客实际下载量的近似）"
+# 用 node 算 gzip 而不是调 gzip 命令：node 是本仓库的硬依赖（校验脚本全是 .mjs），而 gzip
+# 命令在 Windows/MSYS 上不一定在 PATH 里 —— 依赖一个可能不存在的工具，会让这一段**静默失效**，
+# 正是 traps.md 反复强调要避免的那类问题。node 跑不起来就明确报错退出，不静默跳过。
+comp_report="$(node -e '
+const { gzipSync } = require("zlib");
+const fs = require("fs");
+const path = require("path");
+const root = process.argv[1];
+function walk(dir, out) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) walk(p, out); else out.push(p);
+  }
+  return out;
+}
+let totalGz = 0, totalRaw = 0;
+const html = [];
+for (const f of walk(root, [])) {
+  const buf = fs.readFileSync(f);
+  const gz = gzipSync(buf, { level: 6 }).length;
+  totalGz += gz; totalRaw += buf.length;
+  if (f.endsWith(".html")) html.push([gz, buf.length, path.relative(root, f)]);
+}
+html.sort((a, b) => b[0] - a[0]);
+console.log("TOTAL " + Math.round(totalGz / 1024) + " " + Math.round(totalRaw / 1024));
+for (const [gz, raw, p] of html.slice(0, 5)) {
+  console.log("PAGE " + Math.round(gz / 1024) + " " + Math.round(raw / 1024) + " " + p.replace(/\\/g, "/"));
+}
+' "$DIR")" || { echo "✗ 压缩体积测量失败（node 不可用？）—— 这一段不能静默跳过" >&2; exit 1; }
+
+comp_total=0
+comp_page=0
+while read -r tag a b c; do
+  case "$tag" in
+    TOTAL) comp_total="$a" ;;
+    PAGE)
+      [ "$comp_page" -eq 0 ] && comp_page="$a"
+      printf '  %6s KB gzip / %6s KB raw  %s\n' "$a" "$b" "$c"
+      ;;
+  esac
+done <<< "$comp_report"
+echo "  ── 全部文件合计 $comp_total KB gzip / $((total_b / 1024)) KB raw"
+
+echo
 echo "▸ 预算"
 fail=0
 check() { # $1=名称 $2=实测KB $3=上限KB
@@ -96,8 +148,10 @@ check() { # $1=名称 $2=实测KB $3=上限KB
   fi
 }
 max_page="$(find "$DIR" -name '*.html' -type f -printf '%s\n' | sort -rn | head -1 | awk '{print int($1/1024)}')"
-check "单页最大" "${max_page:-0}" "$MAX_PAGE_KB"
-check "整站输出" "$((total_b / 1024))" "$MAX_TOTAL_KB"
+check "单页最大（raw）" "${max_page:-0}" "$MAX_PAGE_KB"
+check "整站输出（raw）" "$((total_b / 1024))" "$MAX_TOTAL_KB"
+check "单页最大（gzip）" "$comp_page" "$MAX_COMP_PAGE_KB"
+check "整站输出（gzip）" "$comp_total" "$MAX_COMP_TOTAL_KB"
 if [ -f "$DIR/index.json" ]; then
   check "搜索索引" "$(($(wc -c < "$DIR/index.json") / 1024))" "$MAX_INDEX_KB"
 fi

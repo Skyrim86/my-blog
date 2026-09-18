@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-# 四张背景图生成器：站点两张（墨与蔷薇）+ 管理页两张（霜雪樱花）。
+# 背景图生成器：站点两张（日间 / 夜间）+ 管理页两张（霜雪樱花，备选）。
 #
-# 为什么要生成而不是去图库找：背景上压着 72%~95% 的蒙版，具象画面在这个位置上
+# 为什么要生成而不是去图库找：背景上压着 55%~95% 的蒙版，具象画面在这个位置上
 # 剩下的不是「氛围」而是一块脏斑（试过夜色月轮插画、试过人物插画，都在浅色主题下
-# 留下一块灰白斑或让面板后面露出人物的腿）。纯质感——底渐变 + 斜纹 + 落瓣——
-# 既只剩气氛，又能压到 3~4 KB（背景是每个页面都要下载的资源，见 docs/features.md ⑫），
-# 还完全不用管素材出处与许可。
+# 留下一块灰白斑或让面板后面露出人物的腿）。**细碎**的结构才压得住——夜景那张照片之所以
+# 成功，靠的是「亮窗对暗天」的小尺度明暗对比；日间这张对应的是「淡蓝灰剪影对近白天空」。
+# 程序生成还有个好处：不用管素材出处与许可，而且能压到几 KB（背景是每页都要下载的资源，
+# 见 docs/features.md ⑫）。
 #
 # 用法：python tools/backgrounds/make-backgrounds.py
 # 产物（直接覆盖仓库里的图，随机种子固定所以可复现）：
-#   assets/images/bg-velvet-night.webp   深色主题（墨绒夜）
-#   assets/images/bg-ivory-paper.webp    浅色主题（象牙纸）
-#   tools/admin/ui/frost-dark.webp       管理页深色主题
-#   tools/admin/ui/frost-light.webp      管理页浅色主题
+#   assets/images/bg-daylight.webp       浅色主题（日间：淡天青 → 象牙 + 城市剪影）
+#   assets/images/bg-night-city.webp     深色主题（夜景城市照片，见 city_background）
+#   assets/images/bg-velvet-night.webp   深色主题的程序质感备选（当前**未使用**）
+#   assets/images/bg-night-city-lady.webp 夜城 + 提灯少女（当前**未使用**）
+#   tools/admin/ui/frost-dark.webp       管理页深色主题（--frost 才生成）
+#   tools/admin/ui/frost-light.webp      管理页浅色主题（--frost 才生成）
 #
-# 改色/改密度就改文件末尾那两行 build() 的参数；改完回到页面上截图核对，
+# 改色/改密度就改文件末尾那几行 build() 的参数；改完回到页面上截图核对，
 # 别只看生成图——蒙版压过之后差得很远。
 import math
 import os
@@ -111,19 +114,72 @@ def city_background():
     save(im, os.path.join("assets", "images", "bg-night-city.webp"), quality=74)
 
 
-def site_backgrounds():
-    """站点两张：浅色象牙纸、深色墨绒夜。尺寸 1600×900（整屏铺满，只需够 cover）。"""
+def skyline(im, horizon, color, top_alpha, bot_alpha, blur, min_w, max_w, min_h, max_h):
+    """底缘一条细密的城市剪影，从天际线往下一路渐实。
+
+    为什么是剪影而不是具象插画：浅色主题的蒙版压到 55%~85%，具象画面在这个位置剩下的不是
+    「氛围」而是一块灰白斑（见文件头）。夜景那张照片之所以压得住，靠的是「亮窗对暗天」的
+    **小尺度**明暗对比；这里对应的是「淡蓝灰建筑对近白天空」，同样细碎，所以能活过蒙版。
+
+    上缘用 alpha 渐变收（越靠天际线越淡）+ 一点高斯模糊：剪影的顶边本来是硬的，
+    而蒙版会把硬边放大成一条「贴上去的剪纸」，模糊掉之后才像远景。
+    """
+    w, h = im.size
+    layer = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(layer)
+    x = -random.randint(0, max_w)
+    while x < w:
+        bw = random.randint(min_w, max_w)
+        bh = random.randint(min_h, max_h)
+        d.rectangle([x, horizon - bh, x + bw, h], fill=255)
+        # 偶尔来一座明显更高的塔，天际线才有节奏而不像一排等高的积木
+        if random.random() < 0.12:
+            tw = max(10, bw // 4)
+            th = bh + random.randint(int(max_h * 0.5), int(max_h * 1.6))
+            d.rectangle([x + bw // 2 - tw // 2, horizon - th, x + bw // 2 + tw // 2, h], fill=255)
+        x += bw + random.randint(2, 16)
+    layer = layer.filter(ImageFilter.GaussianBlur(blur))
+
+    # 纵向 alpha 渐变：天际线处几乎透明，越往下越实
+    ramp = Image.new("L", (w, h), 0)
+    rd = ImageDraw.Draw(ramp)
+    for y in range(horizon - max_h * 3, h):
+        t = (y - (horizon - max_h * 3)) / max(1, (h - (horizon - max_h * 3)))
+        t = min(1.0, max(0.0, t))
+        rd.line([(0, y), (w, y)], fill=int(top_alpha + (bot_alpha - top_alpha) * t))
+    mask = ImageChops.multiply(layer, ramp)
+    return Image.composite(Image.new("RGB", (w, h), color), im, mask)
+
+
+def daylight_background():
+    """浅色主题：日间 —— 淡天青到象牙的天空 + 底缘城市剪影 + 右上日光晕。
+
+    与夜间那张成对：夜间是「上暗下略亮的墨紫 + 月亮 + 亮窗城市」，这里方向全部反过来，
+    所以两个主题切换时观感是「换了个时刻」而不是「换了张壁纸」。
+    """
     w, h = 1600, 900
+    random.seed(917)
+
+    im = base_gradient(w, h, (206, 224, 242), (250, 247, 250))   # 天青 → 象牙
+    im = soft_light(im, w * 0.74, h * 0.13, 700, (255, 253, 246), 74)  # 日光晕，位置对齐夜间的月亮
+    im = diag_net(im, 96, (139, 62, 85), 6)                     # 与夜间同源的蔷薇淡斜纹
+    im = skyline(im, horizon=int(h * 0.70), color=(126, 142, 168),
+                 top_alpha=10, bot_alpha=96, blur=1.1,
+                 min_w=34, max_w=96, min_h=40, max_h=132)
+    im = petals(im, 16, (150, 78, 100), (12, 26), (16, 30), 2.2)
+    save(im, os.path.join("assets", "images", "bg-daylight.webp"))
+
+
+def site_backgrounds():
+    """站点背景：日间（生成）与夜间质感备选（生成）。尺寸 1600×900（整屏铺满，够 cover 即可）。"""
+    w, h = 1600, 900
+
+    daylight_background()
+
+    # 深色主题的程序质感备选：墨绒夜——底色带一点紫，落瓣是暗蔷薇（不是亮粉）。
+    # 当前**未使用**（深色主题用的是 city_background 那张夜景照片），保留是为了将来想换回
+    # 「纯质感」时不必重写：把 hugo.toml 的 backgroundImage 指过来即可。
     random.seed(311)
-
-    # 浅色：象牙纸——几乎纯色，只做质感（底色见 00-theme.css 的 --theme）
-    light = base_gradient(w, h, (249, 246, 249), (240, 234, 241))
-    light = diag_net(light, 96, (139, 62, 85), 7)          # 蔷薇色的淡斜纹
-    light = soft_light(light, w * 0.22, h * 0.12, 620, (255, 255, 255), 44)
-    light = petals(light, 16, (150, 78, 100), (12, 26), (16, 30), 2.2)
-    save(light, "assets/images/bg-ivory-paper.webp")
-
-    # 深色：墨绒夜——底色带一点紫，落瓣是暗蔷薇（不是亮粉）
     dark = base_gradient(w, h, (10, 9, 15), (23, 18, 32))
     dark = diag_net(dark, 88, (255, 255, 255), 8)
     dark = soft_light(dark, w * 0.72, h * 0.10, 700, (86, 70, 110), 58)

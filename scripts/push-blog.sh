@@ -77,6 +77,20 @@ dirty="$(git status --porcelain -uall)"
 ahead="$(git rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)"
 
 if [ -n "$dirty" ]; then
+  # 校验清单一致性：**阻断**。CI / push-blog / 管理页体检面板三处的校验清单是人工同步的，
+  # 漂移的代价是「本地全绿、推上去 CI 拦」——2026-09-18 体检就抓到一处（gen-cards 只在 CI 里）。
+  # 排在所有内容检查之前：它只读文本，挂了说明清单本身要修，后面的检查结果不必看。
+  if [ -f scripts/check-consistency.mjs ]; then
+    echo "▸ 校验清单一致性"
+    if cc_log="$(node scripts/check-consistency.mjs 2>&1)"; then
+      printf '%s\n' "$cc_log" | grep -E '^✓' | sed 's/^/  /' || true
+    else
+      printf '%s\n' "$cc_log" | sed 's/^/  /'
+      echo "✗ 三处校验清单已分叉，已中止（未提交、未推送）。"
+      exit 1
+    fi
+  fi
+
   # section 结构校验：**阻断**。每个 section 目录都必须有 _index.md（它的列表页）——
   # 缺了它，分区会退化成「隐式 section」，子页面一删空，/posts/ 这类页面连同导航栏、首页
   # 指向它的入口一起 404（实测踩过）。下面的 front matter 校验只遍历**已存在的** .md 文件，
@@ -101,6 +115,22 @@ if [ -n "$dirty" ]; then
     else
       printf '%s\n' "$fm_log" | sed 's/^/  /'
       echo "✗ front matter 校验未通过，已中止（未提交、未推送）。"
+      exit 1
+    fi
+  fi
+
+  # 卡片页与数据一致性：**阻断**。CS 库的卡片页由 scripts/gen-cards.mjs 从 data/cs-toolbox.json
+  # 生成 —— 改了数据却忘了重生成时，页面正文还是旧的，而**构建不会报错**，只有比对才发现。
+  # 这一项此前只在 CI 里有（2026-09-18 由 scripts/check-consistency.mjs 抓出来补上）：
+  # 少了它，本地会一路绿灯、推上去才被 CI 拦，正好是这套脚本最该避免的情形。
+  if [ -f scripts/gen-cards.mjs ]; then
+    echo "▸ 卡片页与数据一致性校验"
+    if gc_log="$(node scripts/gen-cards.mjs cs --check 2>&1)"; then
+      printf '%s\n' "$gc_log" | tail -1 | sed 's/^/  /'
+    else
+      printf '%s\n' "$gc_log" | sed 's/^/  /'
+      echo "✗ 卡片页与 data/cs-toolbox.json 不一致，已中止（未提交、未推送）。"
+      echo "  （重跑 node scripts/gen-cards.mjs cs 即可，别手改卡片页。）"
       exit 1
     fi
   fi

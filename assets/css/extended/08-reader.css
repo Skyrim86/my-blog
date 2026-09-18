@@ -92,6 +92,30 @@
   background: var(--code-bg);
 }
 
+/* ---------- 行间公式的横向溢出 ----------
+
+   宽**表格**不用管：主题 reset.css 把 table 放进了 display:block 那一组，并给了
+   `overflow-x: auto`，所以宽表格自己就能横向滚动（实测 380px 下 table 的 scrollWidth
+   大于 clientWidth，是表内滚动，不撑页面）。
+
+   但 KaTeX 没有这层保护：.katex-display 是 overflow-x: visible，而它内部是
+   white-space: nowrap（static/katex/katex.min.css），公式不会折行。实测 380px 视口下
+   一行 924px 的公式把整个文档撑到 957px —— 右侧内容被裁掉，读者得左右拖动**整页**才能读完。
+   正文栏是 720px，所以桌面端同样会中招，这里刻意不加媒体查询。
+
+   overflow-y 必须显式写 hidden：只写 overflow-x: auto 时，另一轴会从 visible 变成 auto，
+   而公式的上下标、根号常常溢出内容盒一两个像素，那一轴就会冒出纵向滚动条。
+
+   这条为什么在 08 而不是 11-toolbox.css：11 里那条同效规则只作用于卡片与弹窗
+   （.tb-card / .tb-modal-panel），正文这条是全站阅读路径。 */
+.post-content .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* 给滚动条与公式留一点缝，免得贴着下标 */
+  padding-bottom: .2rem;
+}
+
 /* 文末评论区间距 */
 .post-single + .comments,
 .comments {

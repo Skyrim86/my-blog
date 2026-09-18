@@ -1,16 +1,13 @@
-{{- /* 看板娘：左下角 + 右下角各一位。
+{{- /* 看板娘：右下角一位。
        图片走资源管线，只为了拿带子路径前缀的 RelPermalink；换图直接替换
-       assets/images/mascot.webp / mascot-left.webp，不用改模板。
+       assets/images/mascot.webp，不用改模板。
+       2026-09-18：左下角那位（mascot-left.webp）已按要求移除，样式与 i18n 键一并删掉，
+       原委见 assets/css/extended/14-mascot.css 头部注释。
        为什么放 footer hook：baseof 只在 footer.html 里调它一次，且 extend_footer 不是 partialCached
        （缓存串页的坑见 docs/features.md ㉓）；这个位置在 <body> 末尾，fixed 定位不受父级影响。 */ -}}
 {{- with resources.Get "images/mascot.webp" }}
 <a class="mascot mascot--right" href="{{ "about/" | relLangURL }}" aria-label="{{ i18n "mascotLabel" }}">
   <img src="{{ .RelPermalink }}" width="365" height="720" alt="" loading="lazy" decoding="async">
-</a>
-{{- end }}
-{{- with resources.Get "images/mascot-left.webp" }}
-<a class="mascot mascot--left" href="{{ "about/" | relLangURL }}" aria-label="{{ i18n "mascotLabelLeft" }}">
-  <img src="{{ .RelPermalink }}" width="720" height="647" alt="" loading="lazy" decoding="async">
 </a>
 {{- end }}
 

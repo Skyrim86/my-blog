@@ -14,6 +14,17 @@ runs:
         hugo-version: '0.165.0'
         extended: true
 
+    # 校验清单一致性：**阻断**。同一套校验规则在三处独立登记（这个 action.yml、
+    # scripts/push-blog.sh、tools/admin/lib/checks.mjs 的 ITEMS），三处都没生成关系、
+    # 靠人工同步，而漂移的代价很具体：push-blog 少一项 = 本地全绿推上去才被拦；
+    # 体检面板少一项 = 面板谎报通过。这条断言「CI 里阻断的每一项，另外两处都必须有」，
+    # 并顺带查阻断口径、时区单一来源、front matter 键表是否登记齐全。
+    # 只读文本文件、不依赖构建产物，所以排在最前面（它挂了后面的内容检查就不必跑了）。
+    # 注意：这条检查本身也登记在另外两处 —— 它要检查的正是自己被登记了没有。
+    - name: 校验清单一致性（阻断）
+      shell: bash
+      run: node scripts/check-consistency.mjs
+
     # 标签词表：只警告不阻断（沿用 push-blog.sh 的语义，拼错会分裂出两个词条页，值得看见）
     - name: 标签词表校验（只警告）
       shell: bash

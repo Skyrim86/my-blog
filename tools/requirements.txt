@@ -1,0 +1,22 @@
+# 本仓库 Python 工具的依赖。**只在本地跑生成器时需要，不进 CI**（见 docs/architecture.md 第 6 节：
+# action.yml 里只有 Hugo + Node，挂 Python 进 CI 要先加 actions/setup-python）。
+#
+# 用法（在仓库根目录）：
+#   pip install -r tools/requirements.txt
+#
+# ---- 谁需要什么 ----
+#   Pillow         tools/icons/make-icons.py、tools/covers/make-covers.py、
+#                  tools/backgrounds/make-backgrounds.py、make-admin-bg.py
+#    numpy         tools/backgrounds/make-backgrounds.py、make-mascot.py、make-mascot-left.py
+#    opencv-python tools/backgrounds/make-mascot.py、make-mascot-left.py（白底抠图）
+#    —— tools/course-import/import_course.py 只用标准库，不需要这里的任何一项
+#
+# 2026-09-18 立此文件前，这三项依赖完全没有声明：换一台机器想重生成图标或背景图，只能靠
+# 读脚本的 import 反推版本。而仓库其余部分的锁版本纪律很严（Hugo 钉在 action.yml、所有 Action
+# 钉到 commit SHA、KaTeX CSS/fonts 入库并做配对校验），唯独 Python 这一角是空的。
+#
+# 前两项是**本机实测版本**（Python 3.11.15）；opencv-python 本机没安装，所以给的是区间而不是
+# 精确钉 —— 等哪台机器真跑 make-mascot*.py 时，把 `pip freeze` 到的版本改成精确钉再提交。
+Pillow==12.3.0
+numpy==2.4.3
+opencv-python>=4.10,<5
