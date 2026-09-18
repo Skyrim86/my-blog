@@ -1,0 +1,59 @@
+{{- /* 覆盖主题的 render-image.html —— 仓库第九处有意的主题模板覆盖（理由与取舍见 docs/features.md 第 4 节与第 ㊲ 项）。
+
+     与主题原版的差异只有两处，其余（URL 解析、query/fragment 拼接、属性透传、转义）逐字保留：
+       1. PNG 走构建期转 WebP（lossless）。实测 4 张实验图 49598 → 17176 B（−65.4%），
+          且解出来的像素与原图**完全一致**（`webp lossless` + 尺寸不变；这不是「看着差不多」，
+          是逐像素比对过的）。源文件保持 PNG —— 那 4 张图的出处是实验页里教 `ggsave()`/`png()`
+          的 R 代码，改文件名会变成「代码写 png、页面里是 webp」。
+       2. 补 width/height。主题原版不给内容图尺寸，实测产物里只有 alt/loading/src。
+
+     为什么是 lossless 而不是 q82：调色板 PNG（03/04）走有损会**涨一倍**（实测 +104.6%，
+     最大像素差 138），而 lossless 四张全部更小（−39% ~ −74%）。**JPEG 一律不转** ——
+     首页头像实测：Hugo 出 webp q82 是 15036 B，比它自己从同一张图重编码出的 240×240 JPEG
+     （13584 B）还大，有损 WebP 在这里赢不了；没有证据就不动。
+
+     「取小者」护栏：比较转换前后 `.Content` 的字节数，只有更小才换。这样将来某张 PNG 若正好
+     不适合 WebP（例如极小的图标，WebP 容器开销占主导），行为自动回落到原图，不会悄悄变大。 */ -}}
+{{- $u := urls.Parse .Destination -}}
+{{- $src := $u.String -}}
+{{- $width := 0 -}}
+{{- $height := 0 -}}
+{{- if not $u.IsAbs -}}
+  {{- $path := strings.TrimPrefix "./" $u.Path }}
+  {{- with or (.PageInner.Resources.Get $path) (resources.Get $path) -}}
+    {{- $res := . -}}
+    {{- if eq .MediaType.SubType "png" -}}
+      {{- $conv := .Resize (printf "%dx%d webp lossless" .Width .Height) -}}
+      {{- if lt (len $conv.Content) (len .Content) -}}
+        {{- $res = $conv -}}
+      {{- end -}}
+    {{- end -}}
+    {{- $src = $res.RelPermalink -}}
+    {{- $width = $res.Width -}}
+    {{- $height = $res.Height -}}
+    {{- with $u.RawQuery -}}
+      {{- $src = printf "%s?%s" $src . -}}
+    {{- end -}}
+    {{- with $u.Fragment -}}
+      {{- $src = printf "%s#%s" $src . -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $attributes := merge .Attributes (dict "alt" .Text "src" $src "title" (.Title | transform.HTMLEscape) "loading" "lazy") -}}
+{{- /* 尺寸只在两种情况下补：拿到了真实像素（SVG 之类是 0），且作者没在 markdown 里显式写 width。
+       留意 merge 会让主题那组键覆盖 .Attributes，所以这里不靠 merge 的顺序，直接查原始属性。
+       值要先 printf 成字符串 —— `%q` 对整数会输出字符字面量（660 会变成 '\u0294'）。 */ -}}
+{{- $authorWidth := "" -}}
+{{- with .Attributes -}}
+  {{- $authorWidth = index . "width" -}}
+{{- end -}}
+{{- if and (gt $width 0) (not $authorWidth) -}}
+  {{- $attributes = merge $attributes (dict "width" (printf "%d" $width) "height" (printf "%d" $height)) -}}
+{{- end -}}
+<img
+  {{- range $k, $v := $attributes -}}
+    {{- if $v -}}
+      {{- printf " %s=%q" $k $v | safeHTMLAttr -}}
+    {{- end -}}
+  {{- end -}}>
+{{- /**/ -}}

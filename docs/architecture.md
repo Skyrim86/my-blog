@@ -49,12 +49,15 @@ my-blog/
 │   │   ├── 14-mascot.css      #     右下角看板娘（第 3 节 ㉕）
 │   │   ├── 15-extras.css      #     404 页 + 页脚 RSS 入口
 │   │   ├── 16-list-tools.css  #     列表排序与标签筛选条（配合 assets/js/list-tools.js）
-│   │   └── 17-a11y.css        #     跳过导航链接 + .sr-only（见 features.md 第 4 节的第 7 处覆盖）
+│   │   ├── 17-a11y.css        #     跳过导航链接 + .sr-only（见 features.md 第 4 节的第 7 处覆盖）
+│   │   └── 18-bg-switch.css   #     顶栏背景套切换按钮（配合 assets/js/bg-switch.js，见 ⑫）
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
 │   │   ├── mascot.webp        #   看板娘半身像（从 tools/icons/ 那份素材抠出来，见 ㉕）
-│   │   ├── bg-night-city.webp #   深色主题背景：夜景城市照片（见 docs/features.md ⑫）
-│   │   ├── bg-daylight-city.webp # 浅色主题背景：日间城市照片（见 ⑫）
+│   │   ├── bg-night-city.webp #   背景套「城市」的深色主题：夜景城市照片（见 docs/features.md ⑫）
+│   │   ├── bg-daylight-city.webp # 背景套「城市」的浅色主题：日间城市照片（见 ⑫）
+│   │   ├── bg-night-girl.webp    # 背景套「黑长直少女」的深色主题（默认套，见 ⑫）
+│   │   ├── bg-daylight-girl.webp # 背景套「黑长直少女」的浅色主题（见 ⑫）
 │   │   ├── bg-daylight-sky.webp  # 浅色主题备选背景（程序生成，当前未使用，见 ⑫）
 │   │   ├── bg-velvet-night.webp  # 深色主题备选背景（程序生成，当前未使用，见 ⑫）
 │   │   └── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
@@ -63,6 +66,7 @@ my-blog/
 │       ├── reading-progress.js   # 阅读进度条 + 目录高亮（只在单页加载）
 │       ├── search-shortcut.js    # Ctrl/⌘+K 与「/」快捷键 + 搜索页 ?q= 预填
 │       ├── nav-toggle.js         # 窄屏导航折叠（渐进增强，无 JS 时菜单照主题原样铺开）
+│       ├── bg-switch.js          # 背景套切换按钮（注入顶栏，偏好存 localStorage['pref-bg']，见 ⑫）
 │       ├── terms-filter.js       # 标签/分类/系列总览页的词条筛选框
 │       ├── list-tools.js         # section / term 页的排序与标签筛选条
 │       ├── toolbox.js            # 数学/CS 卡片的引用弹窗与卡片墙筛选
@@ -92,6 +96,7 @@ my-blog/
 │   │   ├── library-section.html   #   细分页（卡片索引）
 │   │   └── toolcard.html      #   单张卡片页（数学卡与 CS 卡共用）
 │   ├── _markup/render-passthrough.html   # 公式渲染钩子（构建期 KaTeX）
+│   ├── _markup/render-image.html         # 覆盖主题文件：内容图补 width/height + PNG 转无损 WebP（第 9 处覆盖，见 features.md ㊲）
 │   ├── courses/course.html    # 课程主页模板（由 layout: course 显式命中）
 │   ├── courses/chapter.html   # 章节入口页模板（由 layout: chapter 命中）
 │   ├── projects/project-home.html  # 分层项目主页模板（由 layout: project-home 命中）

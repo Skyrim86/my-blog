@@ -165,13 +165,57 @@ pagerSize = 10
 # ============================================
 # 外观与首页
 # ============================================
-# 站点背景图：assets/ 下的路径，由 extend_head.html 经资源管线生成 --bg-image-light / --bg-image-dark。
-# 两张都是**实拍照片**、且是两个不同时刻的同一座城市：浅色主题用日间（大团积云 + 曼哈顿天际线），
-# 深色主题用夜景。方向相反，切换主题像换了个时辰，不是换壁纸。
-# 留空字符串即关闭该主题的背景。换图直接替换文件即可；深浅两种蒙版在 assets/css/extended/00-theme.css 里。
+# 站点背景：**可切换的多套**。每套两张图 —— light 给浅色主题、dark 给深色主题，两张方向相反
+# （日间偏亮、夜间偏暗），切换主题的观感是「换了个时辰」而不是「换了张壁纸」。分两张是必须的：
+# 同一张夜景图压在 84% 的浅色蒙版下不是背景，是一块脏灰（换图时实测过）。
+#
+# 唯一事实源仍是这里：extend_head.html 把每套解析成带子路径前缀的 URL，生成一张只含 CSS 变量的
+# 小外链 css/bg-image.css —— 模板里不写 <style>、CSS 里不硬编码 /my-blog/、换图只改本文件。
+# 只请求当前生效的那一张：没有被 var() 求值的 URL，浏览器不会去下载。
+#
+# presets 留空 = 关闭背景、退回纯色主题（顶栏按钮也不出现）；只列一套 = 显示那一套、不显示按钮。
+#
+# 每套的字段：
+#   id        属性选择器用的名字，只能用 [a-z0-9-]；非法会直接让构建报错（避免拼出坏选择器）
+#   name      按钮 title 与读屏播报里显示的套名。写在配置里而非 i18n，与导航菜单的 name 同一做法
+#   light     浅色主题那套用的图，assets/ 下的路径；缺一个就为该主题回退纯色
+#   dark      深色主题那套用的图
+#   position  可选，background-position，默认 center 30%
+#   maskLight / maskDark  可选，蒙版三档不透明度 [顶, 中, 底]；省略则用 extend_head.html 里的兜底值
+#             （兜底值刻意只放模板一处，CSS 那边不写第二份；见 docs/features.md ⑫）
+#
+# 蒙版数值跟着图走而不是写在 CSS 里：具象画面（人物）压不住 55~85% 的白蒙版，会剩一块灰白斑，
+# 所以「黑长直少女」那套要更厚的蒙版，而城市套是实拍照片、可以压薄。数值都是量过对比度定的。
 [params.appearance]
-  backgroundImage = 'images/bg-night-city.webp'
-  backgroundImageLight = 'images/bg-daylight-city.webp'
+  # 默认套的 id：无 JS 时（含爬虫与首屏渲染前）访客看到的就是这一套
+  defaultPreset = 'girl'
+
+[[params.appearance.presets]]
+  id = 'girl'
+  name = '黑长直少女'
+  light = 'images/bg-daylight-girl.webp'
+  dark = 'images/bg-night-girl.webp'
+  # 横向取 78% 是为了**窄屏**：视口比 16:9 窄时（几乎全部设备）cover 是「按高度铺满、横向裁两边」，
+  # 实测 375px 宽的手机只露出图片宽度的约 26%。两张图的人物分别在横向 66% 与 76% 处，
+  # 取 78% 时可视窗口落在 [58%, 84%]，两个人都在窗口里；取默认的 center 就会把她们裁掉。
+  position = '78% 25%'
+  # 三档蒙版比城市套厚得多，是量出来的：这张图的人物（黑长直 + 深色水手服）正好落在
+  # 「按分类浏览 →」「笔记/习题」这些**直接压在背景上**的 --secondary 灰字下面。
+  # 实测 .62/.74/.86 时最低 3.68:1（AA 要 4.5），推到这一档后最低 4.98:1 —— 比城市套
+  # 同一批测量点的 4.74:1 还高一点。代价是人物只剩一层淡影（贴卡片的内容不受影响，
+  # 那里由卡片自己的 --surface 承担对比度）。想换观感就动这三个数，但必须重量一次。
+  maskLight = [0.80, 0.88, 0.93]
+  maskDark = [0.66, 0.78, 0.90]
+
+[[params.appearance.presets]]
+  id = 'city'
+  name = '城市'
+  light = 'images/bg-daylight-city.webp'
+  dark = 'images/bg-night-city.webp'
+  position = 'center 30%'
+  # 实拍照片（大团积云边缘 / 亮窗对暗天）本身就是小尺度明暗对比，能在薄蒙版下活下来
+  maskLight = [0.46, 0.60, 0.76]
+  maskDark = [0.54, 0.70, 0.84]
 
 # 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html
 [params.home]

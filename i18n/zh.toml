@@ -212,6 +212,17 @@ other = "RSS 订阅"
 [bottomLinkLabel]
 other = "滚到页面底部"
 
+# ---------- 背景套切换（见 assets/js/bg-switch.js、18-bg-switch.css） ----------
+# 顶栏那个循环按钮的可访问名与悬停提示。{name} 由脚本替换成 hugo.toml 里 [params.appearance]
+# 那套的 name（单花括号是给 JS 的占位符，别写成 Go 模板的 {{ }} —— 同 listToolsResult）。
+[bgSwitchLabel]
+other = "切换背景图：当前 {name}"
+
+# 切换后的读屏播报。它写进一个 .sr-only 的 role="status" 节点，页面上不显示：
+# 背景切换是纯视觉变化，没有这个节点读屏用户什么都得不到。
+[bgSwitchAnnounce]
+other = "背景已切换到 {name}"
+
 # ---------- 列表排序与标签筛选（见 assets/js/list-tools.js） ----------
 # JS 不能调 i18n，这些文案由 extend_head.html 经 <script> 的 data-* 传给脚本
 [listToolsSort]

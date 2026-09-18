@@ -1,0 +1,26 @@
+/* ============================================
+   背景套切换按钮（行为见 assets/js/bg-switch.js，套的清单在 hugo.toml 的 [params.appearance]）
+
+   两条刻意的选择：
+
+   一、复用主题的 .theme-toggle 类当基类（标记里是 `class="theme-toggle bg-switch"`）。
+   主题 header.css 给了 `padding: 0 .4rem`，core/reset.css 又把 button 的边框、底色、内边距
+   清干净，所以这里只需要补悬停色。这是与 extend_footer.html 复用 `.top-link` 同一套做法：
+   抄一份主题样式迟早会漂移，而 .theme-toggle 只是「顶栏里一个 17px 图标按钮」的布局容器，
+   语义上不绑明暗。主题升级时这个类若变了，两个按钮一起变。
+
+   二、按钮由 JS 注入，所以这里不需要处理「无 JS」的情况 —— 没有 JS 时它根本不存在，
+   （主题给自己的 #theme-toggle 用 <noscript> 隐藏，是因为那个按钮在模板里写死了。）
+   ============================================ */
+
+.bg-switch {
+  color: inherit;
+}
+
+.bg-switch:hover {
+  color: var(--accent);
+}
+
+.bg-switch svg {
+  display: block;
+}

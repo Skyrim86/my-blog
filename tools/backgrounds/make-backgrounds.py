@@ -15,6 +15,8 @@
 #   assets/images/bg-night-city.webp     深色主题（夜景城市照片，见 city_background）
 #   assets/images/bg-velvet-night.webp   深色主题的程序质感备选（当前**未使用**）
 #   assets/images/bg-night-city-lady.webp 夜城 + 提灯少女（当前**未使用**）
+#   assets/images/bg-daylight-girl.webp  「黑长直少女」套的浅色主题（见 girl_backgrounds）
+#   assets/images/bg-night-girl.webp     「黑长直少女」套的深色主题（见 girl_backgrounds）
 #   tools/admin/ui/frost-dark.webp       管理页深色主题（--frost 才生成）
 #   tools/admin/ui/frost-light.webp      管理页浅色主题（--frost 才生成）
 #
@@ -248,6 +250,62 @@ def city_lady_background():
     save(canvas.convert("RGB"), os.path.join("assets", "images", "bg-night-city-lady.webp"), quality=78)
 
 
+def girl_backgrounds():
+    """「黑长直少女」那套：source-girl-day.jpg / source-girl-night.jpg →
+    assets/images/bg-daylight-girl.webp（浅色主题）/ bg-night-girl.webp（深色主题）。
+
+    这一套与城市那套的区别是**画面里有人**，于是有三处不一样：
+
+    一、蒙版必须压厚（hugo.toml 里单独给了 maskLight/maskDark）。具象人物在一整块 55~85% 的
+        白蒙版下会剩一块灰白斑 —— 这是文件头记着的老经验，「城市 + 提灯少女」那版就是因此撤回过。
+        压厚不是补救，是这套图能上线的**前提**：不压厚，浅色主题下人物的脸和衣服就是一块脏色。
+
+    二、处理时去饱和要更克制。城市照片是实拍，去饱和到 .86 只是「收一收」；插画的饱和度本身
+        就是它的卖点，压过头会变成一张褪色的画。这里只做 .95（日）/ 1.0（夜），再用 4~5% 的
+        主题底色混一下，让它在「墨与蔷薇」的配色里不显得外挂。
+
+    三、**人物要留在画面横向的 60~80% 处**，因为 background-position 的横向取值决定了窄屏露哪一块：
+        视口比 16:9 窄时（几乎全部设备）cover 是「按高度铺满、横向裁掉两边」，实测 375px 宽的手机
+        只露出图片宽度的 25%。人物若靠边，手机上就只剩一片天空。所以 hugo.toml 里这两套的
+        position 都写成 `6x% 25%`，把人物挪到可视窗口中间 —— 两张的人物都在右侧同一带，
+        切主题时她不会跳位置（观感是「换了个时辰」，与城市那套同理）。
+
+    取景理由：两张都是「少女 + 城市全景 + 天空」，日间是白天俯瞰海湾城市、夜间是屋顶看星空下的
+    夜城，母题一致、时辰相反。日间那张只裁掉底部 200px（上缘留 90px 给她头顶，不裁脸）；
+    夜间那张源图本就接近 16:9，只裁掉 77px 里的一小半。
+
+    出处（都是同人插画，版权在画师手里；个人非商业使用并保留出处）：
+      source-girl-day.jpg   pixiv https://www.pixiv.net/artworks/87155937
+                            （经 safebooru post 3336910，2048×1352）
+      source-girl-night.jpg pixiv https://www.pixiv.net/artworks/77002104
+                            （经 safebooru post 2921614，原图 2500×1500 压到 2048×1229 存）
+    抓候选与筛选的过程留在 .shots/pick-girl-bg.py 与 .shots/finalists.py（仓库外）。
+    """
+    day = Image.open(os.path.join(ROOT, "tools", "backgrounds", "source-girl-day.jpg")).convert("RGB")
+    w, _ = day.size
+    ch = round(w * 9 / 16)
+    # 贴顶裁（y0=0）：源图 2048×1352，裁掉的是底部 200px 的甲板栏杆；上缘只留 90px 给她头顶，
+    # 再往下裁就切到头发了。
+    day = day.crop((0, 0, w, ch)).resize((1600, 900), Image.LANCZOS)
+    day = ImageEnhance.Color(day).enhance(0.95)
+    day = Image.blend(day, Image.new("RGB", day.size, (250, 247, 250)), 0.05)
+    save(day, os.path.join("assets", "images", "bg-daylight-girl.webp"), quality=72)
+
+    night = Image.open(os.path.join(ROOT, "tools", "backgrounds", "source-girl-night.jpg")).convert("RGB")
+    w, h = night.size
+    ch = round(w * 9 / 16)
+    # 源图 2048×1229 本就接近 16:9，只需裁掉 77px：取中，上下的星空与屋顶各让一点。
+    y0 = max(0, (h - ch) // 2)
+    night = night.crop((0, y0, w, y0 + ch)).resize((1600, 900), Image.LANCZOS)
+    # 密集星场是这张图压不下来的原因：q74 要 176 KB，而背景是**每个访客都要下**的资源。
+    # 0.4px 的亚像素模糊只削掉星点的单像素高频噪（对画面是「噪点少了」而不是「糊了」），
+    # 实测 q64 从 156 KB 降到 132 KB（与城市套那张 125 KB 同量级）；两种画法在页面上的差别
+    # 由截图核对，不是靠 RMSE —— 蒙版压到 .66~.90 之后这个量级的差异看不见。
+    night = night.filter(ImageFilter.GaussianBlur(0.4))
+    night = Image.blend(night, Image.new("RGB", night.size, (11, 10, 15)), 0.05)   # 掺墨色，压住城市灯火的橙
+    save(night, os.path.join("assets", "images", "bg-night-girl.webp"), quality=64)
+
+
 def frost_background(name, top, bottom, flake_color, flake_alpha, petal_color,
                      light_color, light_alpha, net_alpha):
     """管理页一张：霜雪樱花。1920×1200（管理页是本地工具，尺寸放宽一点无所谓）。"""
@@ -287,6 +345,7 @@ if __name__ == "__main__":
     daylight_city_background()
     city_background()
     city_lady_background()
+    girl_backgrounds()
     # 管理页的「霜雪质感」两张是备选：管理页当前用的是绫华壁纸（见 docs/admin.md §20），
     # 只有想换回纯质感时才生成，所以要显式加 --frost。
     if "--frost" in sys.argv:

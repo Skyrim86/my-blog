@@ -7,9 +7,10 @@
 
    - 只覆盖主题的 CSS 变量与少数全局选择器；组件级样式归各自编号的文件
    - 暗色适配一律用 [data-theme="dark"]（主题给 <html> 设该属性，不是 .dark class）
-   - 背景图 URL 由 extend_head.html 生成到 css/bg-image.css 里，两个变量：
-     --bg-image-light（浅色主题用的象牙纸）、--bg-image-dark（深色主题用的墨绒夜）。
-     这里不写死路径，站点在 /my-blog/ 子路径下也不用改本文件
+   - 背景图 URL 与蒙版档位由 extend_head.html 按 hugo.toml 的 [params.appearance].presets
+     生成到 css/bg-image.css 里：--bg-image-light / --bg-image-dark / --bg-position /
+     --bg-mask-light-1..3 / --bg-mask-dark-1..3。这里不写死路径，站点在 /my-blog/ 子路径下
+     也不用改本文件；背景套的切换靠 <html data-bg="<套 id>">（见 18-bg-switch.css）
    - 底色交给 <html>、body 设透明，负 z-index 的背景层才透得出来
    ============================================ */
 :root {
@@ -71,13 +72,22 @@ body {
   background: transparent;
 }
 
-/* 背景层：一层渐变蒙版压在实拍照片上（浅色主题日间城市，深色主题夜景城市）。
-   蒙版的活是保正文对比度与「不抢戏」，不是把图糊掉：所以深浅两边都收在同一档
-   （浅色 .46→.76、深色 .54→.84），再压就有背景等于没背景。
-   浅色那档 2026-09-18 从 .55→.85 调薄：换成实拍照片后旧值把云和天际线压得只剩一层灰。
-   调薄的依据是量过的 —— 遍历页面上 35 个可见文字元素、把蒙版与背景图在文字位置合成出真实底色
-   再算 WCAG，最低 6.35:1（AA 要求 4.5:1）；深色那档是 .54 起，同样量过。
-   改这里就要重量一次，别凭肉眼。 */
+/* 背景层：一层渐变蒙版压在背景图上（浅色主题用日间图、深色主题用夜间图）。
+   蒙版的活是保正文对比度与「不抢戏」，不是把图糊掉：所以深浅两边都收在同一档，
+   再压就有背景等于没背景。浅色那档 2026-09-18 从 .55→.85 调薄：换成实拍照片后
+   旧值把云和天际线压得只剩一层灰。调薄的依据是量过的 —— 遍历页面上 35 个可见文字元素、
+   把蒙版与背景图在文字位置合成出真实底色再算 WCAG，最低 6.35:1（AA 要求 4.5:1）；
+   深色那档是 .54 起，同样量过。加「黑长直少女」那套时同一套方法又量了一遍（见 docs/features.md ⑫）。
+   改图或改数值就要重量一次，别凭肉眼。
+
+   **三档不透明度与 position 的数值不在这里**：它们由 extend_head.html 按 hugo.toml 的
+   [params.appearance].presets **逐套**生成（--bg-position / --bg-mask-light-1..3 /
+   --bg-mask-dark-1..3）。蒙版强度是跟着图走的 —— 实拍照片（大团云、亮窗对暗天）能压薄，
+   具象的动漫人物压不住、必须压厚，写在配置里换图时就不用回来改 CSS。
+   这里只留渐变的**形状**：三段（顶 0% / 中 52% / 底 100%），颜色取主题底色。
+   刻意不给蒙版与 position 写 var() 兜底值（免得出现第二份「默认数值」）：presets 留空时
+   整段背景 CSS 不生成，var() 求值失败会让 background-image 回落到 none —— 正是「关闭背景」
+   该有的样子，不需要兜底也不会残留蒙版。 */
 body::before {
   content: "";
   position: fixed;
@@ -85,16 +95,22 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-image:
-    linear-gradient(180deg, rgba(247, 245, 248, .46) 0%, rgba(247, 245, 248, .60) 52%, rgba(247, 245, 248, .76) 100%),
+    linear-gradient(180deg,
+      rgba(247, 245, 248, var(--bg-mask-light-1)) 0%,
+      rgba(247, 245, 248, var(--bg-mask-light-2)) 52%,
+      rgba(247, 245, 248, var(--bg-mask-light-3)) 100%),
     var(--bg-image-light, none);
   background-size: cover, cover;
-  background-position: center, center 30%;
+  background-position: var(--bg-position), var(--bg-position);
   background-repeat: no-repeat, no-repeat;
 }
 
 :root[data-theme="dark"] body::before {
   background-image:
-    linear-gradient(180deg, rgba(11, 10, 15, .54) 0%, rgba(11, 10, 15, .70) 52%, rgba(11, 10, 15, .84) 100%),
+    linear-gradient(180deg,
+      rgba(11, 10, 15, var(--bg-mask-dark-1)) 0%,
+      rgba(11, 10, 15, var(--bg-mask-dark-2)) 52%,
+      rgba(11, 10, 15, var(--bg-mask-dark-3)) 100%),
     var(--bg-image-dark, none);
 }
 
@@ -157,4 +173,8 @@ a {
 
 .post-content img {
   border-radius: 6px;
+  /* 必须配 `height: auto`：render-image.html 给内容图补了 width/height，而主题 reset
+     只有 max-width:100%（core/reset.css）没有 height:auto，窄屏下图片会被纵向压扁。
+     补上后浏览器仍按属性里的宽高比预留空间，防跳动的收益不受影响。 */
+  height: auto;
 }

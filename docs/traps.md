@@ -21,6 +21,7 @@
 | 公式样式没加载，但公式本身显示正常 | `math` 字段只决定要不要加载 `katex.min.css`，与渲染无关；忘了写也有兜底检测 | 显式写 `math: true`；无公式的页面写 `false` 省约 23KB |
 | 首页头像糊 / 没缩到 120×120 | 头像放在了 `static/` | **必须放 `assets/images/`**：主题用 `resources.Get` 去 assets 找，找不到就退回直出原图，`imageWidth/Height` 被**静默忽略**（曾如此：原图 22 KB 直出，而不是 4.8 KB 的 120×120） |
 | 改首页布局没反应 | 首页是 Profile Mode | 去 `[params.profileMode]`，不是普通 list 模板；按钮已移除，入口走顶部导航 |
+| 图片在窄屏被**纵向压扁**（宽度缩了、高度没跟着缩） | 给 `<img>` 补了 `width`/`height` 属性，而主题 reset 只有 `img { max-width: 100% }`（`core/reset.css`）**没有 `height: auto`** —— 宽度被压到 100% 时高度仍锁在属性值上。**构建不报错，只有看图才发现** | `.post-content img` 补 `height: auto`（`assets/css/extended/00-theme.css`，㊲ 已加）。补上后浏览器仍按属性里的宽高比预留空间，防跳动的收益不受影响。判据：400px 视口下 660×440 的图应渲染成 333×222（宽高比 1.5）而不是 333×440。见 [`features.md` ㊲](features.md) |
 | 搜索整站失效 | 首页 JSON 输出被删 | `[outputs] home` 里的 `'JSON'` 勿删 |
 | 长文里明明有的词搜不到 | 索引正文被截断到每页前 400 字（有意为之） | 预期行为，不是 bug；要改调 `layouts/index.json` 的 `truncate 400` 并同步 `fuseOpts.keys`。见 [`features.md` 第 3 节 ⑪](features.md) |
 | 列表卡片里的公式显示成重复三遍（`e=x^−xe = \hat{x} - xe=x^−x`），或卡片摘要整块空白 | 卡片摘要走主题 `list.html` 的 `.Summary \| plainify`。公式在**构建期**已被 KaTeX 渲染成 HTML+MathML，`plainify` 剥掉标签后把 MathML 文本、`annotation` 里的 TeX 源码与视觉文本拼在了一起；正文为空的生成页（工具卡片）则是摘要本来就空 | 给会出现在列表页的页面写 front matter **`summary`**（纯文本，`.Summary` 会直接返回它）。`check-frontmatter.sh` 对「正文含公式却没写 summary」的页面发警告；不能写进 `archetypes` —— 空字符串会被当成「已设置」，卡片会变成空白 |
@@ -34,6 +35,10 @@
 | 导航栏某个入口 404，或 `/posts/` 这类列表页整页消失 | 该 section 目录没有 `_index.md`：Hugo 给的是**隐式 section**，页面靠子页面撑着，最后一篇内容被删掉时列表页与所有指向它的入口一起 404。实例：`content/posts/` 曾经只有一篇占位文章 | 用 `bash scripts/new-content.sh section <路径> --title 标题` 补列表页。现在 `check-sections.sh`（阻断，拦「有子页面却没列表页」）与 `check-links.mjs`（同站绝对链接也在检查范围内）都会拦住它，`remove` 也拒绝单独删 `_index.md` |
 | 换 logo 后看不到新图标 | `static/` 下是无内容指纹的静态文件 | 访客强刷即可；换图标**不要手改那些 png/ico**，改 `tools/icons/make-icons.py` 后重新生成（见 `architecture.md` 第 6 节），桌面快捷方式还要 `ie4uinit.exe -show` 刷 Explorer 的图标缓存 |
 | 改明暗颜色的代码不生效 | 监听/匹配了 `.dark` class | 主题机制是 `<html>` 上的 **`data-theme` 属性**，用 `[data-theme="dark"]` |
+| 首屏先闪一下默认背景、再换成自己存的那套背景 | 背景套靠 `<html data-bg="…">` 选中，而这个属性必须**在首次绘制前**写好。改成 defer 外链（或把脚本挪到 `</body>` 前）就会先按默认套下一张图、再换成访客存的那张——白下载一百来 KB 还闪一下 | 那段前置脚本留在 `extend_head.html` 里**内联**（AGENTS 规则 6 的唯一例外）。它只做一件事：读 `localStorage['pref-bg']`、校验 id 仍在 `presets` 里、写属性。主题自己处理 `pref-theme` 用的是同一招，位置也与之对齐 |
+| 新增一套背景后，切到浅色主题显示的是**另一套**的图 | 生成的 `[data-bg]` 块必须**变量写全**：某套只写了 `dark` 没写 `light`，块里若没有 `--bg-image-light:none`，它就会继承 `:root`（默认套）的值 —— 两套混着显示 | 生成逻辑在 `extend_head.html`：每个预设的 6 个变量都无条件写（缺图写 `none`，缺 `position`/蒙版用模板里的兜底值）。别改成「只写有值的」，那会把自洽性交给继承 |
+| 关掉背景后页面上还留着一层灰 | `presets` 留空时整段背景 CSS 不生成，此时若 CSS 里给蒙版写了 `var(--bg-mask-light-1, .5)` 这类兜底值，就会只剩一层纯灰蒙版压在底色上 | `00-theme.css` 的 `body::before` **刻意不写**蒙版与 position 的 var() 兜底：求值失败会让 `background-image` 回落到 `none`，正是「关闭背景」该有的样子。这也是不在这里再放第二份「默认数值」的理由 |
+| 改背景套的 `maskLight`/`maskDark`/`position` 不生效 | 这三个键的大小写在 Hugo 的 `Params` 里不敏感（都能读到），但**蒙版必须正好三个数**，否则构建直接报错；`position` 写错（如 `center 25` 少个 %）不会报错，只会让 `background-position` 整条失效 | 三个数是 [顶, 中, 底] 三档不透明度；`position` 用合法的 `center 25%` 形式。报错信息里会指出是第几套的哪个键 |
 | bash 脚本报 `$'\r': command not found` | 全新 checkout 得到 CRLF | `scripts/*.sh` 与 `data/*.yaml` **必须 LF**（`.gitattributes` 已用 `text eol=lf` 钉住）。内容 `.md` 允许 CRLF（Hugo 与两个校验脚本都能处理） |
 | 单页的左侧目录栏不跟着滚（或整栏跑到正文末尾） | `.post-single` 上的 `backdrop-filter` 会成为 fixed 后代的**包含块**——留在正文容器里的 `position: fixed` 是相对卡片定位的，于是跟着正文一起滚 | `layouts/_partials/toc-rail.html` 里**内联**的那段脚本把 `#toc-rail` 挪到 `<body>` 下；显示与否挂在 `body.has-toc-rail` 上，没 JS 时不显示（正文顶部的折叠目录照旧）。见 [`features.md` 第 3 节 ㉓](features.md) |
 | 两份目录的条目数量不一样（页内目录比左栏多） | 页内那份走的是主题自建目录（正则扫 h1–h6），左栏走 `.TableOfContents`（h2–h3）——有 h4 的页面就会差出一截（实测 lab 页 30 vs 15） | `hugo.toml` 设 `UseHugoToc = true`，两边同源。顺带修掉了主题自建目录对含公式标题 `plainify` 出的乱码（「手算 ttt 检验时用」） |
@@ -87,6 +92,8 @@
 - **生成二进制产物要原子写**：`tools/icons/make-icons.py` 与 `tools/covers/make-covers.py` 都先写同目录的 `.tmp` 再 `os.replace`。直接写目标文件时，正在跑的 `hugo server`（watch）会读到写了一半的 PNG/WebP，报 `cover.html:36:45: failed to load image config: image: unknown format` 并**中断那一次重建**（实测：13:44 生成封面时踩到，页面上封面暂时空白；重启预览或改一次文件即可恢复，构建产物本身没问题）
 - **KaTeX 版本注释曾把警告说反**：`extend_head.html` 里原本写着「当前版本：0.18.7」，实际是 0.16.x（无前缀）。照那行注释去换 0.18.x 的 CSS 会让全站公式错版。判据与自查命令见 [`formulas.md` 第 5 节](formulas.md#5-katex-样式版本必须与-hugo-内嵌版本配对-)
 - **`check-seo.mjs` 只查构建产物**（sitemap / robots / 首页 meta / RSS），和 `check-links.mjs` 一样**必须紧跟一次构建**跑：它读 `public/`，而 `hugo server` 会改写 `public/`（见上一节）。用法 `node scripts/check-seo.mjs [输出目录]`；CI 里按「只警告」接入（`validate/action.yml`），找出的问题不一定阻断发布
+- **safebooru 的 dapi 有两个反直觉行为**（2026-09-18 抓「黑长直少女」背景素材时踩到，脚本留在 `.shots/pick-girl-bg.py`）：① **无结果时返回的是空响应体，不是 `[]`**，`json.loads('')` 直接抛异常——看着像网络坏了，其实是那个标签组合真的 0 条（`1girl+solo+…+wide_image` 就是这种）；② `rating:general` 只是 `rating:safe` 的一个**小子集**（同一组标签实测 95 vs 437），拿 `general` 当「SFW 全集」会白白丢掉四分之三的候选。另外 `sample_url` 的长边被压到 1500，**不能当成品源**（成品要 1600 宽，会放大），它只适合拼接触表；选中的要按 `file_url` 下原图。`pic.re` 的 `file_url` 则相反：没有协议前缀（`cdn.pic.re/…`），直接喂 `urllib` 报 `unknown url type`，要自己补 `https://`
+- **别在同一个输出目录上并发跑两次抓图脚本**：`.shots/pick-girl-bg.py` 一次要跑上百个请求，重复启动会让两边同时写同一批文件（实测出现过「元数据写成了 `[]`，但样本图还在陆续落盘」的错位状态，看不出以哪次为准）。脚本里对已存在的图有短路复用（`get_to`），所以重跑很便宜——先确认没有残留进程再跑
 - **性能量法脚本的路径可能与本机不一致**：`features.md` 第 6 节写的量法在 `D:\blog\.shots\...`，而本机实际在 `D:\Study\projects\blog\.shots\`（`D:\blog` 不存在）；`startjank.py` 里还有两处写死的 `D:\blog\.shots`（Edge 的 profile 目录与输出 json），直接跑会报错。复跑时把脚本连同 `frameab.py` 复制到临时目录、只替换那两处路径，**别改原文件**（路径是别人机器上的布局）。依赖：Edge + `websockets` + `python` 都在本机可用
 
 ## 5. 导航与排序的「反直觉」

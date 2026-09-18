@@ -68,27 +68,108 @@
 <link rel="stylesheet" href="{{ "katex/katex.min.css" | relURL }}">
 {{- end }}
 
-{{- /* 站点背景图：把 assets/ 下的图片解析成带子路径前缀的 URL，写进一张生成的 CSS
-       （模板里不写 <style>，也不在 CSS 里硬编码 /my-blog/）。hugo.toml 里留空即关闭背景。
+{{- /* 站点背景：把 hugo.toml 的 [params.appearance].presets 解析成一张只含 CSS 变量的外链
+       （模板里不写 <style>，也不在 CSS 里硬编码 /my-blog/）。presets 为空即整段不输出，退回纯色。
 
-       两张图：backgroundImage 给深色主题（夜间城市照片），backgroundImageLight 给浅色主题（日间：
-       淡天青天空 + 城市剪影 + 日光晕）。两者方向相反，切换主题的观感是「换了个时辰」而不是「换了张壁纸」。
-       分两张是必须的——同一张夜色图压在 84% 的浅色蒙版下不是「背景」而是一块脏灰。
-       两者都可留空，各自回退到纯色。变量写进同一张外链 CSS，浏览器只请求当前主题用到的那张。 */ -}}
-{{- $bgVars := slice }}
-{{- with site.Params.appearance.backgroundImage }}
-{{- with resources.Get . }}
-{{- $bgVars = $bgVars | append (printf "--bg-image-dark:url('%s')" .RelPermalink) }}
+       每个预设写成一个 :root[data-bg="<id>"] 块，且**变量必须写全**：某套只有 dark 图时，
+       若不给 --bg-image-light 赋 none，它在浅色主题下会继承到默认套的 light 图 —— 表现为
+       「两套混着显示」。同理 position 与六个蒙版档位也在模板里有兜底值，写全了块才自洽。
+
+       默认套的块用 `:root,:root[data-bg="girl"]` 双选择器：禁 JS、以及首屏脚本执行前，
+       没有 data-bg 属性，走的是 :root 那一半，渲染出来就是默认套。属性选择器（0,2,0）比
+       :root（0,1,0）优先级高，所以切到别的套时一定盖得住。
+
+       下面那段内联脚本是**刻意内联**的（AGENTS 规则 6 的例外，登记在 docs/traps.md）：
+       data-bg 必须在首次绘制前落到 <html> 上。走 defer 外链的话会先按默认套下一张图、
+       再换成访客存的那张 —— 白下载一百来 KB，还闪一下。主题自己处理 pref-theme 用的是同一招
+       （themes/PaperMod/layouts/_partials/head.html），位置也与之对齐（都在 <head> 内）。 */ -}}
+{{- $appearance := site.Params.appearance | default dict }}
+{{- $presets := $appearance.presets | default slice }}
+{{- $defaultId := $appearance.defaultPreset | default "" }}
+
+{{- /* 某一套没写 position / maskLight / maskDark 时的兜底。放模板里而不是 CSS 里，
+       是为了让每个 [data-bg] 块自洽；00-theme.css 那边只留 var() 的行内兜底。
+       改这些数值要连带重量正文对比度（做法见 docs/features.md ⑫）。 */ -}}
+{{- $fallbackPosition := "center 30%" }}
+{{- $fallbackMaskLight := slice 0.46 0.60 0.76 }}
+{{- $fallbackMaskDark := slice 0.54 0.70 0.84 }}
+
+{{- if $defaultId }}
+{{- if not (where $presets "id" $defaultId) }}
+{{- warnf "[params.appearance] defaultPreset=%q 不在 presets 里，改用第一套" $defaultId }}
+{{- $defaultId = "" }}
 {{- end }}
 {{- end }}
-{{- with site.Params.appearance.backgroundImageLight }}
-{{- with resources.Get . }}
-{{- $bgVars = $bgVars | append (printf "--bg-image-light:url('%s')" .RelPermalink) }}
+{{- if not $defaultId }}
+{{- with $presets }}{{ $defaultId = (index . 0).id }}{{ end }}
+{{- end }}
+
+{{- $ids := slice }}
+{{- $presetJs := slice }}
+{{- $cssBlocks := slice }}
+{{- range $i, $p := $presets }}
+{{- $id := $p.id | default "" }}
+{{- if not (findRE `^[a-z0-9-]+$` $id) }}
+{{- errorf "[params.appearance.presets] 第 %d 套的 id=%q 非法：它要当属性选择器，只能用小写字母、数字与连字符" (add $i 1) $id }}
+{{- end }}
+{{- if in $ids $id }}
+{{- errorf "[params.appearance.presets] id=%q 重复：两个块会互相覆盖" $id }}
+{{- end }}
+{{- $ids = $ids | append $id }}
+{{- $presetJs = $presetJs | append (dict "id" $id "name" ($p.name | default $id)) }}
+
+{{- $vars := slice }}
+{{- range $side := (slice "light" "dark") }}
+{{- $path := index $p $side }}
+{{- if $path }}
+{{- with resources.Get $path }}
+{{- $vars = $vars | append (printf "--bg-image-%s:url('%s')" $side .RelPermalink) }}
+{{- else }}
+{{- errorf "[params.appearance.presets] %q 的 %s 图 %q 在 assets/ 下找不到" $id $side $path }}
+{{- end }}
+{{- else }}
+{{- $vars = $vars | append (printf "--bg-image-%s:none" $side) }}
 {{- end }}
 {{- end }}
-{{- with $bgVars }}
-{{- $bgCss := resources.FromString "css/bg-image.css" (printf ":root{%s}" (delimit $bgVars ";")) | minify | fingerprint }}
+
+{{- $vars = $vars | append (printf "--bg-position:%s" ($p.position | default $fallbackPosition)) }}
+{{- range $side := (slice "light" "dark") }}
+{{- $key := cond (eq $side "light") "maskLight" "maskDark" }}
+{{- $vals := index $p $key | default (cond (eq $side "light") $fallbackMaskLight $fallbackMaskDark) }}
+{{- if ne (len $vals) 3 }}
+{{- errorf "[params.appearance.presets] %q 的 %s 必须是三个数（顶、中、底三档不透明度）" $id $key }}
+{{- end }}
+{{- range $n, $a := $vals }}
+{{- $vars = $vars | append (printf "--bg-mask-%s-%d:%v" $side (add $n 1) $a) }}
+{{- end }}
+{{- end }}
+
+{{- $sel := printf ":root[data-bg=\"%s\"]" $id }}
+{{- if eq $id $defaultId }}{{ $sel = printf ":root,:root[data-bg=\"%s\"]" $id }}{{ end }}
+{{- $cssBlocks = $cssBlocks | append (printf "%s{%s}" $sel (delimit $vars ";")) }}
+{{- end }}
+
+{{- with $cssBlocks }}
+{{- $bgCss := resources.FromString "css/bg-image.css" (delimit . "") | minify | fingerprint }}
 <link rel="stylesheet" href="{{ $bgCss.RelPermalink }}" integrity="{{ $bgCss.Data.Integrity }}" crossorigin="anonymous">
+{{- end }}
+
+{{- /* 首屏前置脚本 + 切换按钮的接线。只有一套时不输出（没有可切的东西，按钮也不该出现）。
+
+   这段脚本**内联**是刻意的（AGENTS 规则 6 的唯一例外，登记在 docs/traps.md）：data-bg 必须在
+   首次绘制前落到 <html> 上。id 清单写成 "|id1|id2|" 再配 "|"+p+"|" 做**精确**比较：
+   html/template 会把 JS 上下文里的字符串再转义一次，所以拼数组字面量（`['a','b']`）或塞 jsonify
+   都得不到数组 —— 前者会变成 `["'a','b'"]`（一个元素，永远不匹配，表现是「刷新后存的套丢了」），
+   后者会变成字符串 `"[\"a\",\"b\"]"`（靠子串匹配侥幸能用，但 id 之间有包含关系时就会误判）。
+   两者都不报错，所以这里用不依赖转义行为的那种写法。 */ -}}
+{{- if gt (len $presets) 1 }}
+<script>(function(){try{var p=localStorage.getItem("pref-bg");if(p&&"|{{ delimit $ids "|" }}|".indexOf("|"+p+"|")>-1)document.documentElement.setAttribute("data-bg",p)}catch(e){}})()</script>
+{{- $bgSwitch := resources.Get "js/bg-switch.js" | minify | fingerprint }}
+<script defer src="{{ $bgSwitch.RelPermalink }}" integrity="{{ $bgSwitch.Data.Integrity }}" crossorigin="anonymous"
+        data-presets="{{ $presetJs | jsonify }}"
+        data-default="{{ $defaultId }}"
+        data-label="{{ i18n "bgSwitchLabel" }}"
+        data-announce="{{ i18n "bgSwitchAnnounce" }}"></script>
 {{- end }}
 
 {{- /* 阅读进度条 + 目录高亮：只在真正走单页模板的页面上加载（与 giscus 的判据同源：

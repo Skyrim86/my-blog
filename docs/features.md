@@ -101,15 +101,27 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **纯装饰单独一层**（`13-ornament.css`）：标题左侧短竖线、分隔线中央菱形、列表卡片左侧细线、页脚渐隐线、目录当前项高亮。判断标准是「删掉它页面只是变朴素，不该坏」——组件样式仍归 01~12 各自的文件。
 - 圆角从主题默认收窄到 7px：硬朗线条是这套风格的一部分，12px 那套偏「卡片 App」。
 
-**背景图不写死在 CSS 里**：唯一事实源是 `hugo.toml` 的 `[params.appearance]`，**两张分开**——`backgroundImage` 给深色主题（夜景城市照片）、`backgroundImageLight` 给浅色主题（日间城市照片：大团积云 + 曼哈顿天际线）。`extend_head.html` 用 `resources.Get` 取到带子路径前缀的 `RelPermalink`，再由 `resources.FromString` 生成一张只含这两个变量的小 CSS 外链。于是模板里不写 `<style>`、CSS 里不硬编码 `/my-blog/`、换图只改一行配置；**两个键都留空即关闭背景**，退回纯色主题。
+**背景是「可切换的多套」**：唯一事实源是 `hugo.toml` 的 `[params.appearance].presets`（一个数组，每套一组 `id`/`name`/`light`/`dark`，可选 `position` 与 `maskLight`/`maskDark`），`defaultPreset` 指名无 JS 时用哪套。`extend_head.html` 用 `resources.Get` 取到带子路径前缀的 `RelPermalink`，再由 `resources.FromString` 生成一张只含 CSS 变量的外链 `css/bg-image.css`：每个预设一个 `:root[data-bg="<id>"]` 块，**默认套的块同时也是裸 `:root`**（`sel` 写成 `:root,:root[data-bg="girl"]`），所以禁 JS、以及首屏脚本执行前，渲染出来的就是默认套。于是模板里不写 `<style>`、CSS 里不硬编码 `/my-blog/`、换图只改配置；**`presets` 留空即关闭背景**（此时整张 CSS 不生成，`var()` 求值失败让 `background-image` 回落到 `none`，正是该有的样子）。浏览器**只请求当前生效的那一张**：没有被 `var()` 求值的 URL 不会下载。
 
-分两张是必须的：同一张夜色图压在 84% 的浅色蒙版下不是背景，是一块脏灰（换图时实测过——浅色页右上角留了一块明显的灰白光斑）。分主题之后任一主题只请求自己那张。
+**每个预设的变量必须写全**（缺图写 `none`，缺 `position`/蒙版用模板里的兜底值）。不写全会得到「两套混着显示」：某套只给了 `dark` 而没给 `--bg-image-light:none`，它在浅色主题下就会继承默认套的浅色图。这条是生成逻辑里最容易改坏的地方，见 [`traps.md`](traps.md) 的症状表。
 
-**两张是同一座城市、两个时刻**：夜间是上暗下亮的墨紫 + 月亮 + 亮窗城市，日间是亮天 + 大团积云 + 暗色天际线。切换主题的观感因此是「换了个时辰」而不是「换了张壁纸」。
+**切换靠 `<html data-bg="<套 id>">`**（与明暗的 `data-theme` 平行，属性选择器 0,2,0 盖得住 `:root` 的 0,1,0），偏好存 `localStorage['pref-bg']`，按钮由 `assets/js/bg-switch.js` 注入到顶栏 `.logo-switches` 里明暗按钮之后（与明暗按钮同一个位置、复用主题的 `.theme-toggle` 类拿它的内边距，见 `18-bg-switch.css`）。三处细节：
+
+- **按钮由 JS 注入而不是写进模板**：没有 JS 时它根本不存在，不会留下一个点不动的控件；而写进模板就得覆盖主题的 `header.html`（AGENTS 规则 5 不允许）。`presets` 只有一套时既不输出脚本也不接线。
+- **`data-bg` 必须在首次绘制前写好**，否则会先按默认套下一张图、再换成访客存的那张——白下载一百来 KB 还闪一下。为此 `extend_head.html` 里内联了一小段脚本（AGENTS 规则 6 的唯一例外，登记在 [`traps.md`](traps.md)），与主题处理 `pref-theme` 的那段位置对齐。id 清单写成 `"|id1|id2|"` 再配 `"|"+p+"|"` 做精确比较——**别改成拼数组字面量或塞 `jsonify`**，`html/template` 会把 JS 上下文里的字符串再转义一次，两种写法都不报错但都拿不到数组（前者永远不匹配 = 偏好刷新即丢，后者退化成子串匹配）。
+- **无 JS / 首屏前 = 默认套**，按钮的文案（`bgSwitchLabel` / `bgSwitchAnnounce`）经 `data-*` 传给脚本；切换后写进一个 `.sr-only` 的 `role="status"` 节点播报，因为背景切换是纯视觉变化。
+
+**每套两张图是必须的**：同一张夜色图压在 84% 的浅色蒙版下不是背景，是一块脏灰（换图时实测过——浅色页右上角留了一块明显的灰白光斑）。分主题之后任一主题只请求自己那张。
+
+**蒙版数值跟着图走，所以放在 `hugo.toml` 里而不是 CSS 里**：`00-theme.css` 只留渐变的形状（三段：顶 0% / 中 52% / 底 100%，颜色取主题底色），三档 alpha 与 `position` 由 `extend_head.html` 逐套生成成 `--bg-mask-light-1..3` / `--bg-mask-dark-1..3` / `--bg-position`。理由是实测出来的：城市套是实拍照片（大团积云边缘、亮窗对暗天，都是小尺度明暗对比），`.46/.60/.76` 就能压住；而「黑长直少女」套的人物是深色块，同一批测量点会掉到 3.68:1，必须压到 `.80/.88/.93`。`00-theme.css` 那边**刻意不给这些变量写 `var()` 兜底**，免得出现第二份「默认数值」。
+
+**取景 `position` 也不是随便填的**：视口比 16:9 窄时（几乎全部设备，实测 375px 宽的手机）`cover` 是按高度铺满、**横向裁掉两边，只剩约 26% 的图片宽度**。所以少女套写成 `78% 25%` 把人挪进可视窗口——两张图的人物分别在横向 66% 与 76% 处，取 78% 时窗口落在 [58%, 84%]，两个都在里面；沿用默认的 `center` 就会把人物整个裁掉（城市套无此问题，它的画面横向是均匀的天际线）。
+
+**城市套的两张是同一座城市、两个时刻**：夜间是上暗下亮的墨紫 + 月亮 + 亮窗城市，日间是亮天 + 大团积云 + 暗色天际线。切换主题的观感因此是「换了个时辰」而不是「换了张壁纸」（少女套沿用同一思路，见下）。
 
 深色主题用的是**真图**：`assets/images/bg-night-city.webp`（1600×900，127 KB，夜景城市 + 星空）。蒙版 `.54→.84`——原来的 `.72→.92` 把真图压没了，那正是「看不出有背景」的原因。放宽是安全的：正文可读性由 `.post-single` / `.page-header` 的 `--surface`（76% 不透明 + `backdrop-filter`）与列表卡片自己承担，不靠这层蒙版。**代价要认清**：127 KB 对一张每页都下载的资源不算小（纯质感图是 4 KB），换来的是首屏与页面边缘真的有气氛。出处：Wallhaven `wallhaven.cc/w/wy6vqx`（画师作品，个人使用），源图压到 1600 宽存 `tools/backgrounds/source-night-city.jpg`（358 KB），由 `make-backgrounds.py` 的 `city_background()` 处理。
 
-**另有一版把黑发少女叠在城市上的合成图**（Wallhaven `wallhaven.cc/w/6lwmy7`，源切片 `source-lady-slice.webp`，函数 `city_lady_background()`）——上线后撤回了：压在蒙版下她显得突兀。人物这个位置改由右下角的看板娘承担（见 ㉕），那才是「人是人、背景是背景」的做法。合成版文件 `bg-night-city-lady.webp` 与脚本都留着，想切回去只改 `hugo.toml` 一行。
+**另有一版把黑发少女叠在城市上的合成图**（Wallhaven `wallhaven.cc/w/6lwmy7`，源切片 `source-lady-slice.webp`，函数 `city_lady_background()`）——上线后撤回了：压在蒙版下她显得突兀。当时把「人物」这个位置交给了右下角的看板娘（见 ㉕）。**2026-09-19 起人物以**「黑长直少女」套**的形式回来了**（单独一套、单独一套蒙版，见下），看板娘仍然保留，于是「人是人、背景是背景」这条不再是唯一做法。合成版文件 `bg-night-city-lady.webp` 与脚本都留着，想切回去只改 `hugo.toml` 一行。
 
 **（下面是已撤回那版的留档，做法本身仍有参考价值）人物是叠上去的，不是抠干净的**：抠图（GrabCut）会把人物周围一大块夜空/山体一起带下来，抠太干净又会出现一圈贴纸边。实际做法是「大羽化 + 冷调统一」（椭圆 inset 0.24、高斯 38、蓝通道 +14）——只让白裙、黑发和提灯这几个高对比部分浮出来，被带下来的那点背景在城市夜景的暗部里反而成了「她站的山坡」。调参时别只看合成图，要看**压过蒙版的页面截图**：蒙版会把中低对比的部分直接吃掉，合成图上「还行」的东西在页面上可能就是没有。
 
@@ -117,11 +129,28 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **它为什么压得住蒙版**：上半张是大团积云的**边缘**，下半张是牙签一样细的天际线轮廓——都是小尺度明暗对比。夜景那张靠的也是同一件事（「亮窗对暗天」）。反过来，一整块具象的东西（月亮、人物、大片纯色天空）压到 55~85% 就只剩一块灰白斑，这是早先试真图和具象插画失败的原因，经验写在 `make-backgrounds.py` 的文件头与 `skyline()` 的注释里。**顺带把浅色蒙版从 `.55→.85` 调薄到 `.46→.60→.76`**：照片进来之后旧的薄厚只够看见一层灰（依据见下面的对比度实测）。
 
+**「黑长直少女」套（2026-09-19 新增，当前是默认套）**：`bg-daylight-girl.webp`（87 KB）/ `bg-night-girl.webp`（132 KB），由 `make-backgrounds.py` 的 `girl_backgrounds()` 从 `source-girl-day.jpg` / `source-girl-night.jpg` 生成。两张是同一母题的日/夜对照，与城市套同理——都是「少女 + 城市全景 + 天空」：日间是撑透明伞站在山坡上俯瞰海湾城市，夜间是屋顶上看星空下的夜城，人物分别在画面横向 66% / 76% 处，所以切主题时她不跳位置。素材从 safebooru 按 `black_hair long_hair rating:safe` 收的一批候选中挑出（抓取与筛选脚本在仓库外的 `.shots/pick-girl-bg.py` 与 `finalists.py`，接触表留在 `.shots/girlbg/`）。出处都是同人插画、版权在画师手里：pixiv `artworks/87155937`（日）与 `artworks/77002104`（夜），个人非商业使用并保留出处。
+
+处理比城市那套克制（只去饱和 `.95`、掺 5% 主题底色），另有一处纯为体积：夜间那张的密集星场 q74 要 176 KB，加 0.4px 亚像素模糊后 q64 降到 132 KB——它削的是星点的单像素高频噪，在 `.66~.90` 的蒙版下量不出差别（判据是页面截图，不是 RMSE）。
+
+**它与城市套最大的不同是「人物压不住」**：深色头发与水手服正好落在「按分类浏览 →」「笔记 / 习题」这些**直接压在背景上**的次要色灰字底下。实测 `.62/.74/.86` 时最低 **3.68:1**（AA 要 4.5），推到 `.80/.88/.93` 才回到 **4.88~6.27:1**。代价要认清：浅色主题下人物只剩一层淡影——这是「人物为主角 + 达 AA」两条同时要的必然结果，想看清就往下调那三个数、并接受对比度掉回 AA 以下。另外右下角看板娘（㉕）与她同屏，页面上因此有两个人，这是「人物为主角」的直接后果；要避免就把 `defaultPreset` 改回 `'city'`，或按 `html[data-bg="girl"]` 单独隐藏看板娘。
+
 `bg-daylight-sky.webp`（6 KB）是浅色主题**程序生成的备选**（天青→象牙 + 城市剪影 + 日光晕 + 落瓣，`daylight_background()`），当前未使用，留着是为了想切回纯生成时改一行配置就行。`bg-velvet-night.webp`（4 KB）同理，是深色主题的程序质感备选。生成脚本随机种子固定、可复现；**注意浅色那张换图会让 `bg-velvet-night.webp` 的字节也变** —— 它的随机数种子相互独立了，重跑一次即可，别以为脚本产生了随机噪音。改色改密度就改 `site_backgrounds()` / `daylight_city_background()` 的参数，改完回页面截图核对，别只看生成图。管理页那边是另一回事——面板只盖住中间、背景看得见，用的是真实插画，见 `docs/admin.md` §20。
 
-**对比度是量过的，改图或改蒙版都要重量**：做法是在页面里遍历**可见**文字元素，取它自己的算色，沿祖先链把 `background-color` 逐层合成到 `body::before` 的底色上（底色 = 蒙版 rgba 按视口 y 插值后，盖在实际背景图像素上——背景是 `position: fixed`，所以蒙版只取决于视口 y，与滚动无关），再算 `(L1+0.05)/(L2+0.05)`。2026-09-18 换日间照片后的实测：章节入口页 35 个文字元素最低 **6.35:1**、某笔记页 93 个元素最低 **6.52:1**，0 个低于 AA 4.5:1（最低的那几个是卡片上的次要色文字，不是压在照片上的）。深色那边同一套方法也在 `.54` 起量过。
+**对比度是量过的，改图或改蒙版都要重量**：做法是在页面里遍历**可见**文字元素，取它自己的算色，沿祖先链把 `background-color` 逐层合成到 `body::before` 的底色上（底色 = 蒙版 rgba 按视口 y 插值后，盖在实际背景图像素上——背景是 `position: fixed`，所以蒙版只取决于视口 y，与滚动无关），再算 `(L1+0.05)/(L2+0.05)`。两个容易做错的细节：**合成祖先链时要排除 `html`**（它的底色是被 `body::before` 盖住的画布背景，算进去会得出「背景永远不透明」的错结论），**底色要按 `cover` 几何用 canvas 取真实像素**而不是取图片平均色。可复跑的脚本在仓库外：`.shots/girlbg/contrast.js`（页内测量）+ `measure.py`（按主题 × 套 × 页型驱动）。
 
-**为什么体积这么重要**：背景是**每个页面**都要下载的资源（`body::before` 的 CSS 背景，不能懒加载）。原 JPEG 191 KB 在 4 G 模拟下光它一项就占 521 ms，转 WebP q=70 后 55 KB。现在日间那张 60 KB、夜间 127 KB（云比夜景的窗格好压），纯质感备选 4~6 KB。换图时**别退回 JPEG**，也别在背景里塞细节——同一张 1600×900 的 WebP，云和天际线能压到 60 KB，细腻纹理就下不来。
+2026-09-19 全量实测（4 组 × 三个页型，单位 1:1）：
+
+| 背景套 | 首页 | 笔记页 | 章节入口页 |
+|---|---|---|---|
+| 浅色 · 黑长直少女 | 4.98 | 6.27 | 4.88 |
+| 浅色 · 城市 | 4.74 | 6.45 | 4.74 |
+| 深色 · 黑长直少女 | 5.08 | 6.36 | 5.65 |
+| 深色 · 城市 | 5.85 | 6.42 | 5.80 |
+
+12 组全部 ≥ AA 的 4.5:1。最低的那几处都是**直接压在背景上**的 `--secondary` 灰字（页脚的 `Powered by`、首页的「按分类浏览 →」、章节入口页的「笔记 / 习题」分组名）——卡片与正文由自己的 `--surface` 承担对比度，普遍 6:1 以上。所以改蒙版或换图都要照这张表复测：少女套浅色那三个数就是被这张表推上去的（旧值 `.62/.74/.86` 在首页/章节页只有 3.78 / 3.68）。
+
+**为什么体积这么重要**：背景是**每个页面**都要下载的资源（`body::before` 的 CSS 背景，不能懒加载）。原 JPEG 191 KB 在 4 G 模拟下光它一项就占 521 ms，转 WebP q=70 后 55 KB。现在城市套 60 KB（日）/ 127 KB（夜），少女套 87 KB（日）/ 132 KB（夜），纯质感备选 4~6 KB。换图时**别退回 JPEG**，也别在背景里塞细节——同一张 1600×900 的 WebP，云和天际线能压到 60 KB，细腻纹理（星场、密集建筑）就下不来。注意**只有当前生效那一张会下载**，所以多一套不等于多一份流量，但默认套那张是每个访客都要付的。
 
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
 
@@ -314,18 +343,20 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **一键到底**：与主题的「返回顶部」配成一对（`#bottom-link` 复用主题 `.top-link` 的外观，只覆写 `bottom` 与图标）。位置由 `14-mascot.css` 的 `--float-bottom` 统一控制 —— 那个值原本在四个断点里各写一遍给 `.top-link`，现在两个按钮共用一个变量；到顶在上、到底在下（到底占的是原来到顶的位置，那个位置是照着看板娘头顶调好的）。
 - **为什么用 `<button>` 而不是 `<a href="#bottom">`**：主题 `footer.html` 给全站 `a[href^="#"]` **逐个元素**挂了点击代理（`scrollIntoView` + 对非 `#top` 的锚点 `pushState`），那是**同一个元素**上的另一个监听器，`stopPropagation` 拦不住 —— 实测地址栏会留下 `#bottom`。button 不在那个选择器里，行为完全由自己的脚本掌控（语义也更准：这是动作，不是导航）。没 JS 时主题的 noscript 样式会把 `.top-link` 一起隐藏，不会留下点不动的按钮。
 
-## 4. 八处有意的主题模板覆盖
+## 4. 九处有意的主题模板覆盖
 
-除上述 hook 之外，仓库里有八处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
+除上述 hook 之外，仓库里有九处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
 
 1. `layouts/courses/course.html`（`layout: "course"`）与 `layouts/courses/chapter.html`（`layout: "chapter"`）：列表页没有任何 hook，而这两页分别需要自动章节目录与入口卡片。两个模板都很小、只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`，页头共用 `course-header.html`），且只有显式写了 `layout` 的页面才命中，不影响 `/courses/` 列表页与文章页。**改外观请优先改 `04-course.css`**
 2. `layouts/index.json`：该模板无 hook 可挂，而正文截断无法从配置实现
 3. `layouts/_partials/index_profile.html`：首页在 profileMode 下由主题 `list.html` 直接调用它，没有 hook 可挂，而首页需要「快捷入口 + 最近更新」两块内容。改这一处时对照 `themes/PaperMod/layouts/_partials/index_profile.html`，确认主题侧是否有新变化需要合并
 4. `layouts/_partials/post_meta.html`：**唯一一处「复制主题 partial 再加一行」**（第 ⑱ 项）。它是列表卡片与详情页共用的元信息块，没有 hook 可挂，而卡片要一块计数/标签。与前三处不同：这里**逐字保留**主题实现，只在末尾调用 `card-chips.html`，主题升级时对照 diff 手工合并即可。若哪天主题给它加了 hook，优先换回 hook
-5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是七处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
+5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是九处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
 6. `layouts/taxonomy.html`（第 ㉛ 项）：`/tags/`、`/categories/` 总览页要把词条按学科分块展示（见 `data/tag-groups.yaml`），而主题那份是平铺。markup 与主题版保持一致（`ul.terms-tags` + 计数 `sup`），只把「一个 ul」改成「每组一个 ul」，`terms-filter.js` 已同步适配
 7. `layouts/baseof.html`（第 ㉞ 项）：跳过导航链接与 `lang` 属性。**这一处与前面六处的理由不同** —— 不是「原件短」或「没有 hook 可挂」，而是**位置本身不可达**：要改的一处在 `<html>` 上、一处在 `<body>` 开头，而主题的四个 hook 分别在 `<head>` 内与 `</body>` 之前，谁都够不到。主题原件 31 行，逐字保留、只差三处（详见下节 ㉞），主题升级时与 `themes/PaperMod/layouts/baseof.html` 逐行对拍即可。**注意它是全站每个页面的渲染入口**，改动后要按页型抽查（首页 / section / term / 单页 / 404 / search）
 8. `layouts/_partials/templates/schema_json.html`（第 ㉟ 项）：**逐字保留主题实现、只删掉 BlogPosting 的 `articleBody` 字段**（主题原件 129 行，本文件 128 行 + 一段说明注释），与第 4 条 `post_meta.html` 是同一手法。它把整篇正文 `plainify` 后复制进 `<head>` 的 JSON-LD 里；本站正文是构建期渲染的 KaTeX，plainify 之后公式文本会出现三遍（MathML 表示 + TeX annotation + katex-html 字形文本），于是这个字段既大又低质 —— 实测重页单页 25–27 KB、占该页 gzip 的 17–20%。删它安全：`articleBody` 在 schema.org 里是**可选**字段，Google 富结果不使用，仓库里也没有任何东西依赖它（`check-seo.mjs` 对它零断言，已核对）。**升级主题时与主题那份逐行对拍，确认差异仍然只有这一行。** 删改后务必确认 JSON-LD 仍是合法 JSON（`JSON.parse` 每个 `ld+json` 块），语法坏了爬虫那边是静默失效
+
+9. `layouts/_markup/render-image.html`（第 ㊲ 项）：主题 `_markup/` 下只有 `render-image.html` 这一个文件，内容图需要补 `width`/`height`（主题原版不给尺寸）并把 PNG 转无损 WebP，而渲染钩子没有「部分覆盖」的机制，只能整份接管。手法与第 4、8 条相同：**逐字保留主题实现**（URL 解析、query/fragment 拼接、属性透传、`%q` 转义一行未改），只在拿到资源之后插入两段。**改它必须同时确认 `00-theme.css` 里 `.post-content img` 的 `height: auto` 还在** —— 主题 reset 只有 `max-width: 100%`（`core/reset.css`），只补尺寸属性会在窄屏把图纵向压扁（实测 400px 视口下 660×440 的图变成 333×440），且**构建不报错**。主题升级时与 `themes/PaperMod/layouts/_markup/render-image.html` 逐行对拍
 
 **另有一处是「移位置」而不是「覆盖」**：`layouts/_default/{library,library-branch,library-section,toolcard}.html`。它们原本在 `layouts/library/` 与 `layouts/courses/` 下，2026-09-18 加了 CS 库之后搬到 `layouts/_default/` —— Hugo 的布局查找是 `layouts/<section>/<layout>.html` 优先，`layout: library` 只在 section 恰好叫 `library` 时命中（数学库是撞上的），CS 库的 section 是 `cs`，于是**静默回落到主题列表页**。`_default/` 是任何 section 的通用回落位，front matter 里的 `layout:` 一个都不用改。教训记在 [`traps.md`](traps.md)。
 
@@ -367,7 +398,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 三个必须注意的点：
 
-- **搜索页那处没覆盖主题模板**。`#searchResults` 在 `themes/PaperMod/layouts/search.html` 里，为一条播报再加一处覆盖不划算（第 4 节已经有七处了），所以改用脚本挂观察者。若哪天要改成覆盖模板，先想清楚第 4 节那句「不要整份复制主题模板」。
+- **搜索页那处没覆盖主题模板**。`#searchResults` 在 `themes/PaperMod/layouts/search.html` 里，为一条播报再加一处覆盖不划算（第 4 节已经有九处了），所以改用脚本挂观察者。若哪天要改成覆盖模板，先想清楚第 4 节那句「不要整份复制主题模板」。
 - **零条结果的歧义**。主题的 `fastsearch.js` 把「输入为空」与「没有匹配」都渲染成空列表（`renderResults([])` 被两条路径共用），所以零条时必须回头看输入框：为空是清空操作，**什么都不该播报**；有输入才是真的没搜到。
 - **只在文字真的变了才写** `textContent`。重复写入同样的文本会让部分读屏反复播报，所以三处都加了 `if (x !== said)` 的比较。
 
@@ -390,6 +421,22 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **三个自定义列表卡片缺 `:focus-within`**：主题的 `.post-entry` 自带（`post-entry.css:58`），而 `.course-index-item` / `.project-index-item` / `.home-recent-item` 原先只有 `:hover`，键盘用户 Tab 进去拿不到鼠标那样的反馈。三处的 `:focus-within` 都写在各自 `:hover` 规则旁边（`04` / `05` / `09`）。
 
+### ㊲ 内容图的 WebP 与尺寸属性 — `layouts/_markup/render-image.html` + `00-theme.css`
+
+覆盖主题的渲染钩子（第 4 节第 9 条），只做两件事：给内容图补 `width`/`height`，并把 PNG 交给构建期转成**无损** WebP。**源文件保持 PNG 不动** —— 那 4 张实验图的出处是实验页里教 `ggsave()` / `png()` 的 R 代码，改文件名会变成「代码写 png、页面里是 webp」，而那个页面本身就是在教这件事。
+
+**为什么是 lossless 而不是常规的 q82**：调色板 PNG（`03_resid.png`、`04_obs_vs_fit.png`）走有损 WebP 会**涨一倍** —— 实测 q82 +100.4%、q90 +150.2%、最大像素差 138；而无损四张全部更小（−39.4% ~ −74.1%）。总账 49598 → 17176 B（**−65.4%**）。**产物与源 PNG 逐像素完全一致**：`Resize "<W>x<H> webp lossless"` 是纯格式转换、不做重采样，已用 `.shots/verify_shipped_webp.py` 对 `public/` 里真正发出的那 4 个文件逐个 `numpy` 比对确认（不是「看着差不多」）。量法脚本 `.shots/imgfmt_measure.py`（各档字节 + PSNR）与 `.shots/hugo_webp_verify.py`（草稿期像素比对）可复跑。
+
+**JPEG 一律不转，顺手记一个「拿错基线」的教训**：首页头像的基线**不是**仓库里那张 21963 B 的 `avatar.jpg`，而是模板 Resize 之后实际发出的 `avatar_hu_*.jpg`（240×240，**13584 B**）—— 拿源文件当基线会得出「省 12 KB」的错误结论。实测 Hugo 出 webp q82 是 15036 B、Pillow q75 是 10384 B，即只有 q75 才赢约 3.2 KB，不值得为 3 KB 引入一次二次编码。**量图片收益时，基线永远是 `public/` 里那个被引用的文件。**
+
+**「取小者」护栏**：比较转换前后 `.Content` 的字节数，只有更小才换。注意 **`.Len` 在图像资源上不可用**（报 `can't evaluate field Len in type images.ImageResource`），只能走 `.Content | len`。有这个护栏，将来某张 PNG 若正好不适合 WebP（例如极小的图标，容器开销占主导），行为自动回落到原图，不会悄悄变大。
+
+**只处理 `png` 这一种副类型**，这是刻意的：`svg` 在 Hugo 里不可处理、`gif` 会被拍平成单帧，所以只认 `png` 就等于把它们（以及 JPEG）全部留给主题原逻辑。**已知边界**：动画 PNG（APNG）的副类型也是 `png`，会被转成静态无损 WebP —— 站点现在没有这种文件，若哪天真要放动图，先在这里加判据。
+
+**`width`/`height` 必须配 `height: auto`**：这是本次唯一「构建能过、页面却坏」的点 —— 主题 reset 只有 `img { max-width: 100% }`（`core/reset.css`），**没有 `height: auto`**，于是窄屏下宽度被压到 100%、高度仍锁在属性值上，图片纵向压扁。`00-theme.css` 的 `.post-content img` 里补了这一行；补上后浏览器仍按属性里的宽高比预留空间，防跳动的收益不受影响。实测 400px 视口：4 张图渲染 333×222、宽高比 1.5 与原图一致，控制台 0 条错误（量法：`.shots/shots.py --js`，注意站点全局有 `scroll-behavior: smooth`，定位截图前要先把滚动改成 `auto`，否则截到的是动画中途）。
+
+**已知残留（不影响访客）**：Hugo 默认会发布 page bundle 里的**所有**资源，所以那 4 张源 PNG（49598 B）仍被复制进 `public/`。它们已无任何页面引用（页面里是 WebP），是产物里的死重，但无人引用即不下载，只占产物体积；整站 raw 18323 KB / 预算 24576 KB，余量足够，暂不动。
+
 ## 5. 总览页标题
 
 `/tags/`、`/categories/`、`/series/` 三个总览页的标题由 `content/<taxonomy>/_index.md` 提供。**不要**再新建 `content/tags.md` 之类带 `url` 的普通页面去覆盖它们——那会把 `kind=taxonomy` 的列表页顶替成普通文章页（曾因此让「标签」入口整页空白）。
@@ -403,6 +450,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 | 首页 4 G 传输（含 dev 的 `livereload.js` 78.6 KB） | 321.3 KB · load 828 ms | 195.4 KB · load 581 ms |
 | 首页 4 G 传输（只算线上会下的） | 242.7 KB | 116.8 KB |
 | 站点背景图 | 191.4 KB（JPEG） | 65.5 KB（WebP） |
+| 实验页 4 张图（`courses/regression-analysis/chapter-01/lab/figs`，机制见 ㊲） | 49598 B（PNG） | 17176 B（无损 WebP，−65.4%，逐像素一致） |
 | `static/favicon.ico` | 3.3 KB | 3.9 KB（16/32 两帧；256 帧挪去了管理页图标） |
 | `static/apple-touch-icon.png` | 5.7 KB | 14 KB（180×180 真彩原本 61 KB，量化到 256 色） |
 | 整站输出（`report-size.sh`） | 9833 KB | 18983 KB（新增「回归分析」课程：3 页笔记 + 作业 + 实验 + 80 张工具卡页；预算 12 → 24 MB） |
