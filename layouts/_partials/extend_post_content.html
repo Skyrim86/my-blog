@@ -3,8 +3,8 @@
        必须挂在这里而不是 footer 的扩展钩子：footer.html 是 partialCached
        （主题 baseof 用 partialCached "footer.html" . .Layout .Kind …），
        页面相关的输出会被同键页面共用，目录会串页。这里每个页面各渲染一次。
-       判据与 extend_head.html 里加载 toc-rail.js 的条件、toc-rail.html 内部
-       对 .TableOfContents 的判据**三处一致**，改一处要同步另两处。
+       判据与 toc-rail.html 内部对 .TableOfContents 的判据**两处一致**，改一处要同步另一处
+       （挪目录栏那段脚本已内联进 toc-rail.html，不再在 extend_head.html 里接线）。
        排除 toolcard / library：这两个自定义 layout 不走主题 single.html（extend_post_content
        根本不会被调用），且页面本身没有正文小标题。 */ -}}
 {{- if and (eq .Kind "page") (not (or (eq .Layout "toolcard") (hasPrefix .Layout "library"))) }}

@@ -5,6 +5,8 @@ icon: "📝"
 date: 2026-09-10
 draft: false
 description: "作业解法：二分法迭代次数、牛顿法收敛阶验证、牛顿法失效的例子。"
+# summary 必须写：列表卡片摘要走 `.Summary | plainify`，正文公式已渲染成 HTML+MathML，会被拼成乱码
+summary: "作业解法：二分法迭代次数、牛顿法收敛阶验证、牛顿法失效的例子。"
 ---
 
 ## 作业 2-1：二分法迭代次数

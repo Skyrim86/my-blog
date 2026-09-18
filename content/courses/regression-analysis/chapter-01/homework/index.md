@@ -8,6 +8,8 @@ icon: "📝"
 date: 2026-09-15
 draft: false
 description: "作业全解：练习 1.1、1.2，以及 ILRA 6e 第 2 章的推导型与反例型选解（数值计算型不重复录入）。"
+# summary 必须写：列表卡片摘要走 `.Summary | plainify`，正文公式已渲染成 HTML+MathML，会被拼成乱码
+summary: "作业全解：练习 1.1、1.2，以及 ILRA 6e 第 2 章的推导型与反例型选解（数值计算型不重复录入）。"
 ---
 
 

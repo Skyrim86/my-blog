@@ -1,0 +1,33 @@
+# 标签分组 —— 把 data/taxonomy.yaml 里的词表按学科分组，供 /tags/ 总览页分块展示。
+#
+# 为什么不直接写进 data/taxonomy.yaml：那份文件是**拼写**的唯一事实源，格式被
+# scripts/new-content.sh 与 scripts/check-tags.sh 按行解析（「两个空格 + 连字符 + 空格 + 词条」），
+# 加字段就要同时改两处解析器。分组是展示层的第二层信息，单独一份、单独校验
+# （scripts/check-tags.sh 会报两边漂移）。
+#
+# 约定：
+#   · 词表里的每个词条都该出现在某一组里 —— 漏了不会丢词条（页面上它排在「未分组」里），
+#     只是分组悄悄失效，所以 check-tags.sh 会警告。
+#   · 这里的词条必须与词表**逐字一致**（含大小写），否则同样警告。
+#   · 组的顺序就是 /tags/ 页上的显示顺序。
+groups:
+  - key: math
+    name: 数学
+    tags:
+      - 数学
+      - 数值分析
+      - 科学计算
+      - 回归分析
+      - 统计学
+  - key: cs
+    name: 计算机
+    tags:
+      - Hugo
+      - CSS
+      - Go Template
+      - GitHub Actions
+  - key: modeling
+    name: 建模与竞赛
+    tags:
+      - 数学建模
+      - CMC2026

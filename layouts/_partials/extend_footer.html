@@ -13,3 +13,58 @@
   <img src="{{ .RelPermalink }}" width="720" height="647" alt="" loading="lazy" decoding="async">
 </a>
 {{- end }}
+
+{{- /* 页脚 RSS 入口：首页走 profileMode，不渲染 list.html 里那个带 RSS 图标的 page-header，
+       所以「订阅」在全站唯一稳定的位置是这里。它与页面无关（全站同一个地址），
+       符合 docs/traps.md 对本 hook 的约束：页面相关的内容必须挂 extend_post_content。 */ -}}
+<div class="footer-rss">
+  <a href="{{ "index.xml" | relLangURL }}">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-linecap="round" stroke-linejoin="round" stroke-width="2" width="14" height="14" aria-hidden="true">
+      <path d="M4 11a9 9 0 0 1 9 9"></path>
+      <path d="M4 4a16 16 0 0 1 16 16"></path>
+      <circle cx="5" cy="19" r="1"></circle>
+    </svg>
+    <span>{{ i18n "footerRss" }}</span>
+  </a>
+</div>
+
+{{- /* 一键到底：与主题的「返回顶部」配对（主题那个是 <a href="#top">，见 baseof 的 <body id="top">）。
+       刻意复用主题的 .top-link 类：fixed 定位、尺寸、配色、.hidden 的过渡全在主题
+       assets/css/common/footer.css 里，抄一份迟早漂移；这里只当它是「同一种悬浮按钮」的基类，
+       在 14-mascot.css 里覆写 bottom 与图标方向。
+       用 <button> 而不是 <a href="#bottom">：主题 footer.html 对全站 a[href^="#"] 逐个挂了
+       点击代理（scrollIntoView + 对非 #top 的锚点 pushState），那个监听器绑在**同一个元素**上，
+       stopPropagation 拦不住它 —— 实测地址栏会留下 #bottom。button 不在那个选择器里，
+       行为完全由下面这段脚本掌控（语义也更准：这是动作，不是导航）。
+       没 JS 时：主题的 noscript 样式把 .top-link 一起隐藏，不会留下一个点不动的按钮。 */ -}}
+<button type="button" id="bottom-link" class="top-link bottom-link hidden"
+   aria-label="{{ i18n "bottomLinkLabel" }}" title="{{ i18n "bottomLinkLabel" }}">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-down" aria-hidden="true">
+    <polyline points="7 6 12 11 17 6"></polyline>
+    <polyline points="7 13 12 18 17 13"></polyline>
+  </svg>
+</button>
+
+<script>
+  (function () {
+    var btn = document.getElementById('bottom-link');
+    if (!btn) return;
+    function atBottom() {
+      var se = document.scrollingElement || document.documentElement;
+      return se.scrollHeight - (window.scrollY + window.innerHeight) < 240;
+    }
+    function sync() {
+      btn.classList.toggle('hidden', atBottom());
+    }
+    btn.addEventListener('click', function () {
+      var se = document.scrollingElement || document.documentElement;
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: se.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
+    });
+    window.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    sync();
+  })();
+</script>

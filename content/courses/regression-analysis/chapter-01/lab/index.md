@@ -11,6 +11,8 @@ icon: "🧪"
 date: 2026-09-15
 draft: false
 description: "R 上机：导入数据、ggplot 散点、lm 拟合、残差与观测诊断图，并用 lm 的结果手算复核全部公式。"
+# summary 必须写：列表卡片摘要走 `.Summary | plainify`，正文公式已渲染成 HTML+MathML，会被拼成乱码
+summary: "R 上机：导入数据、ggplot 散点、lm 拟合、残差与观测诊断图，并用 lm 的结果手算复核全部公式。"
 ---
 
 

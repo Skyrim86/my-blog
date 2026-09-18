@@ -1,0 +1,68 @@
+/* ============================================
+   列表页的排序与标签筛选（assets/js/list-tools.js）
+   ============================================
+   工具栏由脚本就地注入 —— 没有 JS 时页面就是服务端排好的那副样子，不降级、不报错。
+   外观与工具库的 .tb-chip（11-toolbox.css）保持一致：同一站里「可点的小胶囊」只有一种长相。
+   ============================================ */
+
+.lt-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  /* 与列表的间距；在网格页面上它自己跨整行（见 01-cards.css 的 :not(article.post-entry) 规则） */
+  margin-bottom: var(--content-gap);
+}
+
+.lt-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lt-btn,
+.lt-chip {
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--entry);
+  color: var(--secondary);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+
+.lt-btn:hover,
+.lt-chip:hover {
+  border-color: var(--accent);
+  color: var(--primary);
+}
+
+.lt-btn.is-active,
+.lt-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* 被筛掉的条目。用 class 而不是 [hidden]：卡片既是网格项又是列表项，
+   父级的 display:grid / display:list-item 这类规则会压过 [hidden] 的 display:none
+   （06-terms-filter.css 踩过同一个坑）。这里的 !important 是「隐藏」这个语义本身，
+   不是拿来对抗某条具体规则的。 */
+.lt-hidden {
+  display: none !important;
+}
+
+.lt-result {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 0.85rem;
+}
+
+.lt-empty {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 0.92rem;
+}

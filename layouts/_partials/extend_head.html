@@ -86,12 +86,10 @@
 <script defer src="{{ $reader.RelPermalink }}" integrity="{{ $reader.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
-{{- /* 单页的左侧跟随目录：把正文末尾的目录栏挪到 <body> 下。
-       判据与 extend_post_content.html 里渲染目录栏的条件一致 —— 两处要一起改。 */ -}}
-{{- if and (eq .Kind "page") (not (or (eq .Layout "toolcard") (hasPrefix .Layout "library"))) }}
-{{- $rail := resources.Get "js/toc-rail.js" | minify | fingerprint }}
-<script defer src="{{ $rail.RelPermalink }}" integrity="{{ $rail.Data.Integrity }}" crossorigin="anonymous"></script>
-{{- end }}
+{{- /* 左侧跟随目录（toc-rail）不需要在这里接线：把目录栏挪到 <body> 下、并给 body 加
+       .has-toc-rail 的那段脚本已内联进 layouts/_partials/toc-rail.html —— 它必须早于外部脚本
+       的下载（原先走 defer 时目录栏要等脚本到货才出现，还会因为 404 而永不显示）。
+       渲染判据仍在 extend_post_content.html 与 toc-rail.html 内部，两处保持一致。 */ -}}
 
 {{- /* 数学工具库：正文里出现卡片引用（.card-ref）的页面，或工具库页自身，才加载。
        脚本负责「引用 → 弹窗」与卡片墙（工具库页 / 数学库页）的筛选；文案经 data-* 传给脚本
@@ -102,6 +100,24 @@
         data-title="{{ i18n "toolboxTitle" }}"
         data-close="{{ i18n "toolboxClose" }}"
         data-result="{{ i18n "toolboxResult" }}"></script>
+{{- end }}
+
+{{- /* 列表的排序与标签筛选：只有 section（/courses/、/projects/、课程主页、分层项目主页）与
+       term（/tags/xxx/、/categories/xxx/）这两类页面带列表；library / toolcard 那些自定义
+       layout 的页面另有自己的筛选（toolbox.js），不要重复注入。
+       脚本自己判断「这一页有没有列表」，没有就什么都不做（空列表页也安全）。
+       文案经 data-* 传（JS 不能调 i18n）。 */ -}}
+{{- if in (slice "section" "term") .Kind }}
+{{- $lt := resources.Get "js/list-tools.js" | minify | fingerprint }}
+<script defer src="{{ $lt.RelPermalink }}" integrity="{{ $lt.Data.Integrity }}" crossorigin="anonymous"
+        data-sort="{{ i18n "listToolsSort" }}"
+        data-default="{{ i18n "listToolsDefault" }}"
+        data-newest="{{ i18n "listToolsNewest" }}"
+        data-oldest="{{ i18n "listToolsOldest" }}"
+        data-tags-label="{{ i18n "listToolsTags" }}"
+        data-all="{{ i18n "listToolsAll" }}"
+        data-empty="{{ i18n "listToolsEmpty" }}"
+        data-result="{{ i18n "listToolsResult" }}"></script>
 {{- end }}
 
 {{- /* 窄屏导航折叠：全站加载（很小），没有 JS 时菜单照主题原样铺开。 */ -}}

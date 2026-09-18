@@ -9,7 +9,14 @@
   <h2 class="project-index-heading">{{ i18n "projectIndex" }}</h2>
   <ol class="project-index-list">
     {{- range . }}
-    <li class="project-index-item">
+    {{- /* 给列表排序/筛选用的字段（assets/js/list-tools.js 读它们）：
+           日期 = 子孙页里最近一次更新；标签 = 子孙页标签的并集 —— section 自己不挂标签
+           （AGENTS 规则 3），所以只能从子孙页取，card-chips.html 用的是同一套办法。 */ -}}
+    {{- $latestDate := "" }}
+    {{- with .RegularPagesRecursive.ByLastmod }}{{ $latestDate = (index . (sub (len .) 1)).Lastmod.Format "2006-01-02" }}{{ end }}
+    {{- $tagNames := slice }}
+    {{- range .RegularPagesRecursive }}{{ range .GetTerms "tags" }}{{ $tagNames = $tagNames | append .LinkTitle }}{{ end }}{{ end }}
+    <li class="project-index-item" data-date="{{ $latestDate }}" data-tags="{{ delimit (uniq $tagNames) "," }}">
       <a class="project-index-link" href="{{ .RelPermalink }}">
         <span class="project-index-title">{{ .Title }}</span>
         {{- /* description 常写成「问题一　交会定位…」，与上一行的标题重复，只在不重复时显示 */ -}}
@@ -21,9 +28,8 @@
       {{- if gt $count 0 }}
       <p class="project-index-meta">
         {{- i18n "chipDocs" (dict "count" $count) }}
-        {{- with .RegularPagesRecursive.ByLastmod }}
-        {{- $latest := index . (sub (len .) 1) }}
-        &nbsp;·&nbsp;{{ i18n "courseUpdated" (dict "date" ($latest.Lastmod.Format "2006-01-02")) }}
+        {{- with $latestDate }}
+        &nbsp;·&nbsp;{{ i18n "courseUpdated" (dict "date" .) }}
         {{- end }}
       </p>
       {{- end }}

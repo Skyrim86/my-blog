@@ -1,0 +1,36 @@
+{{- /* 单张卡片页（layout: "toolcard"）—— 数学库与 CS 库共用。
+
+     这些页面由生成脚本写出：front matter 只有 title 与 weight，卡片正文从
+     data/<库>.json 里按**目录名**（= 卡片 id）取，因此一卡一页也不会让卡片内容出现第二份副本。
+       · 数学卡：tools/course-import/import_course.py（正文来自课程项目），页面在
+         /courses/<课程>/toolbox/<id>/；
+       · CS 卡：scripts/gen-cards.mjs（正文手写在 data/cs-toolbox.json），页面在 /cs/<id>/。
+     找卡走 partials/card-find.html（跨库按 id 找），所以本模板不必知道自己在哪个库。
+
+     为什么一卡一页：卡片堆在一页会撞 scripts/report-size.sh 的单页预算（80 张数学卡约 3 MB）；
+     拆开后每页只渲染一张卡，弹窗（assets/js/toolbox.js）按需抓取本页的 .tb-card。 */ -}}
+{{- define "main" }}
+{{- $id := path.Base .File.Dir }}
+{{- $found := partial "card-find.html" (dict "id" $id "page" .) }}
+{{- $card := $found.card }}
+{{- $lib := $found.lib }}
+
+<article class="post-single toolbox-page">
+  {{- partial "page-head.html" (dict "page" .) }}
+  {{- with $card }}
+  <div class="tb-single">
+    {{- partial "toolbox-card.html" (dict "page" $ "card" . "base" $.Parent.RelPermalink) }}
+  </div>
+  <p class="tb-back">
+    {{- /* 数学卡还挂在课程工具库下，多给一个回课程工具库的入口；CS 卡没有课程，只回库 */ -}}
+    {{- if .course }}
+    <a href="{{ $.Parent.RelPermalink }}">← {{ i18n "toolboxBack" }}</a>
+    {{- end }}
+    {{- with $lib }}
+    <a href="{{ .path | relLangURL }}">← {{ .label }}</a>
+    {{- end }}
+  </p>
+  {{- end }}
+</article>
+
+{{- end }}{{/* end main */}}

@@ -8,7 +8,11 @@ timeZone = 'Asia/Shanghai'
 
 baseURL = 'https://skyrim86.github.io/my-blog/'
 defaultContentLanguage = 'zh'
-title = 'Skyrim'
+# 站点名。它同时是**导航栏品牌名、页脚版权、RSS channel 标题、og:site_name 与 JSON-LD 的 name**，
+# 也是首页 <title> 的**唯一**来源 —— 主题 head.html 在首页直接忽略 .Title，
+# profileMode.title/subtitle 也不参与任何 head 标签（见 themes/PaperMod/layouts/_partials/head.html:11）。
+# 所以这一行既是品牌也是首页标题，改长会同时影响导航栏宽度（640~1024px 之间要回来看一眼是否挤）。
+title = 'Skyrim 的学习笔记'
 theme = 'PaperMod'
 hasCJKLanguage = true
 
@@ -26,6 +30,13 @@ enableGitInfo = true
 [taxonomies]
   tag = 'tags'
   category = 'categories'
+  # series 零个词条（没有任何内容页写 series），但**刻意保留**：
+  #   · 空词条的 /series/ 只是个空列表页，除了进 sitemap 没有坏处；
+  #   · 删掉 content/series/_index.md 才能让 /series/ 真正消失，而
+  #     scripts/new-content.sh remove 的护栏拒绝删除 section 根目录（手敲 rm 违反 AGENTS 规则 1）；
+  #   · 只删这一行、留下文件更糟：/series/ 会退化成普通空 section（页面照样在），
+  #     而 `new-content.sh post --series X` 与管理页的「系列」输入框会变成**静默无效**的功能。
+  # 所以要用连载功能就直接用；真要彻底移除，得连文件、CLI 选项与管理页字段一起清。
   series = 'series'
 
 
@@ -63,8 +74,8 @@ pagerSize = 10
   # 启用 OG/twitter meta 的开关
   env = 'production'
 
-  #站点介绍
-  description = 'Skyrim 的技术与生活博客'
+  #站点介绍（首页 meta description，以及没写 description 的页面的兜底描述）
+  description = 'Skyrim 的学习笔记：回归分析与数值分析课程笔记、数学建模项目记录，以及可检索的数学工具库'
 
   # 显示阅读时间
   ShowReadingTime = true
@@ -72,8 +83,18 @@ pagerSize = 10
   # 显示文章目录
   ShowToc = true
 
-  # 默认折叠目录
-  TocOpen = true
+  # 页内目录默认收起。宽屏时它本来就被左侧跟随目录栏顶替（12-toc-rail.css 的
+  # body.has-toc-rail 那条规则把它 display:none），窄屏时它是唯一的目录 ——
+  # 默认展开会在正文顶上占掉一大块。2026-09-18 之前这里是 true，注释却写着「默认折叠目录」。
+  TocOpen = false
+
+  # 页内目录改用 Hugo 的 .TableOfContents（h2–h3），不再用主题自建那套「正则扫 h1–h6 + plainify」：
+  #   · 条目集合：自建那套会多收 h4（实测 lab 页 30 条 vs 左侧目录栏 15 条），两份目录对不上；
+  #   · 文本：自建那套对含公式的小标题会 plainify 出乱码（实测「手算 ttt 检验时用」、
+  #     「SSreg=β^12SxxSS_{\rm reg}=…」），.TableOfContents 给的是干净原文。
+  # 左侧目录栏（layouts/_partials/toc-rail.html）本来就用 .TableOfContents，两者从此同源。
+  # 注意：改这个会影响所有单页的页内目录，模板见 themes/PaperMod/layouts/_partials/toc.html。
+  UseHugoToc = true
 
   # 显示面包屑导航
   ShowBreadCrumbs = true
@@ -107,7 +128,10 @@ pagerSize = 10
   repoID = "R_kgDOUQGEOA"
   category = 'Announcements'
   categoryID = "DIC_kwDOUQGEOM4DFHXE"
-  mapping = 'title'                # 按文章标题关联 Discussion（比 pathname 稳定）
+  # 按 URL 路径关联 Discussion。2026-09-18 从 'title' 改过来：站上有多对同名页面
+  # （数值分析两章的「学习笔记」「作业」），按标题关联会把不同页面的评论并进同一条，
+  # 而 URL 天然唯一。代价是改目录名/permalink 会丢关联，所以要固定 URL 就用管理页的 slug 字段。
+  mapping = 'pathname'
   strict = '0'
   reactionsEnabled = '1'
   emitMetadata = '0'
@@ -127,7 +151,7 @@ pagerSize = 10
 
 # 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html
 [params.home]
-  recentCount = 6
+  recentCount = 8
 
 # ============================================
 # 首页 Profile Mode 配置
@@ -158,6 +182,11 @@ pagerSize = 10
 # ============================================
 # 导航菜单
 # ============================================
+# 注意「📝 文章」入口已于 2026-09-18 摘掉：/posts/ 下 0 篇文章，点进去是个空列表页，
+# 与 2026-09-15 删除归档页同一口径（见上面 mainSections 的注释）。
+# section 本身保留（content/posts/_index.md 还在，URL 不会 404，写文章不受影响），
+# 写第一篇后按 weight = 40 把 posts 那一项加回来即可 —— 50 是留给归档页的，别占。
+# 摘掉后导航回到 7 项，也就是 assets/css/extended/10-nav.css 当初按 7 项调好的布局。
 [[menu.main]]
   identifier = 'home'
   name = '🏠 首页'
@@ -171,6 +200,12 @@ pagerSize = 10
   weight = 15
 
 [[menu.main]]
+  identifier = 'cs'
+  name = '💻 CS 库'
+  url = '/cs/'
+  weight = 16
+
+[[menu.main]]
   identifier = 'courses'
   name = '🎓 课程'
   url = '/courses/'
@@ -181,12 +216,6 @@ pagerSize = 10
   name = '🚀 项目'
   url = '/projects/'
   weight = 30
-
-[[menu.main]]
-  identifier = 'posts'
-  name = '📝 文章'
-  url = '/posts/'
-  weight = 40
 
 [[menu.main]]
   identifier = 'tags'

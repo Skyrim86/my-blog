@@ -99,9 +99,63 @@ while IFS=$'\t' read -r f t; do
   fi
 done < "$PAIRS"
 
+# ---------- 分组表一致性 ----------
+# data/tag-groups.yaml 是**展示层**信息（/tags/ 页按组分块，见 layouts/taxonomy.html）；
+# 词表才是拼写的唯一事实源。两边漂移的后果不是丢内容（词条会落在页面上那块「未分组」里），
+# 而是分组悄悄失效 —— 所以这里报出来，与未登记标签同一个退出码（CI 里整体按「只警告」处理）。
+GROUPS_FILE="data/tag-groups.yaml"
+GROUP_TERMS_COUNT=0
+group_issues=0
+if [ -f "$GROUPS_FILE" ]; then
+  GROUP_TERMS=()
+  while IFS= read -r t; do
+    [ -n "$t" ] && GROUP_TERMS+=("$t")
+  done < <(awk '
+    /^[[:space:]]*tags:[[:space:]]*$/ { in_tags = 1; next }
+    /^[[:space:]]*-[[:space:]]*key:/ { in_tags = 0; next }
+    /^[^[:space:]]/ { in_tags = 0; next }
+    in_tags && /^[[:space:]]*-[[:space:]]/ {
+      line = $0
+      sub(/^[[:space:]]*-[[:space:]]+/, "", line)
+      sub(/[[:space:]]+#.*$/, "", line)
+      if (line != "") print line
+    }
+  ' "$GROUPS_FILE")
+  GROUP_TERMS_COUNT="${#GROUP_TERMS[@]}"
+
+  in_group() {
+    local t
+    for t in "${GROUP_TERMS[@]}"; do
+      [ "$t" = "$1" ] && return 0
+    done
+    return 1
+  }
+
+  if [ "$GROUP_TERMS_COUNT" -eq 0 ]; then
+    echo "  ! $GROUPS_FILE 里一个分组词条都没解析到（格式变了？只认「tags:」下的块列表写法）" >&2
+    group_issues=$((group_issues + 1))
+  else
+    for t in "${TERMS[@]}"; do
+      if ! in_group "$t"; then
+        echo "  ! 词表里的「$t」不在任何分组里 —— 它会落在 /tags/ 页的「未分组」块" >&2
+        group_issues=$((group_issues + 1))
+      fi
+    done
+    for t in "${GROUP_TERMS[@]}"; do
+      if ! in_vocab "$t"; then
+        echo "  ! 分组表里的「$t」不在词表里（拼写或大小写不一致？）" >&2
+        group_issues=$((group_issues + 1))
+      fi
+    done
+  fi
+else
+  echo "  ! 找不到 $GROUPS_FILE —— /tags/ 页会退化成不分组的单列" >&2
+  group_issues=$((group_issues + 1))
+fi
+
 echo
-if [ "$unknown_count" -eq 0 ] && [ "$block_count" -eq 0 ]; then
-  echo "✓ 标签校验通过：$checked 个标签全部命中 $TAXONOMY"
+if [ "$unknown_count" -eq 0 ] && [ "$block_count" -eq 0 ] && [ "$group_issues" -eq 0 ]; then
+  echo "✓ 标签校验通过：$checked 个标签全部命中 $TAXONOMY（分组表 $GROUP_TERMS_COUNT 个词条也一致）"
   exit 0
 fi
 if [ "$unknown_count" -gt 0 ]; then

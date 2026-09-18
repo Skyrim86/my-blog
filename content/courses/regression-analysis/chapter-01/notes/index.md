@@ -9,6 +9,8 @@ icon: "📖"
 date: 2026-09-15
 draft: false
 description: "§1–§6：模型假设分层（A1/A2/A3）、最小二乘与几何投影、估计量性质与 Gauss–Markov、误差方差估计、中心化形式。"
+# summary 必须写：列表卡片摘要走 `.Summary | plainify`，正文公式已渲染成 HTML+MathML，会被拼成乱码
+summary: "§1–§6：模型假设分层（A1/A2/A3）、最小二乘与几何投影、估计量性质与 Gauss–Markov、误差方差估计、中心化形式。"
 ---
 
 ## §1 为什么需要简单线性回归

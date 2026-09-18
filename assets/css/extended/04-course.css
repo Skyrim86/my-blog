@@ -27,9 +27,12 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  /* 一行一张会让「一章」占满整行、看不出课程有多少内容；改成两列起（2026-09-18），
+     窄屏由 auto-fill 自动回落单列。 */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
+  align-content: start;
 }
 
 .course-index-item {

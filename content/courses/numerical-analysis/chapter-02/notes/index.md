@@ -5,6 +5,8 @@ icon: "📖"
 date: 2026-09-10
 draft: false
 description: "课堂内容：二分法、不动点迭代与收敛条件、牛顿法、割线法及方法对比。"
+# summary 必须写：列表卡片摘要走 `.Summary | plainify`，正文公式已渲染成 HTML+MathML，会被拼成乱码
+summary: "课堂内容：二分法、不动点迭代与收敛条件、牛顿法、割线法及方法对比。"
 ---
 
 ## 2.1 问题与基本思路

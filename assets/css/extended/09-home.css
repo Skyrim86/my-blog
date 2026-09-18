@@ -162,6 +162,9 @@
   font-size: .76rem;
   color: var(--secondary);
   font-variant-numeric: tabular-nums;
+  /* 日期是完整年月日（见 index_profile.html），这一行又是 nowrap flex：
+     不加 nowrap 时日期自身会被压成两行，把整条卡片顶高。 */
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {

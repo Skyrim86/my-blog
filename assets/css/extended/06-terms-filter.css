@@ -21,3 +21,23 @@
   color: var(--secondary);
   font-size: 0.92rem;
 }
+
+/* ---------- 词条分组的小标题（layouts/taxonomy.html + data/tag-groups.yaml） ----------
+
+   标签总览页按学科分块：每组一块标题 + 一个 ul.terms-tags。
+   标题与它下面那个列表的间距要收紧，否则「标题与列表」看起来不像一块。 */
+.terms-group-title {
+  margin: 1.6rem 0 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  color: var(--secondary);
+}
+
+.terms-group-title + .terms-tags {
+  margin-top: 0.5rem;
+}
+
+/* 整组被筛空时脚本把标题也收起来（terms-filter.js），用 [hidden] 即可 */
+.terms-group-title[hidden] {
+  display: none;
+}

@@ -1,0 +1,56 @@
+{{- /* 卡片库总览页（layout: "library"），URL = /library/ 或 /cs/ —— 数学库与 CS 库共用这一份
+     （哪个库由 .Section 回 data/libraries.yaml 认出来，见 partials/lib-config.html）。
+
+     这一页只干一件事：列出**大类**（概率论 / 数理统计 / 数据结构 …），每张卡点进
+     /<库>/<大类>/。细分的目录在大类页上，卡片墙在细分页上——三级结构见 docs/features.md ㉒，
+     后两级的页面由各库目录下的 _content.gotmpl 生成。
+
+     为什么拆：80 张索引卡堆在一页时，这一页线上 4G 实测 DCL 494 ms / load 1.4 s、
+     加载期一个 103 ms 长任务，而它承担的信息只有「有哪些大类」。
+     拆开后本页是一张小目录，搜索交给站内搜索（卡片页本来就在索引里）。
+
+     卡片正文不在这些页面上：数学卡仍在 /courses/<课程>/toolbox/<id>/，CS 卡在 /cs/<id>/。 */ -}}
+{{- define "main" }}
+{{- $cfg := partial "lib-config.html" .Section }}
+{{- $lib := $cfg.lib }}
+{{- $cards := $cfg.data.cards }}
+
+<article class="post-single library-page">
+  {{- partial "page-head.html" (dict "page" .) }}
+
+  {{- if .Content }}
+  <div class="post-content md-content tb-intro">
+    {{- partial "anchored_headings.html" .Content }}
+  </div>
+  {{- end }}
+
+  {{- with $lib }}
+  {{- /* 只列真有卡片的大类：空分支（数学分析 / 最优化、CS 的预留方向等）
+         不出现在这里——分支表预置它们是为了以后加卡片时自动出现。
+         分支表来自 $cfg.branches（data/<库>-branches.yaml），不是卡片 JSON 里那份副本。 */ -}}
+  <div class="lb-branches">
+    {{- range $cfg.branches }}
+    {{- $branch := . }}
+    {{- $bcards := where $cards "branch" $branch.key }}
+    {{- if $bcards }}
+    {{- $sections := slice }}
+    {{- range $branch.sections }}
+      {{- if where $bcards "section" .key }}{{ $sections = $sections | append . }}{{ end }}
+    {{- end }}
+    <a class="lb-branch-card" href="{{ printf "%s%s/" $lib.path $branch.key | relLangURL }}">
+      <span class="lb-branch-head">
+        <span class="lb-branch-name">{{ $branch.name }}</span>
+        <span class="lb-branch-count">{{ len $bcards }}</span>
+      </span>
+      {{- with $branch.summary }}
+      <span class="lb-branch-desc">{{ . }}</span>
+      {{- end }}
+      <span class="lb-branch-meta">{{ i18n "libraryBranchMeta" (dict "sections" (len $sections) "cards" (len $bcards)) }}</span>
+    </a>
+    {{- end }}
+    {{- end }}
+  </div>
+  {{- end }}
+</article>
+
+{{- end }}{{/* end main */}}

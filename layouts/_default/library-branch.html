@@ -1,16 +1,18 @@
-{{- /* 数学库的大类页（layout: "library-branch"），URL = /library/<大类>/。
+{{- /* 卡片库的大类页（layout: "library-branch"），URL = /library/<大类>/ 或 /cs/<大类>/，
+     两个库共用这一份（见 partials/lib-config.html）。
 
-     页面由 content/library/_content.gotmpl 生成（内容适配器）：front matter 里只有
+     页面由各库目录下的 _content.gotmpl 生成（内容适配器）：front matter 里只有
      params.branch（分支表的 key）与 searchHidden。名字、范围说明、细分清单与计数全部在这
-     里回表取 —— 页面不留第二份副本，改 data/math-branches.yaml 就够（见 docs/features.md ㉒）。
+     里回表取 —— 页面不留第二份副本，改 data/<库>-branches.yaml 就够（见 docs/features.md ㉒）。
 
      本页只列**细分**（下一级），不铺卡片：卡片在细分页上。原先一页铺 80 张索引卡的做法在
      线上 4G 下是一个 119 ms 长任务 + 121 ms 的单帧，而这一页要说的只是「有哪些方向」。 */ -}}
 {{- define "main" }}
-{{- $tb := index hugo.Data "math-toolbox" }}
+{{- $cfg := partial "lib-config.html" .Section }}
+{{- $lib := $cfg.lib }}
 {{- $key := .Params.branch }}
-{{- $branch := index (where $tb.branches "key" $key) 0 }}
-{{- $cards := where $tb.cards "branch" $key }}
+{{- $branch := index (where $cfg.branches "key" $key) 0 }}
+{{- $cards := where $cfg.data.cards "branch" $key }}
 
 <article class="post-single toolbox-page library-page">
   {{- partial "page-head.html" (dict "page" .) }}
@@ -27,7 +29,7 @@
   </h2>
   <div class="lb-subs">
     {{- range $subs }}
-    <a class="lb-sub-card" href="{{ printf "library/%s/%s/" $key .key | relLangURL }}">
+    <a class="lb-sub-card" href="{{ printf "%s%s/%s/" $lib.path $key .key | relLangURL }}">
       <span class="lb-sub-head">
         <span class="lb-sub-name">{{ .name }}</span>
         <span class="lb-sub-count">{{ len (where $cards "section" .key) }}</span>

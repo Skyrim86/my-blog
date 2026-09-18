@@ -66,9 +66,22 @@ my-blog/
 │   ├── posts/<slug>/index.md  # 文章用 Page Bundle（封面图放同目录）
 │   └── projects/<项目>/       # 平铺项目 index.md；CMC2026 是分层项目（section + 文档）
 ├── data/taxonomy.yaml         # 标签 / 分类词表（唯一事实源，要入库）
+├── data/tag-groups.yaml       # 词条按学科分组（/tags/ 总览页分块用，见 features.md ㉛）
+├── data/libraries.yaml        # 卡片库登记表：key / label / data / path / cards / math
+├── data/math-branches.yaml    # 数学库分支表（两级：大类 → 细分，手写）
+├── data/math-toolbox.json     # 数学卡（由 tools/course-import/import_course.py 生成）
+├── data/cs-branches.yaml      # CS 库分支表（手写）
+├── data/cs-toolbox.json       # CS 卡（手写维护，页面由 scripts/gen-cards.mjs 生成）
 ├── i18n/zh.toml               # 站点级 UI 文案（与主题 i18n 合并，同名覆盖）
 ├── layouts/
 │   ├── index.json             # 覆盖主题模板：搜索索引（正文截断 + tags + 页内标题）
+│   ├── 404.html               # 覆盖主题模板：404 提示 + 返回首页/搜索/各卡片库（见 features.md 第 4 节）
+│   ├── taxonomy.html          # 覆盖主题模板：词条按 data/tag-groups.yaml 分块（见第 4 节）
+│   ├── _default/              # 多 section 共用的 layout（见 features.md 第 4 节末段）
+│   │   ├── library.html       #   卡片库总览（/library/ 与 /cs/ 共用，按 .Section 认库）
+│   │   ├── library-branch.html    #   大类页（细分目录）
+│   │   ├── library-section.html   #   细分页（卡片索引）
+│   │   └── toolcard.html      #   单张卡片页（数学卡与 CS 卡共用）
 │   ├── _markup/render-passthrough.html   # 公式渲染钩子（构建期 KaTeX）
 │   ├── courses/course.html    # 课程主页模板（由 layout: course 显式命中）
 │   ├── courses/chapter.html   # 章节入口页模板（由 layout: chapter 命中）
@@ -96,6 +109,8 @@ my-blog/
 │   ├── check-tags.sh          # 只警告：标签词表比对
 │   ├── check-katex-pairing.sh # 阻断：KaTeX 样式与 Hugo 内嵌版本是否配对
 │   ├── check-links.mjs        # 阻断：站内链接与锚点（同站绝对链接也在内）
+│   ├── check-seo.mjs          # 只警告：sitemap / robots / 首页 meta / RSS 的产物体检
+│   ├── gen-cards.mjs          # 阻断（--check）：从 data/<库>.json 生成卡片页（CS 库用）
 │   ├── check-editor-schema.mjs# 只警告：archetypes 与管理页字段表的漂移
 │   ├── report-size.sh         # 阻断：页面体积预算（--fresh 消除 public/ 陈旧产物影响）
 │   ├── push-blog.sh           # 一键公式转义自动修复 + 构建 + 校验 + 提交 + 推送
@@ -149,17 +164,17 @@ my-blog/
 
 | 配置段 | 说明 |
 |---|---|
-| 全局 | **`timeZone = 'Asia/Shanghai'` 必须保留**（否则当天发布的文章当天不会上线，见 [`traps.md`](traps.md)）；`baseURL` 带 `/my-blog/` 子路径；`hasCJKLanguage = true`（影响摘要与字数统计）；`enableEmoji`、`enableRobotsTXT`、`enableGitInfo`（文章显示 Git 最后修改时间）均开启 |
-| `[frontmatter]` | `lastmod` 优先取 Git 提交时间 |
-| `[taxonomies]` | 三套分类法：`tags`、`categories`、**`series`（自定义，支撑系列导航）** |
+| 全局 | **`timeZone = 'Asia/Shanghai'` 必须保留**（否则当天发布的文章当天不会上线，见 [`traps.md`](traps.md)）；`baseURL` 带 `/my-blog/` 子路径；`hasCJKLanguage = true`（影响摘要与字数统计）；`enableEmoji`、`enableRobotsTXT`、`enableGitInfo`（文章显示 Git 最后修改时间）均开启；`title = 'Skyrim 的学习笔记'` **兼作首页 `<title>`**（主题 head.html 在首页直接忽略 `.Title`，`profileMode.title/subtitle` 不参与任何 head 标签），同时是导航栏品牌、页脚版权、RSS channel 标题、`og:site_name` 与 JSON-LD 的 name —— 改它等于全站改名 |
+| `[frontmatter]` | `lastmod` 优先取 Git 提交时间 —— 所以首页「最近更新」的日期是「最后编辑日」，同一次提交里的页面日期相同（见 [`features.md`](features.md) ⑮） |
+| `[taxonomies]` | 三套分类法：`tags`、`categories`、**`series`（自定义，支撑系列导航）**。`series` 目前零词条、`/series/` 是个空列表页，但**刻意保留**：要让 `/series/` 真正消失得删掉 `content/series/_index.md`，而 `new-content.sh remove` 的护栏拒绝删除 section 根目录；只删这一行更糟 —— 会留下一个普通空 section，还让 `new-content.sh post --series` 与管理页的「系列」字段变成静默无效的功能。要用连载直接用它即可。**词条页的说明**（`/tags/xxx/` 那句介绍）写在 `content/<taxonomy>/<词条>/_index.md`，目录名要与词条 URL 一致（`CMC2026` → `cmc2026`、`Go Template` → `go-template`）；词表本身不加描述字段（格式被两个脚本解析），见 [`content.md` 第 5 节](content.md#5-标签词表) |
 | `[outputs]` | 首页输出 `HTML + RSS + JSON`。**JSON 索引供 Fuse.js 搜索使用，勿删**（字段由 `layouts/index.json` 决定） |
 | `[permalinks]` | 文章 URL 格式 `/:year/:month/:slug/`。改动会破坏已发布链接 |
-| `[params]` | `env='production'`、`mainSections=['posts']`（文章列表与上下篇只统计文章）、阅读时间/TOC(默认展开)/面包屑/上下篇/代码复制/RSS 按钮开；`images=['images/site-cover.jpg']` 为默认 OG 图；`DateFormat='2006年1月2日'`。**与主题默认等价的三个开关（`defaultTheme`/`ShowShareButtons`/`disableThemeToggle`）已刻意删掉**，不要再加回来 |
+| `[params]` | `env='production'`、`mainSections=['posts']`（文章列表与上下篇只统计文章）、阅读时间/面包屑/上下篇/代码复制/RSS 按钮开；`images=['images/site-cover.jpg']` 为默认 OG 图；`DateFormat='2006年1月2日'`；**目录三项**：`ShowToc=true`、`TocOpen=false`（页内目录默认收起）、`UseHugoToc=true`（页内目录与左侧目录栏同用 `.TableOfContents`，见 features.md ㉓）。`[params.home] recentCount = 8` 控制首页「最近更新」条数（0 = 关掉该区块）。**与主题默认等价的三个开关（`defaultTheme`/`ShowShareButtons`/`disableThemeToggle`）已刻意删掉**，不要再加回来 |
 | `[params.cover]` | `responsiveImages`、`linkFullImages`（点击封面看原图）开启 |
-| `[params.giscus]` | 评论全部参数；`mapping='title'` 按标题关联 Discussion；`theme='light'` 是初始值，实际由同步脚本动态切换 |
+| `[params.giscus]` | 评论全部参数；`mapping='pathname'` 按 URL 关联 Discussion（2026-09-18 从 `'title'` 改来：数值分析两章的「学习笔记」「作业」同名，按标题关联会把两页的评论并成一条）；`theme='light'` 是初始值，实际由同步脚本动态切换 |
 | `[params.profileMode]` | **首页是 Profile Mode**（头像 + 标题 + 副标题，无按钮）；要加按钮用 `[[params.profileMode.buttons]]` |
 | `[params.fuseOpts]` | 搜索权重 `['title','permalink','summary','tags','content']`。**keys 里出现的字段必须由 `layouts/index.json` 实际输出**，改一处要同步另一处 |
-| `[[menu.main]]` | 7 个导航项，weight 十进位留插入空间：首页(10)/课程(20)/项目(30)/文章(40)/标签(60)/搜索(70)/关于(80)。**50 是空出来的**——原来放「归档」，2026-09-15 删除：`mainSections=['posts']` 而 `content/posts/` 下 0 篇文章，页面渲染出来只有标题和 RSS 图标。写够文章想恢复，把 `content/archives.md` 加回来（4 行 front matter，主题自带 `layouts/archives.html`），并把导航项加回 weight=50 |
+| `[[menu.main]]` | 8 个导航项，weight 十进位留插入空间：首页(10)/数学库(15)/CS 库(16)/课程(20)/项目(30)/标签(60)/搜索(70)/关于(80)。**40 与 50 是空出来的**——40 原来放「文章」，2026-09-18 摘掉（`/posts/` 下 0 篇文章，点进去是空列表页，与归档页同一口径；section 与 `content/posts/_index.md` 都保留，写第一篇后按 weight=40 加回）；50 原来放「归档」，2026-09-15 删除（`mainSections=['posts']` 而当时同样 0 篇，页面渲染出来只有标题和 RSS 图标；想恢复就把 `content/archives.md` 加回来，主题自带 `layouts/archives.html`） |
 | `[markup.highlight]` | monokai 主题，行号开启 |
 | `[markup.goldmark.extensions.passthrough]` | 公式的 delimiters（`$`、`$$`、`\(\)`、`\[\]`）——**单 `$` 必须显式写**，passthrough 默认不含它。改这里要同步看 `layouts/_markup/render-passthrough.html` |
 | `[imaging]` | 图片质量 75、lanczos |

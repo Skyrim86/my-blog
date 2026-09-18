@@ -7,7 +7,8 @@
     python tools/course-import/import_course.py --check    # 只比对，与源不一致时退出码 1（CI 用）
     python tools/course-import/import_course.py --dry-run  # 只打印将要改动的文件
 
-唯一事实源是**课程项目目录**（默认 D:\\1.Study\\course\\回归分析，可用 --project 覆盖）：
+唯一事实源是**课程项目目录**（默认 D:\\1.Study\\course\\回归分析，可用 --project 覆盖；
+DEFAULT_PROJECT 是写死的本机路径，换机器或项目挪过位置时先 --dry-run 看它找没找对）：
 
   - 笔记 / 作业 / 实验的 Markdown  ──▶ content/courses/regression-analysis/<chapter>/<material>/index.md 的**正文**
   - 工具/00_数学工具.md 的条目      ──▶ data/math-toolbox.json（工具卡）
@@ -519,6 +520,22 @@ def build_toolbox(project: Path, cfg: dict) -> tuple[dict, list]:
 # --------------------------------------------------------------------------- #
 TOOLBOX_DIR = REPO / "content" / "courses" / COURSE / "toolbox"
 
+# 卡片标题里可能有公式（如「$F$ 检验」「$\hat\sigma^2$ 无偏」）。data/math-toolbox.json 里的 title
+# 由模板用 RenderString 渲染，卡片上显示的是真公式；但**写进 front matter 的 title 不经过
+# Markdown/KaTeX** —— 它要进 <title>、列表卡片与「相关内容」区块，裸 `$` 会原样露出来。
+# 所以这里降级成纯文本：能取其文字就取文字（「$F$ 检验」→「F 检验」），取不到（span 里是
+# `\hat\sigma^2` 这类命令）就把这一段整个丢掉（「$\hat\sigma^2$ 无偏」→「无偏」）；
+# 全丢光就退回「定理 4.6」形式，与本来就没写名字的卡片一致。
+MATH_SPAN_RE = re.compile(r"\$([^$]*)\$")
+
+
+def plain_card_title(title: str) -> str:
+    def _keep(match: re.Match) -> str:
+        inner = match.group(1).strip()
+        return "" if "\\" in inner else inner
+
+    return re.sub(r"\s{2,}", " ", MATH_SPAN_RE.sub(_keep, title)).strip()
+
 
 def card_page_md(card: dict, weight: int, date_str: str) -> str:
     """卡片页骨架（leaf bundle）：正文为空，模板按目录名从 data 里取卡片。
@@ -528,8 +545,9 @@ def card_page_md(card: dict, weight: int, date_str: str) -> str:
     弹窗按需加载同一份内容（见 assets/js/toolbox.js）。
     """
     # 卡片页的标题：有名字就用名字（页签里带上类别与编号以便区分），没有名字退回「定理 4.6」
-    if card.get("title"):
-        title = "%s（%s %s）" % (card["title"], card["kind"], card["num"])
+    name = plain_card_title(card.get("title") or "")
+    if name:
+        title = "%s（%s %s）" % (name, card["kind"], card["num"])
     else:
         title = "%s %s" % (card["kind"], card["num"])
     return (

@@ -80,11 +80,28 @@
             </div>
             <ul class="home-recent-list">
                 {{- range . }}
+                {{- /* 徽标优先显示「这一页属于哪门课」：课程材料页的层级是
+                       courses/<课程>/<章>/<材料>/index.md，只按 .Type 映射只能得到「课程」两个字，
+                       读者看不出是哪门课。取祖先里**最外层那个「自己还有 section 父级」的 section**
+                       —— 三级结构下章会被更外层的课程覆盖掉，正好落在课程上；即使将来材料直接挂在
+                       课程下也成立，不依赖「必须有三层」这个假设。
+                       取不到就退回原来的类型徽标：项目页保留「项目」，因为项目名就是页面标题本身，
+                       在徽标里再写一遍是重复。 */ -}}
+                {{- $crumb := "" }}
+                {{- if eq .Type "courses" }}
+                {{- range .Ancestors }}
+                {{- if and (eq .Kind "section") .Parent.IsSection }}{{ $crumb = .Title }}{{ end }}
+                {{- end }}
+                {{- end }}
                 <li class="home-recent-item">
                     <a class="home-recent-link" href="{{ .RelPermalink }}">
-                        <span class="home-recent-type">{{ partial "type-label.html" . }}</span>
+                        <span class="home-recent-type">{{ $crumb | default (partial "type-label.html" .) }}</span>
                         <span class="home-recent-title">{{ .LinkTitle }}</span>
-                        <span class="home-recent-date">{{ .Lastmod.Format "01-02" }}</span>
+                        {{- /* 完整日期（含年份）：只写「月-日」时，同一批提交的页面会显示成一模一样的
+                               日期，看不出先后。用短横格式而不是 site.Params.DateFormat 的
+                               「2026年9月15日」—— 这行是 nowrap flex、日期又 flex: none，
+                               CJK 日期比短横宽约一倍，会把标题挤到多行（见 09-home.css）。 */ -}}
+                        <span class="home-recent-date">{{ .Lastmod.Format "2006-01-02" }}</span>
                     </a>
                 </li>
                 {{- end }}

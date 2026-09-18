@@ -1,55 +1,82 @@
-{{- /* 「卡片引用」按钮：正文里的 {{< tool "1.4" >}} / {{< thm "4.4" >}} 都走这里。
+{{- /* 「卡片引用」徽章：正文里的 {{< card "全方差律" >}} / {{< tool "1.4" >}} / {{< thm "4.4" >}}
+     都走这里。
 
-     卡片内容只存一份 —— data/math-toolbox.json（由 tools/course-import/import_course.py
-     从课程项目生成），每张卡另有一个独立页面（content/courses/<课程>/toolbox/<id>/）。
-     这里输出的是指向那张卡片页的链接：
+     卡片内容只存一份（data/<库>-toolbox.json），每张卡另有一个独立页面。这里输出指向那张
+     卡片页的链接：
 
-       <a class="card-ref" href="…/toolbox/tool-1-4/" data-card="tool-1-4">工具 1.4</a>
+       <a class="card-ref" href="…/toolbox/tool-1-4/" data-card="tool-1-4" data-kind="命题">期望与方差的运算法则</a>
 
      assets/js/toolbox.js 拦截点击并把卡片页就地抓成弹窗；没有 JS 时就是普通链接，
      点开是完整可读的卡片页。
 
-     参数：page（当前页）、id（卡片 id，如 tool-1-4 / thm-4-4）、label（可选，覆盖显示文本）。
-     卡片不存在时退化成纯文本 + 构建期警告，不会产出死链。 */ -}}
+     参数：
+       page   当前页
+       id     卡片 id（如 tool-1-4 / thm-4-4 / cs-hash-table）——按编号引用时给
+       name   卡片名字或别名（如「全方差律」）——按名字引用时给；与 id 二选一
+       label  可选，覆盖显示文本
+
+     显示文本的优先级：label 参数 → 卡片名字（去掉公式定界符）→ 卡片自己的 label（「定理 10.2」）
+     → id。**只给编号时也显示名字**，不再露出裸编号（2026-09-18 之前 `{{< tool "1.4" >}}` 显示的是
+     「1.4」，与 tool.html 注释里写的「工具 1.4」不符）。按别名命中时就用你写的那个别名
+     （写「全方差律」不会显示成卡片全名）。
+
+     找卡与定位卡片页都交给 partials/card-find.html 与 data/libraries.yaml —— 数学库、CS 库
+     共用一套，跨库引用不必先知道结论属于哪个库。 */ -}}
 {{- $page := .page -}}
-{{- $id := .id -}}
-{{- $tb := index hugo.Data "math-toolbox" -}}
-{{- $card := false -}}
-{{- with $tb -}}
-  {{- with .cards -}}
-    {{- with where . "id" $id -}}
-      {{- $card = index . 0 -}}
-    {{- end -}}
-  {{- end -}}
-{{- end -}}
+{{- $found := partial "card-find.html" (dict "id" .id "name" .name "page" $page) -}}
+{{- $card := $found.card -}}
+{{- $lib := $found.lib -}}
+
+{{- /* 显示文本 */ -}}
 {{- $label := .label -}}
+{{- if and (not $label) $card -}}
+  {{- if $found.viaAlias -}}
+    {{- $label = .name -}}
+  {{- else -}}
+    {{- $plain := replaceRE `\$([^$]*)\$` "$1" $card.title -}}
+    {{- /* 剥掉定界符后仍含反斜杠命令（如 \hat\sigma^2）的名字不能用：徽章是纯文本，
+           KaTeX 不渲染它。退回卡片自己的 label（「定理 5.3」这种）。 */ -}}
+    {{- if and $plain (not (strings.Contains $plain "\\")) -}}{{- $label = $plain -}}{{- end -}}
+  {{- end -}}
+{{- end -}}
 {{- if and (not $label) $card -}}{{- $label = $card.label -}}{{- end -}}
-{{- if not $label -}}{{- $label = $id -}}{{- end -}}
-{{- /* 卡片所在的工具库：先按当前页所属课程找，再按卡片自己的课程找（数学库这类跨课程页面
-      从这里命中），最后退回全站第一个 layout: tools 的页面 */ -}}
-{{- $tbPage := false -}}
-{{- with $page -}}
-  {{- $file := replace (.File.Path | default "") "\\" "/" -}}
-  {{- $parts := split $file "/" -}}
-  {{- if and (ge (len $parts) 2) (eq (index $parts 0) "courses") -}}
-    {{- with site.GetPage (printf "/courses/%s/toolbox" (index $parts 1)) -}}
-      {{- $tbPage = . -}}
+{{- if not $label -}}{{- $label = .id | default .name -}}{{- end -}}
+
+{{- /* 卡片页地址：库配了 cards 前缀就用它（CS 库是 /cs/<id>/）；没配说明卡片挂在课程工具库里
+       （数学库），先按当前页所属课程找工具库，再按卡片自己的 course 找，最后退回全站第一个
+       layout: tools 的页面。 */ -}}
+{{- $href := "" -}}
+{{- if $card -}}
+  {{- with $lib.cards -}}
+    {{- $href = printf "%s%s/" (. | relLangURL) $card.id -}}
+  {{- else -}}
+    {{- $tbPage := false -}}
+    {{- with $page -}}
+      {{- $file := replace (.File.Path | default "") "\\" "/" -}}
+      {{- $parts := split $file "/" -}}
+      {{- if and (ge (len $parts) 2) (eq (index $parts 0) "courses") -}}
+        {{- with site.GetPage (printf "/courses/%s/toolbox" (index $parts 1)) -}}
+          {{- $tbPage = . -}}
+        {{- end -}}
+      {{- end -}}
     {{- end -}}
+    {{- if and (not $tbPage) $card.course -}}
+      {{- with site.GetPage (printf "/courses/%s/toolbox" $card.course) -}}
+        {{- $tbPage = . -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if and (not $tbPage) $page -}}
+      {{- range where site.Pages "Layout" "tools" -}}
+        {{- if not $tbPage -}}{{- $tbPage = . -}}{{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- with $tbPage -}}{{- $href = printf "%s%s/" .RelPermalink $card.id -}}{{- end -}}
   {{- end -}}
 {{- end -}}
-{{- if and (not $tbPage) $card -}}
-  {{- with site.GetPage (printf "/courses/%s/toolbox" $card.course) -}}
-    {{- $tbPage = . -}}
-  {{- end -}}
-{{- end -}}
-{{- if and (not $tbPage) $page -}}
-  {{- range where site.Pages "Layout" "tools" -}}
-    {{- if not $tbPage -}}{{- $tbPage = . -}}{{- end -}}
-  {{- end -}}
-{{- end -}}
-{{- if and $card $tbPage -}}
-<a class="card-ref" href="{{ printf "%s%s/" $tbPage.RelPermalink $id }}" data-card="{{ $id }}" data-kind="{{ $card.kind }}">{{ $label }}</a>
+
+{{- if $href -}}
+<a class="card-ref" href="{{ $href }}" data-card="{{ $card.id }}" data-kind="{{ $card.kind }}">{{ $label }}</a>
 {{- else -}}
-  {{- warnf "card-ref: 卡片 %s 不存在（%s），已退化为纯文本" $id ($page.File.Path | default "?") -}}
+  {{- warnf "card-ref: 卡片 %s 不存在（%s），已退化为纯文本" (.id | default .name) ($page.File.Path | default "?") -}}
 <span class="card-ref card-ref-missing">{{ $label }}</span>
 {{- end -}}

@@ -1,0 +1,22 @@
+{{- /* 覆盖主题的 404.html：主题那份全文只有 <div class="not-found">404</div> 一行，
+       构建产物里这一页的可见文字就只有「404」三个字符（线上实测），访客到了这里没有任何出路。
+       这是**第 5 处有意的主题模板覆盖**（见 docs/features.md 第 4 节）—— 404 页没有任何 hook
+       可挂，而主题原件只有 3 行，覆盖成本极低。
+       文案全部走 i18n（AGENTS 规则 6：模板里不硬编码中文）。样式见
+       assets/css/extended/15-extras.css（要把主题那份 absolute 定位收回正常流才能往下面放内容）。 */ -}}
+{{- define "main" }}
+<div class="not-found-page">
+  <div class="not-found">404</div>
+  <p class="not-found-hint">{{ i18n "notFoundHint" }}</p>
+  <nav class="not-found-links" aria-label="{{ i18n "notFoundLinks" }}">
+    <a href="{{ site.Home.RelPermalink }}">{{ i18n "notFoundHome" }}</a>
+    <a href="{{ "search/" | relLangURL }}">{{ i18n "notFoundSearch" }}</a>
+    {{- /* 各卡片库的入口：按 data/libraries.yaml 生成，以后加库这里不用改。
+           直接用库自己的显示名（label）当链接文字：一个 key 拼不出「该不该在中西文之间留空格」
+           —— 「逛数学库」要连写、「逛 CS 库」按本站惯例要留空格。 */ -}}
+    {{- range (index hugo.Data "libraries").libraries }}
+    <a href="{{ .path | relLangURL }}">{{ .label }}</a>
+    {{- end }}
+  </nav>
+</div>
+{{- end }}{{/* end main */ -}}

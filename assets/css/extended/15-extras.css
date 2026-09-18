@@ -1,0 +1,73 @@
+/* ============================================
+   杂项：404 页与页脚 RSS 入口
+
+   两处都是 2026-09-18 体检后加的，各自都很小，所以合在一个文件里，
+   而不是各起一个编号（extended/ 下的文件按功能命名，09-home、10-nav…）。
+   ============================================ */
+
+/* ---------- 404 页（layouts/404.html，覆盖了主题那份只有「404」三个字的模板） ----------
+
+   主题的 .not-found 是 position: absolute + height: 80%，用意是让那个 160px 的大数字
+   独自居中；这里要在它下面加提示与入口，所以必须把绝对定位收回正常流，否则内容会跟它重叠。 */
+.not-found-page {
+  padding: 6vh 0 2rem;
+  text-align: center;
+}
+
+.not-found-page .not-found {
+  position: static;
+  display: block;
+  height: auto;
+  margin-bottom: .4rem;
+  font-size: clamp(88px, 16vw, 148px);
+  line-height: 1;
+  color: var(--primary);
+}
+
+.not-found-hint {
+  max-width: 32rem;
+  margin: 0 auto 1.8rem;
+  color: var(--secondary);
+}
+
+.not-found-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .7rem;
+  justify-content: center;
+}
+
+.not-found-links a {
+  padding: .45rem 1.05rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary);
+  transition: border-color .2s ease, transform .2s ease;
+}
+
+.not-found-links a:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* ---------- 页脚 RSS 入口（layouts/_partials/extend_footer.html） ----------
+
+   挂在主题页脚（版权那一行）下面。主题把版权那行做的居中，而这里是个新的块级 div，
+   不显式居中就会贴到左下角（实测）。 */
+.footer-rss {
+  margin-top: .45rem;
+  font-size: .82rem;
+  text-align: center;
+}
+
+.footer-rss a {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  color: var(--secondary);
+}
+
+.footer-rss a:hover {
+  color: var(--accent);
+}

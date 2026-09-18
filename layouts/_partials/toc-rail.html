@@ -12,9 +12,31 @@
   <p class="toc-rail-title">{{ i18n "toc" }}</p>
   <div class="toc-rail-inner">
     {{- /* .TableOfContents 的标题文本是**原始 Markdown**：小标题里的 $F$、$p$ 会原样冒出来，
-           这里去掉行内公式的定界符、留下内容（与主题内嵌目录 plainify 的效果一致）。
-           定界符只出现在文字里，href 里的锚点 id 本来就去掉了它们，所以这样做不会改坏跳转。 */ -}}
+           这里去掉行内公式的定界符、留下内容。定界符只出现在文字里，href 里的锚点 id
+           本来就去掉了它们，所以这样做不会改坏跳转。 */ -}}
     {{- $toc | replaceRE `\$([^$]*)\$` "$1" | safeHTML -}}
   </div>
 </aside>
+
+{{- /* 这段脚本刻意内联，不再走 assets/js/toc-rail.js：
+       · 显示时机：目录栏靠 <body> 上的 .has-toc-rail 才显示（见 12-toc-rail.css），
+         原先要等 defer 的外部脚本下载完才加类 —— 首屏会看到它晚一拍冒出来，脚本取不到则永不显示。
+         内联后解析到即生效，还少一个请求。
+       · 挪到 <body> 下是必须的：.post-single 的 backdrop-filter 会成为 fixed 后代的包含块，
+         留在正文里的话 position: fixed 会跟着正文滚（见 docs/features.md ㉓）。 */ -}}
+<script>
+  (function () {
+    var rail = document.getElementById('toc-rail');
+    if (!rail) return;
+    document.body.appendChild(rail);
+    document.body.classList.add('has-toc-rail');
+    /* 与左栏对齐：hugo.toml 设了 UseHugoToc，主题那份页内目录（.toc）取的是标题原文，
+       含公式的小标题会带出 $ 定界符（如「手算 $t$ 检验时用」）；左栏在服务端已经剥掉了，
+       这里把页内那份也剥一遍，两份目录读起来才一致。无 JS 时它显示 $t$ —— 仍然比换用前那条路
+       （主题自建目录把公式 plainify 成「手算 ttt 检验时用」）清楚。 */
+    document.querySelectorAll('details.toc a[href^="#"]').forEach(function (a) {
+      a.textContent = a.textContent.replace(/\$([^$]*)\$/g, '$1');
+    });
+  })();
+</script>
 {{- end }}

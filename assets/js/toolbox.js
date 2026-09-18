@@ -56,7 +56,11 @@
 
   /* ---------- 抓卡片页并缓存其中的 .tb-card ---------- */
   function loadCard(id, url) {
-    var local = document.querySelector('.tb-card[data-id="' + id + '"]');
+    /* 本页已有完整卡片就直接用（卡片页自己 + 深链场景）。
+       必须排除 .tb-teaser：索引卡也是 .tb-card 且带 data-id，但它只有抬头、没有正文 ——
+       2026-09-18 之前这里没排除，于是工具库页 / 卡片库细分页上点开卡片只弹出抬头
+       （弹窗里空空如也），得跳到卡片页才看得到正文。 */
+    var local = document.querySelector('.tb-card[data-id="' + id + '"]:not(.tb-teaser)');
     if (local) return Promise.resolve(local);
     if (!url) return Promise.reject(new Error("no url for " + id));
     if (state.cache[url]) return Promise.resolve(state.cache[url]);
@@ -67,7 +71,7 @@
       })
       .then(function (html) {
         var doc = new DOMParser().parseFromString(html, "text/html");
-        var node = doc.querySelector('.tb-card[data-id="' + id + '"]') || doc.querySelector(".tb-card");
+        var node = doc.querySelector('.tb-card[data-id="' + id + '"]:not(.tb-teaser)') || doc.querySelector(".tb-card:not(.tb-teaser)");
         if (!node) throw new Error("card not found: " + id);
         state.cache[url] = node;
         return node;

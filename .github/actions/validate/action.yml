@@ -25,6 +25,14 @@ runs:
       shell: bash
       run: bash scripts/check-frontmatter.sh
 
+    # 卡片页与数据文件是否一致：阻断。CS 库的卡片页由 scripts/gen-cards.mjs 从
+    # data/cs-toolbox.json 生成 —— 改了数据却忘了重生成时，页面上的正文还是旧的，
+    # 而**构建不会报错**，只有比对才发现。只读 data/ 与 content/，不依赖构建产物，
+    # 所以和上面几条一样排在快校验里。
+    - name: 卡片页与数据一致性校验（阻断）
+      shell: bash
+      run: node scripts/gen-cards.mjs cs --check
+
     # section 结构：阻断。断言每个 section 目录都有 _index.md（列表页）。
     # 缺了它，该分区会退化成「隐式 section」——页面能不能存在取决于下面还有没有子页面，
     # 子页面一删空，/posts/ 这类列表页就连同导航栏、首页指向它的入口一起 404。
@@ -85,3 +93,12 @@ runs:
     - name: 站内链接与锚点检查（阻断）
       shell: bash
       run: node scripts/check-links.mjs
+
+    # SEO / 订阅产物：只警告不阻断。查的是「构建能过但站点不可被发现」的那类事 ——
+    # sitemap 与 RSS 里的 URL 是否带 baseURL 子路径、是否都指向真实存在的页面、
+    # 生产构建的 robots.txt 是否误禁全站、首页 meta 是否被 noindex、feed 里有没有
+    # 零值日期（0001）与空 description。这些开关都在 hugo.toml 与主题模板里，
+    # 改错不会有任何现有校验报警（起因见该脚本头部注释）。
+    - name: SEO 与订阅产物体检（只警告）
+      shell: bash
+      run: node scripts/check-seo.mjs || echo "::warning title=SEO 体检::sitemap/robots/首页 meta/RSS 有异常，详见日志"

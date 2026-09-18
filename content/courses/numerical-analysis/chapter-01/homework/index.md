@@ -5,6 +5,8 @@ icon: "📝"
 date: 2026-09-10
 draft: false
 description: "作业解法：有效数字与相对误差、灾难性抵消、浮点数模型。"
+# summary 必须写：列表卡片摘要走 `.Summary | plainify`，正文公式已渲染成 HTML+MathML，会被拼成乱码
+summary: "作业解法：有效数字与相对误差、灾难性抵消、浮点数模型。"
 ---
 
 ## 作业 1-1：有效数字与相对误差

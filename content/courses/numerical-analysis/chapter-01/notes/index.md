@@ -5,6 +5,8 @@ icon: "📖"
 date: 2026-09-10
 draft: false
 description: "课堂内容：误差来源、有效数字、浮点数与机器精度、灾难性抵消。"
+# summary 必须写：列表卡片摘要走 `.Summary | plainify`，正文公式已渲染成 HTML+MathML，会被拼成乱码
+summary: "课堂内容：误差来源、有效数字、浮点数与机器精度、灾难性抵消。"
 ---
 
 ## 1.1 误差的来源

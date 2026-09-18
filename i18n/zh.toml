@@ -158,7 +158,8 @@ other = "证明"
 
 # 弹窗标题与关闭按钮
 [toolboxTitle]
-other = "数学工具库"
+# 弹窗标题栏的文字。不写「数学工具库」：同一个弹窗也给 CS 库的卡片用
+other = "卡片"
 
 [toolboxClose]
 other = "关闭卡片"
@@ -178,3 +179,58 @@ other = "看板娘（点开关于页）"
 
 [mascotLabelLeft]
 other = "看板娘・公主切（点开关于页）"
+
+# ---------- 页脚 RSS 入口（见 layouts/_partials/extend_footer.html） ----------
+# 首页走 profileMode，不渲染 list.html 里那个带 RSS 图标的 page-header，
+# 所以全站统一在页脚给一个订阅入口
+[footerRss]
+other = "RSS 订阅"
+
+# ---------- 一键到底（见 layouts/_partials/extend_footer.html） ----------
+# 主题的「返回顶部」是硬编码英文（go to top），这里两个按钮都补上中文可访问名
+[bottomLinkLabel]
+other = "滚到页面底部"
+
+# ---------- 列表排序与标签筛选（见 assets/js/list-tools.js） ----------
+# JS 不能调 i18n，这些文案由 extend_head.html 经 <script> 的 data-* 传给脚本
+[listToolsSort]
+other = "排序"
+
+[listToolsDefault]
+other = "默认顺序"
+
+[listToolsNewest]
+other = "最新在前"
+
+[listToolsOldest]
+other = "最早在前"
+
+[listToolsTags]
+other = "按标签筛选"
+
+[listToolsAll]
+other = "全部"
+
+[listToolsEmpty]
+other = "没有匹配的条目（换个标签试试）"
+
+[listToolsResult]
+other = "显示 {shown} / {total} 条"
+
+# ---------- 标签总览页的分组（见 layouts/taxonomy.html + data/tag-groups.yaml） ----------
+# 分组表里漏掉的词条会落在这一块
+[termsUngrouped]
+other = "未分组"
+
+# ---------- 404 页（见 layouts/404.html，覆盖主题那份只有「404」三个字的模板） ----------
+[notFoundHint]
+other = "这个地址下没有内容。可能是链接旧了，或者路径拼错了。"
+
+[notFoundLinks]
+other = "可以试试这些入口"
+
+[notFoundHome]
+other = "回到首页"
+
+[notFoundSearch]
+other = "搜一下"

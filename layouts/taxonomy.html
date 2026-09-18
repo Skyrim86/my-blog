@@ -1,0 +1,73 @@
+{{- /* 覆盖主题的 taxonomy.html（**第 6 处**有意的主题模板覆盖，见 docs/features.md 第 4 节）：
+     与主题版唯一的区别是**按 data/tag-groups.yaml 分组渲染** —— 词条多了以后，「标签」总览页
+     把数学、计算机、建模竞赛混在一列里，读者看不出体系（2026-09-18 的诉求）。
+
+     markup 与主题版保持一致（ul.terms-tags + li > a + 计数 sup），因为
+     assets/js/terms-filter.js 就是按这套类名做筛选的；改动只是「每组分一个 ul」，
+     筛选脚本已同步改成遍历所有 ul、并在某组被筛空时把组标题一起收起。
+
+     分组表漏掉的词条不会消失：排在最后一块「未分组」里，scripts/check-tags.sh 会警告漂移。 */ -}}
+{{- define "main" }}
+
+{{- if .Title }}
+<header class="page-header">
+    <h1>{{ .Title }}</h1>
+    {{- if .Description }}
+    <div class="post-description">
+        {{ .Description }}
+    </div>
+    {{- end }}
+</header>
+{{- end }}
+
+{{- $type := .Type }}
+{{- /* 先把词条归一成 {page, title, count}：分组要按页面 Title 匹配（词条的 .Name 是 URL 用的
+       小写形式，CSS / Go Template 这类与词表里的写法不一致），而计数只有词条条目上才有。 */ -}}
+{{- $all := slice }}
+{{- range .Data.Terms.Alphabetical }}
+  {{- $entry := . }}
+  {{- with site.GetPage (printf "/%s/%s" $type $entry.Name) }}
+    {{- $all = $all | append (dict "page" . "title" .Title "count" $entry.Count) }}
+  {{- end }}
+{{- end }}
+
+{{- $groups := slice }}
+{{- with index hugo.Data "tag-groups" }}{{ $groups = .groups }}{{ end }}
+
+{{- range $groups }}
+  {{- $group := . }}
+  {{- $items := where $all "title" "in" $group.tags }}
+  {{- with $items }}
+<h2 class="terms-group-title">{{ $group.name }}</h2>
+<ul class="terms-tags">
+    {{- range . }}
+    <li>
+        <a href="{{ .page.Permalink }}">{{ .page.LinkTitle }} <sup><strong><sup>{{ .count }}</sup></strong></sup> </a>
+    </li>
+    {{- end }}
+</ul>
+  {{- end }}
+{{- end }}
+
+{{- /* 分组表里漏掉的词条：仍然渲染，统一放最后一块（不丢内容，但 check-tags.sh 会警告） */ -}}
+{{- $leftover := slice }}
+{{- range $all }}
+  {{- $term := . }}
+  {{- $grouped := false }}
+  {{- range $groups }}
+    {{- if in .tags $term.title }}{{ $grouped = true }}{{ end }}
+  {{- end }}
+  {{- if not $grouped }}{{ $leftover = $leftover | append $term }}{{ end }}
+{{- end }}
+{{- with $leftover }}
+<h2 class="terms-group-title">{{ i18n "termsUngrouped" }}</h2>
+<ul class="terms-tags">
+    {{- range . }}
+    <li>
+        <a href="{{ .page.Permalink }}">{{ .page.LinkTitle }} <sup><strong><sup>{{ .count }}</sup></strong></sup> </a>
+    </li>
+    {{- end }}
+</ul>
+{{- end }}
+
+{{- end }}{{/* end main */ -}}

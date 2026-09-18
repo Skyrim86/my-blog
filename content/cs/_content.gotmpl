@@ -1,0 +1,61 @@
+{{- /* CS 库（/cs/）的分级页面 —— 内容适配器（content adapter，Hugo 0.126+）。
+
+     与 content/library/_content.gotmpl **是同一段逻辑的两份实例**：内容适配器只能往自己
+     所在的目录下加页面（AddPage 的 path 相对适配器目录），所以每个库必须有一份。
+     两份的差别只有 $libKey 一行 —— 改逻辑时两边都要改，并跑一遍两个库的页面核对
+     （docs/traps.md 记了这条）。
+
+     数据来源有两个，都不在本文件里：
+       · 分支表 data/<库 key>-branches.yaml  —— 大类 → 细分，决定生成哪些页面
+       · 卡片   data/<库 key>.json           —— 决定哪些分支/细分不为空（空的不出页面）
+
+     生成的三级（与数学库同构，见 docs/features.md ㉒）：
+       /cs/                    大类总览   content/cs/_index.md + layouts/library/library.html
+       /cs/<大类>/              细分目录   layout: library-branch，本文件生成
+       /cs/<大类>/<细分>/        卡片索引   layout: library-section，本文件生成
+
+     front matter 的字段与判据见 math 那份的注释，这里不重复。 */ -}}
+{{- $libKey := "cs" -}}
+{{- $lib := index (where (index hugo.Data "libraries").libraries "key" $libKey) 0 -}}
+{{- $cards := (index hugo.Data $lib.data).cards -}}
+{{- $branches := (index hugo.Data (printf "%s-branches" $lib.key)).branches -}}
+{{- $empty := dict "mediaType" "text/markdown" "value" "" -}}
+{{- range $branches -}}
+  {{- $branch := . -}}
+  {{- $bcards := where $cards "branch" $branch.key -}}
+  {{- if $bcards -}}
+    {{- $.AddPage (dict
+          "path" $branch.key
+          "kind" "page"
+          "title" $branch.name
+          "description" $branch.summary
+          "layout" "library-branch"
+          "content" $empty
+          "params" (dict
+            "searchHidden" true
+            "hiddenInRss" true
+            "library" $libKey
+            "branch" $branch.key
+            "branchName" $branch.name)) -}}
+    {{- range $branch.sections -}}
+      {{- if where $bcards "section" .key -}}
+        {{- $.AddPage (dict
+              "path" (printf "%s/%s" $branch.key .key)
+              "kind" "page"
+              "title" .name
+              "description" .summary
+              "layout" "library-section"
+              "content" $empty
+              "params" (dict
+                "searchHidden" true
+                "hiddenInRss" true
+                "math" $lib.math
+                "library" $libKey
+                "branch" $branch.key
+                "branchName" $branch.name
+                "section" .key
+                "sectionName" .name)) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}

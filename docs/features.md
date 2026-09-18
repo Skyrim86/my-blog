@@ -136,7 +136,10 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 首页在 profileMode 下由主题 `list.html` 直接调用 `index_profile.html`，**没有任何 hook**，所以这一处是整份覆盖（见第 4 节）。与原版的差异只有三处：头像多取一张 2× 图供高分屏、快捷入口、最近更新；标题/副标题/社交图标/`profileMode.buttons` 保持主题原样。
 
 - **快捷入口**复用主导航（跳过 `home`，取前 5 项），不维护第二份链接配置，导航改名自动同步。
-- **最近更新**：`site.RegularPages` 按 `Lastmod` 倒序取前 `params.home.recentCount` 条（`0` 关闭），排除 `searchHidden` 与 archives/search；每行是「类型徽标 + 标题 + 月日」，类型文案由 `type-label.html` 提供——与相关内容区块共用同一份 `Type → i18n key` 映射，不再各写一份。`enableGitInfo = true` 让 `Lastmod` 有真实值。
+- **最近更新**：`site.RegularPages` 按 `Lastmod` 倒序取前 `params.home.recentCount` 条（`0` 关闭），排除 `searchHidden` 与 archives/search；每行是「类型徽标 + 标题 + **完整年月日**」，类型文案由 `type-label.html` 提供——与相关内容区块共用同一份 `Type → i18n key` 映射，不再各写一份。`enableGitInfo = true` 让 `Lastmod` 有真实值。
+  - 日期用 `2006-01-02` 而不是 `site.Params.DateFormat` 的「2026年9月15日」：这一行是 nowrap flex、日期又 `flex: none`，CJK 日期宽近一倍，会把标题挤成多行（`09-home.css` 因此给了 `white-space: nowrap`）。
+  - 徽标不写死类型文案：课程材料页显示**课程名**（「回归分析」而不是「课程」）。层级是 `courses/<课程>/<章>/<材料>/index.md`，模板取祖先里**最外层那个「自己还有 section 父级」的 section**（`and (eq .Kind "section") .Parent.IsSection`）—— 三级结构下章会被更外层的课程覆盖掉，结果正好落在课程上；即使将来材料直接挂在课程下也成立，不依赖「必须有三层」。取不到才退回 `type-label.html` 的类型文案（项目页就是这种：项目名就是标题本身，徽标里再写一遍是重复）。2026-09-18 之前每行都是「课程 / 学习笔记（上）」，读者看不出是哪门课。
+  - 2026-09-18 之前这里显示的是「月-日」，同一批提交的页面看起来日期完全一样。`Lastmod` 会回退到 **git 提交时间**（见 `[frontmatter]`），所以首次导入后所有条目同日是预期行为，之后单独改哪个文件、只有那个页面的日期会变。
 - 主题 `profile-mode.css` 给 `.profile` 设了 `min-height: calc(100vh - …)`，加了内容会撑出很高的首屏，`09-home.css` 把它改成自然高度。
 
 ### ⑯ 课程规划与进度 — `_shortcodes/course-plan.html` + 课程主页的 `plan` 字段
@@ -189,24 +192,34 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 - **数据**：仍是 `data/math-toolbox.json`，每张卡多三个字段 —— `course`（卡片属于哪门课）、`branch`（大类）与 `section`（细分）。归属规则写在 `data/math-branches.yaml`（**不是**生成产物）：`branches` 是**两级**结构（大类 → `sections` 细分，每个细分带一句 `summary`），`assign` 按 `cards > nums > groups > modules > courses` 取第一个命中，都没命中落到 `default`。调某张卡的归属改这张表，再重跑导入；导入时会校验细分 key 不重复、`assign` 与 `default` 都指向真实存在的细分（写错就报错退出，而不是在页面上静默错分）。**细分 key 现在还是 URL 的一段**（`/library/statistics/stat-ols/`），改 key = 改 URL。
 - **页面由内容适配器生成**（`content/library/_content.gotmpl`，Hugo content adapter）：大类页与细分页**没有**对应的 md 文件，构建时从 `data/math-toolbox.json` 现算——分支表加一个大类就自动多一页，删一个就自动少一页，不存在「文件与表漂移」。写成 23 个 `_index.md` 就是把那张表抄第二遍，迟早对不上。适配器给页面的只是「身份」（两三个 key），名字、范围说明、计数、卡片清单全部由模板回表现取。
-- **适配器只给四样 front matter**：`title`（分支名）、`description`（表里那句范围说明，`page-head.html` 渲染成页头描述）、`params.branch` / `params.section`（两个 key，模板回表取名字、计数与卡片）、`params.searchHidden`（导航页不进搜索索引与首页「最近更新」），细分页另给 `params.math`（卡片标题里有公式）。**`description` 必须写在顶层**：塞进 `params` 里不会成为 `.Description`，页面照常构建、页头直接空白（实测踩过）。
+- **适配器只给五样 front matter**：`title`（分支名）、`description`（表里那句范围说明，`page-head.html` 渲染成页头描述）、`params.branch` / `params.section`（两个 key，模板回表取名字、计数与卡片）、`params.searchHidden` 与 `params.hiddenInRss`（导航页不进搜索索引、首页「最近更新」与 RSS，见 ㉗），细分页另给 `params.math`（卡片标题里有公式）。**`description` 必须写在顶层**：塞进 `params` 里不会成为 `.Description`，页面照常构建、页头直接空白（实测踩过）。
 - **三个 layout 各管一级**：`layout: "library"`（总览，`content/library/_index.md`）、`layout: "library-branch"`（大类页：列本大类的细分 + 计数）、`layout: "library-section"`（细分页：铺本细分最多十几张索引卡）。大类页不放面包屑（主题自带的「主页 › 数学库」已经在页头，再写一遍就是同一行里出现两次「数学库」）；细分页放一条 `数学库 / 大类` 的路径，因为主题那份不知道「大类」这一级的存在。范围说明走 `description`，不再各写一个段落。
 - **为什么拆**：原先一页铺 80 张索引卡 + 分支大纲，线上 4G 实测 DCL 494 ms / load 1.4 s、加载期一个 103 ms 长任务、滚动区 6588 px，而它承担的信息只是「有哪些大类」。拆开后 `/library/` 14 KB（原先 68.7 KB）、只列 3 张大类卡，**连 KaTeX 都不加载**（原先这页为 4 个公式名加载 `katex.min.css` + 6 个 woff2 共 107 KB）。索引页现在没有搜索框：卡片名本来就在站内搜索索引里（卡片页是 regular page），不必在库页里再实现一份。
 - **空分支不出页面**：分支表里预置的大类若一张卡都没有（现在有「数学分析」「数值分析与科学计算」「最优化」），既不出卡片也不出页面；以后导入别的课程就自动出现。总览页因此现在只列 3 个大类。
 - **细分页才是卡片墙**，交互沿用 `assets/js/toolbox.js`：点索引卡就地弹窗（按需抓卡片页），没有 JS 就直接跳卡片页。脚本的加载判据在 `extend_head.html`：`in (slice "tools" "toolcard") .Layout` **或 `hasPrefix .Layout "library"`**（三级同前缀，加一级不用回来改）；toc-rail 的排除判据同样按前缀写，两处一起改（见 ㉓）。总览页 / 大类页已经没有 `.tb-group` 与筛选条，筛选只服务工具库页；细分页不再需要搜索或筛选（最多 11 张卡）。
 - **卡片页底部**给两个返回入口：「本课程工具库」与「数学库」。正文里的 `{{< tool/thm >}}` 引用在任何页面上都按卡片自己的 `course` 找到正确工具库（`card-ref.html` 的第二级查找），不再依赖「当前页属于哪门课」。
-- **`searchHidden: true`**：三级页面都是导航页，不进搜索索引（`layouts/index.json`）也不进首页「最近更新」——首页那份 `RegularPages` 过滤本来就排除 `searchHidden`。
+- **`searchHidden: true`**：三级页面都是导航页，不进搜索索引（`layouts/index.json`）也不进首页「最近更新」——首页那份 `RegularPages` 过滤本来就排除 `searchHidden`；同理它们没有 `date`，还要 `hiddenInRss` 才不会在 feed 里变成零值日期（见 ㉗）。
 
-### ㉓ 单页的左侧跟随目录 — `_partials/toc-rail.html` + `assets/js/toc-rail.js` + `12-toc-rail.css`
+### ㉓ 单页的左侧跟随目录 — `_partials/toc-rail.html`（脚本内联）+ `12-toc-rail.css`
 
 点开任何一个有 h2/h3 的单页（课程材料页、项目文档页、文章、关于页）时，宽屏左侧有一栏跟随滚动的目录；窄屏不显示，仍用正文顶部那份折叠目录。2026-09-15 之前只对课程材料页生效，之后放开到全部单页——公式密集的项目文档页（`projects/cmc2026/**`）正是最需要它的一类页面。
 
-- **范围**：`Kind == "page"` 且排除 `layout: toolcard` / `layout: library` 两个自定义 layout（它们不走主题 `single.html`，`extend_post_content.html` 根本不会被调用，页面本身也没有正文小标题）。判据同时写在 `extend_post_content.html`（渲染）、`extend_head.html`（脚本）与 `toc-rail.html` 内部对 `.TableOfContents` 的判据里，**三处要一起改**。放开前后的实测：挂上目录栏的页面由 9 个（全是课程材料页）增至 27 个（+18：项目文档页、关于页，含拆页新增的《问题三_参考实现》）。
-- **目录内容**：Hugo 的 `.TableOfContents`（默认 h2–h3，正好对上课程材料页的 §x / §x.y，项目文档页用同一份），不用主题 `toc.html` 那份 Scratch 撑嵌套的自建目录。它的标题文本是**原始 Markdown**，所以还要 `replaceRE` 去掉 `$…$` 定界符（构建期渲染的 KaTeX 不会进目录，留着就是裸的 `$F$`）——注意 `replaceRE` 的返回值不是 `template.HTML`，末尾必须补 `| safeHTML`，否则整段目录被转义成文本（踩过）。
-- **为什么由 JS 挪到 `<body>` 下**：`.post-single` 上的 `backdrop-filter` 会成为 fixed 后代的包含块，目录留在正文容器里就是「跟着正文滚」而不是跟随视口（实测滚动 2500px 后 top 由 170px 变成 -1943px）。`assets/js/toc-rail.js` 把 `#toc-rail` 移到 `body` 末尾并给 `body` 加 `.has-toc-rail`——**显示与否挂在这个类上**，所以没 JS 时目录栏不出现、正文顶部的折叠目录照旧，不会出现「两个都没有」。
+- **范围**：`Kind == "page"` 且排除 `layout: toolcard` / `layout: library` 两个自定义 layout（它们不走主题 `single.html`，`extend_post_content.html` 根本不会被调用，页面本身也没有正文小标题）。判据写在 `extend_post_content.html`（渲染）与 `toc-rail.html` 内部对 `.TableOfContents` 的判据里，**两处要一起改**。放开前后的实测：挂上目录栏的页面由 9 个（全是课程材料页）增至 27 个（+18：项目文档页、关于页，含拆页新增的《问题三_参考实现》）。
+- **目录内容**：Hugo 的 `.TableOfContents`（默认 h2–h3，正好对上课程材料页的 §x / §x.y，项目文档页用同一份）。它的标题文本是**原始 Markdown**，所以还要 `replaceRE` 去掉 `$…$` 定界符（构建期渲染的 KaTeX 不会进目录，留着就是裸的 `$F$`）——注意 `replaceRE` 的返回值不是 `template.HTML`，末尾必须补 `| safeHTML`，否则整段目录被转义成文本（踩过）。
+- **为什么由脚本挪到 `<body>` 下**：`.post-single` 上的 `backdrop-filter` 会成为 fixed 后代的包含块，目录留在正文容器里就是「跟着正文滚」而不是跟随视口（实测滚动 2500px 后 top 由 170px 变成 -1943px）。脚本把 `#toc-rail` 移到 `body` 末尾并给 `body` 加 `.has-toc-rail`——**显示与否挂在这个类上**，所以没 JS 时目录栏不出现、正文顶部的折叠目录照旧，不会出现「两个都没有」。
 - **为什么不能挂在 `extend_footer.html`**：主题 baseof 用 `partialCached "footer.html" . .Layout .Kind …`，同 (Layout, Kind) 的页面共用一份渲染结果——笔记页的 `.Type`、`.Section`、`.TableOfContents` 会串成**第一个被缓存页面**的那份（实测三个不同材料页拿到完全相同的调试值）。要页面相关内容就得用 `extend_post_content.html`（`partial`，逐页渲染）。
-- **断点 1240px**：正文列 720px 居中，左右各留约 600px，240px 的目录栏 + 间距放得下，`left: max(16px, …)` 兜住临界宽度；宽屏下正文顶部那份折叠目录由 `body.has-toc-rail .post-single > .toc { display: none }` 收起。
-- **当前小节高亮**沿用 `reading-progress.js`（选择器含 `.toc-rail a`，见 ⑬ 的排序说明）。
+- **断点 1240px**：正文列 720px 居中，左右各留约 600px，200px 的目录栏 + 间距放得下，`left: max(16px, …)` 兜住临界宽度；宽屏下正文顶部那份折叠目录由 `body.has-toc-rail .post-single > .toc { display: none }` 收起。
+- **当前小节高亮**沿用 `reading-progress.js`（见 ⑬）。
+
+**2026-09-18 体检后的四处调整**（起因是「出现得太晚 / 占地方 / 两套目录不一致 / 高亮不跟手」）：
+
+| 问题 | 改法 |
+|---|---|
+| 出现得太晚 | 挪目录栏那段脚本**从 `assets/js/toc-rail.js` 内联进 `toc-rail.html`**（文件已删）。原先要等 defer 的外部脚本下载完才加 `.has-toc-rail`，首屏会看到它晚一拍冒出来，脚本取不到则永不显示；内联后解析到即生效，还少一个请求。 |
+| 占地方 / 太长 | 栏宽 240 → 200px、条目 0.85 → 0.8rem、标题 0.76 → 0.72rem、间距与行高收紧；底色从 `--surface` + `backdrop-filter: blur(8px)` 换成不透明的 `--entry` —— 那个模糊是**持续**的合成开销（第 6 节量过 backdrop-filter 的代价），而这栏固定在正文旁还自己会滚。 |
+| 两套目录不一致 | `hugo.toml` 设 `UseHugoToc = true`：主题那份页内目录改用 `.TableOfContents`（h2–h3）。**之前两份条目集合真的不同**（实测 lab 页：页内 30 条含 h4 vs 左栏 15 条），且页内含公式的小标题被主题自建目录 `plainify` 成乱码（实测「手算 ttt 检验时用」、「SSreg=β^12SxxSS_{\rm reg}=…」）。现在两边同源，条目集合一致、文本都是干净原文。 |
+| 高亮不跟手 | ① `reading-progress.js` 改成**按锚点 id 合并两份目录的链接**（同一标题在页内目录与左栏各有一个链接，一起点亮）——之前只点亮排序里靠后的那个，于是窄屏（左栏 `display:none` 时）页内目录永远不高亮；② 高亮变化时把该项**滚进目录栏的可见区**（长文里目录比栏还高，滚出去就等于看不见）。只调栏的 `scrollTop`，不碰页面滚动。 |
+| 页内目录默认展开 | `TocOpen` 由 `true` 改为 `false`（原注释写着「默认折叠目录」，值与注释不符）。宽屏时它本来就被左栏顶替，窄屏时默认收起不再占掉正文顶部一大块。 |
 
 ### ㉔ 装饰层（墨与蔷薇的细部）— `13-ornament.css`
 
@@ -225,14 +238,95 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **为什么用 `extend_footer.html`**：主题 `footer.html` 里调它一次、且不是 `partialCached`（缓存串页的坑见 ㉓），位置在 `<body>` 末尾，`fixed` 不受父级 containing block 影响。
 - 深色主题给两位补冷光描边（黑发贴墨底会糊），浅色主题只留投影；`prefers-reduced-motion` 下关掉 hover 上浮。`.top-link` 抬到看板娘头顶，**改看板娘高度时这个偏移要跟着改**。
 
-## 4. 四处有意的主题模板覆盖
+### ㉖ 列表卡片的摘要走 front matter `summary` — 数据纪律，没有代码
 
-除上述 hook 之外，仓库里有四处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
+主题 `list.html` 的卡片摘要写的是 `.Summary | plainify`。公式在**构建期**已被 KaTeX 渲染成 HTML+MathML（见 ⑥），`plainify` 剥掉标签后把 MathML 文本、`annotation` 里的 TeX 源码与视觉文本三份拼在一起，卡片上就成了 `e=x^−xe = \hat{x} - xe=x^−x` 这种三连（2026-09-18 实测线上 `/categories/课程/`，每张含公式的卡都这样）。
+
+- **修法**：给会出现在列表页的页面写 front matter `summary`（纯文本）。Hugo 会让 `.Summary` 直接返回它，`plainify` 对纯文本无害。9 个课程材料页在 2026-09-18 补上（内容取自各自的 `description`）。
+- **不能写进 `archetypes/`**：空字符串会被 Hugo 当成「已设置」，卡片会变成空白——比错乱公式更难查。
+- **判据不能是 `math: true`**：课程材料页的 `math` 来自课程主页的 cascade，页面自身 front matter 里没有这个键。所以 `scripts/check-frontmatter.sh` 改扫**正文里的 `$`**（AGENTS 禁止裸 `$` 进正文，故正文里的 `$` 一定是公式），对「正文含公式却没写 summary」的页面发警告（只警告，不阻断）。
+- 附带好处：搜索索引（⑪）用的也是 `.Summary`，这 9 页在索引里从错乱公式变成了干净摘要。
+
+### ㉗ RSS 的排除口径 `hiddenInRss` — 数据纪律，没有代码
+
+首页 RSS 走主题 `rss.xml`，它给首页取的是 `site.RegularPages`（**不过滤** `mainSections`），于是两类页面会污染 feed：正文为空的生成页（80 张工具卡片、`/library/` 三级页）`description` 是空的，没有 `date` 的静态页（`about`）`pubDate` 是 `Mon, 01 Jan 0001`。实测改之前首页 feed 有 88 条，其中 80 条是空摘要的卡片。
+
+- **修法**：给这些页面写 `hiddenInRss: true` —— 模板里唯一的消费者就是 `rss.xml` 那一行 `where` 过滤。工具卡片写在 `content/courses/regression-analysis/toolbox/_index.md` 的 cascade 里，`/library/` 三级页写在 `content/library/_content.gotmpl` 的 `params` 里，`about` 写在自己身上。卡片全被排除后，工具库 section 的 feed 必然是空的，所以那个 `_index.md` 同时把 `outputs` 收成 `["HTML"]`（与 `/library/` 同口径）。
+- 它与 `searchHidden` 是**两个不同的开关**：前者管搜索索引与首页「最近更新」，后者只管 RSS。生成页两个都要给。
+- 修完首页 feed 是 26 条（9 个课程材料页 + 16 个 CMC2026 文档 + 本博客项目页），全部有真实日期与非空摘要。`scripts/check-seo.mjs` 盯住「零值日期」与「空 description」两类。
+
+### ㉚ 列表的排序与标签筛选 — `assets/js/list-tools.js` + `16-list-tools.css`
+
+2026-09-18 加的：`/courses/`、`/projects/`、`/posts/`、课程主页、分层项目主页、各词条页都能按时间重排、按标签筛选。思路与 `terms-filter.js` 一致 —— 脚本就地注入工具栏、重排 DOM，**无 JS 时页面就是服务端排好的那副样子**，不降级也不报错。
+
+- **条目的数据两条路子**：我们自己的模板（`course-index.html` / `project-index.html`）输出 `data-date` / `data-tags`；主题 `list.html` 渲染的卡片没有 data 属性，脚本读它的既有 DOM 契约 —— 日期取 `.entry-footer span[title]`（`post_meta.html` 本来就写 `<span title='2026-09-15 …'>`），标签取 `.card-chips .card-chip--tag`。**这样就不必覆盖主题的 `list.html`**（为两个属性不值得）。
+- **筛选器只在有标签的地方出现**：`auto-fill` 式的判断 —— 页面上所有条目都没标签时（如课程主页的章节目录、词条页里同属一个标签的卡片列表），只出排序、不出标签筛选。这不是漏做：那里筛选没有意义。
+- **诚实的天花板**：`pagerSize = 10`，排序只作用于**当前这一页**的条目；跨页排序要关掉分页，做不到。各列表页现在基本都在一页内，所以按钮上不写误导性文案，这条限制记在这里。
+- 加载判据在 `extend_head.html`：`in (slice "section" "term") .Kind`（library / toolcard 那些自定义 layout 的页面另有 `toolbox.js` 的筛选，不重复注入）。
+
+### ㉛ 标签分组与 CS 库：把「卡片库」泛化成多库
+
+这两件是同一件事的两半，放在一起说。
+
+**标签分组**（`data/tag-groups.yaml` + 覆盖 `layouts/taxonomy.html`）：`/tags/` 总览页按学科分块（数学 / 计算机 / 建模与竞赛）。分组表刻意**不写进 `data/taxonomy.yaml`** —— 那份是拼写的唯一事实源，格式被 `new-content.sh` 与 `check-tags.sh` 按行解析，加字段就要同时改两处解析器。两边漂移由 `check-tags.sh` 报出（只警告），分组表里漏掉的词条会落在页面上那块「未分组」里，不丢内容。`terms-filter.js` 同步改成遍历**所有** `ul.terms-tags` 并在某组被筛空时把组标题一起收起。
+
+**CS 库**（`/cs/`，与数学库平行，卡片点开才展开）：
+
+| 部分 | 数学库 | CS 库 |
+|---|---|---|
+| 卡片数据 | `data/math-toolbox.json`，`import_course.py` 从课程项目抽 | `data/cs-toolbox.json`，**手写维护** |
+| 分支表 | `data/math-branches.yaml` | `data/cs-branches.yaml`（同样两级） |
+| 卡片页 | `/courses/<课程>/toolbox/<id>/`，由 `import_course.py` 生成 | `/cs/<id>/`，由 `scripts/gen-cards.mjs` 生成 |
+| 页面 | 都由各库目录下的 `_content.gotmpl` 生成三级 | 同 |
+
+- **登记的单一来源**是 `data/libraries.yaml`（key / label / data / path / cards / math）。模板靠 `partials/lib-config.html` 按页面自己的 `.Section` 回表取「哪个库、读哪份数据、分支表是什么、要不要 KaTeX」—— 两库共用 `layouts/_default/library*.html` 与 `toolbox-card.html` / `toolbox-teaser.html` / `toolbox.js`，没有第二份副本。
+- **分支表读 yaml，不读 JSON 里那份副本**（2026-09-18 起，两库同源）：CS 的 JSON 根本没有 `branches` 字段，而 yaml 才是那张表的原始出处。
+- **卡片页 front matter**（`title` / `layout: toolcard` / `date` / `weight` / `sitemap.disable` / `searchHidden`）两个库同构，`date` 复用已存在页面的 —— 重复生成不会天天改日期。`gen-cards.mjs --check` 已进 CI（阻断），防止「改了 JSON 忘了重生成」。
+- 为什么数学卡的页面挂在课程工具库下：见 ㉑；CS 库没有课程，卡片平铺在 `/cs/<id>/`（`libraries.yaml` 的 `cards` 字段就是这个差异的开关）。
+- **KaTeX 按库开关**：数学卡的标题里有公式（如「与 $t$ 检验的等价性」），CS 库没有 —— `math: false` 让 CS 的页面连 `katex.min.css` 与按需字体都不加载。
+
+### ㉜ 正文引用卡片：`{{< card "名字" >}}`
+
+原先只有 `{{< tool "1.4" >}}` / `{{< thm "4.4" >}}` 两种按**编号**引用的短代码，且只给编号时徽章显示的是裸编号 `1.4`（`tool.html` 的注释写「工具 1.4」，与实现不符）。
+
+- **新短代码 `{{< card "全方差律" >}}`**：按**名字或别名**在**所有库**里查卡，不必记编号、也不必先知道结论属于哪个库。查到多张时构建期用 `warnf` 列出候选（不静默取第一个）。
+- **显示文本的优先级**：显式第二参数 → 卡片名字（剥掉 `$…$` 定界符；仍含反斜杠命令的退回下一档）→ 卡片自己的 `label`（「定理 10.2」）→ id。按别名命中时就显示你写的那个别名（写「全方差律」不会显示成卡片全名）。
+- **`tool` / `thm` 保留**（`import_course.py` 生成的 80 处正文在用），文档里推荐新写法。
+- 找卡与定位卡片页抽成 `partials/card-find.html`（跨库按 id / 名字找）与 `partials/lib-config.html`（按 section 认库），`card-ref.html`、`toolcard.html`、`library-section.html` 三处共用同一份逻辑。
+
+### ㉝ 列表多列网格与一键到底
+
+- **列表卡片铺成多列**：`/courses/` 上两门课原本各占一整行（两屏才看完两门课），现在 `main.main:has(> .post-entry)` 用 `auto-fill minmax(320px, 1fr)` 铺成两列，窄屏自动回落单列；课程主页的章节目录、项目主页的子项目目录同样从 `flex-direction: column` 改成网格。**坑**：`.page-header` 主题设了左右 `auto` 外边距（用来居中），在网格里 auto 外边距会吃掉整条轨道的剩余空间、让网格项缩成内容宽度（实测页头面板只剩 246px），所以 `01-cards.css` 里要顺手把它清掉。
+- **一键到底**：与主题的「返回顶部」配成一对（`#bottom-link` 复用主题 `.top-link` 的外观，只覆写 `bottom` 与图标）。位置由 `14-mascot.css` 的 `--float-bottom` 统一控制 —— 那个值原本在四个断点里各写一遍给 `.top-link`，现在两个按钮共用一个变量；到顶在上、到底在下（到底占的是原来到顶的位置，那个位置是照着看板娘头顶调好的）。
+- **为什么用 `<button>` 而不是 `<a href="#bottom">`**：主题 `footer.html` 给全站 `a[href^="#"]` **逐个元素**挂了点击代理（`scrollIntoView` + 对非 `#top` 的锚点 `pushState`），那是**同一个元素**上的另一个监听器，`stopPropagation` 拦不住 —— 实测地址栏会留下 `#bottom`。button 不在那个选择器里，行为完全由自己的脚本掌控（语义也更准：这是动作，不是导航）。没 JS 时主题的 noscript 样式会把 `.top-link` 一起隐藏，不会留下点不动的按钮。
+
+## 4. 六处有意的主题模板覆盖
+
+除上述 hook 之外，仓库里有六处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
 
 1. `layouts/courses/course.html`（`layout: "course"`）与 `layouts/courses/chapter.html`（`layout: "chapter"`）：列表页没有任何 hook，而这两页分别需要自动章节目录与入口卡片。两个模板都很小、只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`，页头共用 `course-header.html`），且只有显式写了 `layout` 的页面才命中，不影响 `/courses/` 列表页与文章页。**改外观请优先改 `04-course.css`**
 2. `layouts/index.json`：该模板无 hook 可挂，而正文截断无法从配置实现
 3. `layouts/_partials/index_profile.html`：首页在 profileMode 下由主题 `list.html` 直接调用它，没有 hook 可挂，而首页需要「快捷入口 + 最近更新」两块内容。改这一处时对照 `themes/PaperMod/layouts/_partials/index_profile.html`，确认主题侧是否有新变化需要合并
 4. `layouts/_partials/post_meta.html`：**唯一一处「复制主题 partial 再加一行」**（第 ⑱ 项）。它是列表卡片与详情页共用的元信息块，没有 hook 可挂，而卡片要一块计数/标签。与前三处不同：这里**逐字保留**主题实现，只在末尾调用 `card-chips.html`，主题升级时对照 diff 手工合并即可。若哪天主题给它加了 hook，优先换回 hook
+5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是六处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
+6. `layouts/taxonomy.html`（第 ㉛ 项）：`/tags/`、`/categories/` 总览页要把词条按学科分块展示（见 `data/tag-groups.yaml`），而主题那份是平铺。markup 与主题版保持一致（`ul.terms-tags` + 计数 `sup`），只把「一个 ul」改成「每组一个 ul」，`terms-filter.js` 已同步适配
+
+**另有一处是「移位置」而不是「覆盖」**：`layouts/_default/{library,library-branch,library-section,toolcard}.html`。它们原本在 `layouts/library/` 与 `layouts/courses/` 下，2026-09-18 加了 CS 库之后搬到 `layouts/_default/` —— Hugo 的布局查找是 `layouts/<section>/<layout>.html` 优先，`layout: library` 只在 section 恰好叫 `library` 时命中（数学库是撞上的），CS 库的 section 是 `cs`，于是**静默回落到主题列表页**。`_default/` 是任何 section 的通用回落位，front matter 里的 `layout:` 一个都不用改。教训记在 [`traps.md`](traps.md)。
+
+### ㉘ 词条页的说明文字 — `content/<taxonomy>/<词条>/_index.md`
+
+`/tags/xxx/`、`/categories/xxx/` 这类词条页现在各有一句说明。机制上不需要任何代码：主题 `list.html` 的 page-header 本来就会渲染 `.Description`，缺的只是数据源 —— `data/taxonomy.yaml` 是*词表*（格式被 `new-content.sh`/`check-tags.sh` 解析，**不能加字段**），而仓库里原本没有任何词条目录。
+
+- 说明写在 `content/<taxonomy>/<词条>/_index.md`，只写 `title`（与词条同名，免得 h1 变样）+ `description`。
+- **目录名必须与词条 URL 一致**，不是与词表里的写法一致：`CMC2026` → `content/tags/cmc2026/`、`Go Template` → `content/tags/go-template/`、`CSS` → `content/tags/css/`，中文词条用中文字符（`content/tags/回归分析/`）。踩坑记在 [`traps.md`](traps.md)。
+- 2026-09-18 一次补齐 13 个（11 个标签 + 2 个分类）。`文章` 分类当时零词条、没有页面，没建。
+- 这解决了「`CMC2026` 这种竞赛代号对陌生读者没有意义」的问题 —— 词条页现在是「一句它是什么 + 相关页面列表」。
+
+### ㉙ 404 页与页脚 RSS 入口 — `layouts/404.html` + `extend_footer.html` + `15-extras.css`
+
+- **404 页**：覆盖主题模板（第 4 节第 5 条）。404 大字沿用主题的 `.not-found` 类，下面补一句提示与三个入口（回到首页 / 搜一下 / 逛数学库）；文案全走 i18n。**必须把主题 `.not-found` 的 `position: absolute` 收回正常流**（`15-extras.css`），否则加进去的内容会跟那个 160px 的大数字重叠。
+- **页脚 RSS**：首页走 profileMode，不渲染 `list.html` 里那个带 RSS 图标的 `page-header`，所以「订阅」在全站唯一稳定的位置是页脚 hook。它与页面无关（全站同一个地址），符合 [`traps.md`](traps.md) 对 `extend_footer` 的约束。
+- 两处样式都在 `15-extras.css`：它们各自太小，不值得各起一个编号文件。
 
 ## 5. 总览页标题
 
@@ -251,6 +345,21 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 | `static/apple-touch-icon.png` | 5.7 KB | 14 KB（180×180 真彩原本 61 KB，量化到 256 色） |
 | 整站输出（`report-size.sh`） | 9833 KB | 18983 KB（新增「回归分析」课程：3 页笔记 + 作业 + 实验 + 80 张工具卡页；预算 12 → 24 MB） |
 | 滚动脚本开销（最重页，110 次滚动） | 0.019~0.020 s | 0.004~0.005 s |
+
+### 2026-09-18 追加六：CLS 的定位（首页干净，重页是已知的 KaTeX 字体换字）
+
+按上面的量法复跑了一次 4G（`startjank.py --headless`，首页与最重的 `projects/cmc2026/problem-03/问题三/` 各一条臂），把下面「CLS 0.11~0.20」那格的原因钉到了具体节点：
+
+| 页面（4G） | DCL / load | HTML | DOM | layout-shift |
+|---|---|---|---|---|
+| 首页 | 464 / 473 ms | 17 KB | 168 | **一条都没有** |
+| 问题三 | 2023 / 3645 ms | 703 KB | 16231 | **合计 ≈0.21**：`TR.` 表格行 0.0777 + 0.0833 + 0.0457（占 98%），`SPAN.base` 若干条 0.0001~0.002 |
+
+位移集中在 729~798 ms，而这一页的 KaTeX 字体到达窗口是 492~785 ms（`Main-Regular` 26 KB @492→785、`Math-Italic` 16 KB @493→738、`Caligraphic` @598→753）—— **字体到货即把表格行撑高**，所以 shift 的 source 报的是 `<tr>` 而不是公式：公式在单元格里，单元格变高就带着整行下移。这与下面「layout-shift 源 `SPAN.base`」是同一件事的两种视角，节点归属取决于谁真的动了。
+
+**这次没有改任何东西**，两条候选改法都踩在已有结论上：`font-display: optional` 能让换字不重排，代价是首访慢网下公式整页回退字体（数学站不接受，且 `static/katex/katex.min.css` 是 `upgrade-hugo.sh` 会重写的厂商文件）；字体预加载在下面那条结论里**仍是未验证状态**（本地 HTTP/1.1 的 6 连接限制会拖慢 CSS，生产走 Fastly HTTP/2 但没测），要合并得先跑线上前后对照。
+
+结论：CWV 差档只出现在公式最密的那几页，首页是干净的（0 位移、DCL 464 ms）。
 
 ### 2026-09-15 追加五：数学库 `/library/` 拆成三级（一页 80 张卡 → 一页一张目录）
 

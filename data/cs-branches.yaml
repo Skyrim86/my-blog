@@ -1,0 +1,48 @@
+# CS 库（/cs/）的分支体系 —— 卡片按方向归类的唯一事实源。
+#
+# 结构、约定与 data/math-branches.yaml 完全一致（两级：大类 → 细分），只是这边**没有导入脚本**：
+# 数学库的卡片由 tools/course-import/import_course.py 从课程项目抽出来，CS 这边是手写的
+# data/cs-toolbox.json。写完卡片后跑 `node scripts/gen-cards.mjs cs` 生成卡片页。
+#
+# 与数学库的差别只有两点：
+#   1. 这里不需要 assign 规则（卡片是手写的，每张卡自己写 branch / section）；
+#   2. 卡片页平铺在 /cs/<卡片 id>/（数学卡挂在 /courses/<课程>/toolbox/<id>/ 下）。
+#
+# 空分支不出页面（与数学库同一条口径），所以预置的方向可以放心留着。
+branches:
+  - key: data-structures
+    name: 数据结构
+    summary: "数组、链表、哈希、树与堆：各自擅长什么、代价怎么算"
+    sections:
+      - key: ds-linear
+        name: 线性结构
+        summary: "数组与动态数组、链表、栈与队列"
+      - key: ds-hash
+        name: 哈希
+        summary: "哈希表、冲突处理、负载因子与均摊代价"
+      - key: ds-tree
+        name: 树与堆
+        summary: "二叉搜索树、堆与优先队列"
+  - key: algorithms
+    name: 算法
+    summary: "查找、排序、复杂度与常见设计范式"
+    sections:
+      - key: algo-search
+        name: 查找
+        summary: "线性查找、二分查找及其前提"
+      - key: algo-sort
+        name: 排序
+        summary: "比较排序、复杂度下界与稳定性"
+      - key: algo-paradigm
+        name: 算法范式
+        summary: "分治、贪心与动态规划"
+  - key: engineering
+    name: 工程实践
+    summary: "这个站自己的工程约定：构建、样式与自动化（写博客时顺手记下的）"
+    sections:
+      - key: eng-build
+        name: 构建与部署
+        summary: "静态站点构建、资源管线、CI 与发布"
+      - key: eng-style
+        name: 样式与布局
+        summary: "CSS 约定、响应式与暗色适配"

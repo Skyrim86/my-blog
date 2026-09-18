@@ -1,0 +1,48 @@
+{{- /* 卡片库的细分页（layout: "library-section"），URL = /library/<大类>/<细分>/ 或
+     /cs/<大类>/<细分>/，两个库共用这一份（见 partials/lib-config.html）。
+
+     页面由各库目录下的 _content.gotmpl 生成，params 里只有两个 key（branch / section）
+     加 math（该库的卡片标题里是否有公式，见 data/libraries.yaml）。本页铺这一细分的索引卡：
+     点开是就地弹窗（assets/js/toolbox.js 按需抓卡片页），没有 JS 就是普通跳转 ——
+     卡片正文始终只有一份（见 docs/features.md ㉑）。
+
+     面包屑只到「大类」为止：当前这一级的名字就是页面的 h1，再写一遍是噪音。 */ -}}
+{{- define "main" }}
+{{- $cfg := partial "lib-config.html" .Section }}
+{{- $lib := $cfg.lib }}
+{{- $key := .Params.branch }}
+{{- $sec := .Params.section }}
+{{- $cards := where (where $cfg.data.cards "branch" $key) "section" $sec }}
+
+<article class="post-single toolbox-page library-page">
+  {{- partial "page-head.html" (dict "page" .) }}
+
+  <nav class="lb-crumbs" aria-label="{{ i18n "libraryCrumbsLabel" }}">
+    <a href="{{ $lib.path | relLangURL }}">{{ $lib.label }}</a>
+    <span class="lb-crumb-sep" aria-hidden="true">/</span>
+    <a href="{{ printf "%s%s/" $lib.path $key | relLangURL }}">{{ .Params.branchName }}</a>
+  </nav>
+
+  <div class="tb-grid">
+    {{- range $cards }}
+    {{- $card := . }}
+    {{- $url := "" }}
+    {{- with $lib.cards }}
+      {{- /* 卡片平铺在库下（CS 库：/cs/<id>/） */ -}}
+      {{- $url = printf "%s%s/" (. | relLangURL) $card.id }}
+    {{- else }}
+      {{- /* 卡片挂在课程工具库里（数学库：/courses/<课程>/toolbox/<id>/） */ -}}
+      {{- with site.GetPage (printf "/courses/%s/toolbox/%s" $card.course $card.id) }}
+        {{- $url = .RelPermalink }}
+      {{- end }}
+    {{- end }}
+    {{- if $url }}
+      {{- partial "toolbox-teaser.html" (dict "page" $ "card" $card "url" $url) }}
+    {{- else }}
+      {{- warnf "library: 卡片 %s 没有对应的卡片页（课程 %s）" $card.id $card.course }}
+    {{- end }}
+    {{- end }}
+  </div>
+</article>
+
+{{- end }}{{/* end main */}}

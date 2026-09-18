@@ -58,10 +58,27 @@
   transform: translateY(-8px);
 }
 
-/* 「返回顶部」按钮默认就在右下角（bottom: 4rem; right: 2rem），抬到看板娘头顶。
-   改看板娘高度时这个值要跟着改。 */
+/* 悬浮按钮离视口下沿多高：取决于看板娘高度，所以四个断点各给一次，两个按钮共用。
+   「返回顶部」(#top-link) 在上面、「滚到底部」(#bottom-link) 在下面 —— 到底占的是
+   原来到顶的位置（那个位置是照着看板娘头顶调好的），到顶往上升一格。
+   改看板娘高度时这里跟着改即可，不必再抄一遍断点。 */
+:root {
+  --float-bottom: calc(4rem + 200px);
+}
+
 .top-link {
-  bottom: calc(4rem + 200px);
+  bottom: calc(var(--float-bottom) + 3.4rem);
+}
+
+/* #bottom-link 同时带 .top-link 类，外观就是从主题那份 CSS 继承来的（fixed 定位、尺寸、
+   配色、.hidden 的过渡），这里补两条 <button> 相对 <a> 多出来的默认样式，再覆写纵向位置与图标方向。
+   它做成 button 而不是 <a href="#bottom">：主题的锚点代理绑在同一个元素上，
+   stopPropagation 拦不住，地址栏会留下 #bottom（理由见 layouts/_partials/extend_footer.html）。 */
+.bottom-link {
+  bottom: var(--float-bottom);
+  border: 0;
+  cursor: pointer;
+  color: inherit;
 }
 
 /* 中等窗口：正文列开始贴边，两位一起挂会挤掉阅读视野 —— 两人等比例缩小，不砍人 */
@@ -70,8 +87,8 @@
     height: clamp(140px, 14vw, 196px);
   }
 
-  .top-link {
-    bottom: calc(4rem + 150px);
+  :root {
+    --float-bottom: calc(4rem + 150px);
   }
 }
 
@@ -85,8 +102,8 @@
     height: 150px;
   }
 
-  .top-link {
-    bottom: calc(4rem + 120px);
+  :root {
+    --float-bottom: calc(4rem + 120px);
   }
 }
 
@@ -96,8 +113,8 @@
     display: none;
   }
 
-  .top-link {
-    bottom: 4rem;
+  :root {
+    --float-bottom: 4rem;
   }
 }
 

@@ -2,6 +2,8 @@
 title: "关于"
 url: "/about/"
 summary: "关于本站与这里记录的内容"
+# 静态页没有 date，进 RSS 会得到 pubDate 为 0001-01-01 的条目
+hiddenInRss: true
 ---
 
 这里记录学习过程中的笔记、做过的东西和踩过的坑。

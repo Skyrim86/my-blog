@@ -1,0 +1,30 @@
+{{- /* 按 URL 第一段认出这是哪个库，回表取它的配置、卡片数据与分支表。
+
+     参数：段名（"library" / "cs" —— 即 data/libraries.yaml 里 path 去掉斜杠）
+     返回：dict "lib"（libraries.yaml 的一条，认不出来为 false）
+                "data"（该库的卡片 JSON，取不到为空 dict）
+                "branches"（该库的分支表 data/<库 key>-branches.yaml 里的 branches，取不到为空 slice）
+
+     为什么要它：数学库与 CS 库共用同一套模板（layouts/_default/library*.html、toolbox-card.html），
+     模板里不能再写死 `index hugo.Data "math-toolbox"` 与 "library/" 前缀 —— 那就是第二份副本的开始
+     （docs/features.md ㉒ 里对「分支表抄两遍」的说明同样适用于模板）。
+
+     分支表读 **yaml** 而不是卡片 JSON 里那份副本（2026-09-18 起）：CS 的卡片是手写的、
+     JSON 里根本没有 branches 字段，而 yaml 才是那张表的原始出处。两库从此同源。
+
+     判据用**页面自己的 URL 首段**（.Section）而不是 front matter：数学卡与 CS 卡的页面路径不同，
+     但都在自己库的 section 下，所以两种页面都能直接用，不必给生成页塞 param。 */ -}}
+{{- $seg := . -}}
+{{- $lib := false -}}
+{{- range (index hugo.Data "libraries").libraries -}}
+  {{- if eq (strings.TrimSuffix "/" .path) $seg -}}{{- $lib = . -}}{{- end -}}
+{{- end -}}
+{{- $data := dict -}}
+{{- $branches := slice -}}
+{{- with $lib -}}
+  {{- $data = index hugo.Data .data -}}
+  {{- with index hugo.Data (printf "%s-branches" .key) -}}
+    {{- $branches = .branches | default slice -}}
+  {{- end -}}
+{{- end -}}
+{{- return (dict "lib" $lib "data" $data "branches" $branches) -}}

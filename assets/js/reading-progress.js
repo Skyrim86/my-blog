@@ -2,6 +2,11 @@
  *
  * 由 extend_head.html 只在 .Kind == "page" 的页面加载（走单页模板的那些页面）。
  *
+ * 两份目录（正文顶部的折叠目录 .toc、左侧跟随目录 .toc-rail）指向同一批 h2/h3，
+ * 所以这里**按锚点 id 合并成一组**：高亮时两个链接一起点亮（窄屏只有页内那份、宽屏只有左栏
+ * 那份，谁在就点亮谁）。2026-09-18 之前是按链接逐个排进一个数组、只点亮排序里靠后的那个，
+ * 结果是窄屏（左栏 display:none）时页内目录永远不高亮。
+ *
  * 滚动处理不套 requestAnimationFrame 节流：后台/隐藏标签页里 rAF 不触发，
  * 一旦用它兜住整个更新逻辑，切回页面时会拿到过期状态（仓库里已经在词条筛选上踩过这个坑）。
  *
@@ -25,17 +30,26 @@
     bar.setAttribute('aria-hidden', 'true');
     document.body.appendChild(bar);
 
-    const tocLinks = Array.from(document.querySelectorAll('.toc a[href^="#"], .toc-rail a[href^="#"]'))
-        .map((link) => {
-            let id = link.hash.slice(1);
-            try {
-                id = decodeURIComponent(id);
-            } catch (e) {
-                /* 非法转义：按原样找 */
-            }
-            return { link, el: document.getElementById(id) };
-        })
-        .filter((item) => item.el);
+    /* 锚点 id → { el, links }：同一个标题在页内目录与左栏里各有一个链接 */
+    const groups = new Map();
+    for (const link of document.querySelectorAll('.toc a[href^="#"], .toc-rail a[href^="#"]')) {
+        let id = link.hash.slice(1);
+        try {
+            id = decodeURIComponent(id);
+        } catch (e) {
+            /* 非法转义：按原样找 */
+        }
+        const el = document.getElementById(id);
+        if (!el) {
+            continue;
+        }
+        let group = groups.get(id);
+        if (!group) {
+            group = { el, links: [] };
+            groups.set(id, group);
+        }
+        group.links.push(link);
+    }
 
     let geo = null;
     let active = null;
@@ -48,21 +62,40 @@
             top,
             span: article.offsetHeight - window.innerHeight * 0.85,
             line: (header?.offsetHeight || 60) + 24,
-            marks: tocLinks
-                .map((item) => ({
-                    link: item.link,
-                    top: item.el.getBoundingClientRect().top + window.scrollY,
+            marks: [...groups.values()]
+                .map((group) => ({
+                    links: group.links,
+                    top: group.el.getBoundingClientRect().top + window.scrollY,
                 }))
-                /* 按文档位置排序：正文顶部的折叠目录与左侧目录栏指向同一批标题，
-                   两组拼在一起不再单调，而 update() 的扫描是「遇到更大的 top 就 break」——
-                   不排序的话第一组结束时就收手，左侧目录永远不会高亮。
-                   稳定排序让同一个标题上靠后出现的那份目录（左侧栏）拿到高亮。 */
                 .sort((a, b) => a.top - b.top),
         };
     };
 
     const invalidate = () => {
         geo = null;
+    };
+
+    /* 左侧目录栏自己会滚（长文时目录比栏还高）：高亮项滚出栏外就等于看不见，
+       所以高亮变化时把它挪进可见区。只调栏的 scrollTop —— 对栏内元素直接调
+       scrollIntoView 会连带把页面也滚了（它滚动所有可滚祖先），那是另一回事。
+       这里每次调用做两次 getBoundingClientRect()，但只在**高亮项变化**时发生（一篇长文
+       也就几十次），不在滚动路径上。 */
+    const reveal = (mark) => {
+        const link = mark.links.find((item) => item.closest('.toc-rail'));
+        if (!link) {
+            return;
+        }
+        const rail = link.closest('.toc-rail');
+        const box = rail.getBoundingClientRect();
+        if (!box.height) {
+            return; /* 窄屏时目录栏 display:none，量不到尺寸 */
+        }
+        const linkBox = link.getBoundingClientRect();
+        if (linkBox.top < box.top + 6) {
+            rail.scrollTop -= box.top + 6 - linkBox.top;
+        } else if (linkBox.bottom > box.bottom - 6) {
+            rail.scrollTop += linkBox.bottom - box.bottom + 6;
+        }
     };
 
     const update = () => {
@@ -85,7 +118,7 @@
         let current = null;
         for (const mark of geo.marks) {
             if (mark.top <= line) {
-                current = mark.link;
+                current = mark;
             } else {
                 break;
             }
@@ -93,10 +126,15 @@
 
         if (current !== active) {
             if (active) {
-                active.classList.remove('active');
+                for (const link of active.links) {
+                    link.classList.remove('active');
+                }
             }
             if (current) {
-                current.classList.add('active');
+                for (const link of current.links) {
+                    link.classList.add('active');
+                }
+                reveal(current);
             }
             active = current;
         }

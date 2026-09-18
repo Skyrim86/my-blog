@@ -21,6 +21,39 @@ article.post-entry:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
 }
 
+/* ---------- 列表页的卡片铺成多列（2026-09-18） ----------
+
+   之前一行一张：/courses/ 上两门课就占掉两屏，项目页、词条页同理。这里用与首页「最近更新」
+   同一套 auto-fill 网格，列宽 320px 起 —— 正文列 720px 时正好两列，更窄时自动回落单列
+   （所以不需要额外的媒体查询断点）。
+
+   用 :has() 认「这个列表页有卡片」：main.main 的子元素除了卡片，还有页头、_index.md 的说明正文、
+   分页器，它们必须跨整行 —— 否则会被当成网格项塞进某个单元格里。 */
+@media (min-width: 680px) {
+  main.main:has(> article.post-entry) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--content-gap);
+    align-content: start;
+  }
+
+  main.main:has(> article.post-entry) > :not(article.post-entry) {
+    grid-column: 1 / -1;
+    /* 主题给 .page-header 设了左右 auto 外边距（原本用来把它居中）；在网格里 auto 外边距会
+       吃掉整条轨道的剩余空间，网格项于是缩成内容宽度 —— 实测页头面板只剩 246px 并居中。
+       清掉左右外边距即可，纵向间距保留。 */
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* 卡片成了网格项：主题那份 margin-bottom 会和 gap 叠成双倍间距，收掉；
+     min-width: 0 是为了让长标题（中文没有断词点）正常换行，而不是把列撑宽。 */
+  main.main:has(> article.post-entry) > article.post-entry {
+    margin-bottom: 0;
+    min-width: 0;
+  }
+}
+
 /* 列表页 / 课程页的标题区：以前 h1 与描述直接压在背景插画上，背景一亮点对比度就不够。
    给它和卡片一样的面板（令牌见 00-theme.css），不动主题的 .page-header 布局。 */
 .page-header {

@@ -88,6 +88,8 @@ cascade:
 
 管理页的「加入词表」按钮走 `new-content.sh add-term <tags|categories> <词条>`（`--check` 只校验）：词表的读、写、校验都只有 shell 一份实现，界面上勾的新词会**先写进词表、再用 `tags` 子命令复核，复核不过就回滚**，全部校验通过才建内容。
 
+**词条页的说明文字不在这个词表里**：`/tags/xxx/`、`/categories/xxx/` 页头那句介绍写在 `content/<taxonomy>/<词条>/_index.md`（只写 `title` + `description`，主题 `list.html` 会渲染 `.Description`）。**目录名必须与词条 URL 一致，而不是与词表里的写法一致**：`CMC2026` → `content/tags/cmc2026/`、`Go Template` → `content/tags/go-template/`、`CSS` → `content/tags/css/`，中文词条直接用中文字符（`content/tags/回归分析/`）。词表刻意不加描述字段 —— 它的格式被 `new-content.sh` 与 `check-tags.sh` 按行解析，加字段就得同时改两处解析。详见 [features.md ㉘](features.md)。
+
 ## 6. 脚手架：`scripts/new-content.sh`
 
 一个入口覆盖文章 / 课程主页 / 章节（可含材料页）/ 三个材料子命令 / 平铺项目 / 分层项目 / 分层项目文档 / **section 列表页** / **删除**。**多文件结构是 `hugo new` 做不到的部分**（一章一次生成 `chapter-0N/_index.md` + 勾选的材料页，章号自动递增）。
@@ -155,10 +157,12 @@ python tools/course-import/import_course.py --check    # 只比对（CI 不跑�
 | `data/math-toolbox.json` | `工具/00_数学工具.md`（按 `## k 名称` 分 6 组，条目形如 `### 名字 {#tool-1-2}` + 可选 `<!-- 别名: … -->`）+ 各模块笔记里的定理/定义/命题块；每张卡另加 `kind`（类别：定义/定理/命题…）、`num`（编号，卡片角落的小字）、`course`（属于哪门课）、`branch`（大类）与 `section`（细分）|
 | `data/math-branches.yaml` | **不是产物**：数学库（`/library/`）的**两级**分支清单（大类 → 细分）+ 卡片归属规则，手写维护，见 docs/features.md ㉒ |
 | `content/library/<大类>/`、`content/library/<大类>/<细分>/` 的页面 | **不是文件**：由 `content/library/_content.gotmpl`（Hugo content adapter）按 `data/math-branches.yaml` 现算生成——分支表加一项就自动多一页。所以这几个 URL 不在 `hugo list all` 的输出里，`check-sections.sh` 也看不见它们 |
-| `content/courses/<课程>/toolbox/<id>/index.md` | 与上同一批卡片：一张卡一个页面，front matter 由脚本生成、正文为空，模板按目录名从 data 取内容 |
+| `content/courses/<课程>/toolbox/<id>/index.md` | 与上同一批卡片：一张卡一个页面，front matter 由脚本生成、正文为空，模板按目录名从 data 取内容。它的 `title` **不等于** JSON 里的 `title`：JSON 里可能带公式，模板用 `RenderString` 渲染成真公式；而写进 front matter 的 title 要进 `<title>`、列表卡片与「相关内容」，不经过 Markdown/KaTeX，所以脚本会先降级成纯文本（`$F$ 检验` → `F 检验`；span 里是 `\hat\sigma^2` 这类命令时整段丢掉，`$\hat\sigma^2$ 无偏` → `无偏`；全丢光退回「定理 5.3」形式）|
 | `实验/<lab>/figs/*.png` | 直接复制进对应材料页的 bundle |
 
 **改内容一律改课程项目里的 md，再重跑导入**——博客侧这几类文件是生成产物，手改会在下次导入时被覆盖。
+
+**脚本里的 `DEFAULT_PROJECT` 可能不是本机的路径**（默认 `D:\1.Study\course\回归分析`，2026-09-18 实测本机在 `D:\Study\courses\回归分析`）：先 `--dry-run` 看清要改哪些文件，再决定要不要 `--project <目录>`。
 
 一条笔记太长时按 § 拆成多页（`MODULES["notes"]` 里的 `first`/`last` 指定保留哪几节）：1575 行、2500 多个数学区渲染出来约 2.5 MB，会撞 `report-size.sh` 的单页预算。
 
@@ -169,5 +173,33 @@ python tools/course-import/import_course.py --check    # 只比对（CI 不跑�
 - 课程各页 URL 由目录名决定（`/courses/<课程>/<chapter-0N>/notes/`），改名即改 URL；课程主页 URL（`/courses/<课程>/`）保持不变
 - 项目页同样由目录名决定（`/projects/<项目>/`），分层项目再多一层（`/projects/cmc2026/problem-01/solution/`）
 - 文章 URL 由 `[permalinks]` + `:slug`（取自标题）决定
-- **改 URL 需谨慎**：giscus 用 `mapping='title'`，所以**改标题既会换 URL、也会丢评论关联**；改目录名只换 URL、评论不丢。改标题后外部链接会一起失效，管理页因此提供了 `slug` 字段用于把 URL 固定下来
+- **改 URL 需谨慎**：giscus 用 `mapping='pathname'`（2026-09-18 从 `'title'` 改来，因为站上有多对同名标题会串页），**评论跟着 URL 走**。于是：文章的 URL 由 `:slug`（取自标题）决定，**改标题既换 URL、也丢评论关联**；课程页与项目页的 URL 由目录名决定，改标题不影响评论、**改目录名**才影响。改 URL 后外部链接会一起失效，管理页因此提供了 `slug` 字段用于把文章 URL 固定下来
 - 项目页与课程页都**不在**首页列表中（`mainSections=['posts']` 只放行文章；曾经也影响归档页，但归档页已于 2026-09-15 删除，见 architecture.md 第 3 节），但**都会**进搜索引擎索引（`site.RegularPages`）、`sitemap.xml` 与 `/categories/`。词条页只列 regular page：平铺项目页正常出现；`CMC2026` 是 section 形式的项目，**它自己**不在词条页里，但它下面的文档页（靠 cascade 拿到标签）会正常出现
+
+## 10. 卡片库（数学库 / CS 库）与正文引用
+
+两套卡片库结构完全一样（**大类 → 细分 → 卡片**，一张卡一个页面，正文里点名字就地弹窗），差别只在卡片内容从哪来：
+
+| | 数学库 `/library/` | CS 库 `/cs/` |
+|---|---|---|
+| 卡片数据 | `data/math-toolbox.json`（**生成产物**） | `data/cs-toolbox.json`（**手写**） |
+| 分支表 | `data/math-branches.yaml` | `data/cs-branches.yaml` |
+| 卡片页 | `/courses/<课程>/toolbox/<id>/` | `/cs/<id>/` |
+| 谁生成页面 | `import_course.py` | `node scripts/gen-cards.mjs cs` |
+| 要不要 KaTeX | 要（卡片标题里有公式） | 不要（`libraries.yaml` 里 `math: false`） |
+
+**给 CS 库加一张卡**（数学库走课程导入，见上一节）：
+
+1. 往 `data/cs-toolbox.json` 的 `cards` 里加一条：`id`（同时是 URL 段与引用键，**不能与分支/细分 key 撞名**）、`num`、`kind`（沿用 定义/定理/命题/引理/推论/性质 —— 卡片的类别徽标按这几个值配色，新类别要同步改 `11-toolbox.css`）、`title`、`aliases`（正文按名字引用时能命中的别名）、`branch` / `section`（必须是 `data/cs-branches.yaml` 里真实存在的 key）、`body` / `usage` / `note` / `proof`（markdown，正文里**不要写裸 `$`** —— 那是数学定界符，构建会失败）。
+2. 跑 `node scripts/gen-cards.mjs cs` 生成卡片页（`--check` 只比对，CI 会跑它防止忘记重生成）。
+3. 分支表里没有的方向先在 `data/cs-branches.yaml` 加细分；**空分支不出页面**（加了大类但没卡片时页面不会出现）。
+
+**正文里引用卡片**（三种写法都行，推荐第一种）：
+
+| 写法 | 说明 |
+|---|---|
+| `{{< card "全方差律" >}}` | **推荐**：按名字或别名在所有库里找，不必记编号、也不必知道它属于哪个库。第二参数可覆盖显示文字 |
+| `{{< tool "1.4" >}}` / `{{< thm "4.4" >}}` | 按编号引用；`import_course.py` 自动接线生成的就是这种（80 处），保留兼容 |
+| 直链 | 卡片页地址稳定（`/cs/<id>/`、`/courses/<课程>/toolbox/<id>/`），可以直接分享 |
+
+显示文字的顺序：显式第二参数 → 卡片名字 → 卡片自己的 `label`（「定理 10.2」）→ id。点开由 `assets/js/toolbox.js` 拦成弹窗，**没有 JS 时就是普通链接**，跳到完整可读的卡片页。

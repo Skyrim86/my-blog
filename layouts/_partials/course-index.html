@@ -10,7 +10,11 @@
   <ol class="course-index-list">
     {{- range $i, $chapter := $chapters }}
     {{- $num := $chapter.Params.weight | default (add $i 1) }}
-    <li class="course-index-item">
+    {{- /* 最近更新日期：给列表排序用（assets/js/list-tools.js 读 data-date），下面的元信息行也用它。
+           章节页自己不挂标签（AGENTS 规则 3），所以这里不给 data-tags —— 课程目录只出排序、不出标签筛选。 */ -}}
+    {{- $latestDate := "" }}
+    {{- with $chapter.RegularPages.ByLastmod }}{{ $latestDate = (index . (sub (len .) 1)).Lastmod.Format "2006-01-02" }}{{ end }}
+    <li class="course-index-item" data-date="{{ $latestDate }}">
       <a class="course-index-link" href="{{ $chapter.RelPermalink }}">
         <span class="course-index-num">{{ i18n "courseUnitLabel" (dict "num" $num "unit" $unit) }}</span>
         <span class="course-index-title">{{ $chapter.Title }}</span>
@@ -27,9 +31,8 @@
       </div>
       <p class="course-index-meta">
         {{- i18n "courseChapterMaterials" (dict "count" (len $chapter.RegularPages)) }}
-        {{- with $chapter.RegularPages.ByLastmod }}
-        {{- $latest := index . (sub (len .) 1) }}
-        &nbsp;·&nbsp;{{ i18n "courseUpdated" (dict "date" ($latest.Lastmod.Format "2006-01-02")) }}
+        {{- with $latestDate }}
+        &nbsp;·&nbsp;{{ i18n "courseUpdated" (dict "date" .) }}
         {{- end }}
       </p>
       {{- end }}

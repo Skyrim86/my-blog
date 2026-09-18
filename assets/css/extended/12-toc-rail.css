@@ -2,14 +2,16 @@
    单页的左侧跟随目录（layouts/_partials/toc-rail.html）
    ============================================
    - 任何有 h2/h3 的单页都渲染（课程材料页、项目文档页、文章），判据在
-     extend_post_content.html 与 extend_head.html 两处，保持一致。
-   - 目录栏由 assets/js/toc-rail.js 挪到 <body> 下并给 body 加 .has-toc-rail，
+     extend_post_content.html 与 toc-rail.html 两处，保持一致。
+   - 目录栏由 toc-rail.html 里**内联**的那段脚本挪到 <body> 下并给 body 加 .has-toc-rail，
      三条规则都挂在这个类下，所以没 JS 时不显示目录栏，正文顶部那份折叠目录照旧。
      （挪的原因：.post-single 的 backdrop-filter 会成为 fixed 后代的包含块，
-      留在正文里的话 position: fixed 会跟着正文滚，就不是"跟随"了。）
+      留在正文里的话 position: fixed 会跟着正文滚，就不是"跟随"了。
+      脚本内联而不是外部文件：走 defer 时要等下载完才显示，首屏会晚一拍。）
    - 断点 1240px：正文列 720px 居中（PaperMod 的 --main-width），两侧各空出约 600px，
-     240px 的目录 + 间距放得下，不挤压正文。
-   - 当前小节高亮 .active 由 assets/js/reading-progress.js 打上（与正文目录同一份逻辑）。
+     200px 的目录 + 间距放得下，不挤压正文。
+   - 当前小节高亮 .active 由 assets/js/reading-progress.js 打上（两份目录按锚点合并成一组，
+     一起点亮）；它还会把高亮项滚进目录栏的可见区（长文里目录比栏还高，滚出去就等于看不见）。
    ============================================ */
 
 .toc-rail {
@@ -21,17 +23,19 @@
     display: block;
     position: fixed;
     top: calc(var(--header-height) + 24px);
-    left: max(16px, calc(50% - 360px - 24px - 240px));
-    width: 240px;
+    /* 200px 栏宽 + 24px 间距，落在正文列左侧的空档里 */
+    left: max(16px, calc(50% - 360px - 24px - 200px));
+    width: 200px;
     max-height: calc(100vh - var(--header-height) - 48px);
     overflow-y: auto;
-    padding: 0.85rem 1rem 0.95rem;
-    background: var(--surface);
+    padding: 0.7rem 0.85rem 0.8rem;
+    /* 不透明底：这是固定在正文旁、自己还会滚的面板，backdrop-filter 是持续的合成开销
+       （docs/features.md 第 6 节量过它的代价），换成与卡片同色的 --entry。
+       想要回磨砂观感就换回 var(--surface) + backdrop-filter: blur(8px)。 */
+    background: var(--entry);
     border: 1px solid var(--surface-border);
     border-radius: 14px;
     box-shadow: var(--shadow-card);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
   }
 
   /* 目录已经在左栏，正文顶部那份折叠目录收起来 */
@@ -41,15 +45,15 @@
 }
 
 .toc-rail-title {
-  margin: 0 0 0.5rem;
-  font-size: 0.76rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
   letter-spacing: 0.1em;
   color: var(--secondary);
 }
 
 .toc-rail-inner {
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-size: 0.8rem;
+  line-height: 1.45;
 }
 
 .toc-rail ul {
@@ -59,7 +63,7 @@
 }
 
 .toc-rail > .toc-rail-inner > nav > ul > li {
-  margin: 0.3rem 0;
+  margin: 0.22rem 0;
 }
 
 .toc-rail > .toc-rail-inner > nav > ul > li > a {
@@ -68,13 +72,13 @@
 }
 
 .toc-rail ul ul {
-  margin: 0.15rem 0 0.35rem 0.1rem;
-  padding-left: 0.6rem;
+  margin: 0.1rem 0 0.28rem 0.1rem;
+  padding-left: 0.55rem;
   border-left: 1px solid var(--border);
 }
 
 .toc-rail li {
-  margin: 0.12rem 0;
+  margin: 0.1rem 0;
 }
 
 .toc-rail a {

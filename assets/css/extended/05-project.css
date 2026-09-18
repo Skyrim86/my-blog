@@ -88,9 +88,12 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  /* 与课程目录同理（04-course.css 的 .course-index-list）：一行一张改成两列起，
+     窄屏自动回落单列。 */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 10px;
+  align-content: start;
   counter-reset: project-index;
 }
 

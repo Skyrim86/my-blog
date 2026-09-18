@@ -1,0 +1,35 @@
+# 卡片库登记表 —— 「一个库 = 一份卡片数据 + 一个 URL 前缀 + 一套三级页面」。
+#
+# 为什么要有这张表：数学库与 CS 库共用同一套模板（layouts/library/*、toolbox-card.html、
+# toolbox-teaser.html、assets/js/toolbox.js），模板靠这里回表取「本页属于哪个库、读哪份数据、
+# 名字叫什么」，而不是把 `index hugo.Data "math-toolbox"` 与 `"library/"` 抄第二遍
+# （抄第二遍的下场就是两处漂移，见 docs/features.md ㉒ 里对「分支表抄两遍」的说明）。
+#
+# 字段：
+#   key    库标识，也是内容适配器所在目录名（content/<key>/_content.gotmpl）
+#   label  显示名（面包屑、卡片页返回入口、404 页入口都取它）。刻意放在数据里而不是 i18n：
+#          它是「这个库叫什么」这一事实，不是界面文案；界面文案（标题/提示语）仍走 i18n
+#   data   data/<值>.json 数据键，供 index hugo.Data 使用（带连字符也能取，见 traps.md）
+#   path   库的 URL 前缀，必须以 / 结尾
+#   cards  卡片页的 URL 前缀。数学库的卡片不在库下、而是挂在课程工具库里
+#          （/courses/<课程>/toolbox/<id>/），所以留空 —— 留空表示走「按卡片自己的 course 找工具库」
+#          那条老路；CS 库没有课程，卡片平铺在 /cs/<id>/
+#   math   该库的页面要不要加载 KaTeX。数学库的卡片标题里有公式（如「与 $t$ 检验的等价性」），
+#          CS 库没有公式 —— 关掉能省掉 katex.min.css 与按需字体（约 23 KB + 字形）
+#
+# 每个库还要有一份 data/<库 key>-branches.yaml 分支表（两级：大类 → 细分）：
+# 数学库那份由 tools/course-import/import_course.py 读进来写进 JSON；
+# CS 库的卡片是手写的（含 branches 字段），分支表只作对照与文档。
+libraries:
+  - key: math
+    label: 数学库
+    data: math-toolbox
+    path: library/
+    cards: ''
+    math: true
+  - key: cs
+    label: CS 库
+    data: cs-toolbox
+    path: cs/
+    cards: cs/
+    math: false

@@ -1,0 +1,64 @@
+{{- /* 在所有库里按 id 或名字/别名找一张卡。
+
+     参数：dict "id"（卡片 id，如 tool-1-4）或 "name"（名字或别名，如「全方差律」），二者给一个；
+           "page"（可选，只用于警告里报出出错的页面）
+     返回：dict "card"（卡片，找不到为 false）、"lib"（所属库在 libraries.yaml 里的一条）、
+           "data"（所属库的卡片 JSON）、"viaAlias"（bool，是按别名命中的）
+
+     谁在用：card-ref.html（正文引用）、courses/toolcard.html（卡片页）、
+     library/library-section.html（细分页拼卡片页地址）—— 「哪个库、怎么找」只此一份。
+
+     名字查找分两轮：先精确匹配 title，再匹配 aliases。分开是为了让「别名恰好等于别人标题」
+     这种巧合不至于变成歧义；命中多张时 warnf 报出候选（不静默取第一个）。 */ -}}
+{{- $id := .id -}}
+{{- $name := .name -}}
+{{- $page := .page -}}
+
+{{- /* 把各库的卡片摊平成一张表（带库 key），id 与 name 两种查法共用 */ -}}
+{{- $all := slice -}}
+{{- range (index hugo.Data "libraries").libraries -}}
+  {{- $libDef := . -}}
+  {{- with index hugo.Data .data -}}
+    {{- range .cards -}}
+      {{- $all = $all | append (dict "card" . "libDef" $libDef) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $hit := false -}}
+{{- $viaAlias := false -}}
+{{- if $id -}}
+  {{- with where $all "card.id" $id -}}{{- $hit = index . 0 -}}{{- end -}}
+{{- else if $name -}}
+  {{- $titleHits := slice -}}
+  {{- $aliasHits := slice -}}
+  {{- range $all -}}
+    {{- if eq .card.title $name -}}
+      {{- $titleHits = $titleHits | append . -}}
+    {{- else if in (.card.aliases | default slice) $name -}}
+      {{- $aliasHits = $aliasHits | append . -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $hits := $titleHits -}}
+  {{- if not $hits -}}
+    {{- $hits = $aliasHits -}}
+    {{- $viaAlias = true -}}
+  {{- end -}}
+  {{- if gt (len $hits) 1 -}}
+    {{- $names := slice -}}
+    {{- range $hits -}}{{- $names = $names | append (printf "%s(%s)" .card.id .libDef.key) -}}{{- end -}}
+    {{- warnf "card-find: 名字「%s」在 %d 张卡上命中（%s），取了第一张 —— 请改用编号或更完整的名字（%s）"
+          $name (len $hits) (delimit $names "、") (($page | default dict).File.Path | default "?") -}}
+  {{- end -}}
+  {{- with $hits -}}{{- $hit = index . 0 -}}{{- end -}}
+{{- end -}}
+
+{{- $card := false -}}
+{{- $lib := false -}}
+{{- $data := dict -}}
+{{- with $hit -}}
+  {{- $card = .card -}}
+  {{- $lib = .libDef -}}
+  {{- $data = index hugo.Data .libDef.data -}}
+{{- end -}}
+{{- return (dict "card" $card "lib" $lib "data" $data "viaAlias" $viaAlias) -}}

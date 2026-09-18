@@ -18,16 +18,28 @@
        · description —— 表里那句范围说明，page-head.html 会把它渲染成页头描述
        · params.branch / params.section —— 两个 key，模板据此回表取名字、计数与卡片
        · params.searchHidden —— 这几页是导航页，不进搜索索引与首页「最近更新」
+       · params.hiddenInRss —— 同理不进 RSS（这些页面没有 date，进 feed 会得到 0001 年的 pubDate）
        · params.math —— 只有细分页给：卡片标题里有公式（如「与 $t$ 检验的等价性」），要加载 KaTeX
      注意 description 必须写在**顶层**：塞进 params 里不会成为 .Description，page-head 取不到
      （实测：页面照常构建、页头就是空白，meta description 退回「标题 - 站点名」）。
 
      坑：Hugolib 的模板里不能写 site.Data.math-toolbox —— 字段名带连字符是模板语法错误
-     （报 bad character U+002D，且位置指向 1:1，很误导），必须 index hugo.Data "math-toolbox"。 */ -}}
-{{- $tb := index hugo.Data "math-toolbox" -}}
-{{- $cards := $tb.cards -}}
+     （报 bad character U+002D，且位置指向 1:1，很误导），必须 index hugo.Data "math-toolbox"。
+
+     数据来源有两个，都不在本文件里：
+       · 分支表 data/math-branches.yaml —— 大类 → 细分，决定生成哪些页面
+         （2026-09-18 起直接读它，不再读 JSON 里那份分支表副本；
+          导入脚本仍会把分支写进 JSON，但页面不再依赖那份副本）
+       · 卡片   data/math-toolbox.json —— 决定哪些分支/细分不为空（空的不出页面）
+
+     本文件与 content/cs/_content.gotmpl 是同一段逻辑的两份实例（适配器只能往自己所在目录
+     加页面），改动时两边同步。 */ -}}
+{{- $libKey := "math" -}}
+{{- $lib := index (where (index hugo.Data "libraries").libraries "key" $libKey) 0 -}}
+{{- $cards := (index hugo.Data $lib.data).cards -}}
+{{- $branches := (index hugo.Data (printf "%s-branches" $lib.key)).branches -}}
 {{- $empty := dict "mediaType" "text/markdown" "value" "" -}}
-{{- range $tb.branches -}}
+{{- range $branches -}}
   {{- $branch := . -}}
   {{- $bcards := where $cards "branch" $branch.key -}}
   {{- if $bcards -}}
@@ -40,6 +52,8 @@
           "content" $empty
           "params" (dict
             "searchHidden" true
+            "hiddenInRss" true
+            "library" $libKey
             "branch" $branch.key
             "branchName" $branch.name)) -}}
     {{- range $branch.sections -}}
@@ -53,7 +67,9 @@
               "content" $empty
               "params" (dict
                 "searchHidden" true
-                "math" true
+                "hiddenInRss" true
+                "math" $lib.math
+                "library" $libKey
                 "branch" $branch.key
                 "branchName" $branch.name
                 "section" .key
