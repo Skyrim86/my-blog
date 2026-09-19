@@ -180,7 +180,7 @@ async function restartPreview(quiet = false) {
 
 // ---------------- tab 切换 ----------------
 
-const TABS = ['create', 'edit', 'publish', 'check'];
+const TABS = ['create', 'edit', 'publish', 'cards', 'check'];
 
 $('tabs').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-tab]');
@@ -200,6 +200,7 @@ function activateTab(name, { silent = false } = {}) {
     refreshState();
     loadCi();
   }
+  if (name === 'cards') loadCards();
   if (name === 'check') loadCheckItems();
 }
 
@@ -2795,6 +2796,343 @@ function initWikiPublish() {
   refresh();
 }
 
+// ---------------- 卡片库 ----------------
+//
+// 两库（数学库 / CS 库）的全部卡片：列出、查看、编辑、新建、删除。
+// 磁盘读写全在 tools/wiki-publish/cards.py —— 「四个来源各自写回源头」那套规则只有那一份实现，
+// 界面按脚本返回的 fieldSpec / sectionSpec 通用渲染，不硬编码任何一方的字段表。
+const CARD_STORE = { items: [], taxonomy: {}, list: null, detail: null };
+
+function cardSourceLabel(c) {
+  if (c.source === 'wiki') return c.published ? 'wiki' : 'wiki·未发布';
+  if (c.source === 'course') return c.edited ? '课程导入·已覆盖' : '课程导入';
+  return c.edited ? '手写·已改' : '手写';
+}
+
+function renderCardsList() {
+  const holder = $('cards-list');
+  const q = ($('cards-q').value || '').trim().toLowerCase();
+  const items = CARD_STORE.items.filter((c) => {
+    if (!q) return true;
+    return [c.id, c.title, c.kind, c.branchName, c.sectionName, c.libLabel, cardSourceLabel(c)]
+      .join(' ').toLowerCase().includes(q);
+  });
+
+  $('cards-summary').textContent =
+    `共 ${CARD_STORE.items.length} 张，显示 ${items.length} 张；` +
+    `可编辑 ${CARD_STORE.items.filter((c) => c.editable).length} 张，` +
+    `待发布 ${CARD_STORE.items.filter((c) => c.source === 'wiki' && !c.published).length} 张`;
+
+  if (!items.length) {
+    holder.innerHTML = '<div class="list-empty">没有匹配的卡片</div>';
+    return;
+  }
+  let html = '';
+  let lib = null;
+  let group = null;
+  for (const c of items) {
+    if (c.libLabel !== lib) {
+      lib = c.libLabel;
+      group = null;
+      html += `<div class="list-group">${esc(lib)}</div>`;
+    }
+    const g = `${c.branchName || '（未归类）'} / ${c.sectionName || '—'}`;
+    if (g !== group) {
+      group = g;
+      html += `<div class="list-sub">${esc(g)}</div>`;
+    }
+    const badge = c.kind ? `<span class="chip">${esc(c.kind)}</span>` : '';
+    const src = `<span class="chip ${c.source === 'wiki' && !c.published ? 'warn' : ''}">${esc(cardSourceLabel(c))}</span>`;
+    const lock = c.editable ? '' : '<span class="chip" title="只读">只读</span>';
+    const warn = c.warn ? `<span class="chip warn" title="${esc(c.warn)}">归类待修</span>` : '';
+    const edited = c.edited ? '<span class="chip ok" title="在管理页改过；重跑导入时不会被覆盖">已覆盖</span>' : '';
+    // 标题独占一行、徽章换到第二行：列宽在预览面板打开时只有三百多像素，
+    // 全挤在一行会把中文标题压成逐字竖排
+    html += `<button type="button" class="list-row" data-card-id="${esc(c.id)}">` +
+      `<span class="card-row-title">${esc(c.title || c.id)}</span>` +
+      `<span class="card-row-meta">${badge}${src}${lock}${warn}${edited}<span class="muted">${esc(c.id)}</span></span>` +
+      `</button>`;
+  }
+  holder.innerHTML = html;
+}
+
+async function loadCards(force = false) {
+  if (CARD_STORE.items.length && !force) return;
+  $('cards-summary').textContent = '正在读取…';
+  try {
+    const res = await api.get('/api/cards/list');
+    const data = res.data || res;
+    if (!data || !Array.isArray(data.cards)) throw new Error(res.error || '卡片库脚本没有返回卡片');
+    CARD_STORE.items = data.cards;
+    CARD_STORE.taxonomy = data.taxonomy || {};
+    renderCardsList();
+  } catch (err) {
+    $('cards-summary').textContent = `✗ ${err.message}`;
+    $('cards-list').innerHTML = '';
+  }
+}
+
+function taxOptions(libKey, branchKey) {
+  const t = (CARD_STORE.taxonomy || {})[libKey] || {};
+  if (!branchKey) return t.branches || [];
+  return (t.sections || {})[branchKey] || [];
+}
+
+// 按 key 判断这个下拉是「大类」还是「细分」——两种卡片格式的 key 名不同（分类.大类 / branch）
+function isBranchKey(key) {
+  return key === 'branch' || key.endsWith('大类');
+}
+function isSectionKey(key) {
+  return key === 'section' || key.endsWith('细分');
+}
+
+function cardFieldHtml(spec, value, libKey, currentBranch) {
+  const v = value == null ? '' : value;
+  const key = spec.key;
+  if (spec.kind === 'select' || spec.kind === 'select_taxonomy') {
+    let opts;
+    if (spec.kind === 'select_taxonomy') {
+      opts = isSectionKey(key) ? taxOptions(libKey, currentBranch) : taxOptions(libKey);
+    } else {
+      opts = (spec.options || []).map((o) => ({ key: o, name: o || '（不填）' }));
+    }
+    const dep = isBranchKey(key) ? ' data-role="branch"' : (isSectionKey(key) ? ' data-role="section"' : '');
+    const head = opts.some((o) => o.key === v) ? '' : `<option value="${esc(v)}" selected>${esc(v) || '（不填）'}</option>`;
+    return `<select data-key="${esc(key)}"${dep}>${head}` +
+      opts.map((o) => `<option value="${esc(o.key)}"${o.key === v ? ' selected' : ''}>${esc(o.name)}</option>`).join('') +
+      '</select>';
+  }
+  if (spec.kind === 'textarea') {
+    return `<textarea data-key="${esc(key)}" rows="4">${esc(v)}</textarea>`;
+  }
+  if (spec.kind === 'list') {
+    const s = Array.isArray(v) ? v.join(', ') : v;
+    return `<input type="text" data-key="${esc(key)}" value="${esc(s)}" placeholder="逗号分隔">`;
+  }
+  return `<input type="text" data-key="${esc(key)}" value="${esc(v)}">`;
+}
+
+function renderCardDetail(d) {
+  const holder = $('cards-detail');
+  CARD_STORE.detail = d;
+  const head =
+    `<div class="card-head"><b>${esc(d.title || d.id)}</b> <span class="muted">${esc(d.id)}</span>` +
+    `<span class="chip">${esc(d.libLabel || '')}</span>` +
+    `<span class="chip ${d.published === false ? 'warn' : ''}">${esc(cardSourceLabel(d))}</span>` +
+    (d.status ? `<span class="chip">${esc(d.status)}</span>` : '') + '</div>';
+
+  if (!d.editable) {
+    holder.innerHTML = head +
+      `<div class="notice error">这张卡是只读的：${esc(d.readonlyWhy || '来源不可编辑')}</div>` +
+      (d.cardPath ? `<div class="hint">产物位置：<code>${esc(d.cardPath)}</code></div>` : '');
+    return;
+  }
+
+  const fields = (d.fieldSpec || []).map((spec) => {
+    const branch = isBranchKey(spec.key) ? (d.fields[spec.key] || '')
+      : (d.fields['分类.大类'] || d.fields.branch || '');
+    return `<div class="field"><label>${esc(spec.label)}</label>` +
+      cardFieldHtml(spec, d.fields[spec.key], d.lib, branch) + '</div>';
+  }).join('');
+
+  const secs = (list, map, group) => (list || []).map((spec) =>
+    `<div class="field"><label>${esc(spec.label)}</label>` +
+    cardFieldHtml(spec, map[spec.key], d.lib, '') + '</div>').join('');
+
+  holder.innerHTML = head +
+    `<div class="card-form">${fields}</div>` +
+    `<div class="field"><label>卡片正文</label><div class="card-form">${secs(d.sectionSpec, d.sections)}</div></div>` +
+    (d.noteSectionSpec && d.noteSectionSpec.length
+      ? `<div class="field"><label>笔记页${d.hasNote ? '' : '（保存时会新建）'}</label>` +
+        `<div class="card-form">${secs(d.noteSectionSpec, d.noteSections)}</div></div>`
+      : '') +
+    `<div class="actions">
+       <button type="button" class="primary" id="card-save">保存</button>
+       <button type="button" class="ghost" id="card-revert">放弃改动</button>
+       <button type="button" class="danger tiny" id="card-delete">删除</button>
+       <span class="muted" id="card-hint"></span>
+     </div>
+     <div class="hint">保存写回源头：${esc(d.source === 'wiki'
+       ? '知识库里的卡与笔记页（分类写回 curriculum.yaml）'
+       : `${d.cardPath}（并自动重生成卡片页）`)}</div>
+     ${d.source === 'course'
+       ? `<div class="hint">这是课程导入的卡，改动**不写回课程项目**：保存后它会被标记为「已本地覆盖」，
+            <code>import_course.py</code> 重跑时跳过它，所以你的修改不会被冲掉。代价是这张卡从此不跟随课程项目
+            —— 要交回去，删掉该条目的 <code>edited</code> 字段再重跑导入。</div>`
+       : ''}
+     <div class="hint">改完要发布的话，跑上面的「发布已验证的卡片」——只有「状态: 已验证」的卡会被发出去。</div>`;
+}
+
+async function openCard(id) {
+  $('cards-detail').innerHTML = '<div class="muted">正在读取…</div>';
+  try {
+    const res = await api.get(`/api/cards/show?id=${encodeURIComponent(id)}`);
+    renderCardDetail(res.data || res);
+  } catch (err) {
+    $('cards-detail').innerHTML = `<div class="notice error">读取失败：${esc(err.message)}</div>`;
+  }
+}
+
+function collectCardForm() {
+  const holder = $('cards-detail');
+  const fields = {};
+  const sections = {};
+  const noteSections = {};
+  const noteKeys = new Set((CARD_STORE.detail?.noteSectionSpec || []).map((s) => s.key));
+  const secKeys = new Set((CARD_STORE.detail?.sectionSpec || []).map((s) => s.key));
+  for (const el of holder.querySelectorAll('[data-key]')) {
+    const saved = CARD_STORE.detail;
+    const spec = [...(saved.fieldSpec || []), ...(saved.sectionSpec || []), ...(saved.noteSectionSpec || [])]
+      .find((s) => s.key === el.dataset.key);
+    let value = el.value;
+    if (spec && spec.kind === 'list') value = value.split(',').map((s) => s.trim()).filter(Boolean);
+    if (noteKeys.has(el.dataset.key)) noteSections[el.dataset.key] = value;
+    else if (secKeys.has(el.dataset.key)) sections[el.dataset.key] = value;
+    else fields[el.dataset.key] = value;
+  }
+  return { fields, sections, noteSections };
+}
+
+async function saveCard() {
+  const d = CARD_STORE.detail;
+  if (!d) return;
+  const { fields, sections, noteSections } = collectCardForm();
+  $('card-hint').textContent = '正在保存…';
+  try {
+    const res = await api.send('POST', '/api/cards/save', { id: d.id, fields, sections, noteSections });
+    const changed = (res.changed || []).join('、');
+    $('card-hint').textContent = res.ok ? `已保存：${changed}` : '保存失败，见下';
+    if (res.ok) {
+      toast('卡片已保存', 'ok');
+      await loadCards(true);
+      await openCard(d.id);
+      showCardsLog([res.stdout, res.stderr, res.regen?.output].filter(Boolean).join('\n'));
+    } else {
+      showCardsLog(`${res.stdout || ''}${res.stderr || ''}`);
+      toast('保存失败', 'error');
+    }
+  } catch (err) {
+    $('card-hint').textContent = `✗ ${err.message}`;
+    toast(`保存失败：${err.message}`, 'error');
+  }
+}
+
+function showCardsLog(text) {
+  const el = $('cards-log');
+  el.hidden = !text;
+  el.textContent = text || '';
+}
+
+async function deleteCard() {
+  const d = CARD_STORE.detail;
+  if (!d) return;
+  const btn = $('card-delete');
+  if (btn.dataset.armed !== '1') {
+    btn.dataset.armed = '1';
+    btn.textContent = '确认删除？';
+    return;
+  }
+  $('card-hint').textContent = '正在删除…';
+  try {
+    const res = await api.send('POST', '/api/cards/delete', { id: d.id });
+    toast(res.ok ? '卡片已删除' : '删除失败', res.ok ? 'ok' : 'error');
+    showCardsLog([res.stdout, res.stderr, res.regen?.output].filter(Boolean).join('\n'));
+    CARD_STORE.detail = null;
+    $('cards-detail').innerHTML = '<div class="muted">已删除。</div>';
+    await loadCards(true);
+  } catch (err) {
+    $('card-hint').textContent = `✗ ${err.message}`;
+    toast(`删除失败：${err.message}`, 'error');
+  }
+}
+
+function initCardLib() {
+  if (!$('panel-cards')) return;
+  $('cards-q').addEventListener('input', renderCardsList);
+  $('cards-reload').addEventListener('click', () => loadCards(true));
+
+  $('cards-list').addEventListener('click', (ev) => {
+    const row = ev.target.closest('[data-card-id]');
+    if (row) openCard(row.dataset.cardId);
+  });
+
+  $('cards-detail').addEventListener('click', (ev) => {
+    if (ev.target.id === 'card-save') saveCard();
+    if (ev.target.id === 'card-revert') openCard(CARD_STORE.detail.id);
+    if (ev.target.id === 'card-delete') deleteCard();
+  });
+  // 大类一变，细分下拉要跟着换 —— 否则会选出一个不属于该大类的细分
+  $('cards-detail').addEventListener('change', (ev) => {
+    const el = ev.target.closest('[data-role="branch"]');
+    if (!el) return;
+    const holder = $('cards-detail');
+    const sectionEl = holder.querySelector('[data-role="section"]');
+    if (!sectionEl) return;
+    const d = CARD_STORE.detail;
+    const opts = taxOptions(d.lib, el.value);
+    const prev = sectionEl.value;
+    sectionEl.innerHTML = opts.map((o) =>
+      `<option value="${esc(o.key)}"${o.key === prev ? ' selected' : ''}>${esc(o.name)}</option>`).join('');
+  });
+
+  // 新建
+  const fillNewTax = () => {
+    const target = $('new-target').value;
+    const libKey = target === 'hand' ? 'cs' : 'math';
+    $('new-branch').innerHTML = taxOptions(libKey).map((o) =>
+      `<option value="${esc(o.key)}">${esc(o.name)}</option>`).join('');
+    fillNewSections();
+  };
+  const fillNewSections = () => {
+    const libKey = $('new-target').value === 'hand' ? 'cs' : 'math';
+    $('new-section').innerHTML = taxOptions(libKey, $('new-branch').value).map((o) =>
+      `<option value="${esc(o.key)}">${esc(o.name)}</option>`).join('');
+  };
+  const fillKinds = () => {
+    const hand = $('new-target').value === 'hand';
+    const kinds = hand ? ['定义', '概念', '定理', '命题', '引理', '推论', '性质', '技巧']
+      : ['定义', '概念', '定理', '技巧'];
+    $('new-kind').innerHTML = kinds.map((k) => `<option value="${k}">${k}</option>`).join('');
+  };
+
+  $('cards-new').addEventListener('click', async () => {
+    await loadCards();
+    $('cards-new-form').hidden = !$('cards-new-form').hidden;
+    if (!$('cards-new-form').hidden) {
+      fillKinds();
+      fillNewTax();
+      $('new-id').focus();
+    }
+  });
+  $('new-target').addEventListener('change', () => { fillKinds(); fillNewTax(); });
+  $('new-branch').addEventListener('change', fillNewSections);
+  $('new-cancel').addEventListener('click', () => { $('cards-new-form').hidden = true; });
+  $('new-do').addEventListener('click', async () => {
+    const payload = {
+      id: $('new-id').value.trim(), title: $('new-title').value.trim() || $('new-id').value.trim(),
+      kind: $('new-kind').value, branch: $('new-branch').value, section: $('new-section').value,
+      course: $('new-course').value.trim(), target: $('new-target').value, lib: 'cs',
+    };
+    $('new-hint').textContent = '正在创建…';
+    try {
+      const res = await api.send('POST', '/api/cards/create', payload);
+      if (res.ok) {
+        $('new-hint').textContent = res.hint || '已创建';
+        toast('卡片已创建', 'ok');
+        $('new-id').value = '';
+        $('new-title').value = '';
+        await loadCards(true);
+        await openCard(payload.id);
+      } else {
+        $('new-hint').textContent = res.hint || '创建失败';
+        showCardsLog(`${res.stdout || ''}${res.stderr || ''}`);
+      }
+    } catch (err) {
+      $('new-hint').textContent = `✗ ${err.message}`;
+    }
+  });
+}
+
 // ---------------- 启动：新增部分 ----------------
 
 function initExtras() {
@@ -2803,6 +3141,7 @@ function initExtras() {
   initCheckPanel();
   initPublishExtras();
   initWikiPublish();
+  initCardLib();
   initShortcuts();
   // 正文里直接粘贴截图：插图最顺手的路径，不必先存成文件再拖进来
   $('editor').addEventListener('paste', (ev) => {

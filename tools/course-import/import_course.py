@@ -593,6 +593,31 @@ def dumps(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=False) + "\n"
 
 
+def preserve_edited(toolbox: dict) -> list:
+    """把已被管理页改过（`edited: true`）的条目从现有 JSON 里搬回生成结果，覆盖同 id 的新解析结果。
+
+    只在**同一门课**内按 id 覆盖。返回被保留的 id 列表（调用方据此打印提醒）。
+    """
+    if not TOOL_JSON.exists():
+        return []
+    try:
+        old = json.loads(TOOL_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    kept = [c for c in (old.get("cards") or []) if c.get("edited") and c.get("id")]
+    if not kept:
+        return []
+    pos = {c["id"]: i for i, c in enumerate(toolbox["cards"])}
+    preserved_ids = []
+    for card in kept:
+        if card["id"] in pos:
+            toolbox["cards"][pos[card["id"]]] = card
+        else:
+            toolbox["cards"].append(card)
+        preserved_ids.append(card["id"])
+    return preserved_ids
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--project", default=str(DEFAULT_PROJECT))
@@ -649,6 +674,14 @@ def main() -> int:
             if figs.is_dir():
                 for png in sorted(figs.glob("*")):
                     plan.append(("copy", dst.parent / "figs" / png.name, png))
+
+    # 管理页（「卡片库」页签）手改过的卡片不能被导入覆盖 —— 那是用户在界面上做的修改，
+    # 静默冲掉就是数据丢失。带 `edited: true` 的条目整条保留（含它的分类归属，因为
+    # 「改过就归你管」这条规则要简单可预期）；想交回给课程项目，删掉该条目的 edited 再重跑。
+    preserved = preserve_edited(toolbox)
+    if preserved and not args.check:
+        print("  ！保留 %d 张在管理页改过的卡（edited: true），导入不覆盖它们：%s"
+              % (len(preserved), "、".join(preserved)))
 
     plan.append(("json", TOOL_JSON, toolbox))
 

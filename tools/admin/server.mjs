@@ -45,7 +45,7 @@ import {
 import { addTerm, checkTerm, readTaxonomy } from './lib/taxonomy.mjs';
 import * as gitlib from './lib/git.mjs';
 import { HugoPreview } from './lib/hugo.mjs';
-import { resolveBash, runScript, runPythonScript, git } from './lib/exec.mjs';
+import { resolveBash, run, runScript, runPythonScript, git } from './lib/exec.mjs';
 import { checkItems, runCheckById } from './lib/checks.mjs';
 import { searchContent, invalidateSearchCache } from './lib/search.mjs';
 import { saveAsset } from './lib/asset.mjs';
@@ -257,6 +257,75 @@ async function handleWikiPublish() {
     invalidatePermalinks();
   }
   return { ok: result.code === 0, code: result.code, stdout: result.stdout, stderr: result.stderr };
+}
+
+/* ---------------- 卡片库（列出 / 查看 / 编辑 / 新建 / 删除） ---------------- */
+// 与 wiki 发布同一套思路：所有磁盘读写都在 Python 侧（tools/wiki-publish/cards.py），
+// 服务端只负责把参数递过去、把结果转成 JSON。四个来源与「各自写回源头」的规则都在那个脚本里，
+// 这里不复刻 —— 复刻一份就一定会漂移。
+const CARDS_TOOL = 'tools/wiki-publish/cards.py';
+
+async function runCards(args, { input = null, timeoutMs = 120000 } = {}) {
+  return runPythonScript(REPO_ROOT, CARDS_TOOL, wikiArgs(args), { input, timeoutMs });
+}
+
+function cardsFailure(err) {
+  // Python 不可用 / 脚本报错都走这里：返回可读信息，别让它变成界面上一个光秃秃的 500
+  return { ok: false, error: err.message, stdout: '', stderr: '' };
+}
+
+async function handleCardsJson(args, timeoutMs) {
+  let result;
+  try {
+    result = await runCards(args, { timeoutMs });
+  } catch (err) {
+    return cardsFailure(err);
+  }
+  if (result.code !== 0) {
+    return { ok: false, code: result.code, stdout: result.stdout, stderr: result.stderr };
+  }
+  try {
+    return { ok: true, data: JSON.parse(result.stdout) };
+  } catch {
+    return { ok: false, error: '卡片库脚本的输出不是 JSON', stdout: result.stdout, stderr: result.stderr };
+  }
+}
+
+// 手写库的卡片页由 gen-cards.mjs 生成：改完 JSON 不重生成，CI 的 --check 会拦发布。
+// 该跑哪个库由脚本用 `regen` 字段告诉我们（那份知识只有它有）。
+async function regenCards(regen) {
+  if (!regen) return null;
+  try {
+    const result = await run('node', ['scripts/gen-cards.mjs', regen], { cwd: REPO_ROOT, timeoutMs: 120000 });
+    invalidateList();
+    return { lib: regen, ok: result.code === 0, output: `${result.stdout ?? ''}${result.stderr ?? ''}`.trim() };
+  } catch (err) {
+    return { lib: regen, ok: false, output: err.message };
+  }
+}
+
+async function handleCardsWrite(sub, body) {
+  let result;
+  try {
+    result = await runCards([sub, '--stdin'], { input: JSON.stringify(body ?? {}), timeoutMs: 120000 });
+  } finally {
+    invalidateList();
+  }
+  let payload = {};
+  try {
+    payload = JSON.parse(result.stdout || '{}');
+  } catch {
+    payload = {};
+  }
+  const regen = await regenCards(payload.regen);
+  return {
+    ok: result.code === 0,
+    code: result.code,
+    ...payload,
+    regen,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
 }
 
 async function handleState() {
@@ -752,6 +821,49 @@ const server = http.createServer(async (req, res) => {
         // 注意与上面的 POST /api/publish 区分：那是 git 推送，这里是从知识库生成卡片
         json(res, 200, await handleWikiPublish());
         return;
+      case 'GET /api/cards/list':
+        json(res, 200, await handleCardsJson(['list', '--json']));
+        return;
+      case 'GET /api/cards/show': {
+        const id = searchParams.get('id') ?? '';
+        if (!id) {
+          fail(res, 400, '缺少 id 参数');
+          return;
+        }
+        json(res, 200, await handleCardsJson(['show', id, '--json']));
+        return;
+      }
+      case 'POST /api/cards/save':
+        json(res, 200, await handleCardsWrite('save', await readJsonBody(req, 4 * 1024 * 1024)));
+        return;
+      case 'POST /api/cards/create':
+        json(res, 200, await handleCardsWrite('create', await readJsonBody(req)));
+        return;
+      case 'POST /api/cards/delete': {
+        const body = await readJsonBody(req);
+        const id = String(body?.id ?? '');
+        if (!id) {
+          fail(res, 400, '缺少 id');
+          return;
+        }
+        let result;
+        try {
+          result = await runCards(['delete', id], { timeoutMs: 60000 });
+        } finally {
+          invalidateList();
+        }
+        let payload = {};
+        try {
+          payload = JSON.parse(result.stdout || '{}');
+        } catch {
+          payload = {};
+        }
+        json(res, 200, {
+          ok: result.code === 0, code: result.code, ...payload,
+          regen: await regenCards(payload.regen), stdout: result.stdout, stderr: result.stderr,
+        });
+        return;
+      }
       case 'GET /api/preview/url':
         json(res, 200, await handlePreviewUrl(searchParams));
         return;

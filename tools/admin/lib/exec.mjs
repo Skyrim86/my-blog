@@ -53,12 +53,12 @@ export async function resolveBash() {
 }
 
 // 跑一个命令并等它结束。非零退出码不抛异常，交给调用方判断（脚本的 ✗ 提示在 stderr 里）。
-export function run(cmd, args, { cwd, input = null, timeoutMs = 300000, maxBuffer = 32 * 1024 * 1024 } = {}) {
+export function run(cmd, args, { cwd, input = null, timeoutMs = 300000, maxBuffer = 32 * 1024 * 1024, env = null } = {}) {
   return new Promise((resolve, reject) => {
     const child = execFile(
       cmd,
       args,
-      { cwd, windowsHide: true, timeout: timeoutMs, maxBuffer, encoding: 'utf8' },
+      { cwd, windowsHide: true, timeout: timeoutMs, maxBuffer, encoding: 'utf8', env: env ?? process.env },
       (err, stdout, stderr) => {
         if (err && err.code === 'ENOENT') {
           reject(new Error(`找不到可执行文件：${cmd}`));
@@ -119,9 +119,15 @@ export async function resolvePython() {
 }
 
 // 跑仓库里的一个 Python 脚本（相对仓库根，如 tools/wiki-publish/publish.py）。
+//
+// **必须强制子进程用 UTF-8**：Windows 上 Python 往管道写 stdout 时默认按控制台代码页编码
+// （中文系统是 GBK），而这里按 UTF-8 解码 —— 中文会整片变成乱码。这个坑取决于「哪一个
+// Python 被选中」（PATH 里是不同的解释器时结果就不同），所以不能靠环境碰巧对：
+// PYTHONUTF8=1 让 Python 进入 UTF-8 模式，PYTHONIOENCODING 再把 stdin/stdout/stderr 钉死。
 export async function runPythonScript(repoRoot, scriptRelPath, args = [], opts = {}) {
   const python = await resolvePython();
-  return run(python, [scriptRelPath, ...args], { cwd: repoRoot, ...opts });
+  const env = { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' };
+  return run(python, [scriptRelPath, ...args], { cwd: repoRoot, env, ...opts });
 }
 
 // 起一个长时间运行的脚本（发布、hugo server），调用方自己接 stdout/stderr。

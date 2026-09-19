@@ -16,6 +16,7 @@
     <button type="button" data-tab="create" class="active">新建</button>
     <button type="button" data-tab="edit">编辑</button>
     <button type="button" data-tab="publish">发布</button>
+    <button type="button" data-tab="cards">卡片库</button>
     <button type="button" data-tab="check">体检</button>
   </nav>
   <div id="chips" class="chips"></div>
@@ -148,21 +149,6 @@
         <pre id="diff-view" class="diff"></pre>
       </div>
 
-      <!-- 知识库（wiki）发布：把知识库里「已验证」的卡片写进数学库 / CS 库。
-           放在发布页签里，因为它产出的正是「本次改动」，接着走上面的提交说明 + 发布。 -->
-      <details class="pub-col" id="wiki-box">
-        <summary>从知识库发布卡片（wiki → 数学库 / CS 库）</summary>
-        <div class="field">
-          <div class="hint" id="wiki-status">正在检查…</div>
-          <div class="actions">
-            <button type="button" class="ghost" id="wiki-check">只检查</button>
-            <button type="button" class="primary" id="wiki-publish">发布已验证的卡片</button>
-            <span class="muted" id="wiki-hint"></span>
-          </div>
-        </div>
-        <pre id="wiki-log" class="log" hidden></pre>
-      </details>
-
       <div class="pub-cols">
         <!-- 默认收起：这两块是「查证用」的，不该跟「提交说明 + 发布按钮」抢首屏 -->
         <details class="pub-col">
@@ -179,6 +165,73 @@
     </section>
 
     <!-- ============ 体检 ============ -->
+    <section class="panel" id="panel-cards">
+      <div class="panel-head">
+        <h2>卡片库</h2>
+        <span class="hint">数学库 / CS 库的卡片：搜索、查看、编辑、新建、删除。知识库（wiki）来源的卡改完可在本页直接发布</span>
+      </div>
+
+      <div class="publish-top">
+        <div class="field">
+          <label for="cards-q">卡片<span class="hint">按 库 / 大类 / 细分 分组；点一行打开</span></label>
+          <input type="search" id="cards-q" placeholder="搜索标题、id、分类…" autocomplete="off">
+          <div class="actions">
+            <button type="button" class="ghost tiny" id="cards-reload">重新加载</button>
+            <button type="button" class="ghost tiny" id="cards-new">新建卡片</button>
+          </div>
+          <div class="hint" id="cards-summary">还没加载</div>
+          <div id="cards-list" class="list"></div>
+        </div>
+
+        <div class="field">
+          <div id="cards-new-form" hidden>
+            <label>新建卡片<span class="hint">知识库卡需要节点 id，会同时写进 curriculum.yaml</span></label>
+            <div class="inline">
+              <input type="text" id="new-id" placeholder="节点 id（英文短横线，如 rank-nullity）">
+              <input type="text" id="new-title" placeholder="标题（中文）">
+            </div>
+            <div class="inline">
+              <select id="new-target">
+                <option value="wiki">知识库（wiki）</option>
+                <option value="hand">手写库（CS）</option>
+              </select>
+              <select id="new-kind"></select>
+            </div>
+            <div class="inline">
+              <select id="new-branch"></select>
+              <select id="new-section"></select>
+            </div>
+            <div class="inline">
+              <input type="text" id="new-course" placeholder="课程 id（知识库卡必填，如 regression-analysis）">
+            </div>
+            <div class="actions">
+              <button type="button" class="primary tiny" id="new-do">创建</button>
+              <button type="button" class="ghost tiny" id="new-cancel">取消</button>
+              <span class="muted" id="new-hint"></span>
+            </div>
+          </div>
+
+          <div id="cards-detail" class="muted">从左边选一张卡。</div>
+        </div>
+      </div>
+
+      <details class="pub-col" id="wiki-box" open>
+        <summary>发布到博客（wiki → 数学库 / CS 库）</summary>
+        <div class="field">
+          <div class="hint" id="wiki-status">正在检查…</div>
+          <div class="actions">
+            <button type="button" class="ghost" id="wiki-check">只检查</button>
+            <button type="button" class="primary" id="wiki-publish">发布已验证的卡片</button>
+            <span class="muted" id="wiki-hint"></span>
+          </div>
+          <div class="hint">发布只送「状态: 已验证」的卡；发布后改动会出现在「发布」页签的改动清单里，接着走提交说明与推送。</div>
+        </div>
+        <pre id="wiki-log" class="log" hidden></pre>
+      </details>
+
+      <div id="cards-log" class="log" hidden></div>
+    </section>
+
     <section class="panel" id="panel-check">
       <div class="panel-head">
         <h2>体检</h2>
