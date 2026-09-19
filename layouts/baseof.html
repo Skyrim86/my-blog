@@ -5,7 +5,7 @@
    —— 前三个分别落在 <head> 内与 </body> 之前，够不到这两个位置；404 那种「原件极短所以覆盖」
    的理由在这里不成立，真正的理由是位置本身就不可达。
 
-   与 themes/PaperMod/layouts/baseof.html 的差异只有四处，其余逐字保留（便于升级时逐行对拍）：
+   与 themes/PaperMod/layouts/baseof.html 的差异只有三处，其余逐字保留（便于升级时逐行对拍）：
      1. lang：site.Language（输出语言键 zh）→ site.Language.Locale（输出 hugo.toml 里
         [languages.zh] 的 locale = 'zh-CN'）。实测 og:locale 早就是 zh_CN、RSS 是 zh-CN，
         只有这里没跟上；改它不会连带改动别处的输出。
@@ -15,9 +15,6 @@
      2. <body> 的首个子元素插入跳过导航链接。
      3. <main> 加 id="main-content" 与 tabindex="-1"。tabindex 不能省：只加 id 的话锚点跳转
         只移动滚动位置、不移动焦点，键盘用户再按 Tab 仍然从页首开始。
-     4. 插入玻璃透镜的 SVG 滤镜定义（partials/lens-defs.html，配了站点背景时才输出）。
-        这里同样属于「位置不可达」：<head> 里放 <svg> 不合法（解析器会挪走），放 </body> 前又
-        赶不上首帧、面板会先以「没有折射」的样子画一次。机制见 assets/css/extended/20-lens.css。
 
    样式见 assets/css/extended/17-a11y.css。主题升级时这个文件要跟主题那份对一遍。 */ -}}
 {{- if lt hugo.Version "0.146.0" }}
@@ -44,7 +41,6 @@
 <body id="top">
 {{- end }}
     <a class="skip-link" href="#main-content">{{ i18n "skipToContent" }}</a>
-    {{ partialCached "lens-defs.html" . -}}
     {{ partialCached "header.html" . .Page -}}
     <main class="main" id="main-content" tabindex="-1">
         {{- block "main" . }}{{ end }}

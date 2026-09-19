@@ -154,26 +154,6 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **导航栏那 8 个图标不属于本节的背景体系**：它们是 `tools/icons/make-icons.py` 自绘的 32×32 像素小人（一个菜单项一个角色），16px 显示，接线在 `hugo.toml` 菜单的 `pre` 字段 + `extend_head.html` 生成的 `css/nav-icons.css` + `19-nav-px.css`。为什么必须自绘、为什么是 16px、为什么用背景图而不是 `<img>`，都在 [`architecture.md` 第 6 节](architecture.md) 的「第三条线」里。
 
-#### 玻璃透镜：面板与整页壁纸都是「真的弯一下」（2026-09-19）
-
-`assets/css/extended/20-lens.css` + `layouts/_partials/lens-defs.html`（滤镜定义，由 `baseof.html` 插在 `<body>` 开头）。承载内容的面板不再是磨砂玻璃，而是能把身后背景**真的位移**的透镜；`body::before` 那层壁纸也加了一档更粗的位移，整页读成一块厚玻璃。
-
-**为什么必须复制一份背景图，而不是直接折射 backdrop**：`backdrop-filter` 的语法里虽然允许 `url()`，但 Chromium 不处理这个引用 —— 实测同一条纹区域，`backdrop-filter: url(#lens-panel)` 的像素标准差 **111.88**（等于没滤），`blur(8px)` 是 **5.79**。所以真折射只能在面板内部复制一层背景图，再对它做 `feDisplacementMap`。复制层用 `background-attachment: fixed`，与 `body::before` 共用同一个视口坐标系 —— 元素滚到哪就显示壁纸在那一处的画面，这正是「透镜是身后世界的窗口」。
-
-**对齐是量过的**：把两侧都换成同一张未蒙版图（对齐正确的话面板应当完全隐形），在 `scrollY = 0 / 700 / 1400` 三个位置（**每次都回读 `scrollTop` 确认真的滚了**）比对跨面板边界的像素差：中位 **4**、最大 38，而面板外相邻 4px 的天然梯度是中位 6、最大 52 —— 边界在统计上不可见。若复制层跟着元素走（而非视口），在 scroll 700/1400 处必然出现数百像素级错位。
-
-**参数怎么定的**（`lens-defs.html`，同一页面截图对照）：`baseFrequency 0.004 / scale 16` 只是「缓慢平移」，肉眼读不出折射；`0.012 / 45` 看得出波纹；`0.03 / 90` 像液态大理石、人物五官被拉坏，而且**位移超出裁切余量、边缘出现硬切的透明缺口**。定稿取中间档（面板 `0.010/0.012 · 3 八度 · scale 30`）。由此得一条硬约束：`scale ≤ --lens-bleed`（面板 30/36px、小面板 14/20px）。
-
-**面板里的副本用未蒙版的图，再自己压一层派生弱蒙版**：照抄 `body::before` 那层 0.66~0.93 的蒙版，图会被压掉八成、再叠 80% 的 tint，折射只剩约 3% 可见度（第一版就是这样，截图里完全看不出位移）。代价是面板内会比面板外清楚一档，把亮度下限拉到「图上纯黑处」——正文色 `--content` 扛得住，**次级文字 `--secondary`（日期、面包屑、元信息）扛不住**：浅色最坏 4.09:1、深色最坏 3.91:1，都低于 AA。于是加一层由**同一批蒙版变量**派生的弱蒙版 `--lens-mask-factor`（浅色 .45 / 深色 .80，颜色取 `--theme`、透明度由 `--bg-mask-*` 乘出来，**不写第二份数值**），把下限抬回：浅色最坏 4.79:1、深色最坏 4.78:1，折射可见度仍留约 12%。
-
-**对比度实测**（不用 `getComputedStyle`，取真实渲染像素：先隐藏面板的直接子元素把文字与 emoji 拿掉，再扫描区域取**最坏像素**而不是平均值）：16 个组合（正文页/标签页 × 面板/页头/顶栏/卡片 × 浅深 × 正文/次级）在**透镜开启**下最差 **4.66:1**、关闭后最差 5.39:1，AA 线 4.5 —— 面板内外的差距只有 1~1.5 点。壁纸层那边另测 9 个取样点，透镜开关的亮度差 ≤ 0.03。**改 `--lens-mask-factor` 或换背景图都要照这组数字复测**（量法：`.shots/lens-ab/scan-contrast.py`，直接对截图取像素算 WCAG）。
-
-**合成开销**（`.shots/scrollcost.py`，headless Edge + CDP tracing，与第 6 节同一套量法）：正文页 720×2927 的高面板让 `LocalFrameView::RunPaintLifecycle` 从 21.9 ms 升到 71.0 ms（每个约 1.1 秒的滚动窗口、约 117 帧），即 **+0.43 ms/帧**；把这张高面板的复制层关掉就回落到 17.6 ms —— **比改造前还低**，因为面板上原有的 `backdrop-filter` 被覆盖成了 `none`。卡片密集页（10 张卡片 + 页头 + 顶栏 = 12 个透镜层）帧间隔中位 6.06 → 6.06/6.08 ms 不变，`ProxyMain::BeginMainFrame` +19.7 ms/窗口（约 +0.25 ms/帧）。
-
-**开关与降级**：整套挂在 `body:has(> .lens-defs)` 上，而 `.lens-defs` 只在 `presets` 非空时输出 —— 「有没有滤镜定义」与「走不走透镜」是同一个事实源，不会出现「CSS 生效但滤镜不存在」。**实测 `presets` 留空的样子**（在浏览器里移除 `.lens-defs` 模拟）：页头回到 `backdrop-filter: blur(8px)`、伪元素 `content: none`、`body::before` 无滤镜、卡片左边框仍是 2px 强调线 —— 完全回到改造前。另有两处降级：`max-width: 640px` 关掉折射并还回毛玻璃（iOS Safari 把 `background-attachment: fixed` 当 `scroll`，会错位），`prefers-reduced-transparency` / `prefers-contrast: more` 退回不透明底 `--entry`。
-
-**刻意没做**：`.toc-rail` 与工具箱弹窗 `.tb-modal-panel` 保持不透明 —— 它们是站上有意的非玻璃面板（`12-toc-rail.css` 的理由见 ㉓，弹窗底下压着半透明黑幕、折射它没有意义）。
-
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
 
 只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout。`archives` 那条现在没有对象了——归档页 2026-09-15 删除——留着是为了它回来时不用再想起这件事）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a`、`.toc-rail a`（单页的左侧目录栏，见 ㉓）加 `.active`。
@@ -375,7 +355,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 4. `layouts/_partials/post_meta.html`：**唯一一处「复制主题 partial 再加一行」**（第 ⑱ 项）。它是列表卡片与详情页共用的元信息块，没有 hook 可挂，而卡片要一块计数/标签。与前三处不同：这里**逐字保留**主题实现，只在末尾调用 `card-chips.html`，主题升级时对照 diff 手工合并即可。若哪天主题给它加了 hook，优先换回 hook
 5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是九处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
 6. `layouts/taxonomy.html`（第 ㉛ 项）：`/tags/`、`/categories/` 总览页要把词条按学科分块展示（见 `data/tag-groups.yaml`），而主题那份是平铺。markup 与主题版保持一致（`ul.terms-tags` + 计数 `sup`），只把「一个 ul」改成「每组一个 ul」，`terms-filter.js` 已同步适配
-7. `layouts/baseof.html`（第 ㉞ 项）：跳过导航链接、`lang` 属性，以及玻璃透镜的 SVG 滤镜定义。**这一处与前面六处的理由不同** —— 不是「原件短」或「没有 hook 可挂」，而是**位置本身不可达**：要改的一处在 `<html>` 上、两处在 `<body>` 开头，而主题的四个 hook 分别在 `<head>` 内与 `</body>` 之前，谁都够不到。主题原件 31 行，逐字保留、只差四处（前两处见下节 ㉞，第四处见 ⑫ 末尾），主题升级时与 `themes/PaperMod/layouts/baseof.html` 逐行对拍即可。**注意它是全站每个页面的渲染入口**，改动后要按页型抽查（首页 / section / term / 单页 / 404 / search）
+7. `layouts/baseof.html`（第 ㉞ 项）：跳过导航链接与 `lang` 属性。**这一处与前面六处的理由不同** —— 不是「原件短」或「没有 hook 可挂」，而是**位置本身不可达**：要改的一处在 `<html>` 上、一处在 `<body>` 开头，而主题的四个 hook 分别在 `<head>` 内与 `</body>` 之前，谁都够不到。主题原件 31 行，逐字保留、只差三处（详见下节 ㉞），主题升级时与 `themes/PaperMod/layouts/baseof.html` 逐行对拍即可。**注意它是全站每个页面的渲染入口**，改动后要按页型抽查（首页 / section / term / 单页 / 404 / search）
 8. `layouts/_partials/templates/schema_json.html`（第 ㉟ 项）：**逐字保留主题实现，只差三处**（主题原件 129 行 + 一段说明注释），与第 4 条 `post_meta.html` 是同一手法：删掉 `articleBody`、零值日期不输出、`@type` 随发布日期在 `BlogPosting` / `WebPage` 之间走。`articleBody` 把整篇正文 `plainify` 后复制进 `<head>` 的 JSON-LD 里；本站正文是构建期渲染的 KaTeX，plainify 之后公式文本会出现三遍（MathML 表示 + TeX annotation + katex-html 字形文本），于是这个字段既大又低质 —— 实测重页单页 25–27 KB、占该页 gzip 的 17–20%。删它安全：`articleBody` 在 schema.org 里是**可选**字段，Google 富结果不使用，仓库里也没有任何东西依赖它（`check-seo.mjs` 对它零断言，已核对）。**升级主题时与主题那份逐行对拍，确认差异仍然只有这三处。** 删改后不必再手工 `JSON.parse` 每个 `ld+json` 块 —— `check-seo.mjs` 已经常驻断言（含 `BlogPosting` 的必填字段与零值日期），见 ㉟
 
 9. `layouts/_markup/render-image.html`（第 ㊲ 项）：主题 `_markup/` 下只有 `render-image.html` 这一个文件，内容图需要补 `width`/`height`（主题原版不给尺寸）并把 PNG 转无损 WebP，而渲染钩子没有「部分覆盖」的机制，只能整份接管。手法与第 4、8 条相同：**逐字保留主题实现**（URL 解析、query/fragment 拼接、属性透传、`%q` 转义一行未改），只在拿到资源之后插入两段。**改它必须同时确认 `00-theme.css` 里 `.post-content img` 的 `height: auto` 还在** —— 主题 reset 只有 `max-width: 100%`（`core/reset.css`），只补尺寸属性会在窄屏把图纵向压扁（实测 400px 视口下 660×440 的图变成 333×440），且**构建不报错**。主题升级时与 `themes/PaperMod/layouts/_markup/render-image.html` 逐行对拍
@@ -398,8 +378,6 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - 两处样式都在 `15-extras.css`：它们各自太小，不值得各起一个编号文件。
 
 ### ㉞ 无障碍：跳过链接、`lang` 与动态列表播报 — `baseof.html` + `17-a11y.css` + `a11y-announce.js`
-
-`baseof.html` 一共四处与主题不同：跳过链接、`lang="zh-CN"`、`<main>` 的 `id`/`tabindex`（下面前三条），以及**玻璃透镜的 SVG 滤镜定义**（`partials/lens-defs.html`，理由见 ⑫ 末尾 —— 它是「必须赶在首帧之前、又不能在 `<head>` 里」的位置，所以走同一个文件）。
 
 2026-09-18 体检的结论：这个站此前**没有任何一项无障碍基础件** —— 没有跳过导航链接、没有 `sr-only` 工具类、动态更新的列表没有一处 `aria-live`，`lang` 还是 `zh`。前两项补上了，第三项按页面逐个补。
 
@@ -595,16 +573,6 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 结论：卡片毛玻璃的合成器开销真实存在（占合成帧绘制时间六成），但在本机 165 Hz 上仍锁在 6.1 ms/帧，**不值得为性能牺牲它的观感**。若哪天要压手机/省电模式的余量，改法是去掉 `.post-single` 的 `backdrop-filter` 并把 `--surface` 提到 94%（浅）/92%（深）——像素级几乎不可见。
 
 试过无收益：把 `content-visibility: auto` 加在正文块上（`RasterTask` 7.8 vs 6.1 ms，反而更差，连续文本没有可跳过的排版工作）。
-
-**2026-09-19 补：换成玻璃透镜后的账**（同一套 `scrollcost.py`）。面板上的 `backdrop-filter` 被透镜机制覆盖成 `none`（复制层是不透明的，它压在上面看不见），而复制层加的是 SVG 位移滤镜 —— 净结果是**高面板略涨、短面板反而更省**：
-
-| 页面 | 量到的量 | 改造前 | 透镜开启 |
-|---|---|---|---|
-| 正文页（720×2927 的高面板） | `LocalFrameView::RunPaintLifecycle`（每个约 1.1 s 滚动窗口） | 21.9 ms | 71.0 ms（≈ +0.43 ms/帧） |
-| 同上，只关掉那张高面板的复制层 | 同左 | 21.9 ms | 17.6 ms（**比改造前低**） |
-| 标签页（10 卡片 + 页头 + 顶栏 = 12 个透镜层） | 帧间隔中位 / `ProxyMain::BeginMainFrame` | 6.06 ms / 19.7 ms | 6.06~6.08 ms / 39.4 ms |
-
-高面板那 49 ms 的增量就是这套效果的价格上限（约 +0.43 ms/帧，165 Hz 的预算是 6 ms/帧），可接受；卡片这类小面板基本不要钱。要压的话按「关掉高面板的复制层」那一档做——那会同时省下原来 `backdrop-filter` 的开销。机制与全部参数见 ⑫ 末尾那节。
 
 量滚动卡顿的两个坑（已写进脚本头注释）：真窗口不加 `--disable-features=CalculateNativeWinOcclusion`，被别的窗口盖住时 `visibilityState=hidden`、rAF 完全冻结（会得到「0 帧」这种假流畅）；Windows 下 `asyncio.sleep(0.008)` 的真实粒度约 15.6 ms，驱不动合成器滚动，改用帧内 `scrollBy({behavior:'instant'})`，并先关掉站点全局的 `scroll-behavior: smooth`（否则逐帧 scrollBy 被平滑动画吃掉，0.9 s 只挪 180 px）。
 
