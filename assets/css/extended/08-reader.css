@@ -96,6 +96,19 @@
   border: 1px solid var(--border);
 }
 
+/* 复制按钮（主题在 footer.html 里注入的 .copy-code，此前只有一层半透明灰底、没有边）。
+   补一道亮边用的是 --glass-edge 而不是 --edge：--edge 在浅色主题下是**深色**细边，
+   压在 --code-block-bg（近黑）上等于没有；「深底上的一根亮线」正是玻璃亮边那三个令牌的用途。
+   同样用 box-shadow 不用 border：border 会把按钮撑大 2px，而它贴在代码块右上角。 */
+.copy-code {
+  box-shadow: 0 0 0 1px var(--glass-edge);
+  transition: box-shadow .18s ease;
+}
+
+.copy-code:hover {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 .post-content :not(pre) > code {
   border-radius: 4px;
   padding: .1em .35em;

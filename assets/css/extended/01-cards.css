@@ -92,7 +92,9 @@ article.post-entry:hover {
   font-size: 0.75rem;
   line-height: 1.7;
   color: var(--secondary);
-  border: 1px solid var(--border);
+  /* 控件类细边统一走 --edge（见 00-theme.css 开头）：--border 是主题那套中性灰，
+     在这个偏紫的墨底上几乎看不见 */
+  border: 1px solid var(--edge);
   border-radius: 999px;
 }
 

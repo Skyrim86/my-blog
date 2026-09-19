@@ -44,13 +44,14 @@
   line-height: 1.7;
   color: var(--secondary);
   background: var(--code-bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--edge);
   border-radius: 999px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, color 0.2s;
 }
 
 .project-tech-tag:hover {
-  border-color: var(--secondary);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .project-tech-tag a {

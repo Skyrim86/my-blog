@@ -65,9 +65,22 @@
    stopPropagation 拦不住，地址栏会留下 #bottom（理由见 layouts/_partials/extend_footer.html）。 */
 .bottom-link {
   bottom: var(--float-bottom);
-  border: 0;
   cursor: pointer;
   color: inherit;
+}
+
+/* 两个悬浮按钮补一道常驻边（2026-09-19）：它们是压在壁纸上的圆形按钮，原先只有 --tertiary 底，
+   浅色主题下几乎没有轮廓。边用 box-shadow 画、不用 border —— 这两个按钮的尺寸是主题写死的
+   `width/height: 2.5rem` + `padding: 10px`，加 border 会把 20px 的内容盒挤成 18px、图标跟着偏。
+   悬停时连图标一起转强调色（图标走 currentColor）。 */
+:is(.top-link, .bottom-link) {
+  box-shadow: 0 0 0 1px var(--edge);
+  transition: box-shadow .2s ease, color .2s ease, visibility .3s, opacity .3s cubic-bezier(0.4, 0, 1, 1);
+}
+
+:is(.top-link, .bottom-link):hover {
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 /* 中等窗口：正文列开始贴边，挂着人像会挤掉阅读视野 —— 等比例缩小，不砍人 */

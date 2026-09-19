@@ -1,0 +1,34 @@
+{{- /* 首页「站点规模」一行小字（2026-09-19 从 home-extras.html 拆出来，见 docs/features.md ⑮）。
+
+     为什么单独一个文件：宽屏（≥1024px）首页是两栏 —— 这一行要跟头像、快捷入口一起留在**左栏**，
+     而「按类浏览」在右栏，两块必须能各自归位。index_profile.html 那边只多一行 include，
+     没把这段计算塞进那个要跟主题对拍的覆盖文件（对拍面越小越好）。
+
+     数字**全部现算**，不新增配置文件：库名与卡片数取 data/libraries.yaml 与各自的卡片 JSON，
+     课程 / 项目数取 section 的即时子页。空的一项不显示（库被删掉、或课程还没建）—— 用
+     `hugo --contentDir <只放了一篇 searchHidden 页的临时目录>` 构建时，这一行会自动退成
+     「数学库 80 张卡 · CS 库 8 张卡」。库名来自数据（data/libraries.yaml 的 label，与面包屑
+     同一处），量词与句式走 i18n。 */ -}}
+{{- $parts := slice }}
+{{- range (index hugo.Data "libraries").libraries }}
+  {{- $label := .label }}
+  {{- with index hugo.Data .data }}
+    {{- if gt (len .cards) 0 }}
+      {{- $parts = $parts | append (printf "%s %s" $label (i18n "homeCardsCount" (dict "n" (len .cards)))) }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- with site.GetPage "section" "courses" }}
+  {{- with .Sections }}
+    {{- $parts = $parts | append (i18n "homeCoursesCount" (dict "n" (len .))) }}
+  {{- end }}
+{{- end }}
+{{- with site.GetPage "section" "projects" }}
+  {{- with .Pages }}
+    {{- $parts = $parts | append (i18n "homeProjectsCount" (dict "n" (len .))) }}
+  {{- end }}
+{{- end }}
+
+{{- with $parts }}
+<p class="home-scale">{{ delimit . " · " }}</p>
+{{- end }}

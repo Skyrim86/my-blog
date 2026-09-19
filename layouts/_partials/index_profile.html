@@ -1,18 +1,31 @@
 {{- /* 覆盖主题的 index_profile.html —— 仓库第三处有意的主题模板覆盖（理由与取舍见 docs/features.md）。
 
      为什么必须覆盖：首页在 profileMode 下，主题的 list.html:4 只调用这一个 partial，
-     没有任何 hook 可挂，而首页需要「快捷入口 + 最近更新」两块内容。
+     没有任何 hook 可挂，而首页需要「快捷入口 + 站点规模 + 按类浏览 + 最近更新」几块内容。
 
-     与原版的差异只有四处，其余（标题 / 副标题 / 社交图标 / profileMode.buttons）保持原样：
+     与原版的差异现在有**五处**，其余（标题 / 副标题 / 社交图标 / profileMode.buttons 的内容）
+     保持原样：
        1. 头像改为经资源管线 Resize（2 倍图 + srcset，高分屏不糊），要求图在 assets/ 下；
        2. 新增快捷入口：复用主导航（跳过首页项），不再单独维护一份链接清单；
-       3. 新增「站点规模 + 按类浏览」：整块写在 partials/home-extras.html 里，这里只多一行 include
-          —— 新块的复杂度不压进这个要跟主题对拍的文件；
+       3. 新增「站点规模 + 按类浏览」：2026-09-19 起拆成两个 partial（home-scale.html /
+          home-extras.html）—— 宽屏两栏要把两者分到左右两栏，同一个文件里的两块没法各自归位；
        4. 新增最近更新：条数取 hugo.toml 的 params.home.recentCount，0 = 关闭。
+       5. 新增 .home-hero 容器（2026-09-19）：把「头像 / 标题 / 副标题 / 社交图标 / 快捷入口 /
+          规模行 / buttons」包成一块，宽屏时整块落在左栏（.profile_inner 在 ≥1024px 是 grid，
+          见 09-home.css）。`buttons` 也从「按类浏览与最近更新之间」挪进了 hero —— 它本来就属于
+          hero，只是原先插在中间（现在 hugo.toml 没配 buttons，视觉上无变化）。
+          **连带一条**：副标题不再直接是 .profile_inner 的子项，00-theme.css 的局部玻璃底衬与
+          09-home.css 的入场动画都从 `.profile_inner > span` 改成了 `.home-hero > span`。
+       **下面两个容器（.home-hero / .home-side）里的内容都刻意不重新缩进**：这个文件是要跟主题
+       原版逐行对拍的，为了多一层容器把几十行整体缩进一级，会让每次升级主题时的对拍都多出一大片
+       无意义的差异。
+
      类型徽标走 type-label.html，与 related-content.html 共用同一份映射。 */ -}}
 <div class="profile">
     {{- with site.Params.profileMode }}
     <div class="profile_inner">
+        {{- /* 左栏（窄屏就是普通的一段）：头像、标题、副标题、社交图标、快捷入口、站点规模、按钮 */ -}}
+        <div class="home-hero">
         {{- if .imageUrl }}
         {{- $img := resources.Get .imageUrl }}
         {{- if $img }}
@@ -44,8 +57,8 @@
         </nav>
         {{- end }}
 
-        {{- /* 站点规模一行 + 「按类浏览」（分类 / 标签 chip）：整块在 home-extras.html 里 */ -}}
-        {{- partial "home-extras.html" . }}
+        {{- /* 站点规模一行小字：整块在 home-scale.html 里 */ -}}
+        {{- partial "home-scale.html" . }}
 
         {{- with .buttons }}
         <div class="buttons">
@@ -66,6 +79,13 @@
             {{- end }}
         </div>
         {{- end }}
+        </div>
+
+        {{- /* 右栏容器：把「按类浏览」与「最近更新」包成一块，宽屏时整块落在右栏，
+               窄屏就是普通的上下两段（间距由 .home-side 的 gap 给，见 09-home.css） */ -}}
+        <div class="home-side">
+        {{- /* 「按类浏览」：整块在 home-extras.html 里 */ -}}
+        {{- partial "home-extras.html" . }}
 
         {{- /* 最近更新：全站 regular page 按 Lastmod 倒序（enableGitInfo 已开，Lastmod 取 git 时间）。
                排除 searchHidden 与 archives/search 两个独立 layout 的页面。 */ -}}
@@ -118,6 +138,7 @@
             {{- end }}
         </section>
         {{- end }}
+        </div>
     </div>
     {{- end }}
 </div>

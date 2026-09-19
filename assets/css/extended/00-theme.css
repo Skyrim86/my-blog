@@ -55,6 +55,16 @@
   --surface-border: rgba(22, 20, 27, .09);
   --rule: rgba(22, 20, 27, .10);          /* 装饰细线：比 --border 更淡，只做层级暗示 */
 
+  /* 控件的**常驻细边**（2026-09-19 新增）。三个「边」令牌各管一件事，别再混用：
+       --surface-border  面板/卡片的边（.09/.08，几乎看不见，靠 --surface 的面自己撑住形状）
+       --border          主题自带的那套中性灰，留给主题组件（改动面太大的不碰）
+       --edge            控件（按钮、分页、胶囊、面板）的边：**要看得见**，约 1.4:1
+     换算：rgba(22,20,27,.20) 压在 --theme (#f7f5f8) 上 ≈ #c9c8ca，对比度约 1.4:1；
+     深色 rgba(255,255,255,.18) 压 #0b0a0f 上 ≈ #2f2e34，同一档。参照系是 GitHub 的
+     边框（#d0d7de / 白 ≈ 1.35:1）——「清楚但不抢戏」就在这个区间。
+     **它不承载文字对比度**，所以不参与 ⑫ 那张 24 组表；但也别拿它当文字的底。 */
+  --edge: rgba(22, 20, 27, .20);
+
   /* 局部玻璃面（2026-09-19 取代旧的 --scrim-bg）：给「直接压在壁纸上的文字」用，
      见下面「局部玻璃底衬」一节。三个数分开管三件事：
        --glass-tint  底色不透明度 —— **唯一能改对比度的那个**，量出来不够就加它
@@ -105,6 +115,7 @@
   --surface: rgba(20, 18, 25, .80);
   --surface-border: rgba(255, 255, 255, .08);
   --rule: rgba(255, 255, 255, .10);
+  --edge: rgba(255, 255, 255, .18);
   --glass-tint: rgba(11, 10, 15, .82);
   --glass-edge: rgba(255, 255, 255, .16);
   --shadow-card: 0 2px 10px rgba(0, 0, 0, .40);
@@ -312,14 +323,15 @@ body::after {
    **底衬一律挂在块级盒上，不挂在行内元素上**：`backdrop-filter` 在 `display: inline` 上不可靠；
    而旧写法靠 `box-decoration-break: clone` 支持跨行，改成 inline-block 又会让窄屏的长文本整段
    不换行（横向溢出）。所以改成给容器加面。逐个确认过：
-     - `.profile h1` / `.profile_inner > span`：主题 profile-mode.css 里 `.profile_inner` 是
-       flex 列，两者是 flex 子项、本身已是块级盒；
-     - `.home-scale`（2026-09-19 新增的「站点规模」那行）：`.profile_inner` 的 flex 子项，
-       块级盒（`<p>`），且它是 `.profile_inner` 里**唯一直接压在壁纸上的文字** —— 不进这张表
-       就是拿 --secondary 直接写在画面上；
-     - `.home-recent-head h2` / `a`：`.home-recent-head` 是 flex 行（09-home.css），同理；
-     - `.home-browse-head h2` / `a` / `.home-browse-label`（2026-09-19 新增的「按类浏览」）：
-       同样在 flex 行里；分类/标签的 chip 自己有不透明的 --surface 底，不必再进这里；
+     - `.profile h1` / `.home-hero > span`：主题 profile-mode.css 里 `.profile_inner` 是
+       flex 列，两者是 flex 子项、本身已是块级盒。**副标题那条 2026-09-19 从
+       `.profile_inner > span` 改来** —— 首页两栏布局给 hero 加了一层 `.home-hero` 容器，
+       副标题不再是 `.profile_inner` 的直接子项。这类选择器「结构一变就静默失配」（不报错、
+       只是保护没了），改首页版式后必须重跑对比度脚本，别只看页面像不像坏了；
+     - `.home-scale`（「站点规模」那行）：在 `.home-hero` 里、仍然直接压在壁纸上，照旧要底衬；
+     - `.home-recent-head h2` / `a`、`.home-browse-head h2` / `a` / `.home-browse-label`：
+       **2026-09-19 从这张表里删掉了** —— 那两块现在各自是一块不透明的 `--surface` 面板，
+       标题已经在面板里，再叠一层玻璃底衬就是「玻璃片上贴玻璃片」；
      - `.course-group-heading` / `.course-*.heading` / `.terms-*.title` / `.not-found-hint` /
        `.footer-rss`：本来就是块级元素；
      - `.footer > span` 是行内，所以**页脚走整条 footer**（上面那条规则），不再给 span 单独加底衬；
@@ -333,13 +345,8 @@ body::after {
 
    改这里的任何 alpha、或改 hugo.toml 的蒙版，都要重跑 `.shots/girlbg/measure.py both`。 */
 :is(.profile h1,
-    .profile_inner > span,
+    .home-hero > span,
     .home-scale,
-    .home-recent-head h2,
-    .home-recent-head a,
-    .home-browse-head h2,
-    .home-browse-head a,
-    .home-browse-label,
     .course-group-heading,
     .course-index-heading,
     .course-entries-heading,

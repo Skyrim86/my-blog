@@ -1,20 +1,45 @@
 /* ============================================
    首页（Profile Mode）：头像、快捷入口、站点规模、按类浏览、最近更新
    模板见 layouts/_partials/index_profile.html（覆盖主题同名 partial）
-   与 layouts/_partials/home-extras.html（规模 + 按类浏览两块）
+   与 layouts/_partials/home-scale.html、home-extras.html
+
+   结构（2026-09-19 起）：
+     .profile_inner
+       .home-hero      头像 / 标题 / 副标题 / 社交图标 / 快捷入口 / 站点规模 / buttons
+       .home-side      .home-browse（按类浏览）+ .home-recent（最近更新）
+   两块内容各自是一块**玻璃面板**（--surface + 1px --edge + 14px 圆角 + 投影）。之前它们是散在
+   壁纸上的：每个 chip、每条「最近更新」各自带一小块 --surface 底、各自的标题再各叠一层玻璃底衬，
+   一层压一层 —— 观感像散落的小盒子，代价是首页有二十来个 backdrop-filter 元素。改成两块面板
+   之后，里面的条目变成「面板上的透明行 + 细线」，层数少了一层，backdrop-filter 也从二十来个
+   降到 2 个（面板自己）。
+   两块的标题因此**从 00-theme.css 的局部玻璃底衬清单里删掉了**（已经在面板里）。
+   `.home-scale` 仍直接压在壁纸上，那条底衬保留。
+
+   ≥1024px 是两栏：左栏 20rem 放 hero，右栏放两块面板。窄屏仍是单列（与 2026-09-19 之前一致），
+   只是间距整体收紧了一档 —— 目标是「1080p 首屏装得下整页」。
    ============================================ */
 
 /* 主题把 profile 区撑到一屏高；首页现在还有下面几块，改成自然高度。
-   padding 从 3rem/2rem 收到 2.2rem/1.2rem：新增了两块内容之后，hero 留白太多会把
-   「最近更新」挤到首屏之外（首页真正的内容在那里）。 */
+   padding 从 3rem/2rem → 2.2rem/1.2rem → **1.6rem/.9rem**（2026-09-19 再收一档）：
+   上面 hero 与下面两块面板是同一屏里的三段，hero 每多留一分白，「最近更新」就往下走一分。 */
 .main .profile {
   min-height: auto;
-  padding: 2.2rem 0 1.2rem;
+  padding: 1.6rem 0 .9rem;
 }
 
 .profile .profile_inner {
   width: 100%;
-  gap: 1rem;
+  gap: .85rem;
+}
+
+/* hero 容器（模板里那层 .home-hero）：在窄屏就是原来的 .profile_inner 那份「居中竖排」，
+   换成它自己承担，于是两栏时整块能作为一个整体挪到左栏。 */
+.home-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .85rem;
+  width: 100%;
 }
 
 /* 头像的**光环不在这里**：那是纯装饰，统一放在 13-ornament.css（那一条是 `.profile-avatar`
@@ -22,21 +47,24 @@
    后加载的装饰层把它整个盖掉了，留着只会让人以为头像样式应该改这里（2026-09-19 删）。 */
 
 .profile h1 {
-  font-size: 2rem;
+  font-size: 1.85rem;
   letter-spacing: .02em;
   margin: 0;
 }
 
-.profile_inner > span {
+/* 副标题的选择器是 `.home-hero > span`，**不是** `.profile_inner > span`：加了 hero 容器之后
+   它不再是 .profile_inner 的直接子项。00-theme.css 的玻璃底衬清单里那条同步改过了 ——
+   这两处是同一个元素的两份规则，改一处忘一处都不会报错，只是保护或动效静默失效。 */
+.home-hero > span {
   color: var(--secondary);
   letter-spacing: .04em;
 }
 
 /* 没配 site.Params.socialIcons 时，主题的 social_icons.html 会输出一个空 div，
-   而 .profile_inner 是 gap 布局 —— 空的 flex 项照样占一份 gap（首页多出约 1rem 的空白）。
+   而 hero 是 gap 布局 —— 空的 flex 项照样占一份 gap（首页多出约 1rem 的空白）。
    用 :empty 收掉，比删模板里的 partial 调用好：不新增与主题原版的差异处，
    将来配了社交账号又自动生效。 */
-.profile_inner .social-icons:empty {
+.home-hero .social-icons:empty {
   display: none;
 }
 
@@ -45,7 +73,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: .55rem;
+  gap: .45rem;
   max-width: 640px;
 }
 
@@ -54,7 +82,7 @@
   align-items: center;
   padding: .38rem .95rem;
   border-radius: 999px;
-  border: 1px solid var(--surface-border);
+  border: 1px solid var(--edge);
   background: var(--surface);
   font-size: .92rem;
   color: var(--secondary);
@@ -78,7 +106,7 @@
 /* 首页自带的按钮（hugo.toml 的 profileMode.buttons）与 pill 统一观感 */
 .profile .button {
   background: var(--surface);
-  border: 1px solid var(--surface-border);
+  border: 1px solid var(--edge);
   border-radius: 999px;
   padding: .42rem 1.1rem;
   font-size: .95rem;
@@ -99,13 +127,27 @@
   letter-spacing: .02em;
 }
 
-/* ---------- 「按类浏览」与「最近更新」两块共用一套区块头 ---------- */
+/* ---------- 右栏容器 + 两块面板 ---------- */
+.home-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  width: 100%;
+}
+
 .home-browse,
 .home-recent {
   width: 100%;
   max-width: calc(var(--main-width) + 40px);
-  margin: 1.7rem auto 0;
+  margin-inline: auto;
+  padding: 1rem 1.15rem 1.05rem;
   text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: saturate(135%) blur(16px);
+  -webkit-backdrop-filter: saturate(135%) blur(16px);
 }
 
 .home-browse-head,
@@ -114,7 +156,7 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
-  margin-bottom: .85rem;
+  margin-bottom: .6rem;
 }
 
 .home-browse-head h2,
@@ -137,7 +179,7 @@
   color: var(--accent);
 }
 
-/* ---------- 按类浏览：分类 / 标签 各一行 chip ----------
+/* ---------- 按类浏览：分类 / 标签各一行 chip ----------
 
    两行用**网格**而不是 flex：标签名（2~3 个字）与「分类」「标签」的宽度不同，
    flex 排下来两行的 chip 起点会错开，标签行还会把标签名留在上一行、chip 掉到下一行看着像串行。
@@ -145,12 +187,12 @@
 .home-browse-row {
   display: grid;
   grid-template-columns: 2.9rem 1fr;
-  gap: .45rem .7rem;
+  gap: .4rem .7rem;
   align-items: baseline;
 }
 
 .home-browse-row + .home-browse-row {
-  margin-top: .5rem;
+  margin-top: .45rem;
 }
 
 .home-browse-label {
@@ -169,22 +211,22 @@
   list-style: none;
 }
 
+/* chip 在面板里：底交给面板，自己只留一道极淡的发丝边（--rule，比 --edge 更淡）——
+   悬停/聚焦才亮出蔷薇边。底不再单独铺 --surface：面板已经是那个面，再铺一层就是叠玻璃。 */
 .home-chip {
   display: inline-flex;
   align-items: center;
   gap: .35rem;
   padding: .2rem .6rem;
   border-radius: 999px;
-  border: 1px solid var(--surface-border);
-  /* 压在壁纸上的文字要有一层底：--surface 与「最近更新」条目同一档（对比度实测见
-     00-theme.css 开头与 features.md ⑫，--secondary 压 --surface 最低 4.54:1） */
-  background: var(--surface);
+  border: 1px solid var(--rule);
   font-size: .82rem;
   color: var(--secondary);
   transition: color .2s ease, border-color .2s ease, transform .2s ease;
 }
 
-.home-chip:hover {
+.home-chip:hover,
+.home-chip:focus-visible {
   color: var(--accent);
   border-color: var(--accent);
   transform: translateY(-1px);
@@ -202,28 +244,29 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: .6rem;
+  /* 285px 而不是原来的 300px：两栏布局下右栏在 1024px 视口只有 624px 宽，扣掉面板内边距与
+     列间距后，2 列需要 285×2+8 = 578 ≤ 587 才成立（300px 时差 0.8px，正好掉成一列，
+     而 1024 是 iPad 横屏的宽度）。 */
+  grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+  gap: .3rem .5rem;
 }
 
+/* 条目是「面板上的一行」：透明底、自己不带边，悬停/聚焦时铺一层比面板略深的中性底。
+   底用 --code-bg（不透明中性色）而不是 --accent-soft：后者当底会把文字对比度拉下来 ——
+   00-theme.css 与 features.md ⑫ 记过这个坑（列表激活态拿它当底，实测 1.32:1）。 */
 .home-recent-item {
   display: flex;
   align-items: baseline;
   gap: .6rem;
-  padding: .65rem .9rem;
+  padding: .5rem .7rem;
   border-radius: 10px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface);
-  backdrop-filter: saturate(135%) blur(16px);
-  -webkit-backdrop-filter: saturate(135%) blur(16px);
-  transition: border-color .2s ease, transform .2s ease;
+  transition: background-color .2s ease;
 }
 
-/* 补 :focus-within，理由同 .course-index-item：键盘焦点也要有与鼠标一致的抬升反馈 */
+/* 补 :focus-within，理由同 .course-index-item：键盘焦点也要有与鼠标一致的反馈 */
 .home-recent-item:hover,
 .home-recent-item:focus-within {
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  background: var(--code-bg);
 }
 
 .home-recent-link {
@@ -268,10 +311,44 @@
   margin: 0;
   padding: .9rem 1rem;
   border-radius: 10px;
-  border: 1px dashed var(--surface-border);
-  background: var(--surface);
+  border: 1px dashed var(--edge);
   font-size: .88rem;
   color: var(--secondary);
+}
+
+/* ---------- ≥1024px：两栏 ----------
+
+   容器放宽到与顶栏同宽（--nav-width 1024 + 两侧 --gap，共 1072）—— 两边都是 margin:auto，
+   于是正文的左右边缘与导航栏对齐。**只认首页**：.main 是全站共享的（:has() 在 01-cards.css
+   已有先例）。
+
+   列宽 20rem + 2rem 间距 + 剩余给右栏：1024px 内容区下右栏拿到 672px，「最近更新」仍是两列。
+   两个直接子项（hero / side）各占一格、align-items: start —— 高度不互相拉扯，
+   右栏内部由 .home-side 自己的 gap 排两块面板，不与左栏的高低联动。 */
+@media (min-width: 1024px) {
+  main.main:has(.home-recent) {
+    max-width: calc(var(--nav-width) + var(--gap) * 2);
+  }
+
+  .profile .profile_inner {
+    display: grid;
+    grid-template-columns: 20rem minmax(0, 1fr);
+    column-gap: 2rem;
+    align-items: start;
+  }
+
+  .home-hero {
+    grid-column: 1;
+  }
+
+  .home-side {
+    grid-column: 2;
+  }
+
+  .home-browse,
+  .home-recent {
+    max-width: none;
+  }
 }
 
 /* ---------- 入场：一次性淡入，阶梯延迟（首页专属，只在首屏出现一次）----------
@@ -302,7 +379,7 @@
   }
 
   .profile h1,
-  .profile_inner > span,
+  .home-hero > span,
   .profile-links,
   .home-scale,
   .home-browse,
@@ -311,7 +388,7 @@
   }
 
   .profile h1 { animation-delay: .04s; }
-  .profile_inner > span { animation-delay: .08s; }
+  .home-hero > span { animation-delay: .08s; }
   .profile-links { animation-delay: .12s; }
   .home-scale { animation-delay: .16s; }
   .home-browse { animation-delay: .2s; }
@@ -336,16 +413,20 @@
     font-size: 1.6rem;
   }
 
-  .home-browse,
-  .home-recent {
-    margin-top: 1.4rem;
-  }
-
   .home-recent-list {
     grid-template-columns: 1fr;
   }
 
   .home-recent-item {
-    padding: .55rem .75rem;
+    padding: .45rem .6rem;
+  }
+
+  /* 窄屏把模糊减半：观感几乎不变（本来就看不清底下是什么），但光栅化开销明显更低。
+     与 .post-single 那条同款处理（08-reader.css）。 */
+  .home-browse,
+  .home-recent {
+    padding: .85rem .95rem .9rem;
+    backdrop-filter: saturate(135%) blur(10px);
+    -webkit-backdrop-filter: saturate(135%) blur(10px);
   }
 }

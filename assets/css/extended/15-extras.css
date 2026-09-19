@@ -45,7 +45,9 @@
 
 .not-found-links a {
   padding: .45rem 1.05rem;
-  border: 1px solid var(--surface-border);
+  /* 控件边统一走 --edge（见 00-theme.css 开头；原先的 --surface-border 只有 8% 不透明度，
+     这几个胶囊看着像没有边框的纯文字） */
+  border: 1px solid var(--edge);
   border-radius: 999px;
   background: var(--surface);
   color: var(--primary);

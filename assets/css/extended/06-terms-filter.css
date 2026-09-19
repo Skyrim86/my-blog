@@ -4,6 +4,20 @@
    输入框本身的样式复用主题的 .searchbox input，这里只写它需要的补充规则。
    ============================================ */
 
+/* 词条胶囊本身走主题的 .terms-tags a（--tertiary 实底 + 圆角），这里只补一条 2026-09-19 的
+   悬停反馈：亮出一圈蔷薇边。**用 box-shadow 画环、不用 border**：主题那份没有 border，
+   加一条会让胶囊宽高各涨 2px，而这些胶囊是 flex-wrap 排的 —— 悬停时整行会跟着重排、抖动。
+   平时不画（border-color: transparent 那种「时时留一条透明边」的做法在这里反而会占宽度）。 */
+.terms-tags a {
+  transition: box-shadow .18s ease, color .18s ease;
+}
+
+.terms-tags a:hover,
+.terms-tags a:focus-visible {
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 /* 输入框与下方词条列表的间距（.terms-tags 自带 margin-top） */
 .terms-filter-box {
   margin-bottom: 0.25rem;

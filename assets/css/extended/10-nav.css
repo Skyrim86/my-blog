@@ -1,18 +1,41 @@
 /* ============================================
-   导航与分页的交互
+   导航、分页与顶栏控件的交互
 
-   一、菜单项的悬停反馈（2026-09-18 补）
+   一、菜单项：悬停 / 当前页（2026-09-18 首版，2026-09-19 换成药丸边）
    主题只写了 .menu .active（当前页），**从来没有 .menu a:hover** —— 实测真实鼠标移上去时
    color / background / text-decoration / opacity 全都不变，8 项主导航点上去毫无反馈。
-   这里按 .active 的视觉语言补一套：同样用 2px 下划线 + 同样偏移，但换成强调色，
-   这样「悬停」与「当前页」不会混为一谈（后者保留 --primary 字色 + 500 字重）。
-   刻意不动 padding：菜单是 flex 行 + column-gap 布局，加内边距会改宽度、让换行点提前。
+   现在补的是「悬停亮出蔷薇边」：默认 border 透明（有边但不画），悬停/键盘聚焦时变 --accent。
+   当前页仍走主题那份下划线 + 500 字重 —— 下划线 = 我在哪，药丸边 = 鼠标在哪，两者不混。
 
-   二、分页按钮（2026-09-18 补）
-   主题的 .pagination a 是个反色药丸（--primary 底 + --theme 字），同样没有悬停态。
-   只换底色不换尺寸，避免翻页时按钮跳动。
+   **药丸形状需要左右内边距，而 features.md ㊱ 与本仓库的既有结论都写明「不要动 padding/gap」**：
+   菜单是 flex 行，加内边距会让换行点提前。这里用一组等式把它抵消掉，让行宽**逐像素不变**：
+       原来：文字总宽 + 7 × 24px 间距
+       现在：文字总宽 + 8 × (2×7px) 内边距 + 7 × 8px 间距
+       8×14 = 112 = 7×(24-8) = 112  ✓ 两边相等（菜单项 8 个，间距 7 段）
+   为什么非要这么抠：1024px 视口下菜单只剩十几像素余量（实测基线：logo 292.4 + 间距 24 + 菜单
+   625.2 = 941.6，内容区 976），再往下（约 990px）就已经要靠 `overflow-x: auto` 横向滚了。
+   所以**边只能用 box-shadow 画、不能用 border** —— 那 2px/项 会把配平吃掉（踩过，见下面的注释）。
+   **改菜单项数量必须重新配平**（n 项要满足 14n = 16(n-1) 才成立，n=8 是唯一整数解 ——
+   也就是说项数一变就得改内边距或间距，不能只改一个数）。
+   纵向不受影响：菜单项高度由 line-height 决定，而顶栏高度是 .logo 那一支撑的（同样 60px）。
 
-   三、窄屏导航折叠
+   二、分页按钮（2026-09-18 首版，2026-09-19 改形）
+   主题的 .pagination a 是个反色药丸（--primary 底 + --theme 字），也没有悬停态；首版只补了
+   「悬停换底色」，并注明「只换底色不换尺寸，避免翻页时按钮跳动」（那条结论现在仍然要守：
+   所以边是 inset box-shadow、不是 border，见下面那一段）。
+   2026-09-19 改成与站点其它药丸（快捷入口、首页 chip、列表筛选）同族的形态：--surface 底 +
+   1px --edge 常驻环 + 悬停换环色与字色。理由是全站「选项」类控件统一成一套边（见 00-theme.css
+   的 --edge 注释），反色实心药丸在这套语言里是唯一的例外。**代价要认清**：`--primary` 字压在
+   `--accent` 底上只有约 1.9:1（浅色），所以悬停**不能**沿用旧写法「底变 --accent、字不动」——
+   改成只换环色与字色，文字始终压在 --surface 上（--accent 压 --surface 是量过的正文级对比度）。
+
+   三、顶栏的图标按钮（明暗 / 背景套 / 窄屏菜单）：一副形状
+   三者都是「顶栏里一个 17~18px 图标的方形按钮」，而此前只有窄屏那个有边框 —— 主题的
+   #theme-toggle 被 core/reset.css 清掉了边框与底色、主题只给了 padding: 0 .4rem，
+   注入的 .bg-switch 复用了同一个类。这里统一成 34×34 + 圆角 8px + 1px --edge，
+   悬停换 --accent（与菜单项同一套反馈）。
+
+   四、窄屏导航折叠
    - 起因：主题这份 PaperMod 的 #menu 在窄屏是 flex-wrap 换行，8 个菜单项折成两行，
      顶栏被顶高、正文被往下推。
    - 折叠逻辑在 assets/js/nav-toggle.js：它给 <html> 加 .has-nav-toggle 并插入按钮，
@@ -20,32 +43,84 @@
    - 断点与主题的 .header-nav 移动端断点保持一致（640px）。
    ============================================ */
 
-/* ---------- 菜单项悬停 ---------- */
+/* ---------- 菜单项：悬停亮出蔷薇边 ---------- */
+.menu {
+  /* 配平等式见文件头「一」：14px/项 与 24px→8px 的间距正好抵消，行宽不变 */
+  column-gap: 8px;
+  /* 顶栏那一行是 60px 高（.header-nav 的 line-height），药丸只占 ~37px，要自己居中 */
+  align-items: center;
+}
+
 .menu a {
-  transition: color .18s ease;
+  padding: .28rem 7px;
+  line-height: 1.75;
+  border-radius: 999px;
+  /* 边用 box-shadow 画、不用 border：border 会占进盒尺寸，每项多 2px —— 配平就毁了
+     （实测：加 border 之后菜单从 625.2 涨到 641.2，抵消掉的那 112px 只回来 96px）。
+     同一个理由，00-theme.css 的玻璃底衬也是用 inset box-shadow 画那道亮边。
+     环画在盒外 1px，观感与 border 一致，宽度不算进布局。 */
+  box-shadow: 0 0 0 1px transparent;
+  transition: color .18s ease, box-shadow .18s ease;
 }
 
 .menu a:hover {
   color: var(--accent);
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 0.3rem;
-  text-decoration-thickness: 2px;
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
-/* 当前页标记（主题那份）保持原样，只声明优先级关系：悬停在当前页上也走强调色，
-   否则「点自己」会看起来像没反应。 */
+/* 当前页标记（主题那份下划线 + 500 字重）保持原样，只声明优先级关系：悬停在当前页上也走
+   强调色，否则「点自己」会看起来像没反应。 */
 .menu .active:hover {
   color: var(--accent);
 }
 
 /* ---------- 分页 ---------- */
 .pagination a {
-  transition: background-color .18s ease;
+  color: var(--primary);
+  font-weight: 500;
+  background: var(--surface);
+  /* 边用 inset box-shadow 而不是 border：主题那套尺寸是算好的（line-height 36 + 圆角 18），
+     加 1px border 会把药丸撑到 38px 高、圆角也跟着不成正圆。inset 环不占尺寸，
+     高度仍是 36px —— 与首版「只换底色不换尺寸」那条结论保持一致。 */
+  box-shadow: inset 0 0 0 1px var(--edge);
+  transition: color .18s ease, box-shadow .18s ease;
 }
 
 .pagination a:hover {
-  background: var(--accent);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* ---------- 顶栏图标按钮：明暗 / 背景套 / 窄屏菜单 ---------- */
+:is(#theme-toggle, .bg-switch, .nav-toggle) {
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  /* min-height 必须显式写：主题 `.logo-switches > * { min-height: inherit }` 会从
+     `.logo-switches` 的 `min-height: stretch` 继承出一个「撑满交叉轴」的最小高度，
+     把这两个按钮拉成 34×60（顶栏整高）而 height 被它压过去 —— 观感是两个竖长的方块，
+     与窄屏那个 34×34 的菜单按钮不成一套（实测踩到）。 */
+  min-height: 34px;
+  padding: 0;
+  color: var(--primary);
+  background: transparent;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease;
+}
+
+:is(#theme-toggle, .bg-switch, .nav-toggle):hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* 注入的 svg 是行内元素，不改成 block 会多出一条基线缝（背景套按钮原先单独写过，
+   现在两个按钮一起处理） */
+:is(#theme-toggle, .bg-switch) svg {
+  display: block;
 }
 
 .nav-toggle {
@@ -55,21 +130,6 @@
 @media (max-width: 640px) {
   .has-nav-toggle .nav-toggle {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    color: var(--primary);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-  }
-
-  .has-nav-toggle .nav-toggle:hover {
-    border-color: var(--secondary);
   }
 
   .has-nav-toggle #menu {
@@ -92,7 +152,7 @@
 
   .has-nav-toggle #menu.is-open a {
     display: block;
-    padding: 2px 0;
+    padding: 2px 7px;
     line-height: 1.7;
     font-size: 0.97rem;
   }

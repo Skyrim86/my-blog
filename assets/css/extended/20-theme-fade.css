@@ -1,0 +1,49 @@
+/* ============================================
+   明暗切换时的过渡（施加时机与壁纸交叉淡入在 assets/js/theme-fade.js）
+
+   主题的明暗是 `<html data-theme>` 上的一次属性翻转，CSS 变量瞬间改值 → 全站硬切。这里做的
+   是「切换的那 300ms 里，给颜色类的属性补一条过渡」—— 类由脚本在翻转的同一帧加上、320ms
+   后移除，所以**平时这份样式不生效**，只有切换窗口内生效。
+
+   四条刻意的写法：
+
+   一、**只在切换窗口内挂 `transition`，不用全局常驻**。常驻会让所有颜色变化（悬停、聚焦、
+       状态切换）都带上 300ms，交互会显得发粘；而 `*` 选择器常驻还等于给每个元素都注册一个
+       过渡属性，滚动与重排路径上白白多一遍匹配。
+
+   二、**必须 `!important`**：组件自己写了 `transition`（01-cards 的卡片阴影、10-nav 的菜单、
+       09-home 的首页条目…），同一元素上 `transition` 是单值属性、后写的整条生效 —— 不加
+       `!important` 就会按「谁的选择器更靠后」随机决定过不过渡，表现是切换时一部分元素淡、
+       一部分跳。代价是这 300ms 内组件的悬停过渡被顶掉（悬停会瞬时生效），窗口外的行为不变。
+
+   三、**必须排除 `.bg-ghost`**（`*:not(.bg-ghost)`）：那一层是壁纸交叉淡入用的临时图层，
+       它自己有一条 `transition: opacity 250ms`，被这里的 `!important` 顶掉之后就**只剩
+       `background-color` 之类的过渡、没有 opacity** —— 淡出会变成瞬间消失，交叉淡入整个失效，
+       而且不报错。这条是本文件与 bg-switch.js 之间唯一的耦合点。
+
+   四、**属性只列颜色类**：`transform` / `width` 这些不进列表 —— 进了会把首页的入场动效与
+       卡片的悬停抬升一起搅进这 300ms。渐变（`background-image`）是离散属性、过渡不插值，
+       所以壁纸那层用 ghost 图层做交叉淡入，不在这里写 `background-image`。
+
+   时长与 20 的类移除时间要对齐：脚本 320ms 收类，CSS 300ms —— 差这 20ms 是为了让过渡跑完
+   再撤掉声明，撤早了后半段会跳。改这里要同步改 assets/js/theme-fade.js 的 FADE_MS。 */
+html.theme-fading *:not(.bg-ghost),
+html.theme-fading *:not(.bg-ghost)::before,
+html.theme-fading *:not(.bg-ghost)::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    fill 300ms ease,
+    stroke 300ms ease,
+    outline-color 300ms ease,
+    text-decoration-color 300ms ease,
+    box-shadow 300ms ease !important;
+}
+
+/* 兜底：脚本在 reduced-motion 下根本不加这个类，这条是防「切换中途改了系统设置」 */
+@media (prefers-reduced-motion: reduce) {
+  html.theme-fading *:not(.bg-ghost) {
+    transition: none !important;
+  }
+}

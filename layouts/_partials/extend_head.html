@@ -268,6 +268,15 @@
         data-search-input-label="{{ i18n "searchInputLabel" }}"
         data-search-results-label="{{ i18n "searchResultsLabel" }}"></script>
 
+{{- /* 明暗切换的过渡：主题的属性翻转是瞬时的，这里补颜色过渡 + 壁纸交叉淡入。
+       判据与主题自己用的一致（themes/PaperMod/layouts/_partials/footer.html 与 header.html
+       都看这个开关），关掉了明暗按钮时不必加载。脚本无文案、无 data-*，样式在
+       assets/css/extended/20-theme-fade.css。 */ -}}
+{{- if not site.Params.disableThemeToggle }}
+{{- $themeFade := resources.Get "js/theme-fade.js" | minify | fingerprint }}
+<script defer src="{{ $themeFade.RelPermalink }}" integrity="{{ $themeFade.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}
+
 {{- /* 搜索快捷键（Ctrl/⌘+K，或不在输入框时按 "/"）：全站加载，脚本本身很小。
        搜索页 URL 由 relLangURL 拼出，站点换子路径不用改脚本。 */ -}}
 {{- $searchKey := resources.Get "js/search-shortcut.js" | minify | fingerprint }}

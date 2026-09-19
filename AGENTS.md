@@ -50,19 +50,19 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | Giscus 评论 + 主题跟随 | `layouts/_partials/comments.html`、`assets/js/giscus-theme-sync.js` | [`docs/features.md`](docs/features.md) |
 | 系列文章导航 | `_partials/series-posts.html`、`03-widgets.css` | 同上 |
 | 课程主页 / 章节入口页（材料按 笔记/习题/实验 分组，组别取**目录名**） | `layouts/courses/course.html`、`chapter.html`、`_partials/course-*.html`、`04-course.css` | [`docs/content.md`](docs/content.md) 第 2 节 |
-| 站点背景（可切换的多套：黑长直少女 / 城市）+ 每套的蒙版 + 压在壁纸上的**局部玻璃底衬**（含页脚整条）与玻璃质感层 | `hugo.toml` 的 `[params.appearance].presets`、`layouts/_partials/extend_head.html`（生成 `css/bg-image.css` 与首屏前置脚本）、`00-theme.css` 的 `body::before`（蒙版）与 `body::after`（质感层）及末尾的底衬清单、`assets/js/bg-switch.js` + `18-bg-switch.css`、`tools/backgrounds/make-backgrounds.py`（**生成产物，不要手改 assets/images/bg-*.webp**） | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（含 24 组对比度实测、三条硬约束与出处） |
+| 站点背景（可切换的多套：黑长直少女 / 城市）+ 每套的蒙版 + 压在壁纸上的**局部玻璃底衬**（含页脚整条）与玻璃质感层 | `hugo.toml` 的 `[params.appearance].presets`、`layouts/_partials/extend_head.html`（生成 `css/bg-image.css` 与首屏前置脚本）、`00-theme.css` 的 `body::before`（蒙版）与 `body::after`（质感层）及末尾的底衬清单、`assets/js/bg-switch.js`（按钮的形状与悬停 2026-09-19 起在 `10-nav.css` 的「顶栏图标按钮」一节，`18-bg-switch.css` 已只剩说明）、`tools/backgrounds/make-backgrounds.py`（**生成产物，不要手改 assets/images/bg-*.webp**） | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（含 24 组对比度实测、三条硬约束与出处） |
 | 右下角看板娘（透明底抠图） | `_partials/extend_footer.html`、`14-mascot.css`、`tools/backgrounds/make-mascot.py`（**生成产物，不要手改 assets/images/mascot.webp**） | [`docs/features.md`](docs/features.md) 第 3 节 ㉕ |
 | 项目元信息（技术栈 + 源码） | `_partials/project-meta.html`、`05-project.css` | [`docs/content.md`](docs/content.md) |
 | 相关内容区块 | `_partials/related-content.html`、`07-related.css` | [`docs/features.md`](docs/features.md) |
 | 词条筛选框 | `assets/js/terms-filter.js`、`06-terms-filter.css` | 同上 |
 | 搜索索引 | `layouts/index.json` + `hugo.toml` 的 `fuseOpts.keys`（**改一处必须同步另一处**） | 同上 |
-| 站点外观（配色 / 深色令牌 / 面板透亮度 / 装饰层） | `assets/css/extended/00-theme.css`、`03`…`13` 组件样式 | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（令牌）与 ㉔（装饰层） |
+| 站点外观（配色 / 深色令牌 / 面板透亮度 / 控件细边 `--edge` / 装饰层 / **明暗切换的过渡**） | `assets/css/extended/00-theme.css`、`03`…`13` 组件样式、`20-theme-fade.css` + `assets/js/theme-fade.js`（切换过渡） | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（令牌、24 组对比度实测、过渡的实测代价）与 ㊱（导航/分页的交互） |
 | 图标（favicon / apple-touch / 桌面快捷方式）与**导航栏的像素小人** | `tools/icons/make-icons.py`（**生成产物，不要手改 `static/` 下的 png/ico，也不要手改 `assets/images/nav/*.png`**）；图标位在 `hugo.toml` 菜单的 `pre` 字段、接线在 `extend_head.html`、样式在 `19-nav-px.css` | [`docs/architecture.md`](docs/architecture.md) 第 6 节 |
 | 阅读进度条 / 目录当前项 | `assets/js/reading-progress.js`、`08-reader.css` | 同上 |
 | 无障碍（跳过链接 / 动态列表播报 / 主题英文可访问名本地化 / `sr-only`） | `layouts/baseof.html`（第 7 处覆盖）、`assets/css/extended/17-a11y.css`、`assets/js/a11y-announce.js`、`assets/js/a11y-controls.js`（改主题模板里写死的 `aria-label`，不覆盖模板）、`terms-filter.js` 与 `list-tools.js` 里的 `role="status"` | [`docs/features.md`](docs/features.md) 第 4 节 |
 | JSON-LD 结构化数据（删 `articleBody`、零值日期、`@type`） | `layouts/_partials/templates/schema_json.html`（第 8 处覆盖，逐字保留主题实现，共三处差异） | [`docs/features.md`](docs/features.md) 第 4 节第 8 条 + ㉟ |
 | 正文横向溢出（行间公式滚动）/ 导航与分页悬停 | `assets/css/extended/08-reader.css`、`10-nav.css`，卡片的 `:focus-within` 在 `04`/`05`/`09` | [`docs/features.md`](docs/features.md) ㊱ |
-| 首页（头像 / 快捷入口 / 站点规模 / 按类浏览 / 最近更新 / 入场动效） | `_partials/index_profile.html`（整份覆盖）+ `_partials/home-extras.html`（后两块整块在这里）、`09-home.css`、`hugo.toml` 的 `[params.home]` | [`docs/features.md`](docs/features.md) ⑮ |
+| 首页（头像 / 快捷入口 / 站点规模 / 按类浏览 / 最近更新 / 入场动效 / ≥1024px 两栏） | `_partials/index_profile.html`（整份覆盖）+ `_partials/home-scale.html`（站点规模）+ `_partials/home-extras.html`（按类浏览）、`09-home.css`、`hugo.toml` 的 `[params.home]` | [`docs/features.md`](docs/features.md) ⑮ |
 | 搜索快捷键（`Ctrl+K` / `/`）/ 搜索页 `?q=` 预填 | `assets/js/search-shortcut.js` | 同上 |
 | 数学公式（构建期 KaTeX） | `layouts/_markup/render-passthrough.html`、`static/katex/` | [`docs/formulas.md`](docs/formulas.md) |
 | 公式机械修复（`\*` → `*`、`§` → `\S`、圈号 → `\text{\textcircled{N}}`） | `scripts/fix-math-escapes.mjs`（管理页保存/新建与 `push-blog.sh` 都调它；`--selftest` 自测规则） | 同上 |

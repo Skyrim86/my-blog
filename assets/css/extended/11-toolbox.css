@@ -121,13 +121,13 @@
   line-height: 1.85;
   color: var(--secondary);
   background: var(--entry);
-  border: 1px solid var(--border);
+  border: 1px solid var(--edge);
   border-radius: 999px;
   cursor: pointer;
 }
 
 .tb-chip:hover {
-  border-color: var(--secondary);
+  border-color: var(--accent);
 }
 
 .tb-chip.is-active {
