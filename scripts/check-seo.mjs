@@ -13,7 +13,7 @@
 //
 // 用法：node scripts/check-seo.mjs [输出目录]     默认 public
 // 退出码：0 = 全部通过；1 = 有发现（CI 里按「只警告」接入，见 .github/actions/validate/action.yml）
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 // 第一个非选项参数是输出目录。这里比 check-links.mjs 多一层过滤：某些 Windows 上的 node
@@ -167,10 +167,70 @@ if (!existsSync(rssPath)) {
   console.log(`  · index.xml：${items.length} 条 item`);
 }
 
+// ---------- 5. 页面里的 JSON-LD ----------
+// 起因：结构化数据是「坏了也不报错」的典型 —— 删字段时留下的悬空逗号、少一个逗号、
+// 或者零值日期（0001-01-01，没有 front matter date 的页面会这样），构建全都过，
+// 爬虫那边则整块静默失效。改 layouts/_partials/templates/schema_json.html 之后必须靠这条复核
+// （docs/features.md ㉟ 原先记的就是「check-seo.mjs 不查 JSON-LD 的语法」这个缺口）。
+//
+// 用 fs 直接遍历产物，不为每个文件开子进程（AGENTS 规则 12：Windows Git Bash 里一次 fork 约 21ms）。
+const htmlFiles = [];
+(function walk(dir) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) walk(p);
+    else if (e.name.endsWith('.html')) htmlFiles.push(p);
+  }
+})(OUT);
+
+const LD_RE = /<script[^>]*type=["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi;
+const rel = (p) => p.slice(OUT.length + 1).split('\\').join('/');
+const isBlank = (v) =>
+  v === undefined || v === null || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0);
+
+let ldBlocks = 0;
+let ldPages = 0;
+let ldPostings = 0;
+let ldBad = 0;
+
+for (const file of htmlFiles) {
+  const found = [...read(file).matchAll(LD_RE)];
+  if (found.length) ldPages += 1;
+  found.forEach((m, i) => {
+    ldBlocks += 1;
+    const where = `${rel(file)} 第 ${i + 1} 个 ld+json 块`;
+    let data;
+    try {
+      data = JSON.parse(m[1]);
+    } catch (err) {
+      ldBad += 1;
+      bad('JSON-LD', `${where} 不是合法 JSON（${err.message}）—— 爬虫会整块静默忽略`);
+      return;
+    }
+    // 日期字段只在非零时才该输出：零值意味着这一页没有 date，@type 也该退回 WebPage
+    for (const key of ['datePublished', 'dateModified']) {
+      if (data[key] && /\b0001\b/.test(String(data[key]))) {
+        bad('JSON-LD', `${where} 的 ${key} 是零值日期（${data[key]}），该页没有 date 时应整行不输出`);
+      }
+    }
+    if (data['@type'] === 'BlogPosting') {
+      ldPostings += 1;
+      // 这三个是 Google 富结果看重的字段；首页/列表页的 Organization 与 BreadcrumbList 不在其列
+      for (const key of ['headline', 'author', 'image']) {
+        if (isBlank(data[key])) bad('JSON-LD', `${where}（BlogPosting）缺 ${key}`);
+      }
+    }
+  });
+}
+console.log(
+  `  · JSON-LD：${htmlFiles.length} 个 HTML 里 ${ldPages} 页共 ${ldBlocks} 块（BlogPosting ${ldPostings} 块），` +
+    (ldBad ? `${ldBad} 块语法坏` : '全部可 JSON.parse')
+);
+
 // ---------- 结果 ----------
 console.log('');
 if (problems.length === 0) {
-  console.log('✓ SEO 体检通过：sitemap / robots / 首页 meta / RSS 均正常');
+  console.log('✓ SEO 体检通过：sitemap / robots / 首页 meta / RSS / JSON-LD 均正常');
   process.exit(0);
 }
 for (const p of problems) console.log(`✗ ${p}`);

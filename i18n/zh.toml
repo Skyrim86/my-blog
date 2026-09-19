@@ -129,6 +129,31 @@ other = "展开或收起导航"
 [skipToContent]
 other = "跳到正文"
 
+# ---------- 主题模板里硬编码的英文可访问名（见 assets/js/a11y-controls.js） ----------
+# PaperMod 的 header.html / footer.html / search.html 把这几个控件的可访问名写死成英文
+# （"Toggle theme"、"go to top"、"search"、"search results"），中文站点上读屏用户听到的是英文。
+# 脚本只补属性、不覆盖主题模板（AGENTS 规则 5/10）；文案经 data-* 传进去（规则 7）。
+# 括号里的快捷键提示沿用主题的写法（Alt + T / Alt + G，与主题里那几个 accesskey 对应）。
+[themeToggleLabel]
+other = "切换深色/浅色主题"
+
+[themeToggleTitle]
+other = "切换主题 (Alt + T)"
+
+# 底部「返回顶部」链接（页脚右下角那个箭头）
+[topLinkLabel]
+other = "回到页面顶部"
+
+[topLinkTitle]
+other = "回到顶部 (Alt + G)"
+
+# 搜索页的输入框与结果列表（主题 search.html 里也是写死的英文）
+[searchInputLabel]
+other = "搜索"
+
+[searchResultsLabel]
+other = "搜索结果"
+
 # ---------- 首页（见 layouts/_partials/index_profile.html） ----------
 # 快捷入口（复用主导航，aria-label 用）
 [homeQuickLinks]

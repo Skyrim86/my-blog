@@ -72,7 +72,8 @@ my-blog/
 │       ├── terms-filter.js       # 标签/分类/系列总览页的词条筛选框
 │       ├── list-tools.js         # section / term 页的排序与标签筛选条
 │       ├── toolbox.js            # 数学/CS 卡片的引用弹窗与卡片墙筛选
-│       └── a11y-announce.js      # 搜索结果的读屏播报（只挂搜索页，见 features.md 第 4 节）
+│       ├── a11y-announce.js      # 搜索结果的读屏播报（只挂搜索页，见 features.md 第 4 节）
+│       └── a11y-controls.js      # 主题硬编码英文可访问名的本地化（全站加载，见 features.md ㉞）
 ├── content/                   # 站点内容（详见 docs/content.md）
 │   ├── about.md  search.md                       # archives.md 已于 2026-09-15 删除（见第 3 节）
 │   ├── categories/ tags/ series/ _index.md   # 三套分类法的总览页标题
@@ -106,7 +107,7 @@ my-blog/
 │   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
 │       ├── extend_head.html   #   覆盖主题 hook：JS 接线 + KaTeX 样式 + 背景图 CSS
 │       ├── google_analytics.html  #  覆盖主题缺失的 partial：**有意的空实现**（第 5 节末段）
-│       ├── templates/schema_json.html  # 覆盖主题模板：JSON-LD，只删掉 BlogPosting 的 articleBody（features.md ㉟）
+│       ├── templates/schema_json.html  # 覆盖主题模板：JSON-LD（删 articleBody + 零值日期/@type，见 features.md ㉟）
 │       ├── index_profile.html #   覆盖主题同名 partial：首页快捷入口 + 最近更新
 │       ├── post_meta.html     #   覆盖主题同名 partial：只在末尾追加一行卡片 chips
 │       ├── card-chips.html    #   列表卡片的计数 / 技术栈 chips
@@ -127,7 +128,7 @@ my-blog/
 │   ├── check-tags.sh          # 只警告：标签词表比对
 │   ├── check-katex-pairing.sh # 阻断：KaTeX 样式与 Hugo 内嵌版本是否配对
 │   ├── check-links.mjs        # 阻断：站内链接与锚点（同站绝对链接也在内）
-│   ├── check-seo.mjs          # 只警告：sitemap / robots / 首页 meta / RSS 的产物体检
+│   ├── check-seo.mjs          # 只警告：sitemap / robots / 首页 meta / RSS / 页面 JSON-LD 的产物体检
 │   ├── gen-cards.mjs          # 阻断（--check）：从 data/<库>.json 生成卡片页（CS 库用）
 │   ├── check-editor-schema.mjs# 只警告：archetypes 与管理页字段表的漂移
 │   ├── check-consistency.mjs  # 阻断：三处校验清单 / 阻断口径 / 时区 / front matter 键表的漂移
@@ -224,7 +225,7 @@ hugo --minify --gc --cleanDestinationDir   # 生产构建
 
 复合动作里的顺序是「先快后慢」，且**这份顺序就是权威**：
 
-1. 校验清单一致性（阻断）→ 2. 标签词表（警告）→ 3. front matter（阻断）→ 4. 卡片页与数据一致性（阻断）→ 5. section 结构（阻断）→ 6. 公式转义（阻断：规则自测 + 内容扫描）→ 7. 公式内容预检（阻断）→ 8. 公式真检（阻断：机制自测 + 逐条渲染）→ 9. 编辑器字段表漂移（警告）→ **构建** → 10. KaTeX 配对（阻断）→ 11. 体积预算（阻断）→ 12. 站内链接与锚点（阻断）→ 13. SEO 与订阅产物体检（警告）
+1. 校验清单一致性（阻断）→ 2. 标签词表（警告）→ 3. front matter（阻断）→ 4. 卡片页与数据一致性（阻断）→ 5. section 结构（阻断）→ 6. 公式转义（阻断：规则自测 + 内容扫描）→ 7. 公式内容预检（阻断）→ 8. 公式真检（阻断：机制自测 + 逐条渲染）→ 9. 编辑器字段表漂移（警告）→ **构建** → 10. KaTeX 配对（阻断）→ 11. 体积预算（阻断）→ 12. 站内链接与锚点（阻断）→ 13. SEO 与订阅产物（含页面 JSON-LD）体检（警告）
 
 第 10–13 项读 `public/`，所以必须排在构建之后；第 1 项只读文本文件，排最前是因为它挂了后面的检查结果就不必看。**改这份清单要同步另外两处**，否则第 1 项自己会报出来（见下）。
 

@@ -245,6 +245,18 @@
 <script defer src="{{ $navToggle.RelPermalink }}" integrity="{{ $navToggle.Data.Integrity }}" crossorigin="anonymous"
         data-label="{{ i18n "navToggleLabel" }}"></script>
 
+{{- /* 主题模板里硬编码的英文可访问名（#theme-toggle / #top-link / 搜索页的输入框与结果列表）本地化：
+       不覆盖主题模板（AGENTS 规则 5/10），改为由脚本补属性；文案经 data-* 传入（规则 7）。
+       全站加载（很小），页面上没有对应元素时脚本自己跳过。 */ -}}
+{{- $a11yControls := resources.Get "js/a11y-controls.js" | minify | fingerprint }}
+<script defer src="{{ $a11yControls.RelPermalink }}" integrity="{{ $a11yControls.Data.Integrity }}" crossorigin="anonymous"
+        data-theme-toggle-label="{{ i18n "themeToggleLabel" }}"
+        data-theme-toggle-title="{{ i18n "themeToggleTitle" }}"
+        data-top-link-label="{{ i18n "topLinkLabel" }}"
+        data-top-link-title="{{ i18n "topLinkTitle" }}"
+        data-search-input-label="{{ i18n "searchInputLabel" }}"
+        data-search-results-label="{{ i18n "searchResultsLabel" }}"></script>
+
 {{- /* 搜索快捷键（Ctrl/⌘+K，或不在输入框时按 "/"）：全站加载，脚本本身很小。
        搜索页 URL 由 relLangURL 拼出，站点换子路径不用改脚本。 */ -}}
 {{- $searchKey := resources.Get "js/search-shortcut.js" | minify | fingerprint }}

@@ -356,7 +356,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是九处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
 6. `layouts/taxonomy.html`（第 ㉛ 项）：`/tags/`、`/categories/` 总览页要把词条按学科分块展示（见 `data/tag-groups.yaml`），而主题那份是平铺。markup 与主题版保持一致（`ul.terms-tags` + 计数 `sup`），只把「一个 ul」改成「每组一个 ul」，`terms-filter.js` 已同步适配
 7. `layouts/baseof.html`（第 ㉞ 项）：跳过导航链接与 `lang` 属性。**这一处与前面六处的理由不同** —— 不是「原件短」或「没有 hook 可挂」，而是**位置本身不可达**：要改的一处在 `<html>` 上、一处在 `<body>` 开头，而主题的四个 hook 分别在 `<head>` 内与 `</body>` 之前，谁都够不到。主题原件 31 行，逐字保留、只差三处（详见下节 ㉞），主题升级时与 `themes/PaperMod/layouts/baseof.html` 逐行对拍即可。**注意它是全站每个页面的渲染入口**，改动后要按页型抽查（首页 / section / term / 单页 / 404 / search）
-8. `layouts/_partials/templates/schema_json.html`（第 ㉟ 项）：**逐字保留主题实现、只删掉 BlogPosting 的 `articleBody` 字段**（主题原件 129 行，本文件 128 行 + 一段说明注释），与第 4 条 `post_meta.html` 是同一手法。它把整篇正文 `plainify` 后复制进 `<head>` 的 JSON-LD 里；本站正文是构建期渲染的 KaTeX，plainify 之后公式文本会出现三遍（MathML 表示 + TeX annotation + katex-html 字形文本），于是这个字段既大又低质 —— 实测重页单页 25–27 KB、占该页 gzip 的 17–20%。删它安全：`articleBody` 在 schema.org 里是**可选**字段，Google 富结果不使用，仓库里也没有任何东西依赖它（`check-seo.mjs` 对它零断言，已核对）。**升级主题时与主题那份逐行对拍，确认差异仍然只有这一行。** 删改后务必确认 JSON-LD 仍是合法 JSON（`JSON.parse` 每个 `ld+json` 块），语法坏了爬虫那边是静默失效
+8. `layouts/_partials/templates/schema_json.html`（第 ㉟ 项）：**逐字保留主题实现，只差三处**（主题原件 129 行 + 一段说明注释），与第 4 条 `post_meta.html` 是同一手法：删掉 `articleBody`、零值日期不输出、`@type` 随发布日期在 `BlogPosting` / `WebPage` 之间走。`articleBody` 把整篇正文 `plainify` 后复制进 `<head>` 的 JSON-LD 里；本站正文是构建期渲染的 KaTeX，plainify 之后公式文本会出现三遍（MathML 表示 + TeX annotation + katex-html 字形文本），于是这个字段既大又低质 —— 实测重页单页 25–27 KB、占该页 gzip 的 17–20%。删它安全：`articleBody` 在 schema.org 里是**可选**字段，Google 富结果不使用，仓库里也没有任何东西依赖它（`check-seo.mjs` 对它零断言，已核对）。**升级主题时与主题那份逐行对拍，确认差异仍然只有这三处。** 删改后不必再手工 `JSON.parse` 每个 `ld+json` 块 —— `check-seo.mjs` 已经常驻断言（含 `BlogPosting` 的必填字段与零值日期），见 ㉟
 
 9. `layouts/_markup/render-image.html`（第 ㊲ 项）：主题 `_markup/` 下只有 `render-image.html` 这一个文件，内容图需要补 `width`/`height`（主题原版不给尺寸）并把 PNG 转无损 WebP，而渲染钩子没有「部分覆盖」的机制，只能整份接管。手法与第 4、8 条相同：**逐字保留主题实现**（URL 解析、query/fragment 拼接、属性透传、`%q` 转义一行未改），只在拿到资源之后插入两段。**改它必须同时确认 `00-theme.css` 里 `.post-content img` 的 `height: auto` 还在** —— 主题 reset 只有 `max-width: 100%`（`core/reset.css`），只补尺寸属性会在窄屏把图纵向压扁（实测 400px 视口下 660×440 的图变成 333×440），且**构建不报错**。主题升级时与 `themes/PaperMod/layouts/_markup/render-image.html` 逐行对拍
 
@@ -404,13 +404,34 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **零条结果的歧义**。主题的 `fastsearch.js` 把「输入为空」与「没有匹配」都渲染成空列表（`renderResults([])` 被两条路径共用），所以零条时必须回头看输入框：为空是清空操作，**什么都不该播报**；有输入才是真的没搜到。
 - **只在文字真的变了才写** `textContent`。重复写入同样的文本会让部分读屏反复播报，所以三处都加了 `if (x !== said)` 的比较。
 
-**没做的（有意）**：没有换焦点可见样式（主题那套 `:focus-visible` 的 2px 强调色轮廓对比度足够）、没有做颜色对比度复审（`00-theme.css` 头部记着强调色 7.4:1、次要强调 5.6:1，都过 WCAG AA）、没有引入任何无障碍测试工具。最实际的下一步是拿读屏器手动过一遍搜索页与标签页 —— 静态断言测不出播报行为（要有真实焦点）。
+**主题模板里硬编码的英文可访问名**（2026-09-19 补，`assets/js/a11y-controls.js`）。PaperMod 把四个全站控件的可访问名写死成英文，中文站点上读屏用户听到的就是英文；而项目自己注入的同类控件（`#bottom-link`、快捷入口导航）本来就走的 i18n，所以这是**漏网**，不是有意的取舍：
 
-### ㉟ 删掉 JSON-LD 的 `articleBody` — `layouts/_partials/templates/schema_json.html`
+| 控件 | 主题模板里的原文 | 现在的文案键 |
+|---|---|---|
+| `#theme-toggle`（明暗切换，`header.html`） | `aria-label="Toggle theme"` / `title="(Alt + T)"` | `themeToggleLabel` / `themeToggleTitle` |
+| `#top-link`（返回顶部，`footer.html`） | `aria-label="go to top"` / `title="Go to Top (Alt + G)"` | `topLinkLabel` / `topLinkTitle` |
+| 搜索输入框（`search.html`） | `aria-label="search"` | `searchInputLabel` |
+| 搜索结果列表（`search.html`） | `aria-label="search results"` | `searchResultsLabel` |
 
-见第 4 节第 8 条（那是第 8 处主题覆盖）。这里只记**怎么验**与**别再犯的错**：改动后必须逐个 `JSON.parse` 产物里的 `<script type="application/ld+json">` 块 —— 删字段很容易留下一个悬空逗号或漏掉逗号，而**语法坏掉的 JSON-LD 没有任何构建期报错**，爬虫那边是静默失效（`check-seo.mjs` 不查 JSON-LD 的语法）。
+- **不覆盖主题模板，改为脚本补属性** —— 与上面那处播报是同一个判断：为四个属性再添一处覆盖不划算（第 4 节已经有九处了）。脚本全站加载（很小），页面上没有对应元素时静默跳过。
+- **不存在「无 JS 时属性缺失」的窗口**：这两个控件本来就只在有 JS 时才有意义 —— `#theme-toggle` 的点击逻辑与 `#top-link` 的显隐都在主题 `footer.html` 的内联脚本里，主题 `head.html` 的 `<noscript>` 还把 `#theme-toggle` 与 `.top-link` 一起藏掉；搜索输入框在主题模板里是 `disabled`，由 `fastsearch.js` 启用。
+- 顺带把这两个控件里的装饰 `<svg>` 标了 `aria-hidden="true"`：可访问名已经在按钮/链接上，不隐藏时部分读屏会把图标一起念出来。
+- **怎么验**：产物 HTML 里仍然能看到主题那几串英文（脚本是运行时改 DOM 的），所以 grep 产物证明不了这件事。做法是拿**构建后的压缩包**在假 DOM 上跑一遍，断言六处属性都已写入（可复跑：从产物里取出 script 标签的 `data-*` 与 `src`，用 `new Function("document", code)` 传入桩 document）。
+
+**没做的（有意）**：没有换焦点可见样式（主题那套 `:focus-visible` 的 2px 强调色轮廓对比度足够）、没有做颜色对比度复审（`00-theme.css` 头部记着强调色 7.4:1、次要强调 5.6:1，都过 WCAG AA）、没有引入任何无障碍测试工具。**「减少动效」偏好**此前只覆盖了看板娘（`14-mascot.css`）与底部按钮的平滑滚动（`extend_footer.html`），阅读进度条的淡入淡出是漏网的，2026-09-19 在 `08-reader.css` 补上。最实际的下一步仍是拿读屏器手动过一遍搜索页与标签页 —— 静态断言测不出播报行为（要有真实焦点）。
+
+### ㉟ JSON-LD：删掉 `articleBody`、零值日期与 `@type` — `layouts/_partials/templates/schema_json.html`
+
+见第 4 节第 8 条（那是第 8 处主题覆盖）。这里只记**怎么验**与**别再犯的错**：改这个文件很容易留下悬空逗号或漏掉逗号，而**语法坏掉的 JSON-LD 没有任何构建期报错**，爬虫那边是静默失效。
 
 实测收益（2026-09-18，`hugo --minify --gc --cleanDestinationDir` 后）：`BlogPosting` 块从约 25,000 B 降到 **821 B**，最重页 gzip 108 KB → 75 KB（−31%），整站 gzip 3260 KB → 2934 KB。
+
+**2026-09-19 补：零值日期与 `@type`。** 没有 front matter `date` 的页面 —— `/about/` 这类静态页，以及 `content/library/_content.gotmpl`、CS 库内容适配器生成的分类页与卡片页 —— 此前会输出 `"datePublished":"0001-01-01T00:00:00Z"`：**格式合法但值是错的**，在爬虫侧属于无效日期。实测 36 个产物页面中招（其中生成页连 `dateModified` 也是零值，因为 `enableGitInfo` 对生成页没有历史可查）。值得一提的是 `/about/` 的 front matter 注释显示同一问题在 RSS 那侧早就用 `hiddenInRss: true` 处理过 —— JSON-LD 这侧是漏网的。现在的口径：
+
+- 零值日期**整行不输出**（`datePublished` 看 `.PublishDate`、`dateModified` 看 `.Lastmod`）。安全的前提是这两个字段**前面每一项都以逗号结尾**（`image` 的两个分支、`inLanguage`），所以删行不会留下悬空逗号 —— 改动这段前先确认这一点。
+- `@type` 随发布日期走：有 `date` 才是 `BlogPosting`，没有则降为 **`WebPage`**（Google 对无发布日期页面给出的上位类型）。`headline`/`image`/`keywords`/`wordCount`/`publisher` 在 `WebPage` 上同样合法，因为它们都是 `CreativeWork` 的属性。否则会留下一个缺 `datePublished` 的 BlogPosting，在 Search Console 里就是「缺少字段」警告。
+- **复核手段已固化成断言**：`check-seo.mjs` 遍历产物里每个 `ld+json` 块做 `JSON.parse`，并对 `BlogPosting` 断言 `headline`/`author`/`image` 非空、日期不含 `0001`。这条以前只能人工核对，且 2026-09-18 那轮已经记下「`check-seo.mjs` 不查 JSON-LD 的语法」这个缺口。
+- **自测方式**（改断言本身时用）：把任一产物页的块改坏（例如删掉一个逗号），`node scripts/check-seo.mjs` 应报出「文件 + 第几个块 + 错误位置」并以 1 退出；改回后恢复通过。实测产物 211 个 HTML、317 个块、114 个 BlogPosting 全部可解析。
 
 ### ㊱ 正文的横向溢出与交互反馈 — `08-reader.css` + `10-nav.css` + 卡片各自的 CSS
 
@@ -422,6 +443,8 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 **桌面导航此前没有任何悬停反馈**：主题只写了 `.menu .active`，**从来没有 `.menu a:hover`** —— 实测真实鼠标移上去时 color / background / text-decoration / opacity 全都不变。`10-nav.css` 里补了一套，沿用 `.active` 的视觉语言（2px 下划线 + 同样偏移）但换成 `--accent`，这样「悬停」与「当前页」不会混淆。分页按钮（反色药丸）同样没有悬停态，一并补上，**只换底色不换尺寸**以免翻页时按钮跳动。这类补规则**不要动 padding/gap**：菜单是 flex 行布局，加内边距会让换行点提前，顶栏在中间宽度就多折一行。
 
 **三个自定义列表卡片缺 `:focus-within`**：主题的 `.post-entry` 自带（`post-entry.css:58`），而 `.course-index-item` / `.project-index-item` / `.home-recent-item` 原先只有 `:hover`，键盘用户 Tab 进去拿不到鼠标那样的反馈。三处的 `:focus-within` 都写在各自 `:hover` 规则旁边（`04` / `05` / `09`）。
+
+**阅读进度条补了 `prefers-reduced-motion`**（2026-09-19）：`#reading-progress` 的 `transition: opacity .25s ease` 是仓库里唯一没做减少动效处理的过渡（看板娘与底部按钮都做了），加了 `@media (prefers-reduced-motion: reduce)` 后变成直接显隐 —— 条的位置变化本来就来自 scroll 事件驱动，去掉过渡不损失任何信息。
 
 ### ㊲ 内容图的 WebP 与尺寸属性 — `layouts/_markup/render-image.html` + `00-theme.css`
 

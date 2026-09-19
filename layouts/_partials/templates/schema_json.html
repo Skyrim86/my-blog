@@ -1,17 +1,38 @@
-{{- /* 第 8 处有意的主题覆盖 —— 与主题那份的唯一差异是**删掉了 BlogPosting 的 articleBody 字段**
-       （主题原件 themes/PaperMod/layouts/_partials/templates/schema_json.html 第 77 行）：
+{{- /* 第 8 处有意的主题覆盖 —— 与主题那份（themes/PaperMod/layouts/_partials/templates/schema_json.html）
+      共有**三处**差异，其余逐字保留：
 
-         "articleBody": {{ .Content | safeJS | htmlUnescape | plainify }},
+       1. 删掉 BlogPosting 的 articleBody（主题原件第 77 行）：
 
-     为什么要删：它把**整篇正文**复制进 <head> 的 JSON-LD 里。本站正文是构建期渲染的 KaTeX，
-     plainify 之后公式文本会出现三遍（MathML 表示 + TeX annotation + katex-html 的字形文本），
-     于是这个字段既大又低质 —— 2026-09-18 实测：重页单页 25–27 KB，占该页 gzip 体积的 17–20%，
-     全站 149 页合计约 283 KB（gzip）。
+            "articleBody": {{ .Content | safeJS | htmlUnescape | plainify }},
 
-     删它是安全的：articleBody 在 schema.org 里是**可选**字段，Google 的富结果不使用它，
-     而仓库里没有任何东西依赖它（scripts/check-seo.mjs 对它零断言，已核对）。
+          它把**整篇正文**复制进 <head> 的 JSON-LD 里。本站正文是构建期渲染的 KaTeX，
+          plainify 之后公式文本会出现三遍（MathML 表示 + TeX annotation + katex-html 的字形文本），
+          于是这个字段既大又低质 —— 2026-09-18 实测：重页单页 25–27 KB，占该页 gzip 体积的 17–20%，
+          全站 149 页合计约 283 KB（gzip）。
 
-     维护方式：主题升级时把本文件与主题那份逐行对拍，确认差异仍然只有这一行（其他部分逐字保留）。
+          删它是安全的：articleBody 在 schema.org 里是**可选**字段，Google 的富结果不使用它，
+          而仓库里没有任何东西依赖它（scripts/check-seo.mjs 对它零断言，已核对）。
+
+       2. 日期字段按零值取舍（主题无条件输出两行）：
+
+            "datePublished": {{ .PublishDate }},
+            "dateModified": {{ .Lastmod }},
+
+          没有 front matter date 的页面（`/about/` 这类静态页、`content/library/_content.gotmpl`
+          与 CS 库生成的大类/细分/卡片页）会输出 "0001-01-01T00:00:00Z"：**格式合法但值是错的**，
+          爬虫侧属于无效日期。实测 36 个产物页面中招。宁缺勿错 —— 零值就整行不输出；
+          注意这些字段前面每一项都以逗号结尾（image 的两个分支、inLanguage），所以删行不会留悬空逗号。
+
+       3. @type 随发布日期走：有发布日期才是 `BlogPosting`，没有则降为 `WebPage`
+          （Google 对无发布日期页面的上位类型；headline/image/keywords/wordCount/publisher
+          在 WebPage 上同样合法，因为它们都是 CreativeWork 的属性）。
+          否则生成页会留下一个缺 datePublished 的 BlogPosting，在 Search Console 里是「缺少字段」警告。
+
+     为什么要单列这两条而不是照主题输出：JSON-LD 的语法坏掉**没有任何构建期报错**，爬虫那边是
+     静默失效 —— 所以 scripts/check-seo.mjs 现在会对产物里每个 ld+json 块做 JSON.parse，
+     并断言 BlogPosting 的 headline/author/image 非空、日期不是 0001（见 docs/features.md ㉟）。
+
+     维护方式：主题升级时把本文件与主题那份逐行对拍，确认差异仍然只有这三处（其他部分逐字保留）。
      登记处：AGENTS.md 规则 5 与 docs/features.md 第 4 节。 */ -}}
 {{ if .IsHome }}
 <script type="application/ld+json">
@@ -75,10 +96,12 @@
 }
 </script>
 {{- if .IsPage }}
+{{- /* 有发布日期才算「文章」：否则 @type 降为 WebPage 且不输出零值日期（见文件头第 2、3 条） */ -}}
+{{- $hasDate := not .PublishDate.IsZero }}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "BlogPosting",
+  "@type": {{ if $hasDate }}"BlogPosting"{{ else }}"WebPage"{{ end }},
   "headline": {{ .Title | plainify}},
   "name": "{{ .Title | plainify }}",
   "description": {{ with .Description | plainify }}{{ . }}{{ else }}{{ .Summary | plainify  }}{{ end -}},
@@ -104,8 +127,12 @@
   "image": {{ .Permalink }},
     {{- end }}
   {{- end -}}
+  {{- if $hasDate }}
   "datePublished": {{ .PublishDate }},
+  {{- end }}
+  {{- if not .Lastmod.IsZero }}
   "dateModified": {{ .Lastmod }},
+  {{- end }}
   {{- with (.Params.author | default site.Params.author) }}
   "author":
     {{- if (or (eq (printf "%T" .) "[]string") (eq (printf "%T" .) "[]interface {}")) -}}

@@ -25,6 +25,14 @@
   opacity: 1;
 }
 
+/* 尊重「减少动效」偏好：进度条的淡入淡出对前庭敏感者是多余的动效（14-mascot.css 同款处理）。
+   条本身的位置变化来自 scroll 事件驱动，去掉过渡只是让它直接显隐。 */
+@media (prefers-reduced-motion: reduce) {
+  #reading-progress {
+    transition: none;
+  }
+}
+
 /* 目录：当前所在小节高亮（主题原本只有 hover 效果） */
 .toc a.active {
   color: var(--accent);
