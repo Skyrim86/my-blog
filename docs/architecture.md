@@ -32,7 +32,7 @@ my-blog/
 │   └── project-doc.md         #   分层项目文档（regular page，math 默认 true）
 ├── assets/                    # 走 Hugo 资源管线（会被 minify/fingerprint/Resize）
 │   ├── css/extended/          #   自定义 CSS，主题自动 Concat + minify，按文件名排序
-│   │   ├── 00-theme.css       #     设计令牌（配色/圆角/阴影）+ 站点背景图层
+│   │   ├── 00-theme.css       #     设计令牌（配色/圆角/阴影）+ 站点背景图层 + 压背景文字的底衬
 │   │   ├── 01-cards.css       #     文章列表卡片
 │   │   ├── 02-typography.css  #     中文排版
 │   │   ├── 03-widgets.css     #     系列导航

@@ -21,9 +21,15 @@
   --accent-2: #6b5a8c;
   --accent-2-soft: rgba(107, 90, 140, .10);
 
-  --surface: rgba(252, 251, 253, .80);
+  /* 2026-09-19 从 .80 降到 .70：让壁纸透过面板更清楚。代价是面板内文字的对比度会降，
+     所以这个数不能凭观感改 —— 要跟 `blur` 一起配平，并按 docs/features.md ⑫ 的量法复测
+     （面板内正文/次级文字最坏值必须 ≥ AA 的 4.5:1，实测见那里）。 */
+  --surface: rgba(252, 251, 253, .70);
   --surface-border: rgba(22, 20, 27, .09);
   --rule: rgba(22, 20, 27, .10);          /* 装饰细线：比 --border 更淡，只做层级暗示 */
+  /* 直接压在壁纸上的那几处文字的底衬（用法见下面「局部底衬」一节）。它就是主题底色
+     #f7f5f8 的 72% —— 写成 rgba 字面量而不是 color-mix，理由见那一节的注释。 */
+  --scrim-bg: rgba(247, 245, 248, .72);
   --shadow-card: 0 2px 10px rgba(18, 14, 24, .07);
   --shadow-lift: 0 12px 30px rgba(18, 14, 24, .16);
 
@@ -46,9 +52,10 @@
   --accent-2: #b4a3d6;
   --accent-2-soft: rgba(180, 163, 214, .16);
 
-  --surface: rgba(20, 18, 25, .76);
+  --surface: rgba(20, 18, 25, .72);
   --surface-border: rgba(255, 255, 255, .08);
   --rule: rgba(255, 255, 255, .10);
+  --scrim-bg: rgba(11, 10, 15, .72);
   --shadow-card: 0 2px 10px rgba(0, 0, 0, .40);
   --shadow-lift: 0 12px 30px rgba(0, 0, 0, .55);
 
@@ -124,8 +131,8 @@ body::before {
 .header {
   background: var(--surface);
   border-bottom: 1px solid var(--surface-border);
-  backdrop-filter: saturate(150%) blur(10px);
-  -webkit-backdrop-filter: saturate(150%) blur(10px);
+  backdrop-filter: saturate(150%) blur(6px);
+  -webkit-backdrop-filter: saturate(150%) blur(6px);
 }
 
 /* 顶栏下沿一条 1px 的蔷薇渐隐线：滚动时它和内容之间有一道「装订线」 */
@@ -142,6 +149,36 @@ body::before {
 .footer {
   background: transparent;
   border-top: 1px solid var(--surface-border);
+}
+
+/* ---------- 直接压在壁纸上的少量文字：局部底衬（2026-09-19） ----------
+
+   壁纸蒙版为了「透亮」放薄之后（见 hugo.toml 的 presets 注释），这几处失去全局蒙版的保护，
+   改由自己的一小块半透明底衬承担对比度。只给这三处、而不是把全局蒙版又压厚：全站只有它们
+   真压在画面上，其余文字都在面板或卡片里（那些由 --surface 承担）。
+
+   **底衬必须是实心半透明色，不能用渐变**：docs/features.md ⑫ 那套对比度脚本只沿祖先链合成
+   `background-color`，渐变（background-image）它测不到 —— 用了渐变就会得出「已经保护好了」的
+   假结论。同理，底衬的 alpha 改了要重跑 `.shots/girlbg/measure.py both` 那张 12 组表。
+
+   **而且必须写成 `rgba()` 字面量，不能用 `color-mix()`**：`color-mix` 的计算值会序列化成
+   `color(srgb 0.96… 0.96… 0.97… / 0.72)`，那个脚本用 `match(/[\d.]+/g)` 取数，会把 0.96 当成
+   0.96/255 —— 即近黑，于是报出一个 1.4x 的假失败（2026-09-19 实测踩到，浅色城市套从 4.74 掉到
+   1.49）。脚本的解析器已补上 `color()` 分支，但这里仍用字面量：换任何旧副本的脚本都能测。
+
+   `.course-group-heading` 是 `display: flex`（04-course.css），不配 fit-content 的话背景会拉成
+   一条通栏色带；配了才是与另外两处一致的小标签。 */
+:is(.footer > span, .home-recent-head a, .course-group-heading) {
+  background: var(--scrim-bg);
+  border-radius: 5px;
+  padding: .1em .45em;
+  /* 行内元素跨行时底衬要跟着断开，而不是包住整块 */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.course-group-heading {
+  width: fit-content;
 }
 
 /* ---------- 全局细节 ---------- */
