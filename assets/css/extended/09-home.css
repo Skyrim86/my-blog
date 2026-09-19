@@ -148,7 +148,11 @@
   font-size: .72rem;
   line-height: 1.6;
   color: var(--accent);
-  background: var(--accent-soft);
+  /* 2026-09-19 从 --accent-soft 改来：那个是 16%（深色）/ 10%（浅色）的透明蔷薇红，
+     在**深色主题**下等于往深底上刷了一层浅粉，把底抬亮 —— 浅粉字压在浅粉底上，
+     实测最低 4.02:1（深色 · 城市 · 首页）。改中性玻璃底之后由 --accent 的文字色独自承担对比度
+     （--accent 本来就是按「能当正文颜色」选的，见 00-theme.css 开头那条注释）。 */
+  background: var(--glass-tint);
   border-radius: 999px;
   padding: 0 .5rem;
 }

@@ -40,10 +40,16 @@
   color: var(--primary);
 }
 
+/* 激活态：底色不能是 --accent-soft（那是 10% 的透明蔷薇红，等于没有底）。
+   壁纸蒙版放薄之后，这个按钮实测只有 1.32:1（浅色）/ 2.49:1（深色）—— 全站最差的一处，
+   比正文任何地方都差。它压在壁纸上，所以照「局部玻璃底衬」那一套给它一块玻璃面，
+   激活状态改由**文字色 + 边框色**表达（--accent 本身就是按「能当正文颜色」定的，见 00-theme.css）。 */
 .lt-btn.is-active,
 .lt-chip.is-active {
   border-color: var(--accent);
-  background: var(--accent-soft);
+  background: var(--glass-tint);
+  backdrop-filter: saturate(var(--glass-sat)) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(var(--glass-sat)) blur(var(--glass-blur));
   color: var(--accent);
 }
 

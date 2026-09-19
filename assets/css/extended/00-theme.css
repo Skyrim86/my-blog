@@ -21,17 +21,28 @@
   --accent-2: #6b5a8c;
   --accent-2-soft: rgba(107, 90, 140, .10);
 
-  /* 2026-09-19 从 .80 一路降到 .62（.80 → .70 → .62）：让壁纸透过面板更清楚。
+  /* 2026-09-19 从 .80 一路降到 .62（.80 → .70 → .62），当天又**回到 .74**：
+     .62 是按「蒙版很厚、壁纸已经被提亮」那套算的；蒙版放薄之后壁纸原样露出来，
+     暗部就不再被抬，`.62` 透上来的暗背景把面板内的 --secondary 顶到 4.5 以下（实测首页
+     卡片日期 3.55:1）。所以面板必须自己站住，不能再借蒙版的力。
      **这个数不能再低**：它决定面板内文字的亮度下限，卡得最紧的是 --secondary（日期/元信息）。
      想更「玻璃」要靠 `backdrop-filter` 的 blur（大半径模糊），不要靠降这个数 ——
      玻璃感来自「背景被抹开」，不是来自「背景透进来更多」。改它就必须复测，
      量法与实测值见 docs/features.md ⑫。 */
-  --surface: rgba(252, 251, 253, .62);
+  --surface: rgba(252, 251, 253, .80);
   --surface-border: rgba(22, 20, 27, .09);
   --rule: rgba(22, 20, 27, .10);          /* 装饰细线：比 --border 更淡，只做层级暗示 */
-  /* 直接压在壁纸上的那几处文字的底衬（用法见下面「局部底衬」一节）。它就是主题底色
-     #f7f5f8 的 72% —— 写成 rgba 字面量而不是 color-mix，理由见那一节的注释。 */
-  --scrim-bg: rgba(247, 245, 248, .72);
+
+  /* 局部玻璃面（2026-09-19 取代旧的 --scrim-bg）：给「直接压在壁纸上的文字」用，
+     见下面「局部玻璃底衬」一节。三个数分开管三件事：
+       --glass-tint  底色不透明度 —— **唯一能改对比度的那个**，量出来不够就加它
+       --glass-edge  1px 亮边 —— 玻璃的高光边，纯观感，不影响对比度
+       --glass-blur  抹开背景的半径 —— 玻璃感来自这里，与对比度无关
+     底色写成 rgba 字面量而不是 color-mix，理由见「局部玻璃底衬」一节。 */
+  --glass-tint: rgba(247, 245, 248, .84);
+  --glass-edge: rgba(255, 255, 255, .55);
+  --glass-blur: 14px;
+  --glass-sat: 140%;
   --shadow-card: 0 2px 10px rgba(18, 14, 24, .07);
   --shadow-lift: 0 12px 30px rgba(18, 14, 24, .16);
 
@@ -54,10 +65,11 @@
   --accent-2: #b4a3d6;
   --accent-2-soft: rgba(180, 163, 214, .16);
 
-  --surface: rgba(20, 18, 25, .64);
+  --surface: rgba(20, 18, 25, .80);
   --surface-border: rgba(255, 255, 255, .08);
   --rule: rgba(255, 255, 255, .10);
-  --scrim-bg: rgba(11, 10, 15, .72);
+  --glass-tint: rgba(11, 10, 15, .82);
+  --glass-edge: rgba(255, 255, 255, .16);
   --shadow-card: 0 2px 10px rgba(0, 0, 0, .40);
   --shadow-lift: 0 12px 30px rgba(0, 0, 0, .55);
 
@@ -82,18 +94,22 @@ body {
 }
 
 /* 背景层：一层渐变蒙版压在背景图上（浅色主题用日间图、深色主题用夜间图）。
-   蒙版的活是保正文对比度与「不抢戏」，不是把图糊掉：所以深浅两边都收在同一档，
-   再压就有背景等于没背景。浅色那档 2026-09-18 从 .55→.85 调薄：换成实拍照片后
-   旧值把云和天际线压得只剩一层灰。调薄的依据是量过的 —— 遍历页面上 35 个可见文字元素、
-   把蒙版与背景图在文字位置合成出真实底色再算 WCAG，最低 6.35:1（AA 要求 4.5:1）；
-   深色那档是 .54 起，同样量过。加「黑长直少女」那套时同一套方法又量了一遍（见 docs/features.md ⑫）。
-   改图或改数值就要重量一次，别凭肉眼。
+
+   **2026-09-19 起蒙版的角色变了**：以前它是全站唯一的对比度保护层，颜色近白、alpha 很高
+   （浅色 .58/.70/.82），代价是把壁纸整片洗成灰白 —— 这就是「背景不透亮」的来源。现在保护
+   下放给「局部玻璃底衬」（见下），蒙版只留两件事：给浅色主题一点通透的空气感，以及给任何
+   漏掉的小元素兜个底。所以三档 alpha 一起降到了 0.05~0.30 一带（数值在 hugo.toml 的
+   [params.appearance].presets 里逐套给），中间那档最低 —— 画面中段基本不过滤。
 
    **三档不透明度与 position 的数值不在这里**：它们由 extend_head.html 按 hugo.toml 的
    [params.appearance].presets **逐套**生成（--bg-position / --bg-mask-light-1..3 /
-   --bg-mask-dark-1..3）。蒙版强度是跟着图走的 —— 实拍照片（大团云、亮窗对暗天）能压薄，
-   具象的动漫人物压不住、必须压厚，写在配置里换图时就不用回来改 CSS。
+   --bg-mask-dark-1..3）。蒙版强度跟着图走，写在配置里换图时不用回来改 CSS。
    这里只留渐变的**形状**：三段（顶 0% / 中 52% / 底 100%），颜色取主题底色。
+
+   **这三个停靠点不要挪**：`.shots/girlbg/contrast.js` 是拿「三档 alpha + 固定的 0/52/100
+   停靠点」按视口 y 线性插值算出文字底色的（它把中档硬编码在 t=0.52）。改了 CSS 里的形状而
+   不同步改那个脚本，那张 12 组对比度表会在不报错的情况下变得不准 —— 静默失真比失败更坏。
+
    刻意不给蒙版与 position 写 var() 兜底值（免得出现第二份「默认数值」）：presets 留空时
    整段背景 CSS 不生成，var() 求值失败会让 background-image 回落到 none —— 正是「关闭背景」
    该有的样子，不需要兜底也不会残留蒙版。 */
@@ -123,6 +139,64 @@ body::before {
     var(--bg-image-dark, none);
 }
 
+/* 玻璃质感层（2026-09-19 新增）：壁纸之上、内容之下一层「玻璃板」。
+   三层都是纯渐变，不新增请求、不进体积预算：
+     1. 斜向高光 —— 像光斜打在一块玻璃上的那道亮带
+     2. 边缘加厚 —— 四角径向渐变，浅色主题提亮、深色主题压暗（都朝「帮文字对比度」的方向走）
+     3. 板边高光 —— 1px inset 亮边，是「这是一块玻璃板」最直接的那个线索
+
+   **为什么单独用 ::after 而不是并进 ::before 的背景栈**：对比度脚本认的是
+   `body::before`（它把「背景图像素 + 按视口 y 插值的蒙版 alpha」当成文字底色），
+   `::before` 的背景栈里多塞渐变会让它算不到、却不报错。放在 `::after` 上，那个模型
+   继续成立；代价是这一层的亮度贡献**测不到**，所以 alpha 全部压在 ≤.26，并且它只朝
+   有利方向偏移（见第 2 条）。加了/改了这层要重跑 `.shots/girlbg/measure.py both`，
+   再按页脚那几个最紧的点抽一次真实像素（脚本看不见这层，数字会偏乐观）。 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* --t0 的值恒为 0，唯一用途是**引用预设变量 --bg-mask-light-1**。presets 留空（＝关掉背景）时
+     该变量不存在，于是下面每条用到 --t0 的声明都会在「计算值阶段」整条失效、回落到初始值 none
+     —— 整层质感跟着消失，不会在关掉背景的配置下残留一层高光/暗角（[traps.md](../traps.md)
+     第 40 条记过同类的残留：关了背景页面上还留着一层灰）。
+     乘 0 不是笔误：这里只借那个变量的**存在性**、不要它的数值，否则改蒙版会连带改质感。 */
+  --t0: calc(var(--bg-mask-light-1) * 0);
+  --t-sheen: calc(var(--t0) + .07);
+  --t-sheen-2: calc(var(--t0) + .045);
+  --t-vig: calc(var(--t0) + .24);
+  --t-edge: calc(var(--t0) + .18);
+  background-image:
+    linear-gradient(112deg,
+      rgba(255, 255, 255, var(--t-sheen)) 0%,
+      rgba(255, 255, 255, 0) 34%,
+      rgba(255, 255, 255, var(--t-sheen-2)) 58%,
+      rgba(255, 255, 255, 0) 100%),
+    radial-gradient(118% 86% at 50% 44%,
+      rgba(247, 245, 248, 0) 58%,
+      rgba(247, 245, 248, var(--t-vig)) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, var(--t-edge));
+}
+
+:root[data-theme="dark"] body::after {
+  --t0: calc(var(--bg-mask-dark-1) * 0);
+  --t-sheen: calc(var(--t0) + .05);
+  --t-sheen-2: calc(var(--t0) + .03);
+  --t-vig: calc(var(--t0) + .28);
+  --t-edge: calc(var(--t0) + .09);
+  background-image:
+    linear-gradient(112deg,
+      rgba(255, 255, 255, var(--t-sheen)) 0%,
+      rgba(255, 255, 255, 0) 34%,
+      rgba(255, 255, 255, var(--t-sheen-2)) 58%,
+      rgba(255, 255, 255, 0) 100%),
+    radial-gradient(118% 86% at 50% 44%,
+      rgba(0, 0, 0, 0) 58%,
+      rgba(0, 0, 0, var(--t-vig)) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, var(--t-edge));
+}
+
 /* 列表容器默认有一层不透明底色，会挡住背景；由卡片自己承担可读性 */
 .list,
 [data-theme="dark"] .list {
@@ -147,40 +221,70 @@ body::before {
   opacity: .55;
 }
 
-/* 页脚同样处理，避免底部出现一块死白/死黑 */
+/* 页脚：整条做成玻璃栏（2026-09-19 从 transparent 改来）。
+   为什么要整条而不是只给文字加底衬：页脚里 `© 2026 博客名` 与 `Powered by …` 之间那两个
+   ` · ` 是 footer.html 里的**裸文本节点**（`{{- print " · "}}`，在相邻两个 <span> 之外），
+   CSS 选不中它们 —— 只给 span 加底衬的话，蒙版放薄之后这两个点就是页脚上最先糊掉的字符。
+   整条加玻璃面是唯一能连它一起覆盖的做法。 */
 .footer {
-  background: transparent;
+  background: var(--glass-tint);
   border-top: 1px solid var(--surface-border);
+  backdrop-filter: saturate(var(--glass-sat)) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(var(--glass-sat)) blur(var(--glass-blur));
 }
 
-/* ---------- 直接压在壁纸上的少量文字：局部底衬（2026-09-19） ----------
+/* ---------- 直接压在壁纸上的文字：局部玻璃底衬（2026-09-19 重建） ----------
 
-   壁纸蒙版为了「透亮」放薄之后（见 hugo.toml 的 presets 注释），这几处失去全局蒙版的保护，
-   改由自己的一小块半透明底衬承担对比度。只给这三处、而不是把全局蒙版又压厚：全站只有它们
-   真压在画面上，其余文字都在面板或卡片里（那些由 --surface 承担）。
+   蒙版放薄之后（见上），全站「不在面板/卡片里」的文字改由各自的一小块玻璃面承担对比度 ——
+   这就是把保护从全局下放到局部：压厚蒙版是整页发灰的全局代价，局部玻璃面只影响那几块。
+   清单是量出来的，不是猜的：`.shots/girlbg/measure.py` 遍历页面上每个**可见**文字元素，
+   凡是祖先链里没有面板/卡片的（也就是真压在画面上的）都在这里。三种页型必须一起量 ——
+   2026-09-19 把测量面从 3 个扩到 6 个页型时才发现，课程主页（3.89）与词条页（3.72）早就不达标了，
+   而它们此前从没进过那张表。
 
-   **底衬必须是实心半透明色，不能用渐变**：docs/features.md ⑫ 那套对比度脚本只沿祖先链合成
-   `background-color`，渐变（background-image）它测不到 —— 用了渐变就会得出「已经保护好了」的
-   假结论。同理，底衬的 alpha 改了要重跑 `.shots/girlbg/measure.py both` 那张 12 组表。
+   **底衬一律挂在块级盒上，不挂在行内元素上**：`backdrop-filter` 在 `display: inline` 上不可靠；
+   而旧写法靠 `box-decoration-break: clone` 支持跨行，改成 inline-block 又会让窄屏的长文本整段
+   不换行（横向溢出）。所以改成给容器加面。逐个确认过：
+     - `.profile h1` / `.profile_inner > span`：主题 profile-mode.css 里 `.profile_inner` 是
+       flex 列，两者是 flex 子项、本身已是块级盒；
+     - `.home-recent-head h2` / `a`：`.home-recent-head` 是 flex 行（09-home.css），同理；
+     - `.course-group-heading` / `.course-*.heading` / `.terms-*.title` / `.not-found-hint` /
+       `.footer-rss`：本来就是块级元素；
+     - `.footer > span` 是行内，所以**页脚走整条 footer**（上面那条规则），不再给 span 单独加底衬；
+     - `.terms-tags a`（词条页的胶囊）主题已给了不透明的 `--tertiary` 底，不用管。
 
-   **而且必须写成 `rgba()` 字面量，不能用 `color-mix()`**：`color-mix` 的计算值会序列化成
-   `color(srgb 0.96… 0.96… 0.97… / 0.72)`，那个脚本用 `match(/[\d.]+/g)` 取数，会把 0.96 当成
-   0.96/255 —— 即近黑，于是报出一个 1.4x 的假失败（2026-09-19 实测踩到，浅色城市套从 4.74 掉到
-   1.49）。脚本的解析器已补上 `color()` 分支，但这里仍用字面量：换任何旧副本的脚本都能测。
+   **底色必须是实心半透明色，不能用渐变**：docs/features.md ⑫ 那套对比度脚本只沿祖先链合成
+   `background-color`，渐变（background-image）它测不到 —— 用了就会得出「已经保护好了」的假结论。
+   **并且必须写成 `rgba()` 字面量，不能用 `color-mix()`**：`color-mix` 的计算值会序列化成
+   `color(srgb 0.96… 0.96… 0.97… / 0.72)`，旧脚本按 `[\d.]+` 取数会把 0.96 当成 0.96/255（近黑），
+   报出一个 1.4x 的假失败（2026-09-19 实测踩到，浅色城市套从 4.74 掉到 1.49）。
 
-   `.course-group-heading` 是 `display: flex`（04-course.css），不配 fit-content 的话背景会拉成
-   一条通栏色带；配了才是与另外两处一致的小标签。 */
-:is(.footer > span, .home-recent-head a, .course-group-heading) {
-  background: var(--scrim-bg);
-  border-radius: 5px;
-  padding: .1em .45em;
-  /* 行内元素跨行时底衬要跟着断开，而不是包住整块 */
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-
-.course-group-heading {
+   改这里的任何 alpha、或改 hugo.toml 的蒙版，都要重跑 `.shots/girlbg/measure.py both`。 */
+:is(.profile h1,
+    .profile_inner > span,
+    .home-recent-head h2,
+    .home-recent-head a,
+    .course-group-heading,
+    .course-index-heading,
+    .course-entries-heading,
+    .terms-group-title,
+    .terms-filter-empty,
+    .not-found-hint,
+    .footer-rss) {
+  /* fit-content：不配的话这些块级元素的玻璃面会拉成通栏色带，而不是与文字等宽的一小块 */
   width: fit-content;
+  background: var(--glass-tint);
+  border-radius: 6px;
+  padding: .12em .5em;
+  backdrop-filter: saturate(var(--glass-sat)) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(var(--glass-sat)) blur(var(--glass-blur));
+  /* 亮边走 inset box-shadow 而不是 border：border 会占进盒尺寸、把这些标题的布局行高顶开 */
+  box-shadow: inset 0 0 0 1px var(--glass-edge);
+}
+
+/* 居中语境里的两处：块级 + fit-content 会靠左，要自己拉回中间 */
+:is(.not-found-hint, .footer-rss) {
+  margin-inline: auto;
 }
 
 /* ---------- 全局细节 ---------- */

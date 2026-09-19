@@ -49,7 +49,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | Giscus 评论 + 主题跟随 | `layouts/_partials/comments.html`、`assets/js/giscus-theme-sync.js` | [`docs/features.md`](docs/features.md) |
 | 系列文章导航 | `_partials/series-posts.html`、`03-widgets.css` | 同上 |
 | 课程主页 / 章节入口页（材料按 笔记/习题/实验 分组，组别取**目录名**） | `layouts/courses/course.html`、`chapter.html`、`_partials/course-*.html`、`04-course.css` | [`docs/content.md`](docs/content.md) 第 2 节 |
-| 站点背景（可切换的多套：黑长直少女 / 城市）+ 每套的蒙版 + 压在背景上的文字底衬 | `hugo.toml` 的 `[params.appearance].presets`、`layouts/_partials/extend_head.html`（生成 `css/bg-image.css` 与首屏前置脚本）、`00-theme.css` 的 `body::before`、`assets/js/bg-switch.js` + `18-bg-switch.css`、`tools/backgrounds/make-backgrounds.py`（**生成产物，不要手改 assets/images/bg-*.webp**） | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（含对比度实测与出处） |
+| 站点背景（可切换的多套：黑长直少女 / 城市）+ 每套的蒙版 + 压在壁纸上的**局部玻璃底衬**（含页脚整条）与玻璃质感层 | `hugo.toml` 的 `[params.appearance].presets`、`layouts/_partials/extend_head.html`（生成 `css/bg-image.css` 与首屏前置脚本）、`00-theme.css` 的 `body::before`（蒙版）与 `body::after`（质感层）及末尾的底衬清单、`assets/js/bg-switch.js` + `18-bg-switch.css`、`tools/backgrounds/make-backgrounds.py`（**生成产物，不要手改 assets/images/bg-*.webp**） | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（含 24 组对比度实测、三条硬约束与出处） |
 | 右下角看板娘（透明底抠图） | `_partials/extend_footer.html`、`14-mascot.css`、`tools/backgrounds/make-mascot.py`（**生成产物，不要手改 assets/images/mascot.webp**） | [`docs/features.md`](docs/features.md) 第 3 节 ㉕ |
 | 项目元信息（技术栈 + 源码） | `_partials/project-meta.html`、`05-project.css` | [`docs/content.md`](docs/content.md) |
 | 相关内容区块 | `_partials/related-content.html`、`07-related.css` | [`docs/features.md`](docs/features.md) |

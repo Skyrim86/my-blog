@@ -14,6 +14,30 @@
   color: var(--secondary);
 }
 
+/* 课程正文块（课程简介 / 目标 / 内容要点）此前**没有任何底**，直接压在壁纸上，靠的是全局蒙版。
+   2026-09-19 蒙版放薄后这里实测掉到 2.12:1（浅色）/ 1.74:1（深色）—— 这是全站唯一一处
+   「正文不落在面板上」的例外（文章页由 .post-single 承担、卡片由 .course-index-item 承担），
+   所以补一个与 .post-single 同一套的玻璃面。用直接子选择器：课程主页只有这一个正文块，
+   章节入口页与材料页的正文各自在 .post-single 里，别误伤。 */
+.course-home > .post-content {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
+  padding: 1.6rem 1.8rem 1.9rem;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: saturate(135%) blur(24px);
+  -webkit-backdrop-filter: saturate(135%) blur(24px);
+}
+
+@media (max-width: 640px) {
+  .course-home > .post-content {
+    padding: 1.2rem 1.1rem 1.4rem;
+    border-radius: 12px;
+    backdrop-filter: saturate(135%) blur(12px);
+    -webkit-backdrop-filter: saturate(135%) blur(12px);
+  }
+}
+
 .course-index {
   margin: 1.5rem 0 2rem;
 }
