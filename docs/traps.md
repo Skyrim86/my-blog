@@ -35,6 +35,7 @@
 | 卡片墙上「配件」（引理/推论/性质）缩进挂到正主下面时，点配件却打开了正主 | 把配件的卡片塞进了正主卡片的 DOM 里。正主那张卡有一层「整卡可点」的拉伸链接（`.tb-teaser-link::after { inset: 0 }`），它盖住了卡内的所有子节点 —— 点配件落到的还是正主那层链接 | 配件必须是**独立的卡**，和正主并排放在 `.tb-family-kids` 里（`_partials/toolbox-wall.html`），不能嵌进正主的 `<article>`。验收判据：点配件打开的是配件自己的卡片页（实测：点「引理 4.1」应打开 `/toolbox/thm-4-1/`） |
 | 搜索框里的「匹配 N / 80」和分组按钮上的张数对不上（总数偏大） | 同一张配件被多个正主共用时，每个正主下面都渲染了一份，页面上 `.tb-card` 的数量 > 卡片总数；`toolbox.js` 的筛选原先逐张 `.tb-card` 计数 | 计数时跳过 `.tb-teaser--dup`（重复份），并按 `.tb-family` 整体决定显示与否 —— 见 `toolbox.js` 的 `apply()`。这类「DOM 数量 ≠ 数据数量」的地方都要想一遍谁在数 |
 | 给卡片墙的卡片加样式（如去掉左色条）不生效 | `.tb-card[data-kind]` 那条规则在文件里**更靠后**、特异度又相同（各 0,2,0），后者胜；只写 `.tb-card.xxx` 压不住它 | 选择器带上属性：`.tb-card[data-kind].tb-teaser--dup`（0,3,0）。判据：`getComputedStyle(el).boxShadow` 里还有没有那条 `inset 3px` |
+| 工具库页搜索筛选后，页面上留下一排**空框**（框和「▸ N」箭头还在，里面的卡片没了） | `.tb-family` 原本是块级元素，2026-09-19 为了把折叠箭头摆到正主卡右侧给它写了 `display: grid` —— **只要元素自己设了 `display`，UA 的 `[hidden]{display:none}` 就再也压不住它**（作者样式恒胜 UA 样式，跟特异度无关）。`toolbox.js` 的 `apply()` 里 `fam.hidden = !hit` 于是变成了「藏住里面的卡、留下框」 | 自己设过 `display` 的容器都要自己补一条 `[hidden]`：现有三处是 `.tb-card[hidden]`、`.tb-family[hidden]`、`.tb-family-toggle[hidden]`（按钮是 `display:flex`，出厂又带 `hidden`，同样非写不可）。自查：`grep -n "display:" 11-toolbox.css` 逐个问「它会不会被 `.hidden = true`」 |
 | 加了「节」相关的自动归类，工具卡的编号和课程笔记的节号串了 | 两边的编号都是 `X.Y`：工具卡按 `## X 名称` 分组（1–6），课程笔记按 `§X`（1–16），数字会撞上但**内容毫无关系**（工具分组的「2 正态分布与抽样分布」≠ 笔记 §2「简单线性回归模型」） | 分节时把**来源**也带进 key：`(id 前缀, 编号第一段)`，如 `("tool","2")` 与 `("thm","2")`。见 `import_course.py` 的 `section_key_of` |
 | 卡片库的生成逻辑「明明一样却要写两份」 | `AddPage` 的 `path` **相对适配器所在目录**，适配器没法生成别的目录下的页面 | 每个库一份实例（`content/library/_content.gotmpl` 与 `content/cs/_content.gotmpl`），差别只有 `$libKey` 一行；改完两边都要跑一遍页面核对 |
 | 「标签」入口整页空白 | 新建了 `content/tags.md` 之类带 `url` 的普通页，把 `kind=taxonomy` 的列表页顶替成了普通文章页 | 总览页标题只写在 `content/<taxonomy>/_index.md`，不要再建同名普通页 |
@@ -102,7 +103,7 @@ new URL(null, location.href).pathname   // → "/my-blog/library/algebra/linear-
 
 **修法**（2026-09-19）：从**组件自己的 `<a>`** 取链接（`teaser.querySelector("a[href]")`）、`pathOf()` 对空 href 返回 `""`、点击处理器只在拿到非空地址时才 `preventDefault()`（拿不到就不拦截，让浏览器按链接自己走，也就是「没有 JS 时」那条路）。
 
-**同一类错误的第二种形态：靠 URL 形状猜身份。** 弹窗内的卡内交叉引用原先写成 `el.closest('.tb-modal-content a[href*="/toolbox/"]')` —— CS 库的卡片页在 `/cs/<id>/`、不含 `/toolbox/`，于是 CS 卡正文里的交叉引用不被拦截、点一下整页跳走（数学库却是就地弹窗）。现在由 `toolbox-md.html` 在改写锚点的同时给链接补 **`data-card="<id>"`**，JS 按 `data-card` 认卡。**身份写在链接上，不要从地址里猜** —— 以后加库不必回来改选择器。
+**同一类错误的第二种形态：靠 URL 形状猜身份。** 弹窗内的卡内交叉引用原先写成 `el.closest('.tb-modal-content a[href*="/toolbox/"]')`（装栏的那个容器 2026-09-19 改叫 `.tb-modal-panes` 了，因为它现在装的是并排的**栏**）—— CS 库的卡片页在 `/cs/<id>/`、不含 `/toolbox/`，于是 CS 卡正文里的交叉引用不被拦截、点一下整页跳走（数学库却是就地弹窗）。现在由 `toolbox-md.html` 在改写锚点的同时给链接补 **`data-card="<id>"`**，JS 按 `data-card` 认卡。**身份写在链接上，不要从地址里猜** —— 以后加库不必回来改选择器。
 
 顺带一条布局侧的同类坑：**索引卡外面那圈内边距在链接之外**。`.tb-teaser { padding: 0 }` 是死代码（`.tb-card` 的内边距写在同一文件更靠后、特异度相同，一直把它盖掉），所以每张索引卡实际有 16px 内边距裹在 `<a>` 外面：点在那圈上落在 `<article>` 上 —— 有 JS 时正是上面那个 404 的入口，没 JS 时点了毫无反应。修法是**拉伸链接**（`.tb-card.tb-teaser { position: relative }` + `.tb-teaser-link::after { inset: 0 }`）：伪元素属于 `<a>`，整张卡因此都是点击区，视觉不变。左缘那条类色条也从 `border-left: 3px` 改成 `box-shadow: inset 3px 0 0` —— border 画在卡片边框区，同样是链接够不到的地方。
 

@@ -217,6 +217,24 @@ other = "关闭卡片"
 [toolboxLinkLabel]
 other = "这张卡片的固定链接"
 
+# 卡片墙上「正主 + 配件」那一家右侧折叠箭头的可访问名。
+# 占位符是 Go 模板写法（配 dict 传参）；写成 {n} 会被 go-i18n 当模板吃掉，渲染成空串
+[toolboxFamilyCount]
+other = "{{ .n }} 个配件"
+
+# 卡片底部的关系列表（见 layouts/_partials/card-rel.html）两个方向各一个标题：
+# 配件 = 挂在它下面、由它得出的引理 / 推论 / 性质
+[toolboxRelKids]
+other = "配件"
+
+# 用在哪 = 本卡自己的正主。配件卡才可能有（一张引理常挂在好几个定理下面）
+[toolboxRelParents]
+other = "用在哪"
+
+# 弹窗里每栏右上角的关闭按钮（开出第二栏起才出现；关掉最后一栏就是关掉整个弹窗）
+[toolboxPaneClose]
+other = "关闭这一栏"
+
 # 卡片页底部返回工具库
 [toolboxBack]
 other = "返回数学工具库"

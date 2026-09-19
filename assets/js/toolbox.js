@@ -1,13 +1,19 @@
 /* ============================================
    数学工具库交互：
      ① 工具库主页（layouts/courses/tools.html）—— 关键词搜索 + 分组筛选
-     ② 任意页 —— 点击正文里的卡片引用（.card-ref）或工具库主页的索引卡（.tb-teaser-link），
-        把对应**卡片页**抓成弹窗。
+     ② 任意页 —— 点击正文里的卡片引用（.card-ref）、卡片底部关系列表里的链接（.tb-rel-link）
+        或卡片墙上的索引卡（.tb-teaser-link），把对应**卡片页**抓成弹窗。
+     ③ 卡片墙上的「配件折叠」（.tb-family-toggle）——引理/推论/性质默认收起，点箭头才铺开。
 
    卡片正文只在卡片页存在一份（content/courses/<课程>/toolbox/<id>/），抓取结果按 URL 缓存，
    所以同一页反复点开不同卡片最多各请求一次；没有 JS 时链接照常跳到卡片页。
 
-   文案经 <script> 的 data-title / data-close / data-result 传入（JS 里不能调 i18n）。
+   弹窗是**多栏**的：从卡片里再点一张，那张在旁边新开一栏（原来那张留在左边），
+   栏数不设上限、多了横向滚动（窄屏改上下堆叠，见 11-toolbox.css）。同一张卡已经开着就
+   不再重复开一栏，只是把它滚到看得见 —— 否则「点了像没反应」。
+
+   文案经 <script> 的 data-title / data-close / data-pane-close / data-result 传入
+   （JS 里不能调 i18n）。
    ============================================ */
 
 (function () {
@@ -21,7 +27,7 @@
      两种场景行为一致（都在弹窗里打开目标卡）。 */
   var CARD_LINK_SEL = "a[data-card]";
   var self = document.currentScript || {};
-  var state = { cache: {}, lastFocus: null, modal: null };
+  var state = { cache: {}, lastFocus: null, modal: null, manual: {} };
 
   /* UI 文案经 <script> 的 data-* 传给脚本，见 extend_head.html */
   function label(key, fallback) {
@@ -83,7 +89,7 @@
       });
   }
 
-  /* ---------- 弹窗 ---------- */
+  /* ---------- 弹窗（多栏） ---------- */
   function ensureModal() {
     if (state.modal) return state.modal;
     var wrap = document.createElement("div");
@@ -94,29 +100,88 @@
       '<div class="tb-modal-panel" role="dialog" aria-modal="true">' +
       '<p class="tb-modal-title"></p>' +
       '<button type="button" class="tb-modal-close" data-close="1">×</button>' +
-      '<div class="tb-modal-content"></div>' +
+      '<div class="tb-modal-panes"></div>' +
       "</div>";
     wrap.querySelector(".tb-modal-title").textContent = label("title", "Toolbox");
     wrap.querySelector(".tb-modal-close").setAttribute("aria-label", label("close", "Close"));
     document.body.appendChild(wrap);
     wrap.addEventListener("click", function (e) {
+      /* 先判每栏的关闭按钮：它的 data-* 与弹窗那个不同名（data-close 只精确匹配自己），
+         所以顺序其实无关紧要，但意图上「关这一栏」优先于「关整个弹窗」。 */
+      var paneClose = e.target.closest("[data-close-pane]");
+      if (paneClose) {
+        closePane(paneClose.closest(".tb-pane"));
+        return;
+      }
       if (e.target.closest("[data-close]")) close();
     });
     state.modal = wrap;
     return wrap;
   }
 
+  function panesEl() {
+    return state.modal ? state.modal.querySelector(".tb-modal-panes") : null;
+  }
+
+  function paneOf(id) {
+    return state.modal ? state.modal.querySelector('.tb-pane[data-card="' + id + '"]') : null;
+  }
+
+  /* 栏数变了要同步两件事：面板放宽、每栏的关闭按钮现身（都挂在 data-multi 上，见 CSS） */
+  function syncPanes() {
+    if (!state.modal) return;
+    var n = state.modal.querySelectorAll(".tb-pane").length;
+    state.modal.dataset.multi = n > 1 ? "true" : "false";
+  }
+
+  function makePane(id) {
+    var pane = document.createElement("div");
+    pane.className = "tb-pane";
+    pane.dataset.card = id;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "tb-pane-close";
+    btn.setAttribute("data-close-pane", "1");
+    btn.setAttribute("aria-label", label("paneClose", "Close pane"));
+    btn.textContent = "×";
+    pane.appendChild(btn);
+    return pane;
+  }
+
+  /* opts.fromPane：从哪一栏里点出来的 —— 新栏插在它**右边**（用户要的「展开在左边或右边」）。
+     没有来源（页面上直接点引用、深链）就追加到最右边。 */
   function openCard(id, url, opts) {
-    if (!opts || !opts.keepFocus) state.lastFocus = document.activeElement;
+    opts = opts || {};
+    if (!opts.keepFocus) state.lastFocus = document.activeElement;
     loadCard(id, url)
       .then(function (node) {
         var modal = ensureModal();
-        var content = modal.querySelector(".tb-modal-content");
-        content.innerHTML = "";
-        content.appendChild(node.cloneNode(true));
+        var panes = panesEl();
+        var firstOpen = modal.hidden;
         modal.hidden = false;
         document.body.classList.add("tb-modal-open");
-        modal.querySelector(".tb-modal-close").focus();
+
+        var open = paneOf(id);
+        if (open) {
+          /* 已经在栏里：不再开一栏（同一个东西摆两份只会让人怀疑是不是点错了），
+             把它滚到看得见的地方就算回应了这次点击。 */
+          open.scrollIntoView({ block: "nearest", inline: "nearest" });
+          syncPanes();
+          return;
+        }
+
+        var pane = makePane(id);
+        pane.appendChild(node.cloneNode(true));
+        var host = opts.fromPane;
+        if (host && host.parentNode === panes) {
+          panes.insertBefore(pane, host.nextSibling);
+        } else {
+          panes.appendChild(pane);
+        }
+        syncPanes();
+        /* 只有「弹窗刚刚打开」才把焦点挪到面板上：之后每开一栏都把焦点拽回弹窗角落，
+           键盘与读屏用户会跟丢自己点的是哪一张。 */
+        if (firstOpen) modal.querySelector(".tb-modal-close").focus();
       })
       .catch(function () {
         /* 抓不到就退化成普通跳转（无 JS 时本来就该这样）。url 由 pathOf 保证是空串或
@@ -126,12 +191,59 @@
       });
   }
 
+  function closePane(pane) {
+    var panes = panesEl();
+    if (!pane || !panes || pane.parentNode !== panes) return;
+    /* 焦点若在被删掉的那一栏里，删完会掉到 body 上 —— 先记下来，之后挪到弹窗的关闭按钮 */
+    var lostFocus = pane.contains(document.activeElement);
+    panes.removeChild(pane);
+    if (!panes.querySelector(".tb-pane")) {
+      close();
+      return;
+    }
+    syncPanes();
+    if (lostFocus) state.modal.querySelector(".tb-modal-close").focus();
+  }
+
   function close() {
     if (!state.modal || state.modal.hidden) return;
+    var panes = panesEl();
+    if (panes) panes.innerHTML = "";   /* 下次打开是干净的，不留上一轮的栏 */
     state.modal.hidden = true;
     document.body.classList.remove("tb-modal-open");
     if (state.lastFocus && state.lastFocus.focus) state.lastFocus.focus();
     state.lastFocus = null;
+  }
+
+  /* ---------- 卡片墙：配件折叠（引理 / 推论 / 性质默认收起） ---------- */
+
+  function setFamilyOpen(fam, open) {
+    fam.setAttribute("data-open", open ? "true" : "false");
+    var btn = fam.querySelector(".tb-family-toggle");
+    if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  /* 收起这件事**只有脚本在时才做**：按钮出厂带 hidden，收起的 CSS 挂在 body.tb-collapsible 上，
+     两件事在同一个函数里、中间没有 await —— 否则会出现「箭头已经在、配件还开着」的一帧，
+     或者更糟：没有 JS 时配件被藏起来又点不开。 */
+  function initFamilies() {
+    var fams = Array.prototype.slice.call(document.querySelectorAll(".tb-family"));
+    var openables = fams.filter(function (fam) {
+      return fam.querySelector(".tb-family-toggle");
+    });
+    if (!openables.length) return;
+    document.body.classList.add("tb-collapsible");
+    openables.forEach(function (fam) {
+      var btn = fam.querySelector(".tb-family-toggle");
+      btn.hidden = false;
+      setFamilyOpen(fam, false);
+      btn.addEventListener("click", function () {
+        var open = fam.getAttribute("data-open") !== "true";
+        setFamilyOpen(fam, open);
+        /* 用户点过的家从此归用户管：搜索不再自动改它的开合（见 apply 里的说明） */
+        state.manual[fam.getAttribute("data-family")] = true;
+      });
+    });
   }
 
   /* ---------- 工具库主页筛选 ---------- */
@@ -173,6 +285,15 @@
           var hit = real.some(function (card) { return !card.hidden; });
           cards.forEach(function (card) { card.hidden = !hit; });
           fam.hidden = !hit;
+          /* 配件是收起来的：命中的如果正是**被收起来的配件**，不替访客展开就等于没命中
+             （搜索框说「匹配到了」，眼前却什么都没有）。用户自己点过箭头的家不碰 ——
+             他手动设过的开合状态，不该被敲键盘改掉。 */
+          var id = fam.getAttribute("data-family");
+          if (!fam.querySelector(".tb-family-toggle") || state.manual[id]) return;
+          setFamilyOpen(fam, !!q && Array.prototype.some.call(
+            fam.querySelectorAll(".tb-family-kids .tb-card"),
+            function (kid) { return (kid.dataset.search || "").toLowerCase().indexOf(q) !== -1; }
+          ));
         });
         group.hidden = visible === 0;
         /* 数学库是「大类 → 细分」两级：细分小节里卡全被筛掉就整块收起，
@@ -216,20 +337,31 @@
 
   /* ---------- 事件接线 ---------- */
   function init() {
+    initFamilies();
     initFilter();
 
     document.addEventListener("click", function (e) {
       var target = targetOf(e.target);
       /* 解析不出可靠地址就**不拦截**：让浏览器按链接自己走（也就是「没有 JS 时」那条路）。
-         以前这里只判 target.id，于是算坏的地址照样被 preventDefault 接管，把访客送去 404。 */
+         以前这里只判 target.id，于是算坏的地址照样被 preventDefault 接管，把访客送去 404。
+         折叠箭头没有 href、也不在 .tb-teaser 里，targetOf 对它返回 null —— 那条路不用特意排。 */
       if (target && target.id && target.url) {
         e.preventDefault();
-        openCard(target.id, target.url, { keepFocus: !!e.target.closest(".tb-modal-content") });
+        /* 从弹窗里某一栏点出来的，就把新卡开在那一栏右边 */
+        var fromPane = e.target.closest(".tb-pane");
+        openCard(target.id, target.url, { keepFocus: !!fromPane, fromPane: fromPane });
       }
     });
 
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") close();
+      if (e.key !== "Escape") return;
+      /* Esc 先收最后开的那一栏（一层一层退回去），只剩一栏时才关掉整个弹窗 */
+      var panes = state.modal && state.modal.querySelectorAll(".tb-pane");
+      if (panes && panes.length > 1) {
+        closePane(panes[panes.length - 1]);
+      } else {
+        close();
+      }
     });
 
     // 从别处分享来的深链：#card-tool-1-4（卡片页上内容本来就在，主页则开弹窗）

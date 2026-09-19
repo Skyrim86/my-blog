@@ -21,7 +21,8 @@
      （写「全方差律」不会显示成卡片全名）。
 
      找卡与定位卡片页都交给 partials/card-find.html 与 data/libraries.yaml —— 数学库、CS 库
-     共用一套，跨库引用不必先知道结论属于哪个库。 */ -}}
+     共用一套，跨库引用不必先知道结论属于哪个库；「按 id 算出卡片页地址」这一件事在
+     partials/card-href.html（本文件与关系列表 card-rel.html 共用同一份）。 */ -}}
 {{- $page := .page -}}
 {{- $found := partial "card-find.html" (dict "id" .id "name" .name "page" $page) -}}
 {{- $card := $found.card -}}
@@ -42,36 +43,11 @@
 {{- if and (not $label) $card -}}{{- $label = $card.kind -}}{{- end -}}
 {{- if not $label -}}{{- $label = .id | default .name -}}{{- end -}}
 
-{{- /* 卡片页地址：库配了 cards 前缀就用它（CS 库是 /cs/<id>/）；没配说明卡片挂在课程工具库里
-       （数学库），先按当前页所属课程找工具库，再按卡片自己的 course 找，最后退回全站第一个
-       layout: tools 的页面。 */ -}}
+{{- /* 卡片页地址：交给 card-href.html 算（数学卡挂在课程工具库下、CS 卡平铺在库下，
+      两处都得用同一份，别在这里再抄一遍）。 */ -}}
 {{- $href := "" -}}
 {{- if $card -}}
-  {{- with $lib.cards -}}
-    {{- $href = printf "%s%s/" (. | relLangURL) $card.id -}}
-  {{- else -}}
-    {{- $tbPage := false -}}
-    {{- with $page -}}
-      {{- $file := replace (.File.Path | default "") "\\" "/" -}}
-      {{- $parts := split $file "/" -}}
-      {{- if and (ge (len $parts) 2) (eq (index $parts 0) "courses") -}}
-        {{- with site.GetPage (printf "/courses/%s/toolbox" (index $parts 1)) -}}
-          {{- $tbPage = . -}}
-        {{- end -}}
-      {{- end -}}
-    {{- end -}}
-    {{- if and (not $tbPage) $card.course -}}
-      {{- with site.GetPage (printf "/courses/%s/toolbox" $card.course) -}}
-        {{- $tbPage = . -}}
-      {{- end -}}
-    {{- end -}}
-    {{- if and (not $tbPage) $page -}}
-      {{- range where site.Pages "Layout" "tools" -}}
-        {{- if not $tbPage -}}{{- $tbPage = . -}}{{- end -}}
-      {{- end -}}
-    {{- end -}}
-    {{- with $tbPage -}}{{- $href = printf "%s%s/" .RelPermalink $card.id -}}{{- end -}}
-  {{- end -}}
+  {{- $href = partial "card-href.html" (dict "card" $card "lib" $lib "page" $page) -}}
 {{- end -}}
 
 {{- if $href -}}

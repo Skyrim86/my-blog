@@ -1,0 +1,70 @@
+{{- /* 一张卡片的**关系列表**（配件 / 用在哪），双向。
+
+     参数：page（渲染上下文页）、card（data/<库>-toolbox.json 的一条）
+
+     为什么要它：关系原来只活在卡片墙上 —— 正主下面缩进挂着配件，配件自己被谁用只在「墙上渲染
+     了几份」这件事里，卡片页与弹窗里一个字都没有。现在卡片自己带上两个方向：
+
+       · 配件 —— parents 里写着本卡 id 的那些卡（引理 / 推论 / 性质，见 docs/content.md §10）；
+       · 用在哪 —— 本卡自己的 parents（配件卡才可能有），一张引理常挂在好几个定理下，
+         在这里一眼看全，不必回墙上数那几份缩进的副本。
+
+     两张表都由**数据**推出来，不查墙上的渲染结果：墙上的重复份（tb-teaser--dup）只是显示口径，
+     不能当数据用。配件扫描走**所有库**（与 card-find.html 同一口径）—— 关系不该因为两张卡
+     落在不同库而消失。链接交给 card-ref 那条路（card-find → card-href），
+     所以点它与点正文里的引用徽章完全同一条路：有 JS 时开新一栏，没 JS 时跳卡片页。 */ -}}
+{{- $page := .page -}}
+{{- $card := .card -}}
+
+{{- $kids := slice -}}
+{{- range (index hugo.Data "libraries").libraries -}}
+  {{- with index hugo.Data .data -}}
+    {{- range .cards -}}
+      {{- if in (.parents | default slice) $card.id -}}
+        {{- $kids = $kids | append .id -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $groups := slice -}}
+{{- if $kids -}}
+  {{- $groups = $groups | append (dict "key" "kids" "label" (i18n "toolboxRelKids") "ids" $kids) -}}
+{{- end -}}
+{{- with $card.parents -}}
+  {{- $groups = $groups | append (dict "key" "parents" "label" (i18n "toolboxRelParents") "ids" .) -}}
+{{- end -}}
+
+{{- with $groups }}
+<div class="tb-card-rel">
+  {{- range $g := . }}
+  <div class="tb-rel" data-rel="{{ $g.key }}">
+    <span class="tb-rel-label">{{ $g.label }}</span>
+    <ul class="tb-rel-list">
+      {{- range $id := $g.ids }}
+      {{- $found := partial "card-find.html" (dict "id" $id "page" $page) }}
+      {{- with $found.card }}
+      {{- $href := partial "card-href.html" (dict "card" . "lib" $found.lib "page" $page) }}
+      <li>
+        {{- if $href }}
+        <a class="tb-rel-link" href="{{ $href }}" data-card="{{ .id }}" data-kind="{{ .kind }}">
+          <span class="tb-kind" data-kind="{{ .kind }}">{{ .kind }}</span>
+          <span class="tb-rel-name">{{ $page.RenderString .title }}</span>
+        </a>
+        {{- else }}
+        {{- /* 数据里写了关系，但那张卡没有页面（正常不该发生）——退化成纯文本，
+               总比画一个点了没反应的链接好。 */ -}}
+        {{- warnf "card-rel: 卡片 %s 的关系 %s 没有对应的卡片页" $card.id $id }}
+        <span class="tb-rel-link tb-rel-link-missing">
+          <span class="tb-kind" data-kind="{{ .kind }}">{{ .kind }}</span>
+          <span class="tb-rel-name">{{ $page.RenderString .title }}</span>
+        </span>
+        {{- end }}
+      </li>
+      {{- end }}
+      {{- end }}
+    </ul>
+  </div>
+  {{- end }}
+</div>
+{{- end }}

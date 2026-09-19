@@ -1,0 +1,43 @@
+{{- /* 一张卡片页的地址。**卡片地址只在此处算**（card-ref.html 与 card-rel.html 共用）。
+
+     参数：card（必需，卡片数据里的一条）
+           lib （可选，card-find.html 返回的所属库；用来判断这个库的卡片页是平铺还是挂在课程下）
+           page（可选，当前页；找不到时用来兜底，并让「当前页属于哪门课」优先于卡片自己的 course）
+     返回：地址字符串（算不出来是空串。**不返回 false**：调用方只需判空）
+
+     两种形状：
+       · CS 库那样在 libraries.yaml 里配了 cards 前缀的 → /cs/<id>/（平铺在库下）
+       · 数学卡 → /courses/<课程>/toolbox/<id>/，先按当前页所属课程找工具库，再按卡片自己的
+         course 找，最后退回全站第一个 layout: tools 的页面（卡片页与工具库页同在一门课下）。 */ -}}
+{{- $card := .card -}}
+{{- $lib := .lib -}}
+{{- $page := .page -}}
+{{- $href := "" -}}
+{{- with $card -}}
+  {{- $flat := false -}}
+  {{- with $lib -}}{{- $flat = .cards -}}{{- end -}}
+  {{- if $flat -}}
+    {{- $href = printf "%s%s/" ($flat | relLangURL) .id -}}
+  {{- else -}}
+    {{- $tbPage := false -}}
+    {{- with $page -}}
+      {{- /* .File 在内容适配器生成的页面（数学库的大类页/细分页）上可能为空，所以先 with 再取 .Path */ -}}
+      {{- with .File -}}
+        {{- $parts := split (replace (.Path | default "") "\\" "/") "/" -}}
+        {{- if and (ge (len $parts) 2) (eq (index $parts 0) "courses") -}}
+          {{- with site.GetPage (printf "/courses/%s/toolbox" (index $parts 1)) -}}{{- $tbPage = . -}}{{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if and (not $tbPage) .course -}}
+      {{- with site.GetPage (printf "/courses/%s/toolbox" .course) -}}{{- $tbPage = . -}}{{- end -}}
+    {{- end -}}
+    {{- if and (not $tbPage) $page -}}
+      {{- range where site.Pages "Layout" "tools" -}}
+        {{- if not $tbPage -}}{{- $tbPage = . -}}{{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- with $tbPage -}}{{- $href = printf "%s%s/" .RelPermalink $card.id -}}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $href -}}
