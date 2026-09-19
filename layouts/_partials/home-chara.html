@@ -1,0 +1,27 @@
+{{- /* 首页 hero 里的角色立绘（2026-09-19 新增，见 docs/features.md ㉕）。
+
+     图与开关都在 hugo.toml 的 [params.home]：`chara`（留空 = 不显示）、`charaWidth`（显示宽度，
+     出图是它的 2 倍，靠 srcset 给高分屏）。
+
+     三件事刻意这么做：
+       1. **纯装饰**：alt 留空 + aria-hidden，不进读屏序列，也不需要新 i18n 词条（AGENTS 规则 7
+          管的是「面向访客的文案」，这里没有文案）。
+       2. **经资源管线 Resize 出 1x/2x 两档**，与头像同款：高分屏拿 2 倍图，普通屏只下 1 倍。
+          图必须在 assets/ 下 —— 放 static/ 时 resources.Get 拿不到，Resize 会被**静默忽略**
+          （docs/traps.md 第 22 条，头像踩过）。
+       3. **不包链接**：右下角看板娘点进「关于」是因为她兼着那个入口，这里的立绘只是画面的一部分，
+          不做交互（少一处需要 aria-label 的可点元素）。 */ -}}
+{{- $chara := site.Params.home.chara }}
+{{- with $chara }}
+{{- $img := resources.Get . }}
+{{- if $img }}
+{{- $w := site.Params.home.charaWidth | default 200 }}
+{{- $small := $img.Resize (printf "%dx" $w) }}
+{{- $large := $img.Resize (printf "%dx" (mul $w 2)) }}
+<img class="home-chara" draggable="false" src="{{ $small.RelPermalink }}"
+    srcset="{{ $small.RelPermalink }} 1x, {{ $large.RelPermalink }} 2x"
+    width="{{ $small.Width }}" height="{{ $small.Height }}" alt="" aria-hidden="true">
+{{- else }}
+{{- warnf "params.home.chara=%q 在 assets/ 下找不到（图要放 assets/，不是 static/），首页立绘不显示" $chara }}
+{{- end }}
+{{- end }}

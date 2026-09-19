@@ -60,6 +60,53 @@
   letter-spacing: .04em;
 }
 
+/* ---------- hero 里的角色立绘（透明底抠图，生成脚本 tools/backgrounds/make-ayaka-chibi.py）----------
+
+   **选择器必须带 `.profile` 这一层，不能只写 `.home-chara`**：主题给头像写了两条会命中
+   「hero 里任何一张图」的规则，权重都比单个类高：
+     - `.profile img { border-radius: 50% }`（profile-mode.css:20）→ 不覆盖她会被裁成圆形
+     - `@media (max-width: 768px) { .profile img { transform: scale(.85) } }`（zmedia.css:8）
+       → 不覆盖她在窄屏会被缩到 85%，而且入场动画（带 transform）会先按 100% 画、动画结束才跳回 85%
+   `.profile .home-chara` 是 (0,2,0)，压得住 `.profile img` 的 (0,1,1)；只写 `.home-chara` 是 (0,1,0)，
+   压不住 —— 表现是「圆形头像裁切还在」或「窄屏尺寸跳一下」，都不报错。（docs/traps.md 有这条。）
+
+   宽度分档：窄屏 128 / 641px 起 168 / ≥1024px 回到模板给的 charaWidth（`width: auto` 取的就是
+   模板里 width 属性的值，也就是 hugo.toml 的 charaWidth，不在这里写第二份）。改档位要顺带看
+   make-ayaka-chibi.py 的 OUT_W（出图 = 显示宽度的 2 倍）。 */
+.profile .home-chara {
+  width: 128px;
+  /* height 必须 auto：改了宽度而高度锁在属性值上会被纵向压扁（同 00-theme.css 里内容图那条） */
+  height: auto;
+  border-radius: 0;
+  transform: none;
+  /* 分离用投影：浅色主题下她是浅色头发、白天少女套的天空又很亮，不给一道淡深影就糊在一起；
+     深色主题反过来给冷色微光 + 深影（与右下角看板娘同一套手法，14-mascot.css）。
+     两道叠着用：紧的那道（0 0 1px）只做**边缘定义**——浅发贴亮壁纸时靠它才看得出轮廓；
+     松的那道做体积。实测只留松的那道时，头顶与天空交界处仍然发糊。 */
+  filter:
+    drop-shadow(0 0 1px rgba(18, 14, 24, .42))
+    drop-shadow(0 6px 16px rgba(18, 14, 24, .26));
+}
+
+:root[data-theme="dark"] .profile .home-chara {
+  filter:
+    drop-shadow(0 0 2px rgba(214, 226, 255, .34))
+    drop-shadow(0 10px 22px rgba(0, 0, 0, .55));
+}
+
+@media (min-width: 641px) {
+  .profile .home-chara {
+    width: 168px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .profile .home-chara {
+    /* 回到 hugo.toml 的 charaWidth：auto 在带 srcset 的 <img> 上取的是「按密度换算后的固有宽度」 */
+    width: auto;
+  }
+}
+
 /* 没配 site.Params.socialIcons 时，主题的 social_icons.html 会输出一个空 div，
    而 hero 是 gap 布局 —— 空的 flex 项照样占一份 gap（首页多出约 1rem 的空白）。
    用 :empty 收掉，比删模板里的 partial 调用好：不新增与主题原版的差异处，
@@ -349,6 +396,13 @@
   .home-recent {
     max-width: none;
   }
+
+  /* 那排快捷入口 pill 在宽屏是**纯重复**：它取的就是主导航的前五项，而 ≥1024px 时完整导航就在
+     正上方一行。窄屏（≤640px 导航收进汉堡菜单）它才是唯一的大按钮入口，所以只在宽屏隐藏。
+     顺带解决「五个 pill 在 20rem 的窄栏里排成 4+1、『标签』单独占一行」。 */
+  .profile-links {
+    display: none;
+  }
 }
 
 /* ---------- 入场：一次性淡入，阶梯延迟（首页专属，只在首屏出现一次）----------
@@ -380,6 +434,7 @@
 
   .profile h1,
   .home-hero > span,
+  .home-chara,
   .profile-links,
   .home-scale,
   .home-browse,
@@ -389,6 +444,7 @@
 
   .profile h1 { animation-delay: .04s; }
   .home-hero > span { animation-delay: .08s; }
+  .home-chara { animation-delay: .1s; }
   .profile-links { animation-delay: .12s; }
   .home-scale { animation-delay: .16s; }
   .home-browse { animation-delay: .2s; }

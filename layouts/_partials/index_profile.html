@@ -45,6 +45,8 @@
         {{- end }}
         <h1>{{ .title | default site.Title | markdownify }}</h1>
         <span>{{ .subtitle | markdownify }}</span>
+        {{- /* 角色立绘（透明底抠图）：整块在 home-chara.html 里，纯装饰、不参与交互 */ -}}
+        {{- partial "home-chara.html" . }}
         {{- partial "social_icons.html" -}}
 
         {{- /* 快捷入口：主导航去掉「首页」后的前 5 项 */ -}}
