@@ -56,7 +56,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 词条筛选框 | `assets/js/terms-filter.js`、`06-terms-filter.css` | 同上 |
 | 搜索索引 | `layouts/index.json` + `hugo.toml` 的 `fuseOpts.keys`（**改一处必须同步另一处**） | 同上 |
 | 站点外观（配色 / 深色令牌 / 装饰层） | `assets/css/extended/00-theme.css`、`03`…`13` 组件样式 | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（令牌）与 ㉔（装饰层） |
-| 图标（favicon / apple-touch / 桌面快捷方式） | `tools/icons/make-icons.py`（**生成产物，不要手改 static/ 下的 png/ico**） | [`docs/architecture.md`](docs/architecture.md) 第 6 节 |
+| 图标（favicon / apple-touch / 桌面快捷方式）与**导航栏的像素小人** | `tools/icons/make-icons.py`（**生成产物，不要手改 `static/` 下的 png/ico，也不要手改 `assets/images/nav/*.png`**）；图标位在 `hugo.toml` 菜单的 `pre` 字段、接线在 `extend_head.html`、样式在 `19-nav-px.css` | [`docs/architecture.md`](docs/architecture.md) 第 6 节 |
 | 阅读进度条 / 目录当前项 | `assets/js/reading-progress.js`、`08-reader.css` | 同上 |
 | 无障碍（跳过链接 / 动态列表播报 / `sr-only`） | `layouts/baseof.html`（第 7 处覆盖）、`assets/css/extended/17-a11y.css`、`assets/js/a11y-announce.js`、`terms-filter.js` 与 `list-tools.js` 里的 `role="status"` | [`docs/features.md`](docs/features.md) 第 4 节 |
 | JSON-LD 结构化数据（删掉了 `articleBody`） | `layouts/_partials/templates/schema_json.html`（第 8 处覆盖，逐字保留主题实现只删一行） | [`docs/features.md`](docs/features.md) 第 4 节第 8 条 + ㉟ |

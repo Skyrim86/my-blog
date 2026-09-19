@@ -1,0 +1,40 @@
+/* ============================================
+   导航栏的像素小人图标
+
+   图是 tools/icons/make-icons.py 自绘的 32×32 像素半身（角色与配色见那个脚本的 NAV_CHARS），
+   图片 URL 由 layouts/_partials/extend_head.html 按菜单 identifier 生成到 css/nav-icons.css。
+   本文件只管「盒子」：尺寸、对齐、缩放方式，一条具体图片的规则都不在这里。
+
+   三处刻意的选择：
+
+   一、**用 <span> + background-image，而不是 <img>**。图标是纯装饰（旁边就是文字标签），
+   用 CSS 背景就不需要 alt、读屏也不会多读一个节点 —— hugo.toml 菜单 pre 字段里的那个 span
+   本来就带 aria-hidden。另一个更硬的理由：<img src> 必须带站点子路径 /my-blog/，写进配置
+   就等于把子路径钉死；走 RelPermalink 生成的 CSS 没这个问题（与站点背景同一套做法）。
+
+   二、**基础规则是 display:none**（生成的那条才给 inline-block）。新加导航项却忘了放图时，
+   不会留下一个 16px 的空洞。这也是为什么选择器要写成 .nav-px.np-<id>：与基础规则同为
+   (0,1,0) 优先级，不带上基础类就变成「谁后加载谁赢」。
+
+   三、**16px = 主网格 32px 的一半**，整数倍缩放才不糊；再配 image-rendering: pixelated
+   让 2 倍屏（DPR≥2）的放大也走最近邻，否则高分屏会把像素方块插值成圆角。
+   vertical-align 用负值把图标往下压一点：像素小人是「头大身小」，居中会让它比文字高出一截。
+   ============================================ */
+
+.nav-px {
+  display: none;
+  width: 16px;
+  height: 16px;
+  margin-right: .34em;
+  vertical-align: -.2em;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+  image-rendering: pixelated;
+}
+
+/* 窄屏菜单是竖排展开（见 10-nav.css 的 .has-nav-toggle 那组规则），图标跟着文字走，
+   行高变大时靠 vertical-align 对齐即可，不需要另一套尺寸。 */
+.has-nav-toggle #menu.is-open .nav-px {
+  vertical-align: -.22em;
+}

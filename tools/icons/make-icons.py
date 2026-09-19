@@ -121,7 +121,10 @@ class Grid:
         p = im.load()
         for y in range(self.n):
             for x in range(self.n):
-                p[x, y] = PALETTE[self.px[y][x]]
+                c = self.px[y][x]
+                # 既认调色板字符，也认直接给的 RGBA 元组：导航栏那 8 个角色的发色/眼色
+                # 各不相同，塞进全局 PALETTE 会让那张表变成二十几个一次性键。
+                p[x, y] = c if isinstance(c, tuple) else PALETTE[c]
         return im
 
 
@@ -409,13 +412,297 @@ def _png_bytes(im):
     return b.getvalue()
 
 
+# ============================================
+# 导航栏像素小人（第三条线，与 --style 无关 —— 它永远是像素风）
+# ============================================
+# 为什么自绘而不是找现成的像素图：safebooru 上这几个角色的 pixel_art 少到凑不成一套
+# （艾米莉娅 0 张、蕾姆 6 张、派蒙 15 张），而把精细的 Q 版插画压到 32×32 也试过 ——
+# 五官会糊成一团、边缘还会留一圈灰毛边（实测对比留在 .shots/navtest/sweep-emilia.png）。
+# 自绘顺带把许可问题解决干净：不复制任何官方素材，只是按角色的配色与特征自己画。
+#
+# 16px 显示时整张脸只有约 6×6 像素，**认人靠的不是五官，而是发色 + 配饰剪影 + 发长**
+# 这三件事，所以八个角色的差异全做在这三处：发色刻意拉开（奶白 / 白绿 / 淡蓝紫 / 天蓝 /
+# 金 / 暖棕 / 深紫 / 银白），配饰剪影各不相同（王冠 / 叶芽 / 双角 / 女仆头饰 / 便帽 /
+# 梅花 / 女巫帽 / 花）。眼睛只保留「上眼睑重线 + 虹膜 + 一点高光」的 3×4 结构 ——
+# 画成 5 宽的整块色会变成护目镜，这条经验见 draw_chibi() 的注释。
+NAV_DIR = ROOT / "assets" / "images" / "nav"
+NAV_COLORS = 32   # 每张实际只有 13~15 色，32 色量化无损，体积减半以上（见 png_bytes）
+
+SKIN = PALETTE["s"]
+SKIN_D = PALETTE["t"]
+BLUSH = PALETTE["p"]
+WHITE = PALETTE["w"]
+GOLD = PALETTE["g"]
+INK = PALETTE["o"]
+
+# (导航项 id, 备注, 规格)。id 与 hugo.toml 的菜单 identifier 一一对应，
+# 图标文件名就是 <id>.png —— 模板按 identifier 去找图，不加一张映射表。
+# hair 前三个是主色/亮色/暗色，第四个（可选）是发梢的渐变色。
+NAV_CHARS = [
+    ("home", "派蒙", dict(
+        hair=((250, 238, 208), (255, 250, 232), (214, 192, 146)),
+        eye=((60, 76, 142), (32, 44, 90)), cloth=((244, 247, 252), (108, 142, 210)),
+        style="bob", acc="crown", acc_c=(236, 196, 100))),
+    ("library", "纳西妲", dict(
+        hair=((238, 238, 246), (252, 252, 255), (198, 200, 214), (124, 198, 140)),
+        eye=((92, 174, 116), (44, 116, 70)), cloth=((246, 250, 244), (96, 168, 116)),
+        style="side_tail", acc="leaf", acc_c=(104, 186, 118))),
+    ("cs", "甘雨", dict(
+        hair=((172, 182, 222), (206, 214, 242), (124, 134, 180)),
+        eye=((168, 120, 200), (106, 68, 146)), cloth=((54, 64, 106), (214, 198, 150)),
+        style="long", acc="horns", acc_c=((80, 62, 96), (204, 72, 86)))),
+    ("courses", "蕾姆", dict(
+        hair=((132, 186, 236), (178, 214, 248), (74, 130, 190)),
+        eye=((86, 158, 216), (44, 106, 164)), cloth=((46, 46, 56), (238, 242, 250)),
+        style="bob", acc="headband", acc_c=(250, 250, 252))),
+    ("projects", "可莉", dict(
+        hair=((238, 208, 128), (252, 232, 176), (194, 158, 80)),
+        eye=((214, 86, 74), (156, 42, 38)), cloth=((196, 72, 64), (248, 244, 238)),
+        style="twins", acc="cap", acc_c=(196, 68, 60))),
+    ("tags", "胡桃", dict(
+        hair=((96, 68, 48), (128, 94, 66), (62, 44, 32), (156, 78, 58)),
+        eye=((212, 82, 72), (150, 38, 34)), cloth=((62, 46, 38), (196, 72, 74)),
+        style="twins", acc="plum", acc_c=(196, 62, 76))),
+    ("search", "莫娜", dict(
+        hair=((92, 74, 116), (120, 100, 148), (58, 46, 78)),
+        eye=((92, 186, 156), (44, 122, 100)), cloth=((64, 50, 86), (204, 176, 96)),
+        style="long", acc="witch", acc_c=((38, 30, 56), (204, 176, 96)))),
+    ("about", "艾米莉娅", dict(
+        hair=((230, 228, 240), (250, 250, 255), (188, 186, 204)),
+        eye=((150, 112, 202), (94, 60, 148)), cloth=((246, 246, 250), (138, 106, 190)),
+        style="long", acc="flower", acc_c=((255, 255, 255), (138, 106, 190)))),
+]
+
+
+def _eye(c, x0, ec, ed):
+    c.hline(15, x0, x0 + 2, ed)
+    c.set(x0, 16, ec)
+    c.set(x0 + 1, 16, WHITE)
+    c.set(x0 + 2, 16, ec)
+    c.hline(17, x0, x0 + 2, ec)
+    c.hline(18, x0, x0 + 2, ed)
+
+
+def draw_nav_chibi(spec):
+    """画一个 32×32 的角色半身。**不垫底板**：它贴在半透明的毛玻璃顶栏上，底板会显脏。"""
+    c = Grid()
+    hair = spec["hair"]
+    hm, hl, hd = hair[0], hair[1], hair[2]
+    tip = hair[3] if len(hair) > 3 else None
+    ec, ed = spec["eye"]
+    cm, cd = spec["cloth"]
+    style, acc = spec["style"], spec["acc"]
+
+    long_hair = style in ("long", "twins", "side_tail")
+    if long_hair:                      # 后发：长发的底层，免得两侧只到下巴像短发
+        for y in range(10, 32):
+            for x in range(3, 29):
+                c.set(x, y, hd)
+
+    def half(y):                       # 宽扁圆顶 + 两侧直下
+        if y < 2 or y > 26:
+            return -1.0
+        if y <= 14:
+            t = (14 - y) / 13.0
+            return 12.5 * (1.0 - t ** 3) ** 0.5
+        return 12.5 - 1.5 * max(0, y - 25)
+
+    for y in range(2, 27):
+        hw = half(y)
+        if hw <= 0:
+            continue
+        for x in range(math.ceil(15.5 - hw), math.floor(15.5 + hw) + 1):
+            c.set(x, y, hm)
+
+    if acc not in ("cap", "witch"):    # 呆毛（戴帽子的两位不画，会被帽子吃掉）
+        c.set(16, 1, hm)
+        c.set(17, 0, hm)
+        c.set(17, 1, hm)
+
+    for y in (25, 26):                 # 颈部挖空，脸和脖子随后补回来
+        for x in range(11, 21):
+            c.set(x, y, ".")
+    c.ellipse(15.5, 18.0, 7.5, 7.0, SKIN)
+
+    def bang(x):                       # 齐刘海逐列不等下缘：写成矩形头会变成一个方盒
+        if 10 <= x <= 21:
+            return 12
+        if 8 <= x <= 23:
+            return 13
+        return 14
+
+    for x in range(2, 30):
+        for y in range(1, bang(x) + 1):
+            if c.get(x, y) != ".":
+                c.set(x, y, hm)
+        if c.get(x, bang(x)) == hm:
+            c.set(x, bang(x), hd)
+
+    for y in range(14, 27):            # 侧发：内层中间调、外层暗色，把头发和脸分开
+        c.set(8, y, hm)
+        c.set(23, y, hm)
+    for y in range(16, 26):
+        c.set(3, y, hd)
+        c.set(28, y, hd)
+
+    if tip:                            # 发梢渐变色（纳西妲/胡桃）
+        for y in range(22, 27):
+            for x in (2, 3, 4, 27, 28, 29):
+                if c.get(x, y) == hd:
+                    c.set(x, y, tip)
+
+    _eye(c, 10, ec, ed)                # 眼睛
+    _eye(c, 19, ec, ed)
+    c.set(9, 20, BLUSH)                # 腮红
+    c.set(22, 20, BLUSH)
+    c.hline(21, 15, 16, INK)           # 嘴
+
+    # ---- 配饰：剪影是辨识度的主要来源 ----
+    if acc == "crown":                 # 派蒙：三尖小金冠（第一版只画了一条线，16px 下看不见）
+        for x in range(11, 21):
+            c.set(x, 2, spec["acc_c"])
+        for x in (11, 15, 19):
+            c.set(x, 1, spec["acc_c"])
+            c.set(x, 0, spec["acc_c"])
+    elif acc == "leaf":
+        c.set(19, 0, spec["acc_c"])
+        c.set(20, 0, spec["acc_c"])
+        c.set(19, 1, (150, 206, 158))
+    elif acc == "horns":               # 甘雨：两只角 + 一枚红发饰。
+        # 角必须**立到头顶轮廓之上**（y0~5）：第一版把它们画在头两侧的头发上（y4~10、x5/25），
+        # 那里正好是头发外缘、紧贴描边，32px 下整个被吃掉，看不出长角。
+        hc, rc = spec["acc_c"]
+        for x0, d in ((10, -1), (21, 1)):
+            for k in range(6):
+                y = 5 - k
+                x = x0 + (k // 2) * d
+                c.set(x, y, hc)
+                c.set(x + 1, y, hc)
+        c.set(23, 11, rc)
+        c.set(24, 11, rc)
+        c.set(23, 12, rc)
+    elif acc == "headband":            # 蕾姆：白色女仆头饰（带齿）
+        for x in range(9, 23):
+            c.set(x, 4, spec["acc_c"])
+        for x in range(10, 23, 2):
+            c.set(x, 3, spec["acc_c"])
+    elif acc == "cap":                 # 可莉：红贝雷帽 + 白球（圆顶，不是方块 —— 方块像顶轿子）
+        for y in range(0, 7):
+            w = 9 - abs(y - 3)
+            for x in range(16 - w, 16 + w):
+                c.set(x, y, spec["acc_c"])
+        for x in range(8, 24):
+            c.set(x, 6, spec["acc_c"])
+        c.set(15, 0, WHITE)
+        c.set(16, 0, WHITE)
+    elif acc == "plum":                # 胡桃：梅花发饰（深色底 + 红瓣 + 金心）
+        c.ellipse(6.0, 8.0, 3.6, 3.2, INK)
+        c.ellipse(6.0, 8.0, 2.8, 2.4, spec["acc_c"])
+        for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+            c.set(6 + dx, 8 + dy, WHITE)
+        c.set(6, 8, GOLD)
+    elif acc == "witch":               # 莫娜：宽檐女巫帽 + 金帽带（剪影最独特的一顶）。
+        # 帽色必须**明显深于发色**：第一版帽子(62,48,84)与头发(92,74,116)太近，
+        # 32px 下帽檐和头顶连成一片，看不出戴了帽子。
+        hc, band = spec["acc_c"]
+        for x in range(3, 29):
+            c.set(x, 6, hc)
+            c.set(x, 7, hc)
+        for y in range(0, 7):
+            w = 5 + y // 2
+            for x in range(16 - w, 16 + w):
+                c.set(x, y, hc)
+        for x in range(10, 23):
+            c.set(x, 5, band)
+            c.set(x, 4, band)
+    elif acc == "flower":              # 艾米莉娅：白花 + 紫缎带。
+        # 花必须垫一层深色底：银发上的白花等于没有（第一版就是这样，整个发饰看不见）。
+        fc, rc = spec["acc_c"]
+        c.ellipse(6.0, 8.0, 3.6, 3.2, INK)
+        for dx, dy in ((0, -2), (0, 2), (-2, 0), (2, 0)):
+            c.set(6 + dx, 8 + dy, fc)
+        c.set(6, 8, rc)
+        for y in range(11, 15):
+            c.set(3, y, rc)
+
+    c.rect(14, 24, 17, 27, SKIN)       # 脖子
+    c.hline(25, 13, 18, SKIN_D)        # 下颌投影，把下巴和脖子分开
+    c.rect(4, 27, 27, 31, cm)          # 衣领
+    for i in range(4):
+        c.set(15 - i, 27 + i, cd)
+        c.set(16 + i, 27 + i, cd)
+
+    # 长发/马尾**压在衣领之上**再画一遍。第一版把它们画在衣领之前，结果被 y27..31 的衣领
+    # 整片盖掉 —— 四个长发角色在剪影上全变成了短发，只能靠发色分辨，等于白做「发长」这条线索。
+    if long_hair:
+        for y in range(23, 32):
+            for x in list(range(2, 8)) + list(range(25, 31)):
+                c.set(x, y, hd)
+    if style == "twins":               # 双马尾：外侧两条，垂到画面底
+        for y in range(18, 32):
+            for x in (1, 2, 3, 29, 30, 28):
+                c.set(x, y, hd)
+    if style == "side_tail":           # 侧马尾：只在右侧，且发梢带渐变色
+        for y in range(18, 32):
+            for x in range(24, 30):
+                c.set(x, y, hd)
+        if tip:
+            for y in range(27, 32):
+                for x in range(24, 30):
+                    if c.get(x, y) == hd:
+                        c.set(x, y, tip)
+
+    c.outline()
+    return c.to_image()
+
+
+def nav_icons():
+    """返回 [(id, 备注, Image)]，32×32 透明底。"""
+    return [(key, note, draw_nav_chibi(spec)) for key, note, spec in NAV_CHARS]
+
+
+def nav_preview(out):
+    """浅底/深底各一行（顶栏是半透明毛玻璃，深色主题下必须也看得清），末行是 16px 实尺。"""
+    icons = nav_icons()
+    cell, pad = 132, 8
+    w = pad + len(icons) * (cell + pad)
+    canvas = Image.new("RGB", (w, pad * 4 + cell * 2 + 30), (255, 255, 255))
+    d = ImageDraw.Draw(canvas)
+    # 底色要**离开近白**：顶栏是 `--surface` 近白（浅色）/ 近黑（深色）的毛玻璃，
+    # 而好几个角色的衣领就是近白 —— 用纯白垫底时领口会和底糊在一起，看不出边界。
+    for row, (bg, label) in enumerate((((206, 212, 224), "浅色主题顶栏（近似：近白毛玻璃压在照片上）"),
+                                       ((30, 27, 38), "深色主题顶栏（近似）"))):
+        y0 = pad + row * (cell + pad + 15)
+        d.rectangle([0, y0 - 2, w, y0 + cell + 2], fill=bg)
+        d.text((pad, y0 + cell + 2), label, fill=(120, 120, 130))
+        for i, (_key, _note, im) in enumerate(icons):
+            x = pad + i * (cell + pad)
+            canvas.paste(im.resize((cell, cell), Image.NEAREST), (x, y0),
+                         im.resize((cell, cell), Image.NEAREST))
+    y0 = pad * 3 + cell * 2 + 30
+    d.rectangle([0, y0 - 4, w, y0 + 24], fill=(206, 212, 224))
+    for i, (_key, _note, im) in enumerate(icons):
+        x = pad + i * (cell + pad)
+        small = im.resize((16, 16), Image.NEAREST)
+        canvas.paste(small, (x, y0), small)
+        d.text((x + 22, y0 + 2), NAV_CHARS[i][0], fill=(60, 60, 70))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(out)
+    print("preview:", out)
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--style", choices=("art", "pixel"), default="art",
                     help="art = 裁 Q 版插画（默认）；pixel = 脚本自绘的 32x32 像素风")
     ap.add_argument("--preview", metavar="OUT", help="只渲染预览图，不写 static/")
-    ap.add_argument("--check", action="store_true", help="比对 static/ 是否与脚本一致")
+    ap.add_argument("--preview-nav", metavar="OUT", help="只渲染导航像素小人预览（浅底/深底各一行）")
+    ap.add_argument("--check", action="store_true", help="比对 static/ 与 assets/images/nav/ 是否与脚本一致")
     a = ap.parse_args()
+
+    if a.preview_nav:
+        return nav_preview(Path(a.preview_nav))
 
     if a.style == "art":
         base = art_source()
@@ -490,6 +777,12 @@ def main():
         for path, blob in ((STATIC / "favicon.ico", ico), (APP_ICO, app_ico)):
             if not path.exists() or path.read_bytes() != blob:
                 drift.append("内容不一致 " + path.relative_to(ROOT).as_posix())
+        for key, _note, im in nav_icons():
+            path = NAV_DIR / f"{key}.png"
+            if not path.exists():
+                drift.append("缺失 " + path.relative_to(ROOT).as_posix())
+            elif path.read_bytes() != png_bytes(im, quantize=True, colors=NAV_COLORS):
+                drift.append("内容不一致 " + path.relative_to(ROOT).as_posix())
         if drift:
             print("\u2717 图标与生成脚本不一致：")
             for d in drift:
@@ -504,6 +797,10 @@ def main():
         print("wrote", path.relative_to(ROOT).as_posix(), path.stat().st_size, "B")
     for path, blob in ((STATIC / "favicon.ico", ico), (APP_ICO, app_ico)):
         write_atomic(path, blob)
+        print("wrote", path.relative_to(ROOT).as_posix(), path.stat().st_size, "B")
+    for key, _note, im in nav_icons():
+        path = NAV_DIR / f"{key}.png"
+        write_atomic(path, png_bytes(im, quantize=True, colors=NAV_COLORS))
         print("wrote", path.relative_to(ROOT).as_posix(), path.stat().st_size, "B")
     return 0
 
@@ -525,12 +822,16 @@ def write_atomic(path, data):
     tmp.replace(path)
 
 
-def png_bytes(im, quantize=False):
-    """PNG 字节（可量化）。--check 用同一函数重算，保证「比对」和「写盘」是同一条路径。"""
+def png_bytes(im, quantize=False, colors=256):
+    """PNG 字节（可量化）。--check 用同一函数重算，保证「比对」和「写盘」是同一条路径。
+
+    `colors` 只给导航小人用：那 8 张每张只有 13~15 种颜色，量化到 32 色是无损的，
+    而它们在**每个页面**都要下载 —— 实测从 10.3 KB 降到 4.1 KB。
+    """
     import io
 
     if quantize:
-        im = im.convert("RGBA").quantize(colors=256, method=Image.FASTOCTREE)
+        im = im.convert("RGBA").quantize(colors=colors, method=Image.FASTOCTREE)
     else:
         im = im.convert("RGBA")
     b = io.BytesIO()

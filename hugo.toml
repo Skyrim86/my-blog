@@ -257,49 +257,81 @@ pagerSize = 10
 # 摘掉后导航回到 7 项，也就是 assets/css/extended/10-nav.css 当初按 7 项调好的布局。
 [[menu.main]]
   identifier = 'home'
-  name = '🏠 首页'
+  name = '首页'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-home" aria-hidden="true"></span>'
   url = '/'
   weight = 10
 
 [[menu.main]]
   identifier = 'library'
-  name = '🧰 数学库'
+  name = '数学库'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-library" aria-hidden="true"></span>'
   url = '/library/'
   weight = 15
 
 [[menu.main]]
   identifier = 'cs'
-  name = '💻 CS 库'
+  name = 'CS 库'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-cs" aria-hidden="true"></span>'
   url = '/cs/'
   weight = 16
 
 [[menu.main]]
   identifier = 'courses'
-  name = '🎓 课程'
+  name = '课程'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-courses" aria-hidden="true"></span>'
   url = '/courses/'
   weight = 20
 
 [[menu.main]]
   identifier = 'projects'
-  name = '🚀 项目'
+  name = '项目'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-projects" aria-hidden="true"></span>'
   url = '/projects/'
   weight = 30
 
 [[menu.main]]
   identifier = 'tags'
-  name = '🏷️ 标签'
+  name = '标签'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-tags" aria-hidden="true"></span>'
   weight = 60
   url = '/tags/'
 
 [[menu.main]]
   identifier = 'search'
-  name = '🔍 搜索'
+  name = '搜索'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-search" aria-hidden="true"></span>'
   url = '/search/'
   weight = 70
 
 [[menu.main]]
   identifier = 'about'
-  name = '📮 关于'
+  name = '关于'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-about" aria-hidden="true"></span>'
   url = '/about/'
   weight = 80
 

@@ -50,7 +50,8 @@ my-blog/
 │   │   ├── 15-extras.css      #     404 页 + 页脚 RSS 入口
 │   │   ├── 16-list-tools.css  #     列表排序与标签筛选条（配合 assets/js/list-tools.js）
 │   │   ├── 17-a11y.css        #     跳过导航链接 + .sr-only（见 features.md 第 4 节的第 7 处覆盖）
-│   │   └── 18-bg-switch.css   #     顶栏背景套切换按钮（配合 assets/js/bg-switch.js，见 ⑫）
+│   │   ├── 18-bg-switch.css   #     顶栏背景套切换按钮（配合 assets/js/bg-switch.js，见 ⑫）
+│   │   └── 19-nav-px.css      #     导航栏像素小人的盒子（图由 tools/icons/make-icons.py 生成，见第 6 节）
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
 │   │   ├── mascot.webp        #   看板娘半身像（从 tools/icons/ 那份素材抠出来，见 ㉕）
@@ -60,6 +61,7 @@ my-blog/
 │   │   ├── bg-daylight-girl.webp # 背景套「黑长直少女」的浅色主题（见 ⑫）
 │   │   ├── bg-daylight-sky.webp  # 浅色主题备选背景（程序生成，当前未使用，见 ⑫）
 │   │   ├── bg-velvet-night.webp  # 深色主题备选背景（程序生成，当前未使用，见 ⑫）
+│   │   ├── nav/               #   导航栏像素小人 ×8（生成产物：tools/icons/make-icons.py，见第 6 节）
 │   │   └── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
 │   └── js/                    #   自定义 JS 源码，经 extend_head.html minify+fingerprint 后外链
 │       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
@@ -293,7 +295,8 @@ Hugo 默认不清空目标目录（`Cleaned` 恒为 0），所以只要曾经跑
 python tools/icons/make-icons.py                 # 重新生成（默认 --style art）
 python tools/icons/make-icons.py --style pixel   # 换成脚本自绘的像素风
 python tools/icons/make-icons.py --preview OUT   # 只渲染预览图，不写盘
-python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是否一致（本地用，没进 CI）
+python tools/icons/make-icons.py --preview-nav OUT  # 只渲染导航像素小人的预览（浅底/深底各一行）
+python tools/icons/make-icons.py --check         # 比对 static/ 与 assets/images/nav/ 是否与脚本一致（本地用，没进 CI）
 ```
 
 | 产物 | 尺寸 | 用在哪 |
@@ -303,6 +306,7 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是�
 | `static/apple-touch-icon.png` | 180（256 色量化） | iOS 收藏/主屏 |
 | `static/safari-pinned-tab.svg` | 单色路径 | Safari 固定标签 |
 | `tools/admin/ui/ayaka.ico` | 16→256 六帧 | 管理页标签页图标 + 桌面快捷方式图标（`博客管理页.lnk` 的 `IconLocation` 指向它） |
+| `assets/images/nav/*.png` | 32（32 色量化，367~398 B/张） | 导航栏 8 个菜单项的像素小人（见下面「第三条线」） |
 
 **为什么不把 `tools/admin/ui/ayaka.ico` 塞进 `static/`**：那会把 169 KB 的 256×256 帧发到线上，而站点的 `favicon.ico` 只要 16/32 两帧（2.9 KB）。站点图标和桌面图标要的尺寸集合不同，故意分成两个文件。
 
@@ -312,6 +316,29 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与脚本是�
 |---|---|---|---|
 | 站点图标 | `source-ojou-chibi.png`（Q 版黑长直） | 抠掉平灰背景（`ART_KEY`）压到酒红底板（`ART_PLATE`） | `static/` 下五个文件 |
 | 管理页图标 | `source-ayaka-chibi.png`（Q 版神里绫华） | 保留素材自带白底 + 冷色乘算（`APP_ART_TINT`） | `tools/admin/ui/ayaka.ico` |
+| 导航小人 | **无素材，脚本自绘**（`NAV_CHARS` 里的发色 + 配饰参数） | 32×32 网格上逐像素画（复用 `Grid` / `draw_chibi` 的几何） | `assets/images/nav/*.png` |
+
+### 第三条线：导航栏的像素小人（2026-09-19）
+
+8 个菜单项各配一个 Q 版像素小人，角色优先取原神/Re:Zero（派蒙 / 纳西妲 / 甘雨 / 蕾姆 / 可莉 / 胡桃 / 莫娜 / 艾米莉娅），一个导航项一个角色。
+
+**为什么自绘**：safebooru 上这几个角色的 `pixel_art` 少到凑不成一套（艾米莉娅 **0** 张、蕾姆 6 张、派蒙 15 张，且来源是游戏拆包 + 同人混着）；也试过把精细的 Q 版插画压到 32×32 —— 五官糊成一团、边缘还留一圈灰毛边（对比图 `.shots/navtest/sweep-emilia.png`）。自绘顺带把许可问题解决干净：不复制任何官方素材，只是按角色的配色与特征自己画（所以这一条线**没有**上面那两张的许可顾虑）。
+
+**辨识度押在「发色 + 配饰剪影 + 发长」上，不是五官**：16px 显示时整张脸只有约 6×6 像素。八个角色的发色刻意拉开（奶白 / 白绿 / 淡蓝紫 / 天蓝 / 金 / 暖棕 / 深紫 / 银白），配饰剪影各不相同（王冠 / 叶芽 / 双角 / 女仆头饰 / 便帽 / 梅花 / 女巫帽 / 花）。眼睛沿用 `draw_chibi()` 那套 3×4 结构（上眼睑重线 + 虹膜 + 一点高光）—— 画成 5 宽的整块色会变成护目镜。
+
+**尺寸是 16px = 主网格 32px 的一半**，整数倍缩放才不糊；再配 `image-rendering: pixelated` 让 2 倍屏的放大也走最近邻（`assets/css/extended/19-nav-px.css`）。这是 16px 这条下限的又一次应用（与 `--style art` 的 favicon 同一个理由）。
+
+**接线**（三处，缺一处图标就不显示）：
+
+| 位置 | 作用 |
+|---|---|
+| `hugo.toml` 各菜单项的 `pre` | 放一个空 `<span class="nav-px np-<identifier>">`。Hugo 的 `MenuEntry.Pre` 是 `template.HTML`，**不会被转义**（实测确认过），所以能这样塞标记 —— 但别把 HTML 塞进 `name`（那个会被转义成文本） |
+| `layouts/_partials/extend_head.html` | 按 identifier 去 `assets/images/nav/<id>.png` 找图，生成 `css/nav-icons.css`。**约定「文件名 == identifier」**，所以加导航项时放一张同名 PNG 就自动有图标；找不到图会 `warnf` 提示，且只显示文字（不留空白，见下条） |
+| `assets/css/extended/19-nav-px.css` | 盒子：16×16、`background-repeat:no-repeat`、`background-size:16px`、`image-rendering:pixelated`、与文字的基线偏移。**基础规则是 `display:none`**，生成的那条才给 `inline-block` —— 忘了放图就不会留一个 16px 空洞 |
+
+**为什么用 `<span>` + `background-image` 而不是 `<img src>`**：`src` 必须带站点子路径 `/my-blog/`，写在 `hugo.toml` 里等于把子路径钉死；走 `RelPermalink` 生成的 CSS 没这个问题（与站点背景同一套做法）。另外图标是纯装饰（旁边就是文字标签），用背景图就不需要 `alt`。生成的选择器写成 `.nav-px.np-<id>`（而不是只写 `.np-<id>`）是为了让优先级 (0,2,0) 压过基础规则的 (0,1,0)，不依赖两张样式表谁先加载。
+
+**每个页面会下载这 8 张图**（导航栏在每页都渲染）：所以做了 32 色量化，实测 10.3 KB → 3.1 KB。`png_bytes()` 的 `colors` 参数只服务这一处。
 
 **素材与许可**：两张都是 safebooru 站收录的非商用同人，**没有可声明的开放许可**。站点那张原作者 `uni_762`（X `@uni_762`，原帖 `https://x.com/uni_762/status/2097146578435969402`，safebooru post `7126608`，胸像 + 白底）；管理页那张原作者 `maidsan_(littlemaidsan)`（Pixiv 作品 `92959293`）。管理页背景图与桌面图标这类**本地不发布**的用途直接用；站点 favicon 若要彻底规避风险，把 `--style pixel` 生成的图标覆盖上去即可（像素风素材由脚本自绘，许可干净）。
 裁切框、背景抠图容差、底板色、圆角都是脚本里的常量（`ART_CROP` / `ART_KEY` / `ART_KEY_TOL` / `ART_KEY_SOFT` / `ART_PLATE` / `ART_RADIUS`）：素材背景要求是一块平整的纯色，脚本按 `ART_KEY` 抠掉它、再压到 `ART_PLATE`（酒红）上。**容差必须远低于「肤色到背景色」的距离**：白底素材的肤白离白只有 ~27 个通道，`ART_KEY_TOL` 设成 40 就会把脸一起抠成半透明、底板透上来整张脸红掉（实测踩过）。——黑发压浅底太软、压深底会糊成一团，所以底板色由脚本控而不是让素材自带。换图只改这一组常量 + 换掉源文件。

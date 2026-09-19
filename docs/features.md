@@ -152,6 +152,8 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **为什么体积这么重要**：背景是**每个页面**都要下载的资源（`body::before` 的 CSS 背景，不能懒加载）。原 JPEG 191 KB 在 4 G 模拟下光它一项就占 521 ms，转 WebP q=70 后 55 KB。现在城市套 60 KB（日）/ 127 KB（夜），少女套 87 KB（日）/ 132 KB（夜），纯质感备选 4~6 KB。换图时**别退回 JPEG**，也别在背景里塞细节——同一张 1600×900 的 WebP，云和天际线能压到 60 KB，细腻纹理（星场、密集建筑）就下不来。注意**只有当前生效那一张会下载**，所以多一套不等于多一份流量，但默认套那张是每个访客都要付的。
 
+**导航栏那 8 个图标不属于本节的背景体系**：它们是 `tools/icons/make-icons.py` 自绘的 32×32 像素小人（一个菜单项一个角色），16px 显示，接线在 `hugo.toml` 菜单的 `pre` 字段 + `extend_head.html` 生成的 `css/nav-icons.css` + `19-nav-px.css`。为什么必须自绘、为什么是 16px、为什么用背景图而不是 `<img>`，都在 [`architecture.md` 第 6 节](architecture.md) 的「第三条线」里。
+
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
 
 只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout。`archives` 那条现在没有对象了——归档页 2026-09-15 删除——留着是为了它回来时不用再想起这件事）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a`、`.toc-rail a`（单页的左侧目录栏，见 ㉓）加 `.active`。

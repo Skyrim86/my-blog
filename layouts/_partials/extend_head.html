@@ -154,6 +154,33 @@
 <link rel="stylesheet" href="{{ $bgCss.RelPermalink }}" integrity="{{ $bgCss.Data.Integrity }}" crossorigin="anonymous">
 {{- end }}
 
+{{- /* 导航栏的像素小人：按菜单的 identifier 去 assets/images/nav/<id>.png 找图，找到才输出一条
+       .nav-px.np-<id>{display:inline-block;background-image:url(...)}。
+
+       约定「文件名 == identifier」，所以加导航项时放一张同名 PNG 就自动有图标、不放就只有文字
+       （.nav-px 的基础规则是 display:none，正是为了这种情况不留一块空白）。**图片 URL 只能在这里
+       生成**：写进 hugo.toml 的菜单 pre 字段就得钉死 /my-blog/ 子路径。
+
+       选择器带上 .nav-px 是有意的：基础规则与它的优先级都是 (0,1,0)，只写 .np-<id> 就会变成
+       「谁后加载谁赢」—— 现在这个写法不依赖两张样式表的先后。
+       图由 tools/icons/make-icons.py 生成（自绘，不依赖外部素材），16px 显示、image-rendering
+       交给 19-nav-px.css。 */ -}}
+{{- $navRules := slice }}
+{{- range site.Menus.main }}
+{{- with .Identifier }}
+{{- $id := . }}
+{{- with resources.Get (printf "images/nav/%s.png" $id) }}
+{{- $navRules = $navRules | append (printf ".nav-px.np-%s{display:inline-block;background-image:url('%s')}" $id .RelPermalink) }}
+{{- else }}
+{{- warnf "导航项 %q 没有图标 assets/images/nav/%s.png：该图标位会是空的（只显示文字）。要图标就放一张同名 PNG，或从菜单的 pre 字段里去掉那个 span" $id $id }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- with $navRules }}
+{{- $navCss := resources.FromString "css/nav-icons.css" (delimit . "") | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $navCss.RelPermalink }}" integrity="{{ $navCss.Data.Integrity }}" crossorigin="anonymous">
+{{- end }}
+
 {{- /* 首屏前置脚本 + 切换按钮的接线。只有一套时不输出（没有可切的东西，按钮也不该出现）。
 
    这段脚本**内联**是刻意的（AGENTS 规则 6 的唯一例外，登记在 docs/traps.md）：data-bg 必须在
