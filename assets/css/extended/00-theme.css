@@ -21,10 +21,12 @@
   --accent-2: #6b5a8c;
   --accent-2-soft: rgba(107, 90, 140, .10);
 
-  /* 2026-09-19 从 .80 降到 .70：让壁纸透过面板更清楚。代价是面板内文字的对比度会降，
-     所以这个数不能凭观感改 —— 要跟 `blur` 一起配平，并按 docs/features.md ⑫ 的量法复测
-     （面板内正文/次级文字最坏值必须 ≥ AA 的 4.5:1，实测见那里）。 */
-  --surface: rgba(252, 251, 253, .70);
+  /* 2026-09-19 从 .80 一路降到 .62（.80 → .70 → .62）：让壁纸透过面板更清楚。
+     **这个数不能再低**：它决定面板内文字的亮度下限，卡得最紧的是 --secondary（日期/元信息）。
+     想更「玻璃」要靠 `backdrop-filter` 的 blur（大半径模糊），不要靠降这个数 ——
+     玻璃感来自「背景被抹开」，不是来自「背景透进来更多」。改它就必须复测，
+     量法与实测值见 docs/features.md ⑫。 */
+  --surface: rgba(252, 251, 253, .62);
   --surface-border: rgba(22, 20, 27, .09);
   --rule: rgba(22, 20, 27, .10);          /* 装饰细线：比 --border 更淡，只做层级暗示 */
   /* 直接压在壁纸上的那几处文字的底衬（用法见下面「局部底衬」一节）。它就是主题底色
@@ -52,7 +54,7 @@
   --accent-2: #b4a3d6;
   --accent-2-soft: rgba(180, 163, 214, .16);
 
-  --surface: rgba(20, 18, 25, .72);
+  --surface: rgba(20, 18, 25, .64);
   --surface-border: rgba(255, 255, 255, .08);
   --rule: rgba(255, 255, 255, .10);
   --scrim-bg: rgba(11, 10, 15, .72);
@@ -131,8 +133,8 @@ body::before {
 .header {
   background: var(--surface);
   border-bottom: 1px solid var(--surface-border);
-  backdrop-filter: saturate(170%) blur(6px);
-  -webkit-backdrop-filter: saturate(170%) blur(6px);
+  backdrop-filter: saturate(170%) blur(24px);
+  -webkit-backdrop-filter: saturate(170%) blur(24px);
 }
 
 /* 顶栏下沿一条 1px 的蔷薇渐隐线：滚动时它和内容之间有一道「装订线」 */

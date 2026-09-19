@@ -124,8 +124,8 @@
   border-radius: 10px;
   border: 1px solid var(--surface-border);
   background: var(--surface);
-  backdrop-filter: saturate(135%) blur(3px);
-  -webkit-backdrop-filter: saturate(135%) blur(3px);
+  backdrop-filter: saturate(135%) blur(16px);
+  -webkit-backdrop-filter: saturate(135%) blur(16px);
   transition: border-color .2s ease, transform .2s ease;
 }
 

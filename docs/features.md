@@ -121,7 +121,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **城市套的两张是同一座城市、两个时刻**：夜间是上暗下亮的墨紫 + 月亮 + 亮窗城市，日间是亮天 + 大团积云 + 暗色天际线。切换主题的观感因此是「换了个时辰」而不是「换了张壁纸」（少女套沿用同一思路，见下）。
 
-深色主题用的是**真图**：`assets/images/bg-night-city.webp`（1600×900，127 KB，夜景城市 + 星空）。蒙版 `.54→.84`——原来的 `.72→.92` 把真图压没了，那正是「看不出有背景」的原因。放宽是安全的：正文可读性由 `.post-single` / `.page-header` 的 `--surface`（2026-09-19 起浅色 70% / 深色 72% 不透明 + `backdrop-filter: saturate(135%) blur(3px)`）与列表卡片自己承担，不靠这层蒙版。**代价要认清**：127 KB 对一张每页都下载的资源不算小（纯质感图是 4 KB），换来的是首屏与页面边缘真的有气氛。出处：Wallhaven `wallhaven.cc/w/wy6vqx`（画师作品，个人使用），源图压到 1600 宽存 `tools/backgrounds/source-night-city.jpg`（358 KB），由 `make-backgrounds.py` 的 `city_background()` 处理。
+深色主题用的是**真图**：`assets/images/bg-night-city.webp`（1600×900，127 KB，夜景城市 + 星空）。蒙版 `.54→.84`——原来的 `.72→.92` 把真图压没了，那正是「看不出有背景」的原因。放宽是安全的：正文可读性由 `.post-single` / `.page-header` 的 `--surface`（2026-09-19 起浅色 62% / 深色 64% 不透明 + `backdrop-filter: saturate(135%) blur(24px)`）与列表卡片自己承担，不靠这层蒙版。**代价要认清**：127 KB 对一张每页都下载的资源不算小（纯质感图是 4 KB），换来的是首屏与页面边缘真的有气氛。出处：Wallhaven `wallhaven.cc/w/wy6vqx`（画师作品，个人使用），源图压到 1600 宽存 `tools/backgrounds/source-night-city.jpg`（358 KB），由 `make-backgrounds.py` 的 `city_background()` 处理。
 
 **另有一版把黑发少女叠在城市上的合成图**（Wallhaven `wallhaven.cc/w/6lwmy7`，源切片 `source-lady-slice.webp`，函数 `city_lady_background()`）——上线后撤回了：压在蒙版下她显得突兀。当时把「人物」这个位置交给了右下角的看板娘（见 ㉕）。**2026-09-19 起人物以**「黑长直少女」套**的形式回来了**（单独一套、单独一套蒙版，见下），看板娘仍然保留，于是「人是人、背景是背景」这条不再是唯一做法。合成版文件 `bg-night-city-lady.webp` 与脚本都留着，想切回去只改 `hugo.toml` 一行。
 
@@ -134,6 +134,10 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 **「黑长直少女」套（2026-09-19 新增，当前是默认套）**：`bg-daylight-girl.webp`（92 KB）/ `bg-night-girl.webp`（137 KB），由 `make-backgrounds.py` 的 `girl_backgrounds()` 从 `source-girl-day.jpg` / `source-girl-night.jpg` 生成。两张是同一母题的日/夜对照，与城市套同理——都是「少女 + 城市全景 + 天空」：日间是撑透明伞站在山坡上俯瞰海湾城市，夜间是屋顶上看星空下的夜城，人物分别在画面横向 66% / 76% 处，所以切主题时她不跳位置。素材从 safebooru 按 `black_hair long_hair rating:safe` 收的一批候选中挑出（抓取与筛选脚本在仓库外的 `.shots/pick-girl-bg.py` 与 `finalists.py`，接触表留在 `.shots/girlbg/`）。出处都是同人插画、版权在画师手里：pixiv `artworks/87155937`（日）与 `artworks/77002104`（夜），个人非商业使用并保留出处。
 
 处理比城市那套克制（掺 5% 主题底色），另有一处纯为体积：夜间那张的密集星场 q74 要 176 KB，加 0.4px 亚像素模糊后 q64 降到 132 KB——它削的是星点的单像素高频噪，在 `.66~.90` 的蒙版下量不出差别（判据是页面截图，不是 RMSE）。
+
+**玻璃感来自「大半径模糊」，不是来自白底（2026-09-19）**：参考 Windows 11 Mica 那种材质的观感，把面板的 `backdrop-filter` 从 `blur(3px)` 提到 **`blur(24px)`**（首页条 16px），同时把 `--surface` 从 `.70` 降到 **`.62`**（深色 `.72` → `.64`）。3px 时图几乎没被抹开，面板被底色压成一块平色，看着像「蒙了一层」；24px 之后透过来的画面是抹开的色块，才读得出玻璃。**底色不能再降**：它决定面板内文字的亮度下限。
+
+**24px 的代价量过，可以忽略**：`.shots/scrollcost.py` 在同一页面对 `blur(3px)` 与 `blur(24px)` 做 A/B —— 帧间隔中位都是 **6.06 ms**、`DirectRenderer::DrawFrame` 各约 39 ms、`LocalFrameView::RunPaintLifecycle` 18.5 → 19.2 ms（约 1.1 秒滚动窗口内属噪声）、掉帧计数相同。Chromium 的 backdrop 模糊代价主要来自「建立 backdrop root」，与半径关系不大。
 
 **彩度是单独一个旋钮（2026-09-19）**：原来这几张在管线里就被**降过彩度**（少女 `Color(0.95)`、浅色城市 `Color(0.86)`），运行时蒙版再洗一遍，等于彩度被削两轮——页面上那个「灰蒙蒙」主要是这么来的。现在改成提彩度：少女日间 `1.35`、夜间新增 `1.30`，城市日间 `1.15`、夜间 `1.20`（实拍图提太狠会出色带，所以比插画保守）。
 

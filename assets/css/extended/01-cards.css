@@ -62,14 +62,16 @@ article.post-entry:hover {
   border-radius: 14px;
   padding: 1.4rem 1.9rem 1.5rem;
   box-shadow: var(--shadow-card);
-  backdrop-filter: saturate(135%) blur(3px);
-  -webkit-backdrop-filter: saturate(135%) blur(3px);
+  backdrop-filter: saturate(135%) blur(24px);
+  -webkit-backdrop-filter: saturate(135%) blur(24px);
 }
 
 @media (max-width: 640px) {
   .page-header {
     padding: 1rem 1.1rem 1.1rem;
     border-radius: 12px;
+    backdrop-filter: saturate(135%) blur(12px);
+    -webkit-backdrop-filter: saturate(135%) blur(12px);
   }
 
   .page-header h1 {

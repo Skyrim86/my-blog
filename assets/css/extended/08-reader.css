@@ -44,23 +44,31 @@
   letter-spacing: .02em;
 }
 
-/* 正文容器卡片化。2026-09-19：blur 8px → 5px → 3px，并加 saturate —— 面板的「灰」来自
-   底色把身后的图同时压暗**和**去彩，而 saturate() 按 luma 系数保持亮度，所以提彩不动文字
-   对比度（--surface 同步降到 .70，见 00-theme.css）。降 blur 同理只增清晰、不改亮度统计。 */
+/* 正文容器卡片化。2026-09-19 的调整轨迹：blur 8px → 5px → 3px → **24px**，底色 .80 → .70 → .62。
+   最后这一跳到 24px 是照 Windows 11 Mica 那种观感定的：**玻璃感来自「大半径模糊」，不是来自白底**
+   —— 3px 时图几乎没被抹开，面板被底色压成一块平色，看着像「蒙了一层」而不像玻璃（参考图里那层
+   紫蓝就是「38% 左右的图 + 大半径模糊」）。所以 blur 拉大、底色同时降到 .62 让图透出来更多。
+   底色不能再低：它决定面板内文字的亮度下限，卡得最紧的是 --secondary（日期、元信息）。
+   另外 saturate() 按 luma 系数保持亮度，提彩不动对比度，是配着用的。 */
 .post-single {
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: 14px;
   padding: 2.2rem 2.4rem 2.6rem;
   box-shadow: var(--shadow-card);
-  backdrop-filter: saturate(135%) blur(3px);
-  -webkit-backdrop-filter: saturate(135%) blur(3px);
+  backdrop-filter: saturate(135%) blur(24px);
+  -webkit-backdrop-filter: saturate(135%) blur(24px);
 }
 
 @media (max-width: 640px) {
   .post-single {
     padding: 1.4rem 1.15rem 1.8rem;
     border-radius: 12px;
+    /* 窄屏把模糊减半：观感几乎不变（本来就看不清底下是什么），但光栅化开销明显更低。
+       选择器与上面的基础规则逐字一致，靠「后出现」生效 —— 别只写 :is(...) 少一层，
+       权重会低一档（见 docs/traps.md 里 :is() 那条）。 */
+    backdrop-filter: saturate(135%) blur(12px);
+    -webkit-backdrop-filter: saturate(135%) blur(12px);
   }
 }
 
