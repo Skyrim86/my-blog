@@ -185,9 +185,22 @@
   align-items: start;
 }
 
-/* ---------- 工具库主页的索引卡（只有编号 + 标题，正文在卡片页） ---------- */
-.tb-teaser {
-  padding: 0;
+/* ---------- 工具库主页的索引卡（只有类别 + 名字，正文在卡片页） ----------
+
+   2026-09-19 删掉这里原有的 `padding: 0`：它是**死代码**（`.tb-card` 的内边距写在本文件
+   更后面、特异度相同，一直是它生效），留着只会让人以为索引卡没有内边距。
+
+   同一天还补了「整张卡都是点击区」：卡片自己那圈内边距（16px）在 `<a>` 之外，点上去落在
+   `<article>` 上 —— 有 JS 时链接解析不到（旧代码会因此算出 /null 那个 404），没 JS 时点了
+   毫无反应。用拉伸链接（伪元素铺满卡片）把它盖住，视觉不变。 */
+.tb-card.tb-teaser {
+  position: relative;
+}
+
+.tb-teaser-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 
 .tb-teaser-link {
@@ -236,9 +249,14 @@
 }
 
 /* 卡片左缘的类色条：索引卡在网格里成片铺开时，「扫一眼分出类别」靠的是它 ——
-   徽章得读字，色条不用读。类别没配到颜色的（注/例/设定/结论）退回普通边框色。 */
+   徽章得读字，色条不用读。类别没配到颜色的（注/例/设定/结论）退回普通边框色。
+
+   **用内阴影而不是 border-left**（2026-09-19）：border 画在卡片边框区、链接盖不到，
+   于是那 3px 是一条「点了没反应」的死区 —— 有 JS 时更糟：链接解析不到就退化成 404（见
+   assets/js/toolbox.js 的 targetOf）。内阴影画在卡片内部，整张卡都在链接里，
+   有没有 JS 点色条都算数，视觉完全一样。 */
 .tb-card[data-kind] {
-  border-left: 3px solid var(--k, var(--border));
+  box-shadow: inset 3px 0 0 var(--k, var(--border)), var(--shadow-card);
 }
 
 .tb-card[hidden] {
@@ -415,8 +433,7 @@
    弹窗是卡片的主要阅读场景，类别得在那儿也认得出来。 */
 .tb-modal-panel .tb-card {
   border: none;
-  border-left: 3px solid var(--k, var(--border));
-  box-shadow: none;
+  box-shadow: inset 3px 0 0 var(--k, var(--border));
   padding: 0;
   background: transparent;
 }

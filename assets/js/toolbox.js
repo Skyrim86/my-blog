@@ -13,8 +13,13 @@
 (function () {
   "use strict";
 
-  var REF_SEL = ".card-ref[data-card]";
-  var TRIGGER_SEL = ".card-ref[data-card], .tb-teaser-link";
+  /* 所有「带身份的卡片链接」共用一条路：链接自己带 data-card（正文引用徽章 .card-ref、
+     卡内交叉引用、弹窗里克隆出来的那些都是），地址取它自己的 href。
+     以前这里靠 `[href*="/toolbox/"]` 猜 —— CS 库的卡片页在 /cs/<id>/、不含 /toolbox/，
+     于是 CS 卡正文里的交叉引用不被拦截，点一下就整页跳走。
+     用 `a[data-card]` 这一个判据就能同时覆盖「卡片页上的交叉引用」与「弹窗里的交叉引用」，
+     两种场景行为一致（都在弹窗里打开目标卡）。 */
+  var CARD_LINK_SEL = "a[data-card]";
   var self = document.currentScript || {};
   var state = { cache: {}, lastFocus: null, modal: null };
 
@@ -24,34 +29,34 @@
     return ds[key] || fallback || key;
   }
 
-  /* ---------- 触发元素 → {id, url} ---------- */
+  /* ---------- 触发元素 → {id, url} ----------
+
+     链接一律从**组件自己的 <a>** 上取，绝不从 e.target 取。真实鼠标点在卡片上时，点到的是
+     标题或徽章的 <span>（没有 href），取 e.target 的 href 会得到 null；而 pathOf(null) 不报错，
+     它把字符串 "null" 当相对地址解析成一个**看起来正常、其实不存在**的 URL：
+     `/<当前目录>/null`。2026-09-19 实测：两个库的每一张索引卡都因此跳到 404 页，
+     只有恰好点在 <a> 自己的内边距空白处才成功 —— 症状就是「很多卡片点开都是 404」。 */
   function targetOf(el) {
-    var ref = el.closest(REF_SEL);
+    var ref = el.closest(CARD_LINK_SEL);
     if (ref) {
       return { id: ref.dataset.card, url: pathOf(ref.getAttribute("href")) };
     }
     var teaser = el.closest(".tb-teaser");
     if (teaser) {
-      return { id: teaser.dataset.id, url: pathOf(el.getAttribute("href")) };
-    }
-    var link = el.closest('.tb-modal-content a[href*="/toolbox/"]');
-    if (link) {
-      return { id: idFromUrl(link.getAttribute("href")), url: pathOf(link.getAttribute("href")) };
+      var anchor = teaser.querySelector("a[href]");
+      return { id: teaser.dataset.id, url: anchor ? pathOf(anchor.getAttribute("href")) : "" };
     }
     return null;
   }
 
+  // 空/缺失的 href 一律给空串：**绝不把 null 交给 URL 解析**（那是上面那个 404 的根）
   function pathOf(href) {
+    if (!href) return "";
     try {
       return new URL(href, window.location.href).pathname;
     } catch (err) {
       return href;
     }
-  }
-
-  function idFromUrl(href) {
-    var path = pathOf(href).replace(/\/+$/, "");
-    return path.substring(path.lastIndexOf("/") + 1);
   }
 
   /* ---------- 抓卡片页并缓存其中的 .tb-card ---------- */
@@ -114,6 +119,9 @@
         modal.querySelector(".tb-modal-close").focus();
       })
       .catch(function () {
+        /* 抓不到就退化成普通跳转（无 JS 时本来就该这样）。url 由 pathOf 保证是空串或
+           真实地址，空串说明连链接都没解析出来 —— 那时什么都不做，绝不能拿一个算坏的
+           地址去跳转（`/null` 那个 404 就是这么跳出来的）。 */
         if (url) window.location.href = url;
       });
   }
@@ -198,7 +206,9 @@
 
     document.addEventListener("click", function (e) {
       var target = targetOf(e.target);
-      if (target && target.id) {
+      /* 解析不出可靠地址就**不拦截**：让浏览器按链接自己走（也就是「没有 JS 时」那条路）。
+         以前这里只判 target.id，于是算坏的地址照样被 preventDefault 接管，把访客送去 404。 */
+      if (target && target.id && target.url) {
         e.preventDefault();
         openCard(target.id, target.url, { keepFocus: !!e.target.closest(".tb-modal-content") });
       }
@@ -211,9 +221,14 @@
     // 从别处分享来的深链：#card-tool-1-4（卡片页上内容本来就在，主页则开弹窗）
     if (location.hash.indexOf("#card-") === 0) {
       var id = location.hash.replace("#card-", "");
-      if (!document.querySelector('.tb-card[data-id="' + id + '"]')) {
-        var teaser = document.querySelector('.tb-teaser[data-id="' + id + '"] a');
-        if (teaser) openCard(id, pathOf(teaser.getAttribute("href")));
+      /* 判据必须排除 .tb-teaser：索引卡也是 .tb-card 且带 data-id，否则在卡片库细分页上
+         它会被当成「本页已有完整卡片」，深链直接静默失效（2026-09-19 修，与 loadCard
+         里那条 :not(.tb-teaser) 是同一个坑的第三处）。 */
+      if (!document.querySelector('.tb-card[data-id="' + id + '"]:not(.tb-teaser)')) {
+        // 地址同样取卡片自己的 <a>，拿不到就什么都不做
+        var anchor = document.querySelector('.tb-teaser[data-id="' + id + '"] a[href]');
+        var url = pathOf(anchor && anchor.getAttribute("href"));
+        if (url) openCard(id, url);
       }
     }
   }

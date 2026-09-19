@@ -27,7 +27,8 @@
 | 列表卡片里的公式显示成重复三遍（`e=x^−xe = \hat{x} - xe=x^−x`），或卡片摘要整块空白 | 卡片摘要走主题 `list.html` 的 `.Summary \| plainify`。公式在**构建期**已被 KaTeX 渲染成 HTML+MathML，`plainify` 剥掉标签后把 MathML 文本、`annotation` 里的 TeX 源码与视觉文本拼在了一起；正文为空的生成页（工具卡片）则是摘要本来就空 | 给会出现在列表页的页面写 front matter **`summary`**（纯文本，`.Summary` 会直接返回它）。`check-frontmatter.sh` 对「正文含公式却没写 summary」的页面发警告；不能写进 `archetypes` —— 空字符串会被当成「已设置」，卡片会变成空白 |
 | 订阅者收到一排没有摘要的条目，或 `pubDate` 是 `Mon, 01 Jan 0001` | 首页 RSS 取 `site.RegularPages` 且不过滤 `mainSections`：正文为空的生成页（80 张工具卡片、`/library/` 三级页）`description` 为空；没有 `date` 的静态页（`about`）日期是零值 | 给这些页面加 **`hiddenInRss: true`**（`themes/PaperMod/layouts/rss.xml` 里唯一的消费者）。工具卡片与 `/library/` 三级页写在各自的 cascade / 适配器 `params` 里。`check-seo.mjs` 会盯住这两类 |
 | 给 `/tags/xxx/` 写了说明文字却显示不出来 | 说明文件放在了与**词条 URL** 不一致的目录名里：Hugo 是按词条的 URL 路径去找 `content/tags/<路径>/_index.md` 的，找不到就静默忽略（页面照常构建、页头就是空的）。写成 `content/tags/CMC2026/`（词表的写法）而不 `content/tags/cmc2026/`（产物的 URL）就中招 | 目录名照构建产物的 URL 定：小写、空格换连字符、中文保持原样。自查：构建后 `grep -o 'post-description[^>]*>[^<]*' public/tags/<词条>/index.html` 应有输出。见 [`features.md` ㉘](features.md)、[`content.md` 第 5 节](content.md#5-标签词表) |
-| 在工具库页 / 卡片库细分页点开卡片，弹窗里**只有抬头没有正文** | 索引卡与完整卡片共用 `.tb-card` 类，而索引卡（`.tb-card.tb-teaser`）也带 `data-id`：`toolbox.js` 的 `loadCard` 先用「本页有没有同 id 的 `.tb-card`」做短路命中，命中的是那张**没有正文**的索引卡 | 选择器一律排除 `.tb-teaser`（`'.tb-card[data-id="…"]:not(.tb-teaser)'`，本页与抓回来的文档两处都要）。2026-09-18 修，两库都受影响 |
+| 在工具库页 / 卡片库细分页点开卡片，弹窗里**只有抬头没有正文**；或分享来的深链 `#card-tool-1-4` 在细分页上**毫无反应** | 索引卡与完整卡片共用 `.tb-card` 类，而索引卡（`.tb-card.tb-teaser`）也带 `data-id`：`toolbox.js` 里凡是按 `.tb-card[data-id=…]` 找「本页已有的完整卡片」的地方，都会命中那张**没有正文**的索引卡 —— `loadCard` 命中的结果是空弹窗，深链的守卫则直接跳过、什么都不发生 | 这些选择器**一律排除 `.tb-teaser`**（`:not(.tb-teaser)`）。`loadCard` 2026-09-18 修，深链守卫 2026-09-19 修（同一个坑的第三处），两库都受影响 |
+| 点卡片**有时开弹窗、有时直接跳到 404 页**，地址栏末尾是一串 `/null`（如 `…/library/algebra/linear-algebra/null`） | `toolbox.js` 的 `targetOf()` 从**被点到的元素**取 href：卡片里的标题/类别徽章是 `<span>`，真实鼠标点上去时 `e.target` 就是那个 span（没有 href）→ 拿到 `null` → `pathOf(null)` **不抛错**，把字符串 `"null"` 当相对地址解析成一个语法合法、只是不存在的 URL → 抓取 404 → 兜底 `location.href = url` 把访客送去 404 页。只有恰好点在 `<a>` 自己的内边距空白处才正常 | 链接一律从**组件自己的 `<a>`** 上取（`teaser.querySelector("a[href]")`）；`pathOf()` 对空 href 返回 `""`；点击处理器只在拿到非空地址时才 `preventDefault()`（拿不到就不拦截，让浏览器按链接自己走）。2026-09-19 修，两库每一张索引卡都受影响。机制与第二种形态见第 2 节 |
 | 某个 section 的页面**静默**回落到主题 `list.html`（本该用自己的 layout） | Hugo 的布局查找是**先看 `layouts/<section>/<layout>.html`**：`layout: library` 只在 section 恰好叫 `library` 时才命中 —— 数学库是撞上的；section 换成别的名字（如 `cs`）就找不到模板、回落到主题列表页，页面照常构建、内容完全不对 | 多个 section 共用的 layout 放 `layouts/_default/<layout>.html`（通用回落位），front matter 的 `layout:` 不用改。2026-09-18 把 library / library-branch / library-section / toolcard 四个模板移到了那里，见 [`features.md` 第 4 节](features.md) |
 | 卡片 id 与分支/细分 key 撞名，两边页面互相覆盖 | 两者都会变成 `/<库>/<key>/` 这一层 URL | `node scripts/gen-cards.mjs <库>` 生成前会校验并直接报错退出；改卡片 id 或分支 key |
 | 卡片库的生成逻辑「明明一样却要写两份」 | `AddPage` 的 `path` **相对适配器所在目录**，适配器没法生成别的目录下的页面 | 每个库一份实例（`content/library/_content.gotmpl` 与 `content/cs/_content.gotmpl`），差别只有 `$libKey` 一行；改完两边都要跑一遍页面核对 |
@@ -74,6 +75,31 @@
 - **`draft: false` 却把 `date` 写在未来**：CI 直接不构建它
 - **两个页面 title 完全相同**：列表页与搜索结果里分不出谁是谁（`check-frontmatter.sh` 会警告）。2026-09-18 之前这条还意味着**评论串页**——当时 giscus 用 `mapping='title'`，数值分析两章的「学习笔记」「作业」会共用同一条 discussion；现在 `mapping='pathname'`（URL 唯一），评论不再串页
 - **`\textcircled{1}` 在这套环境下渲染是**对的**，别因为 CSS 里搜不到 `.textcircled` 就以为它坏了**：`static/katex/katex.min.css` 里确实没有 `circled`/`enclose` 规则，但圈的定位是 KaTeX 生成的 vlist **内联**布局，不依赖那条 CSS。实测（`content/projects/CMC2026/problem-01/solution.md` 里那 5 处）：圈 20×23px、数字 10×23px，**中心偏移 (0, 0)**，数字正好在圈里。教训是**不要用「CSS 里搜不到类名」推断渲染坏掉**；真要量就量**同一构造内**配对的元素——第一次量出「圈浮在数字上方 27px」是因为把相邻构造的数字和圈配到了一起
+
+### 点卡片跳到 `/null`：`null` 会被 URL 解析器变成一个「能用」的坏地址
+
+`assets/js/toolbox.js` 的 `targetOf()` 曾经这么取地址：
+
+```js
+var teaser = el.closest(".tb-teaser");
+if (teaser) return { id: teaser.dataset.id, url: pathOf(el.getAttribute("href")) };  // el = e.target
+```
+
+`el` 是**被点到的最内层元素**。卡片里的标题与类别徽章都是 `<span>`，真实鼠标点上去时 `e.target` 就是那个 span —— 它没有 `href`，`getAttribute("href")` 返回 `null`。而
+
+```js
+new URL(null, location.href).pathname   // → "/my-blog/library/algebra/linear-algebra/null"
+```
+
+**不抛错**：`null` 先被转成字符串 `"null"`，再当相对地址拼到当前目录后面，得到一个语法完全合法、只是不存在的 URL。接着 `if (url)` 判真 → 抓取 404 → 兜底 `location.href = url` → 访客落在 404 页，地址栏里一串 `/null`。
+
+**为什么是「静默」的**：不报错、控制台干净、构建与链接检查全绿 —— `check-links.mjs` 查的是**静态链接**，而这个坏地址是运行时算出来的，任何页面的 HTML 里都不存在。两条判据：① 「点卡片有时好有时坏」—— 点在 `<a>` 的内边距空白处能开，点在标题/徽章上就 404；② 地址栏末尾是 `/null`。
+
+**修法**（2026-09-19）：从**组件自己的 `<a>`** 取链接（`teaser.querySelector("a[href]")`）、`pathOf()` 对空 href 返回 `""`、点击处理器只在拿到非空地址时才 `preventDefault()`（拿不到就不拦截，让浏览器按链接自己走，也就是「没有 JS 时」那条路）。
+
+**同一类错误的第二种形态：靠 URL 形状猜身份。** 弹窗内的卡内交叉引用原先写成 `el.closest('.tb-modal-content a[href*="/toolbox/"]')` —— CS 库的卡片页在 `/cs/<id>/`、不含 `/toolbox/`，于是 CS 卡正文里的交叉引用不被拦截、点一下整页跳走（数学库却是就地弹窗）。现在由 `toolbox-md.html` 在改写锚点的同时给链接补 **`data-card="<id>"`**，JS 按 `data-card` 认卡。**身份写在链接上，不要从地址里猜** —— 以后加库不必回来改选择器。
+
+顺带一条布局侧的同类坑：**索引卡外面那圈内边距在链接之外**。`.tb-teaser { padding: 0 }` 是死代码（`.tb-card` 的内边距写在同一文件更靠后、特异度相同，一直把它盖掉），所以每张索引卡实际有 16px 内边距裹在 `<a>` 外面：点在那圈上落在 `<article>` 上 —— 有 JS 时正是上面那个 404 的入口，没 JS 时点了毫无反应。修法是**拉伸链接**（`.tb-card.tb-teaser { position: relative }` + `.tb-teaser-link::after { inset: 0 }`）：伪元素属于 `<a>`，整张卡因此都是点击区，视觉不变。左缘那条类色条也从 `border-left: 3px` 改成 `box-shadow: inset 3px 0 0` —— border 画在卡片边框区，同样是链接够不到的地方。
 
 ### 加粗收尾紧接中文会无法闭合
 
