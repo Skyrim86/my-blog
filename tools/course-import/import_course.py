@@ -57,7 +57,7 @@ MODULES = [
 ]
 
 # 工具库引用纪律：正文只写结论的名字（「由全方差律」「见 Fisher 引理」），
-# 不写「工具 k.m」这类编号——编号只在卡片角落出现。这个正则是「旧写法残留」的探测器。
+# 不写「工具 k.m」这类编号——编号不进 UI（只作锚点 id 与短代码参数）。这个正则是「旧写法残留」的探测器。
 STRAY_TOOL_REF = re.compile(r"【工具\s*(\d+)\.(\d+)】")
 TOOL_HEAD = re.compile(r"^###\s+(\S.*?)\s*\{#((?:tool|thm)-[0-9-]+)\}\s*$")
 ALIAS_RE = re.compile(r"^<!--\s*别名\s*[:：]\s*(.+?)\s*-->\s*$")
@@ -276,7 +276,8 @@ def parse_tool_file(path: Path) -> tuple[list[dict], list[dict]]:
         <!-- 别名: 全期望律、全方差律 -->
 
     标题就是结论的名字（正文里直接写它，导入时按名字接上链接）；{#tool-1-2} 是稳定 id，
-    卡片上只以角落小字 1.2 出现；别名给正文用更短的叫法（如「全方差律」）。
+    只在锚点与 `{{< tool "1.2" >}}` 的参数里用，不进 UI；别名给正文用更短的叫法
+    （如「全方差律」）。
     """
     groups, cards = [], []
     cur: dict | None = None
@@ -291,6 +292,7 @@ def parse_tool_file(path: Path) -> tuple[list[dict], list[dict]]:
             card.update(assemble(split_blocks(content)))
             # 名字接线在 build_toolbox 里统一做：那时才拿得到完整的名字表
             card["kind"] = card["kind"] or first_kind(card["body"], card["proof"], card["usage"], card["note"])
+            require_name(card, str(path))
             cards.append(card)
         cur, buf = None, []
 
@@ -329,7 +331,7 @@ def parse_tool_file(path: Path) -> tuple[list[dict], list[dict]]:
 
 
 def parse_note_theorems(path: Path, module: str, chapter: str, material: str) -> tuple[list[dict], list[dict]]:
-    """解析笔记里的 定理/命题/推论/引理/定义 块（带编号的才收）。"""
+    """解析笔记里的 定理/命题/推论/引理/定义 块（带编号的才收；没写名字的直接报错）。"""
     cards: list[dict] = []
     lines = read_text(path).split("\n")
     i, n = 0, len(lines)
@@ -374,6 +376,7 @@ def parse_note_theorems(path: Path, module: str, chapter: str, material: str) ->
                 "material": material,
             }
             card.update(assemble(parts))
+            require_name(card, "%s 第 %d 行" % (path, i + 1))
             cards.append(card)
         i = j
     groups = [{"key": module, "name": "%s 的定理与定义" % module, "kind": "course"}]
@@ -524,8 +527,8 @@ TOOLBOX_DIR = REPO / "content" / "courses" / COURSE / "toolbox"
 # 由模板用 RenderString 渲染，卡片上显示的是真公式；但**写进 front matter 的 title 不经过
 # Markdown/KaTeX** —— 它要进 <title>、列表卡片与「相关内容」区块，裸 `$` 会原样露出来。
 # 所以这里降级成纯文本：能取其文字就取文字（「$F$ 检验」→「F 检验」），取不到（span 里是
-# `\hat\sigma^2` 这类命令）就把这一段整个丢掉（「$\hat\sigma^2$ 无偏」→「无偏」）；
-# 全丢光就退回「定理 4.6」形式，与本来就没写名字的卡片一致。
+# `\hat\sigma^2` 这类命令）就把这一段整个丢掉（「$\hat\sigma^2$ 无偏」→「无偏」）。
+# 名字**必须存在**（require_name 会拦住无名卡），这里只决定「名字怎么进 front matter」。
 MATH_SPAN_RE = re.compile(r"\$([^$]*)\$")
 
 
@@ -537,6 +540,27 @@ def plain_card_title(title: str) -> str:
     return re.sub(r"\s{2,}", " ", MATH_SPAN_RE.sub(_keep, title)).strip()
 
 
+def require_name(card: dict, where: str) -> None:
+    """收卡时就把「这张卡有没有名字」问清楚，没有就报错退出。
+
+    无名卡在页面上会退化成一个裸类别词（2026-09-19 之前的「引理 4.1」就是这么来的：笔记里
+    写成 `**引理 4.1**`、没给 `（名字）`，导入器照收，卡片墙上就是一片「引理 4.1 / 命题 4.6」）。
+    整段是公式的名字同样不行 —— 卡片页 h1 与 <title> 走 plain_card_title，那里会变成空串，
+    等于没名字。两件事是同一个病，所以在这一处一次拦住，不留到页面上显形。
+    """
+    name = (card.get("title") or "").strip()
+    if not name:
+        raise SystemExit(
+            "✗ %s：%s 没有名字。源文件里写成 `**%s %s（名字）**` 再重跑导入"
+            % (where, card["id"], card["kind"], card["num"])
+        )
+    if not plain_card_title(name):
+        raise SystemExit(
+            "✗ %s：%s 的名字「%s」整段是公式，没有可读的纯文本部分（页签与 h1 会变成空标题）"
+            % (where, card["id"], name)
+        )
+
+
 def card_page_md(card: dict, weight: int, date_str: str) -> str:
     """卡片页骨架（leaf bundle）：正文为空，模板按目录名从 data 里取卡片。
 
@@ -544,12 +568,10 @@ def card_page_md(card: dict, weight: int, date_str: str) -> str:
     超过 scripts/report-size.sh 的单页 1.6 MB 预算；拆开之后引用可以指向独立 URL，
     弹窗按需加载同一份内容（见 assets/js/toolbox.js）。
     """
-    # 卡片页的标题：有名字就用名字（页签里带上类别与编号以便区分），没有名字退回「定理 4.6」
+    # 卡片页的标题：名字 + 类别。**不带编号** —— 编号只活在锚点 id、`{{< tool "4.1" >}}`
+    # 的参数与搜索关键词里，不再出现在 UI 上（2026-09-19 起，见 docs/features.md ㉑）。
     name = plain_card_title(card.get("title") or "")
-    if name:
-        title = "%s（%s %s）" % (name, card["kind"], card["num"])
-    else:
-        title = "%s %s" % (card["kind"], card["num"])
+    title = "%s（%s）" % (name, card["kind"]) if name else card["kind"]
     return (
         "---\n"
         "# 工具库卡片页：由 tools/course-import/import_course.py 生成，勿手改。\n"

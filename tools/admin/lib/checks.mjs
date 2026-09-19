@@ -43,6 +43,15 @@ const ITEMS = [
     hint: '改了 data/cs-toolbox.json 却忘记重生成卡片页时，正文还是旧的，而构建不会报错',
   },
   {
+    id: 'cardnames',
+    label: '卡片数据（每张卡都要有名字）',
+    runtime: 'node',
+    argv: ['scripts/check-cards.mjs'],
+    fast: true,
+    blocking: true,
+    hint: '每张卡都要有名字，外加 id/kind 非空、id 不重复 —— 无名卡在卡片墙上只是一个裸类别词（「引理 4.1」）',
+  },
+  {
     id: 'wiki',
     label: '知识库同步',
     runtime: 'python',

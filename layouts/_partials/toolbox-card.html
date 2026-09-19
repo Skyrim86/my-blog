@@ -9,11 +9,10 @@
          data-kind="{{ $card.kind }}" data-search="{{ substr (printf "%s %s %s %s" $card.kind $card.num $card.title ($card.body | plainify)) 0 260 }}">
   <header class="tb-card-head">
     <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>
-    {{- /* 名字在前、编号在后：编号只作定位用的小字（右下角），不再当标签 */ -}}
+    {{- /* 名字在前，**没有编号** —— 编号只活在锚点 id 与短代码参数里，不进 UI（2026-09-19 起） */ -}}
     {{- if $card.title }}
     <span class="tb-card-title">{{ $page.RenderString $card.title }}</span>
     {{- end }}
-    <span class="tb-num">{{ $card.num }}</span>
     <a class="tb-card-anchor" href="#card-{{ $card.id }}" aria-label="{{ i18n "toolboxLinkLabel" }}" title="{{ i18n "toolboxLinkLabel" }}">#</a>
   </header>
   {{- with $card.body }}

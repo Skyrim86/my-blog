@@ -15,9 +15,9 @@
        name   卡片名字或别名（如「全方差律」）——按名字引用时给；与 id 二选一
        label  可选，覆盖显示文本
 
-     显示文本的优先级：label 参数 → 卡片名字（去掉公式定界符）→ 卡片自己的 label（「定理 10.2」）
-     → id。**只给编号时也显示名字**，不再露出裸编号（2026-09-18 之前 `{{< tool "1.4" >}}` 显示的是
-     「1.4」，与 tool.html 注释里写的「工具 1.4」不符）。按别名命中时就用你写的那个别名
+     显示文本的优先级：label 参数 → 卡片名字（去掉公式定界符）→ 卡片自己的类别（「定理」）→ id。
+     **徽章里永远不出现编号**：编号只是锚点 id（`tool-1-4`）与短代码参数的内部写法，
+     2026-09-19 起卡片上也不再画编号（见 docs/features.md ㉑）。按别名命中时就用你写的那个别名
      （写「全方差律」不会显示成卡片全名）。
 
      找卡与定位卡片页都交给 partials/card-find.html 与 data/libraries.yaml —— 数学库、CS 库
@@ -35,11 +35,11 @@
   {{- else -}}
     {{- $plain := replaceRE `\$([^$]*)\$` "$1" $card.title -}}
     {{- /* 剥掉定界符后仍含反斜杠命令（如 \hat\sigma^2）的名字不能用：徽章是纯文本，
-           KaTeX 不渲染它。退回卡片自己的 label（「定理 5.3」这种）。 */ -}}
+           KaTeX 不渲染它。退回类别词，不退回编号。 */ -}}
     {{- if and $plain (not (strings.Contains $plain "\\")) -}}{{- $label = $plain -}}{{- end -}}
   {{- end -}}
 {{- end -}}
-{{- if and (not $label) $card -}}{{- $label = $card.label -}}{{- end -}}
+{{- if and (not $label) $card -}}{{- $label = $card.kind -}}{{- end -}}
 {{- if not $label -}}{{- $label = .id | default .name -}}{{- end -}}
 
 {{- /* 卡片页地址：库配了 cards 前缀就用它（CS 库是 /cs/<id>/）；没配说明卡片挂在课程工具库里

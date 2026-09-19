@@ -156,10 +156,10 @@ python tools/course-import/import_course.py --check    # 只比对（CI 不跑�
 | 产物 | 来源 |
 |---|---|
 | `content/courses/<课程>/<chapter>/<材料>/index.md` 的**正文** | 课程项目的 `笔记/`、`作业/`、`实验/` 里的 md。front matter 仍由 `new-content.sh` 生成，脚本只替换正文；正文里**写结论的名字**（「由全方差律」），脚本按名字表换成 `{{< tool "1.2" "全方差律" >}}`；残留的旧写法 `【工具 k.m】` 会让导入报错退出 |
-| `data/math-toolbox.json` | `工具/00_数学工具.md`（按 `## k 名称` 分 6 组，条目形如 `### 名字 {#tool-1-2}` + 可选 `<!-- 别名: … -->`）+ 各模块笔记里的定理/定义/命题块；每张卡另加 `kind`（类别：定义/定理/命题…）、`num`（编号，卡片角落的小字）、`course`（属于哪门课）、`branch`（大类）与 `section`（细分）|
+| `data/math-toolbox.json` | `工具/00_数学工具.md`（按 `## k 名称` 分 6 组，条目形如 `### 名字 {#tool-1-2}` + 可选 `<!-- 别名: … -->`）+ 各模块笔记里的定理/定义/命题块。**每块都必须写名字**（`**引理 4.1（系数表示与正交性）**`）：没写名字导入器直接报错退出（`require_name`），因为无名卡在卡片墙上只是一个裸类别词。每张卡另加 `kind`（类别：定义/定理/命题…）、`num`（课程侧的编号：只进锚点 id、`{{< tool >}}` 参数与搜索关键词，**不再显示**）、`course`（属于哪门课）、`branch`（大类）与 `section`（细分）|
 | `data/math-branches.yaml` | **不是产物**：数学库（`/library/`）的**两级**分支清单（大类 → 细分）+ 卡片归属规则，手写维护，见 docs/features.md ㉒ |
 | `content/library/<大类>/`、`content/library/<大类>/<细分>/` 的页面 | **不是文件**：由 `content/library/_content.gotmpl`（Hugo content adapter）按 `data/math-branches.yaml` 现算生成——分支表加一项就自动多一页。所以这几个 URL 不在 `hugo list all` 的输出里，`check-sections.sh` 也看不见它们 |
-| `content/courses/<课程>/toolbox/<id>/index.md` | 与上同一批卡片：一张卡一个页面，front matter 由脚本生成、正文为空，模板按目录名从 data 取内容。它的 `title` **不等于** JSON 里的 `title`：JSON 里可能带公式，模板用 `RenderString` 渲染成真公式；而写进 front matter 的 title 要进 `<title>`、列表卡片与「相关内容」，不经过 Markdown/KaTeX，所以脚本会先降级成纯文本（`$F$ 检验` → `F 检验`；span 里是 `\hat\sigma^2` 这类命令时整段丢掉，`$\hat\sigma^2$ 无偏` → `无偏`；全丢光退回「定理 5.3」形式）|
+| `content/courses/<课程>/toolbox/<id>/index.md` | 与上同一批卡片：一张卡一个页面，front matter 由脚本生成、正文为空，模板按目录名从 data 取内容。它的 `title` 是**「名字（类别）」**（如 `Gauss–Markov（定理）`，2026-09-19 起不带编号）：JSON 里可能带公式，模板用 `RenderString` 渲染成真公式；而写进 front matter 的 title 要进 `<title>`、列表卡片与「相关内容」，不经过 Markdown/KaTeX，所以脚本会先降级成纯文本（`$F$ 检验` → `F 检验`；span 里是 `\hat\sigma^2` 这类命令时整段丢掉，`$\hat\sigma^2$ 无偏` → `无偏`）。**名字整段是公式的名字会被导入器拒收**（那样 h1 会变成空标题），所以名字里要留可读的纯文本部分 |
 | `实验/<lab>/figs/*.png` | 直接复制进对应材料页的 bundle |
 
 **改内容一律改课程项目里的 md，再重跑导入**——博客侧这几类文件是生成产物，手改会在下次导入时被覆盖。

@@ -230,7 +230,7 @@ $$
 
 ### 4.1 线性性
 
-**引理 4.1** 记 $c_i=\dfrac{x_i-\bar x}{S_{xx}}$，$d_i=\dfrac1n-\bar xc_i$，则
+**引理 4.1（系数表示与正交性）** 记 $c_i=\dfrac{x_i-\bar x}{S_{xx}}$，$d_i=\dfrac1n-\bar xc_i$，则
 
 $$
 \hat\beta_1=\sum_{i=1}^nc_iy_i,\qquad \hat\beta_0=\sum_{i=1}^nd_iy_i, \tag{4.1}
@@ -355,7 +355,7 @@ $$
 
 ### 4.6 有效性：OLS 是否"已经到头"
 
-**命题 4.6** 正态误差下，$\hat\beta_1$ 的 Fisher 信息为 $I(\beta_1)=S_{xx}/\sigma^2$，故无偏估计的方差下界（{{< tool "3.5" "Cramér–Rao 下界" >}}）为 $\sigma^2/S_{xx}$，恰好等于 $\operatorname{Var}(\hat\beta_1)$。
+**命题 4.6（{{< tool "3.5" "Cramér–Rao 下界" >}}可达）** 正态误差下，$\hat\beta_1$ 的 Fisher 信息为 $I(\beta_1)=S_{xx}/\sigma^2$，故无偏估计的方差下界（{{< tool "3.5" "Cramér–Rao 下界" >}}）为 $\sigma^2/S_{xx}$，恰好等于 $\operatorname{Var}(\hat\beta_1)$。
 
 **证明** 似然函数见 (15.1)；对数似然对 $\beta_1$ 的二阶导为 $-S_{xx}/\sigma^2$（与 $\mathbf y$ 无关），故 $I(\beta_1)=E[S_{xx}/\sigma^2]=S_{xx}/\sigma^2$。下界 $1/I=\sigma^2/S_{xx}$ 与 (4.3) 相等。$\square$
 
@@ -418,7 +418,7 @@ $$
 
 ### 5.3 分布与独立性
 
-**定理 5.4** 在 A1、A2、A3（正态）下，
+**定理 5.4（残差平方和的分布与独立性）** 在 A1、A2、A3（正态）下，
 
 $$
 \frac{RSS}{\sigma^2}\sim\chi^2_{n-2}, \tag{5.4}
@@ -486,7 +486,7 @@ $$
 
 ### 6.2 三条结论
 
-**定理 6.1** 在中心化形式 (6.1) 下：
+**定理 6.1（中心化后的截距与协方差）** 在中心化形式 (6.1) 下：
 
 $$
 \hat\beta_1=\frac{S_{xy}}{S_{xx}}\ (\text{与未中心化时相同}),\qquad \hat\beta_0'=\bar y, \tag{6.2}
@@ -498,7 +498,7 @@ $$
 
 **证明** 中心化后 $\bar{x'}=0$，代入 (3.2) 得 $\hat\beta_0'=\bar y-\hat\beta_1\bar{x'}=\bar y$，斜率公式 $S_{x'y}/S_{x'x'}=S_{xy}/S_{xx}$ 不变。方差与协方差由 (4.3) 取 $\bar{x'}=0$ 即得。$\square$
 
-**推论 6.2** $\operatorname{Cov}(\bar y,\hat\beta_1)=\sigma^2\sum_i\frac1nc_i=\frac{\sigma^2}{n}\sum_ic_i=0$（用 (4.2)），即**响应均值与斜率估计不相关**。在正态假设下二者独立。
+**推论 6.2（均值与斜率估计不相关）** $\operatorname{Cov}(\bar y,\hat\beta_1)=\sigma^2\sum_i\frac1nc_i=\frac{\sigma^2}{n}\sum_ic_i=0$（用 (4.2)），即**响应均值与斜率估计不相关**。在正态假设下二者独立。
 
 ### 6.3 为什么中心化如此有用
 

@@ -235,6 +235,12 @@
   box-shadow: var(--shadow-card);
 }
 
+/* 卡片左缘的类色条：索引卡在网格里成片铺开时，「扫一眼分出类别」靠的是它 ——
+   徽章得读字，色条不用读。类别没配到颜色的（注/例/设定/结论）退回普通边框色。 */
+.tb-card[data-kind] {
+  border-left: 3px solid var(--k, var(--border));
+}
+
 .tb-card[hidden] {
   display: none;
 }
@@ -252,43 +258,54 @@
   padding: 0 0.4rem;
   font-size: 0.72rem;
   line-height: 1.7;
-  color: var(--primary);
-  background: var(--accent-soft);
-  border: 1px solid var(--border);
   border-radius: 5px;
+  /* 兜底：类别没在下面列到、或卡片没带 data-kind 时，就是一个中性描边徽章 */
+  color: var(--k, var(--primary));
+  background: var(--k-soft, var(--accent-soft));
+  border: 1px solid var(--k, var(--border));
 }
 
-/* 徽章配色按「这个知识点是不是一个有真假的论断」分两组：
-     定义 / 概念 / 技巧 —— 命名、直觉与套路，不存在真假；
-     定理 / 命题 / 引理 / 推论 / 性质 —— 都需要证明，给第二底色以便一眼扫出来。
-   2026-09-19 起知识库（wiki）发布的卡片也用这两个词表：主类型是定义/概念/定理/技巧，
-   定理类可再标陈述称谓（定理/命题/引理/推论/性质）。之前只有 定理/命题 命中这条规则，
-   引理/推论/性质 落到默认底色，与本意不符，已补齐。 */
-.tb-kind[data-kind="定理"],
-.tb-kind[data-kind="命题"],
-.tb-kind[data-kind="引理"],
-.tb-kind[data-kind="推论"],
-.tb-kind[data-kind="性质"] {
-  background: var(--code-bg);
+/* 徽章配色按「这个知识点是不是一个有真假的论断」分两族，与 00-theme.css 的类别色板配合：
+     定义 / 概念 / 技巧 —— 命名、直觉与套路，不存在真假 → 描边（浅底纹 + 类色字）
+     定理 / 命题 / 引理 / 推论 / 性质 —— 都需要证明 → 实色（类色底 + 页面底色字）
+   这一条同时是**形态**通道：色相说「是哪个类别」，实心/空心说「是不是论断」。两类都能一眼
+   分出层次，而不必先读徽章上的字。
+   历史：2026-09-19 之前只有这一条分组规则、且只给了两个底色（--accent-soft / --code-bg），
+   实际几乎看不出差别；引理/推论/性质 还因为选择器写漏落到默认底色。现在按类别给色。 */
+/* 没列到的类别走中性色 —— 这是「有意的兜底」而不是「漏配了」。
+   **必须排在各类别之前**：`[data-kind]` 与 `[data-kind="定义"]` 特异度相同（各 0,2,0），
+   靠源码顺序分胜负，兜底放后面会把每一个配好的类别都盖掉。 */
+.tb-card[data-kind] {
+  --k: var(--secondary);
+  --k-soft: var(--code-bg);
 }
 
-/* 编号（1.2 / 4.4）：定位用的小字，不再是标签；索引卡与卡片头都靠它对齐右端 */
-.tb-num {
-  flex: none;
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--secondary);
-  opacity: 0.75;
+/* 定义与定理直接借用主题的两支强调色（含各自的 soft），不另写一份字面量 */
+.tb-card[data-kind="定义"] { --k: var(--accent); --k-soft: var(--accent-soft); }
+.tb-card[data-kind="概念"] { --k: var(--k-concept); --k-soft: var(--k-concept-soft); }
+.tb-card[data-kind="技巧"] { --k: var(--k-skill); --k-soft: var(--k-skill-soft); }
+.tb-card[data-kind="定理"] { --k: var(--accent-2); --k-soft: var(--accent-2-soft); }
+.tb-card[data-kind="命题"] { --k: var(--k-prop); --k-soft: var(--k-prop-soft); }
+.tb-card[data-kind="引理"] { --k: var(--k-lemma); --k-soft: var(--k-lemma-soft); }
+.tb-card[data-kind="推论"] { --k: var(--k-cor); --k-soft: var(--k-cor-soft); }
+.tb-card[data-kind="性质"] { --k: var(--k-nature); --k-soft: var(--k-nature-soft); }
+
+.tb-card[data-kind="定理"] .tb-kind,
+.tb-card[data-kind="命题"] .tb-kind,
+.tb-card[data-kind="引理"] .tb-kind,
+.tb-card[data-kind="推论"] .tb-kind,
+.tb-card[data-kind="性质"] .tb-kind {
+  /* 字用 --theme：浅色主题下类色是深的、深色主题下类色是亮的，两种主题里 --theme
+     都正好是「压在类色上读得清」的那一端（实测 5.16~10.82:1） */
+  color: var(--theme);
+  background: var(--k);
+  border-color: var(--k);
 }
 
-.tb-teaser-link .tb-num,
-.tb-card-head .tb-num {
-  margin-left: auto;
-}
-
-.tb-card-head .tb-card-anchor {
-  margin-left: 0.15rem;
-}
+/* 2026-09-19 删掉 `.tb-num`（编号小字）：编号不再进 UI —— 它只活在锚点 id、`{{< tool "4.1" >}}`
+   的参数与 data-search 里（见 docs/features.md ㉑）。随它一起删掉的还有
+   `.tb-card-head .tb-card-anchor { margin-left: 0.15rem }` 这条覆盖：当初是为了让 `#` 紧跟在
+   编号后面，编号没了就得让它回到基类的 `margin-left: auto`，否则卡的右端会空一块。 */
 
 .tb-card-title {
   font-size: 0.95rem;
@@ -394,8 +411,11 @@
   box-shadow: var(--shadow-lift);
 }
 
+/* 弹窗里卡片不自带边框与底色（面板已经有了），但**保留左缘类色条** ——
+   弹窗是卡片的主要阅读场景，类别得在那儿也认得出来。 */
 .tb-modal-panel .tb-card {
   border: none;
+  border-left: 3px solid var(--k, var(--border));
   box-shadow: none;
   padding: 0;
   background: transparent;

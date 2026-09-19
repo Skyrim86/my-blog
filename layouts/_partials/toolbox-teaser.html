@@ -1,10 +1,12 @@
 {{- /* 工具库 / 数学库的索引卡。参数：page（所在页）、card（data/math-toolbox.json 的一条）、url（卡片页地址）。
 
-     一块卡片的显示：类别徽章 → 名字 → 编号。
+     一块卡片的显示：类别徽章 → 名字。类别同时决定卡片左缘的色条与徽章的形态
+     （定义类描边 / 定理类实色，见 11-toolbox.css 的「类别色」一节）。
 
-       - 名字 = 条目标题（如「Fisher 引理」）；课程定理卡没有名字时退回编号，
-         免得徽章与主文本把类别写两遍。
-       - 编号（1.2 / 4.4）只作定位用的小字，出现在右下角，不再当标签用。
+       - **没有编号**：编号只活在锚点 id、`{{< tool "4.1" >}}` 的参数与 data-search 里，
+         不再画在卡上（2026-09-19 起）。想按编号找卡直接搜「4.4」—— data-search 里带着它。
+       - 名字 = 条目标题（如「Fisher 引理」）。每张卡都必须有名字：导入器（require_name）与
+         scripts/check-cards.mjs 都会拦住无名卡，所以这里没有「退回编号」的分支。
        - data-search 给截图不进正文的信息（名字、编号、类别、正文）供搜索用，
          见 assets/js/toolbox.js 的筛选。 */ -}}
 {{- $card := .card -}}
@@ -15,9 +17,6 @@
     <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>
     {{- with $card.title }}
     <span class="tb-teaser-title">{{ $.page.RenderString . }}</span>
-    <span class="tb-num">{{ $card.num }}</span>
-    {{- else }}
-    <span class="tb-teaser-title">{{ $card.num }}</span>
     {{- end }}
   </a>
 </article>

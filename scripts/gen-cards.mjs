@@ -8,7 +8,8 @@
 //
 // 为什么数学库不走这里：数学卡的正文由 tools/course-import/import_course.py 从课程项目抽出来
 // （有源文件可抽），本脚本服务的是 JSON 手写维护的库（当前是 CS 库）。两者的卡片页 front matter
-// 与 title 生成规则保持一致，改一处要同步另一处。
+// 与 title 生成规则保持一致，改一处要同步另一处；「每张卡都要有名字」这条断言两边都有
+// （数学侧在 require_name，这里在 main() 开头）。
 //
 // 卡片页 front matter 与数学卡同构：title（可读标题）/ layout: toolcard / date / weight /
 // sitemap.disable / searchHidden。date 复用已存在页面的日期 —— 重复生成不会天天改日期。
@@ -61,19 +62,20 @@ function readBranchKeys(key) {
 }
 
 /* ---------- title：与 import_course.py 的 plain_card_title 同一套规则 ---------- */
+// span 里含反斜杠命令（`\hat\sigma^2`）就整段丢掉，其余取文字（「$F$ 检验」→「F 检验」）。
+// 两侧必须逐字对齐：数学卡与 CS 卡的卡片页 title 是同一套规则产出的。
 function plainTitle(card) {
   const raw = (card.title || '').trim();
-  const stripped = raw.replace(/\$([^$]*)\$/g, '$1').replace(/\s{2,}/g, ' ').trim();
-  if (stripped && !stripped.includes('\\')) return stripped;
-  return '';
+  const stripped = raw.replace(/\$([^$]*)\$/g, (_, inner) => (inner.includes('\\') ? '' : inner.trim()));
+  return stripped.replace(/\s{2,}/g, ' ').trim();
 }
 
 function pageFrontMatter(card, lib, weight, dateStr) {
   const name = plainTitle(card);
-  // 编号可以缺：知识库（wiki）发布过来的卡片没有课程章节号，省略它而不是印出 undefined。
-  // 现有卡片都有 num，所以这条容错不改变任何既有产物。
-  const suffix = [card.kind, card.num].filter(Boolean).join(' ');
-  const title = name ? `${name}（${suffix}）` : suffix;
+  // 标题是「名字（类别）」：**编号不进 UI**（编号只活在锚点 id、{{< tool >}} 参数与搜索关键词里，
+  // 见 docs/features.md ㉑）。名字缺失由 main() 里的断言拦住，这里只为兜住类别也缺的极端情况。
+  const kind = card.kind || '';
+  const title = name ? (kind ? `${name}（${kind}）` : name) : kind || card.id;
   return (
     '---\n' +
     `# 卡片页：由 scripts/gen-cards.mjs 从 data/${lib.data}.json 生成，勿手改。\n` +
@@ -102,6 +104,22 @@ function main() {
   const json = JSON.parse(readFileSync(dataFile, 'utf8'));
   const cards = json.cards || [];
   if (!cards.length) throw new Error(`${dataFile} 里没有 cards`);
+
+  /* 每张卡都必须有名字：无名卡在卡片墙上只是一个裸类别词，卡片页 h1 也不成形。
+     数学卡那侧由 import_course.py 的 require_name 用同样两条判据拦住，这里同步。 */
+  const nameless = cards.filter((c) => !(c.title || '').trim()).map((c) => c.id);
+  if (nameless.length) {
+    throw new Error(
+      `卡片没有名字：${nameless.join('、')}\n` + `每张卡都要有名字 —— 在 ${dataFile} 里给它们补 title。`
+    );
+  }
+  const formulaOnly = cards.filter((c) => (c.title || '').trim() && !plainTitle(c)).map((c) => c.id);
+  if (formulaOnly.length) {
+    throw new Error(
+      `卡片的名字整段是公式，没有可读的纯文本部分：${formulaOnly.join('、')}\n` +
+        `卡片页 h1 与 <title> 走的是纯文本降级，那里会变成空标题。`
+    );
+  }
 
   const branchKeys = readBranchKeys(libKey);
   const clash = cards.map((c) => c.id).filter((id) => branchKeys.includes(id));
