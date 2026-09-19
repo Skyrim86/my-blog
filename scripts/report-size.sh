@@ -48,8 +48,19 @@ fi
 [ -d "$DIR" ] || { echo "✗ 找不到 $DIR，先跑一次构建（或加 --fresh）" >&2; exit 1; }
 
 # 陈旧提醒：源文件比输出目录新，说明这轮没重新构建
-newest_src="$(find content layouts assets static i18n archetypes themes hugo.toml -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1)"
-newest_out="$(find "$DIR" -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1)"
+#
+# **不要写成 `find … | sort -rn | head -1`**（2026-09-19 实测踩到过）：`head -1` 读完第一行就退出，
+# `sort` 还在往管道里写，于是收到 SIGPIPE、报 `sort: fflush failed: 'standard output': Broken pipe`
+# 并以 **2** 退出；本脚本开了 `set -o pipefail`，这个 2 就成了整条管道的状态，`set -e` 直接把脚本
+# 中止 —— CI 报的正是「Process completed with exit code 2」，而且一行报告都没打印出来。
+# 它是**竞态**：只有生产者的输出超过管道缓冲（64 KB）时才会撞上，所以同一份代码前几次都能过
+# （`themes/` 里 PaperMod 的文件够多才越过这条线）。求最大值让 awk 一次读完自己比，就没有
+# 「提前退出的读者」了。
+newest_of() {
+  { find "$@" -type f -printf '%T@\n' 2>/dev/null || true; } | awk 'NR==1 || $1>m {m=$1} END {if (NR) print m}'
+}
+newest_src="$(newest_of content layouts assets static i18n archetypes themes hugo.toml)"
+newest_out="$(newest_of "$DIR")"
 if [ -n "$newest_src" ] && [ -n "$newest_out" ] && [ "${newest_out%%.*}" -lt "${newest_src%%.*}" ]; then
   echo "⚠ $DIR 里有源文件比输出新 —— 现在量的是陈旧产物，建议加 --fresh 重新量。"
 fi
@@ -86,7 +97,9 @@ find "$DIR" -type f -printf '%s\t%p\n' | awk -F'\t' '
 
 echo
 echo "▸ 最重的 10 个页面（raw HTML，未压缩）"
-find "$DIR" -name '*.html' -type f -printf '%s\t%p\n' | sort -rn | head -10 | while IFS=$'\t' read -r b p; do
+# 用 `sed -n '1,10p'` 而不是 `head -10`：sed 会把输入读完，不会像 head 那样提前退出把 SIGPIPE
+# 甩给上游的 sort（见上面 newest_of 那段注释）。
+find "$DIR" -name '*.html' -type f -printf '%s\t%p\n' | sort -rn | sed -n '1,10p' | while IFS=$'\t' read -r b p; do
   rel="${p#"$DIR"/}"; rel="${rel%index.html}"
   printf '  %6d KB  %s\n' "$((b / 1024))" "$rel"
 done
@@ -147,7 +160,7 @@ check() { # $1=名称 $2=实测KB $3=上限KB
     printf '  ✓ %s：%s KB ≤ %s KB\n' "$1" "$2" "$3"
   fi
 }
-max_page="$(find "$DIR" -name '*.html' -type f -printf '%s\n' | sort -rn | head -1 | awk '{print int($1/1024)}')"
+max_page="$(find "$DIR" -name '*.html' -type f -printf '%s\n' | awk 'NR==1 || $1>m {m=$1} END {if (NR) print int(m/1024)}')"
 check "单页最大（raw）" "${max_page:-0}" "$MAX_PAGE_KB"
 check "整站输出（raw）" "$((total_b / 1024))" "$MAX_TOTAL_KB"
 check "单页最大（gzip）" "$comp_page" "$MAX_COMP_PAGE_KB"

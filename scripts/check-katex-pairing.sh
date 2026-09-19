@@ -28,7 +28,10 @@ fi
 
 # 取「公式最多」的那个页面来判定构建产物用的是哪套类名。
 # 用出现次数最多的页面而不是第一个命中的，避免被正文里讨论类名的文字带偏。
-page="$(grep -rc --include='*.html' 'class=katex' "$OUT" 2>/dev/null | awk -F: '$2 > 0' | sort -t: -k2 -rn | head -1 | cut -d: -f1 || true)"
+# `sed -n '1p'` 而不是 `head -1`：head 提前退出会把 SIGPIPE 甩给 sort（它退 2，本脚本有
+# `set -o pipefail`），这里虽然末尾有 `|| true` 兜着不会中止脚本，但同一个坑不必留两处
+# —— 详见 scripts/report-size.sh 里 newest_of 那段注释。
+page="$(grep -rc --include='*.html' 'class=katex' "$OUT" 2>/dev/null | awk -F: '$2 > 0' | sort -t: -k2 -rn | sed -n '1p' | cut -d: -f1 || true)"
 if [ -z "$page" ]; then
   echo "· 没有找到含公式的页面，跳过配对校验（当前 CSS 方案：$css_desc）"
   exit 0
