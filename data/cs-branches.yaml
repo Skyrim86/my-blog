@@ -1,18 +1,24 @@
 # CS 库（/cs/）的分支体系 —— 卡片按方向归类的唯一事实源。
 #
-# 结构、约定与 data/math-branches.yaml 完全一致（两级：大类 → 细分），只是这边**没有导入脚本**：
-# 数学库的卡片由 tools/course-import/import_course.py 从课程项目抽出来，CS 这边是手写的
-# data/cs-toolbox.json。写完卡片后跑 `node scripts/gen-cards.mjs cs` 生成卡片页。
+# 结构、约定与 data/math-branches.yaml 完全一致（两级：大类 → 细分），差别只有三点：
+#   1. 这里不需要 assign 规则 —— 卡片是手写的 data/cs-toolbox.json，每张卡自己写 branch / section；
+#   2. 卡片页平铺在 /cs/<卡片 id>/（数学卡挂在 /courses/<课程>/toolbox/<id>/ 下）；
+#   3. 大类按「计算机的领域」分，与数学库的「学科家族」是两套并行的表。
 #
-# 与数学库的差别只有两点：
-#   1. 这里不需要 assign 规则（卡片是手写的，每张卡自己写 branch / section）；
-#   2. 卡片页平铺在 /cs/<卡片 id>/（数学卡挂在 /courses/<课程>/toolbox/<id>/ 下）。
+# 2026-09-19 重构：上一版只有 数据结构 / 算法 / 工程实践 三个大类、8 个细分，8 张卡平均
+# 每桶 1.1 张 —— 分类退化成「把清单重排一遍」。这一版按计算机的领域重划 6 个大类，
+# 把以后要学的方向（系统、机器学习、计算理论、开发环境）先留好位置。
 #
-# 空分支不出页面（与数学库同一条口径），所以预置的方向可以放心留着。
+# 空大类与空细分都不出页面（content/cs/_content.gotmpl 里有 if $bcards 判断），
+# 所以**没卡的方向可以放心留着**，有卡之后再补内容。
+#
+# 细分粒度的判据与数学库同一条：一个细分超过 ~20 张就拆（依据是站内实测「80 张卡一页太重」，
+# 见 docs/features.md 追加五）。学科卡片少时，细分就是该方向本身。
 branches:
-  - key: data-structures
-    name: 数据结构
-    summary: "数组、链表、哈希、树与堆：各自擅长什么、代价怎么算"
+  # ── 1 数据结构与算法 ─────────────────────────────────────────────────
+  - key: ds-algo
+    name: 数据结构与算法
+    summary: "各种结构擅长什么、代价怎么算，以及查找、排序与常见算法范式"
     sections:
       - key: ds-linear
         name: 线性结构
@@ -22,27 +28,94 @@ branches:
         summary: "哈希表、冲突处理、负载因子与均摊代价"
       - key: ds-tree
         name: 树与堆
-        summary: "二叉搜索树、堆与优先队列"
-  - key: algorithms
-    name: 算法
-    summary: "查找、排序、复杂度与常见设计范式"
-    sections:
+        summary: "二叉搜索树、平衡树、堆与优先队列"
       - key: algo-search
         name: 查找
-        summary: "线性查找、二分查找及其前提"
+        summary: "线性查找、二分查找及其前提，以及二分答案"
       - key: algo-sort
         name: 排序
         summary: "比较排序、复杂度下界与稳定性"
       - key: algo-paradigm
         name: 算法范式
-        summary: "分治、贪心与动态规划"
-  - key: engineering
-    name: 工程实践
-    summary: "这个站自己的工程约定：构建、样式与自动化（写博客时顺手记下的）"
+        summary: "分治、贪心、动态规划与主定理"
+
+  # ── 2 计算机系统 ─────────────────────────────────────────────────────
+  - key: systems
+    name: 计算机系统
+    summary: "程序底下那一层：硬件、操作系统、网络与并发"
     sections:
+      - key: sys-arch
+        name: 体系结构
+        summary: "指令与流水线、缓存层次、内存模型"
+      - key: sys-os
+        name: 操作系统
+        summary: "进程与线程、虚拟内存、文件系统、调度"
+      - key: sys-net
+        name: 网络
+        summary: "分层协议、TCP/IP、HTTP 与 DNS"
+      - key: sys-concurrency
+        name: 并发
+        summary: "锁与原子操作、内存序、并发数据结构"
+
+  # ── 3 编程与工程 ─────────────────────────────────────────────────────
+  - key: lang-eng
+    name: 编程与工程
+    summary: "写代码这件事本身：语言机制、构建与部署、样式与版本管理"
+    sections:
+      - key: lang-types
+        name: 语言与类型
+        summary: "类型系统、作用域与求值、错误处理、内存管理"
       - key: eng-build
         name: 构建与部署
-        summary: "静态站点构建、资源管线、CI 与发布"
+        summary: "静态站点构建、资源管线、缓存策略与 CI 发布"
       - key: eng-style
         name: 样式与布局
-        summary: "CSS 约定、响应式与暗色适配"
+        summary: "CSS 约定、响应式、暗色适配与可访问性"
+      - key: eng-vcs
+        name: 版本控制
+        summary: "分支模型、提交粒度、回退与变基"
+
+  # ── 4 机器学习与数据 ─────────────────────────────────────────────────
+  - key: ml-data
+    name: 机器学习与数据
+    summary: "从数据里学规律：模型、优化与数据本身"
+    sections:
+      - key: ml-supervised
+        name: 监督学习
+        summary: "线性与树模型、正则化、偏差–方差与评估"
+      - key: ml-optim
+        name: 优化方法
+        summary: "梯度下降及其变体、反向传播、超参数"
+      - key: data-processing
+        name: 数据处理
+        summary: "清洗与特征、聚合与连接、可视化"
+
+  # ── 5 计算理论 ───────────────────────────────────────────────────────
+  - key: theory
+    name: 计算理论
+    summary: "计算的边界：什么能算、要多少代价"
+    sections:
+      - key: theory-models
+        name: 计算模型
+        summary: "自动机、可计算性与判定问题"
+      - key: theory-complexity
+        name: 复杂度
+        summary: "复杂度类、归约与 NP 完全性"
+      - key: theory-discrete
+        name: 离散数学
+        summary: "组合计数、图论、逻辑与证明方法"
+
+  # ── 6 工具与环境 ─────────────────────────────────────────────────────
+  - key: dev-env
+    name: 工具与环境
+    summary: "每天要用的那套家伙：编辑器、命令行、环境与测试"
+    sections:
+      - key: dev-editor
+        name: 编辑器与命令行
+        summary: "快捷键与配置、shell 与管道、文本处理"
+      - key: dev-setup
+        name: 环境配置
+        summary: "依赖与虚拟环境、路径与编码、跨平台差异"
+      - key: dev-test
+        name: 测试与调试
+        summary: "单元测试、断点与日志、性能剖析"

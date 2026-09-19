@@ -2738,6 +2738,63 @@ function initShortcuts() {
   });
 }
 
+// ---------------- 知识库（wiki）发布 ----------------
+
+// 发布器是 tools/wiki-publish/publish.py：把知识库里「状态: 已验证」的卡片写进数学库 / CS 库。
+// 界面只负责按钮与输出显示 —— 「发什么、发给谁、能不能发」的判据全在脚本里（一份实现，
+// 与 CLI、CI 共用），界面复刻规则就必然漂移。
+function initWikiPublish() {
+  const status = $('wiki-status');
+  if (!status) return;
+  const log = $('wiki-log');
+  const hint = $('wiki-hint');
+
+  const show = (text) => {
+    log.hidden = false;
+    log.textContent = text;
+  };
+
+  const render = (data) => {
+    if (data.unavailable) {
+      status.textContent = `✗ 发布器不可用：${data.error}`;
+      return;
+    }
+    const out = `${data.stdout ?? ''}${data.stderr ?? ''}`.trim();
+    const tail = out.split('\n').filter(Boolean).slice(-1)[0] ?? '';
+    status.textContent = data.ok ? `✓ 已同步。${tail}` : `⚠ 有差异或有问题。${tail}`;
+    show(out || '（脚本没有输出）');
+  };
+
+  const refresh = async () => {
+    status.textContent = '正在检查…';
+    try {
+      render(await api.get('/api/wiki/status'));
+    } catch (err) {
+      status.textContent = `✗ 检查失败：${err.message}`;
+    }
+  };
+
+  $('wiki-check')?.addEventListener('click', refresh);
+  $('wiki-publish')?.addEventListener('click', async () => {
+    const btn = $('wiki-publish');
+    btn.disabled = true;
+    hint.textContent = '正在发布…';
+    try {
+      const data = await api.send('POST', '/api/wiki/publish');
+      render(data);
+      toast(data.ok ? '知识库发布完成，改动已进上面的清单' : '发布器报错，见下方输出', data.ok ? 'ok' : 'error');
+    } catch (err) {
+      status.textContent = `✗ 发布失败：${err.message}`;
+      toast(`发布失败：${err.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      hint.textContent = '';
+    }
+  });
+
+  refresh();
+}
+
 // ---------------- 启动：新增部分 ----------------
 
 function initExtras() {
@@ -2745,6 +2802,7 @@ function initExtras() {
   initPalette();
   initCheckPanel();
   initPublishExtras();
+  initWikiPublish();
   initShortcuts();
   // 正文里直接粘贴截图：插图最顺手的路径，不必先存成文件再拖进来
   $('editor').addEventListener('paste', (ev) => {

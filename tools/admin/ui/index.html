@@ -148,6 +148,21 @@
         <pre id="diff-view" class="diff"></pre>
       </div>
 
+      <!-- 知识库（wiki）发布：把知识库里「已验证」的卡片写进数学库 / CS 库。
+           放在发布页签里，因为它产出的正是「本次改动」，接着走上面的提交说明 + 发布。 -->
+      <details class="pub-col" id="wiki-box">
+        <summary>从知识库发布卡片（wiki → 数学库 / CS 库）</summary>
+        <div class="field">
+          <div class="hint" id="wiki-status">正在检查…</div>
+          <div class="actions">
+            <button type="button" class="ghost" id="wiki-check">只检查</button>
+            <button type="button" class="primary" id="wiki-publish">发布已验证的卡片</button>
+            <span class="muted" id="wiki-hint"></span>
+          </div>
+        </div>
+        <pre id="wiki-log" class="log" hidden></pre>
+      </details>
+
       <div class="pub-cols">
         <!-- 默认收起：这两块是「查证用」的，不该跟「提交说明 + 发布按钮」抢首屏 -->
         <details class="pub-col">

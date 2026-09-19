@@ -1,115 +1,196 @@
-# 数学库（/library/）的分支体系 —— 卡片按数学分支归类的唯一事实源。
+# 数学库（/library/）的分支体系 —— 卡片按学科归类的唯一事实源。
 #
-# 两级结构：大类（branches，数学分支）→ 细分（sections，方向）。
-# tools/course-import/import_course.py 导入时读这张表，把 branch（大类）与 section（细分）
-# 写进 data/math-toolbox.json（生成产物，勿手改）；layouts/library/library.html 按它分组：
-# 页面按大类分块、块内按细分归组。
-# 调整某张卡的归属改这里，然后重跑导入脚本。
+# ── 这一版（2026-09-19 重构）为什么这么分 ───────────────────────────────────
 #
-# 归属规则的匹配顺序（细 → 粗，取第一个命中）：
+# 上一版按「数学分支」随手分了 7 个大类，结果 statistics 一个桶装了 80 张里的 62 张（78%），
+# 而 20 个有卡的细分里 14 个只有 1–4 张。病根是那个 statistics 混了两类不相干的东西：
+# 6 张通用统计理论工具卡 + 56 张回归分析课程笔记的定理卡。
+#
+# 这一版改成**按学科分**，学科清单取自本机实际拥有的教材目录
+# （D:\Study\Skyrim\math\教材\，24 个学科，用 1./2./3. 标了层次）—— 分类要经得起以后
+# 往里加卡，而不是迁就今天已有的 80 张。
+#
+# ── 两级的分工 ────────────────────────────────────────────────────────────
+#
+# 大类 = 学科家族（8 个 + 未分类），这一层要能十年不动。
+# 细分 = 主题。规则是：
+#   · 学科卡片少 → 细分就是学科本身，细分名 = 学科名（如「复分析」「交换代数」）
+#   · 学科卡片多 → 拆成若干主题细分，细分名 = 学科内的主题名（如「数理统计」拆 6 个）
+#   判据：一个细分超过 ~20 张就拆 —— 依据是站内实测「80 张卡一页太重」
+#   （见 docs/features.md 追加五：/library/ 从 80 张拆成三级后，长任务从 119 ms 降到没有）。
+#
+# 空大类与空细分都不出页面（content/library/_content.gotmpl 里有 if $bcards 判断），
+# 所以**以后要学的学科可以现在就写进表里**，没卡之前不占页面。
+#
+# ── 调整归属怎么改 ────────────────────────────────────────────────────────
+#
+# 改下面的 assign，然后重跑 tools/course-import/import_course.py（生成产物勿手改）。
+# 匹配顺序（细 → 粗，取第一个命中）：
 #   cards   按卡片 id（如 thm-4-4、tool-1-1）—— 最细，最优先
 #   nums    按课程定理卡的节号（thm-<节>-<序> 里的节号，与课程笔记的 § 号一致）
 #   groups  按工具卡的分组号（工具/00_数学工具.md 里 `## k 名称` 的 k）
 #   modules 按课程模块号（笔记文件里的 M1 / M2 …）
-#   courses 按课程目录名 —— 最粗
+#   courses 按课程目录名 —— 最粗，只作兜底
 # 都没命中 → default。default 也必须是某个细分（落在「未分类」大类里）。
 branches:
-  - key: probability
-    name: 概率论
-    summary: "随机变量与矩、条件期望、常见分布、极限定理与渐近方法"
+  # ── 1 分析 ───────────────────────────────────────────────────────────
+  - key: analysis
+    name: 分析
+    summary: "极限与连续、微分与积分、级数、测度与函数空间"
+    sections:
+      - key: mathematical-analysis
+        name: 数学分析
+        summary: "极限、连续、一元与多元微积分、级数与一致收敛"
+      - key: real-analysis
+        name: 实分析
+        summary: "测度与积分、收敛定理、$L^p$ 空间"
+      - key: complex-analysis
+        name: 复分析
+        summary: "全纯函数、柯西积分、留数与解析延拓"
+      - key: functional-analysis
+        name: 泛函分析
+        summary: "巴拿赫与希尔伯特空间、有界算子、对偶与谱"
+      - key: fourier-analysis
+        name: 傅里叶分析
+        summary: "傅里叶级数与变换、卷积、采样与不确定性"
+      - key: ode
+        name: 常微分方程
+        summary: "一阶方程、线性方程组、存在唯一性与稳定性"
+
+  # ── 2 代数 ───────────────────────────────────────────────────────────
+  - key: algebra
+    name: 代数
+    summary: "线性代数、抽象代数与同调方法"
+    sections:
+      - key: linear-algebra
+        name: 高等代数
+        summary: "矩阵与线性映射、二次型、投影与幂等、分块与秩"
+      - key: abstract-algebra
+        name: 抽象代数
+        summary: "群、环、域与模，同态与商结构"
+      - key: commutative-algebra
+        name: 交换代数
+        summary: "理想与局部化、诺特环、维数与分解"
+      - key: homological-algebra
+        name: 同调代数
+        summary: "复形与正合列、导出函子、谱序列"
+
+  # ── 3 几何与拓扑 ─────────────────────────────────────────────────────
+  - key: geometry-topology
+    name: 几何与拓扑
+    summary: "空间的形状与连续变形"
+    sections:
+      - key: basic-geometry
+        name: 基础几何
+        summary: "欧氏几何、解析几何、变换与不变量"
+      - key: point-set-topology
+        name: 点集拓扑
+        summary: "开集与连续映射、紧致与连通、度量化与分离性"
+
+  # ── 4 基础与离散 ─────────────────────────────────────────────────────
+  - key: foundations-discrete
+    name: 基础与离散
+    summary: "集合、逻辑与数论"
+    sections:
+      - key: set-theory
+        name: 集合论
+        summary: "集合运算、关系与函数、基数与序数、选择公理"
+      - key: number-theory
+        name: 数论基础
+        summary: "整除与同余、算术函数、二次剩余与原根"
+
+  # ── 5 概率与随机 ─────────────────────────────────────────────────────
+  # 概率论这一门拆了 4 个主题细分（它是工具卡的主力，一个桶装 15 张偏挤）；
+  # 高等概率论与随机过程按学科本身作细分，有卡以后再决定要不要拆。
+  - key: probability-stochastic
+    name: 概率与随机
+    summary: "随机变量与分布、极限定理与渐近方法、随机过程"
     sections:
       - key: prob-moments
-        name: 期望、方差与协方差
-        summary: "线性运算法则、Cauchy–Schwarz 界、不相关与方差可加"
+        name: 矩、协方差与相关
+        summary: "期望与方差的运算法则、协方差与相关系数、Cauchy–Schwarz 界"
       - key: prob-conditioning
         name: 条件期望与全方差律
         summary: "条件期望、全期望律、全方差律"
-      - key: prob-normal
-        name: 正态分布与多元正态
-        summary: "标准正态、正态线性组合、线性变换封闭性、二元正态条件分布"
-      - key: prob-chisquare
-        name: 卡方分布与二次型
-        summary: "卡方分布的定义与矩、幂等二次型、Fisher 引理、非中心卡方"
-      - key: prob-tf
-        name: t 分布与 F 分布
-        summary: "t 与 F 的构造，以及长尾的来源"
+      - key: prob-distributions
+        name: 常见分布与二次型
+        summary: "标准正态、卡方与 t/F 的构造、多元正态与线性变换封闭性、幂等二次型"
       - key: prob-limit
-        name: 大数律与中心极限定理
-        summary: "Khinchine 弱大数律、Lindeberg–Lévy 中心极限定理"
-      - key: prob-asymptotic
-        name: 收敛方式与渐近方法
-        summary: "依分布/依概率收敛、Slutsky 定理、连续映射、delta 方法"
-  - key: statistics
-    name: 数理统计
-    summary: "估计与检验、回归与线性模型"
+        name: 极限定理与渐近方法
+        summary: "大数律与中心极限定理、Slutsky 与连续映射、delta 方法"
+      - key: advanced-probability
+        name: 高等概率论
+        summary: "测度论概率、条件期望的一般理论、鞅与收敛方式"
+      - key: stochastic-process
+        name: 随机过程
+        summary: "马尔可夫链、泊松过程、布朗运动与平稳过程"
+
+  # ── 6 统计与数据 ─────────────────────────────────────────────────────
+  # 这一门是卡量最大的（回归分析一门课 56 张定理卡 + 6 张统计理论工具卡），
+  # 一个桶装 62 张必然过重，所以按课程笔记自己的进度（§ 号）拆成 6 个主题细分。
+  - key: statistics-data
+    name: 统计与数据
+    summary: "估计、检验与回归：从抽样性质到区间、拟合与渐近"
     sections:
       - key: stat-estimation
-        name: 估计量与无偏性
-        summary: "偏差、MSE 分解、线性估计类与 BLUE"
-      - key: stat-bounds
-        name: 信息与方差下界
-        summary: "Fisher 信息、Cramér–Rao 下界"
-      - key: stat-likelihood
-        name: 似然、充分性与极值
-        summary: "极大似然、不变性、充分统计量与因子分解定理"
-      - key: stat-model
-        name: 模型设定与假设
-        summary: "简单线性回归模型、假设分层、过原点模型"
-      - key: stat-ols
-        name: 最小二乘与几何
-        summary: "正规方程、正交投影、残差性质、中心化形式、过原点回归"
-      - key: stat-properties
-        name: 估计量的性质与抽样分布
-        summary: "无偏性、方差与协方差、Gauss–Markov、误差方差估计、标准误"
+        name: 估计与最小二乘
+        summary: "无偏性与 BLUE、极大似然与充分性、最小二乘与几何、模型设定与误差方差"
+      - key: stat-sampling
+        name: 估计量的抽样性质
+        summary: "无偏性、方差与协方差、Gauss–Markov、抽样分布与标准误"
       - key: stat-tests
-        name: 参数的检验
-        summary: "t 检验、显著性、p 值、检验与区间的等价性"
+        name: 假设检验
+        summary: "拒绝域与 t 检验、显著性、p 值、检验与区间估计的等价性"
       - key: stat-anova
-        name: 方差分析与 F 检验
-        summary: "平方和分解、自由度、F 统计量、期望均方"
+        name: 方差分析
+        summary: "平方和与自由度分解、F 检验与期望均方"
       - key: stat-interval
         name: 区间估计与预测
-        summary: "系数与误差方差的区间、均值响应、预测区间"
-      - key: stat-fit
-        name: 拟合优度与相关
-        summary: "R²、调整 R²、样本相关系数与 Fisher z 变换"
-      - key: stat-mle
-        name: 极大似然与回归的渐近性质
-        summary: "正态误差下的 MLE、误差方差的偏差、无正态假设时的推断"
-      - key: stat-random
-        name: 随机回归量与相关模型
-        summary: "固定设计 vs 随机设计、条件与无条件矩、稳健性"
-  - key: linear-algebra
-    name: 线性代数
-    summary: "矩阵运算、投影与二次型、秩与分块"
+        summary: "系数与误差方差的区间、均值响应、预测区间与收敛速度"
+      - key: stat-fit-asymptotic
+        name: 拟合优度与渐近
+        summary: "$R^2$ 与相关、回归的极大似然与渐近性质、随机回归量"
+      - key: bayesian
+        name: 贝叶斯统计
+        summary: "先验与后验、共轭分布、贝叶斯估计与决策"
+      - key: time-series
+        name: 时间序列分析
+        summary: "平稳性、ARMA 模型、谱方法与预测"
+      - key: actuarial
+        name: 精算学
+        summary: "损失分布、风险度量、准备金与生存模型"
+
+  # ── 7 计算与优化 ─────────────────────────────────────────────────────
+  - key: computation-optimization
+    name: 计算与优化
+    summary: "数值方法与最优化的理论与算法"
     sections:
-      - key: la-projection
-        name: 正交投影与幂等矩阵
-        summary: "投影矩阵、幂等性、特征值与秩-迹相等"
-      - key: la-block
-        name: 分块矩阵与消元
-        summary: "Schur 补、分块求逆、Frisch–Waugh–Lovell 引理"
-  - key: analysis
-    name: 数学分析
-    summary: "极限与连续、微分与积分、级数与不等式"
+      - key: numerical-analysis
+        name: 数值分析
+        summary: "误差与稳定性、方程求根、数值线性代数、数值积分与微分方程数值解"
+      - key: operations-research
+        name: 运筹学
+        summary: "线性与整数规划、网络流、排队论与决策"
+      - key: optimization
+        name: 最优化
+        summary: "凸性与最优性条件、无约束与约束问题、数值算法"
+
+  # ── 8 交叉与应用 ─────────────────────────────────────────────────────
+  - key: applied
+    name: 交叉与应用
+    summary: "数学在建模、物理与经济学里的用法"
     sections:
-      - key: analysis-ineq
-        name: 不等式与极值
-        summary: "常用不等式、凸性、最值条件"
-  - key: numerical
-    name: 数值分析与科学计算
-    summary: "误差与稳定性、数值线性代数、微分方程数值解"
-    sections:
-      - key: numerical-linalg
-        name: 数值线性代数与误差
-        summary: "最小二乘的数值实现、条件数与抵消误差"
-  - key: optimization
-    name: 最优化
-    summary: "凸性、无约束与约束问题、数值算法"
-    sections:
-      - key: optim-convex
-        name: 凸性与最优性条件
-        summary: "凸函数、一阶/二阶条件、无约束下降法"
+      - key: mathematical-modeling
+        name: 数学建模
+        summary: "建模假设、量纲分析、模型求解与仿真检验"
+      - key: physics
+        name: 物理
+        summary: "力学、电磁学与统计物理里用到的数学"
+      - key: economics
+        name: 经济学
+        summary: "效用与均衡、博弈论、计量方法与金融数学"
+
+  # ── 9 未分类（安全网）────────────────────────────────────────────────
   - key: misc
     name: 未分类
     summary: "还没有分支归属的卡片——这一组非空就说明某张卡漏了归属"
@@ -117,53 +198,44 @@ branches:
       - key: misc-inbox
         name: 待归类
         summary: "先落在这里，再补 assign 规则"
+
+# 卡片 → 细分的归属规则。匹配顺序细 → 粗，取第一个命中（见文件头说明）。
 assign:
+  # 按卡片 id 的例外：只有分组号无法区分时才用
   cards:
-    tool-1-2: prob-conditioning
-    tool-1-3: prob-moments
-    tool-1-4: prob-moments
-    tool-2-2: prob-normal
-    tool-2-3: prob-normal
-    tool-2-4: prob-chisquare
-    tool-2-6: prob-chisquare
-    tool-2-7: prob-chisquare
-    tool-3-2: stat-estimation
-    tool-3-3: stat-likelihood
-    tool-3-4: stat-likelihood
-    tool-3-5: stat-bounds
-    tool-4-1: la-projection
-    tool-4-2: la-projection
-    tool-4-3: la-block
-    tool-5-1: prob-limit
-    tool-5-2: prob-asymptotic
-    tool-5-3: prob-asymptotic
-    tool-6-1: prob-normal
-    tool-6-2: stat-fit
-    thm-9-2: stat-tests
-    thm-14-1: stat-model
+    tool-1-2: prob-conditioning      # 分组 1 里唯一讲条件期望的
+    tool-6-1: prob-distributions     # 分组 6 里两张卡分属两个学科，见下面 tool-6-2
+    tool-6-2: stat-estimation        # 样本相关系数与 Fisher z：统计推断而非概率论
+    thm-9-2: stat-tests              # §9 讲区间，但这一张是「检验与区间的等价性」，归检验
+  # 课程定理卡按课程笔记的 § 号归属（thm-<节>-<序>）
   nums:
-    "2": stat-model
-    "3": stat-ols
-    "4": stat-properties
-    "5": stat-properties
-    "6": stat-ols
+    # 估计与最小二乘：模型设定、最小二乘与几何、残差与误差方差
+    "2": stat-estimation
+    "3": stat-estimation
+    "6": stat-estimation
+    "14": stat-estimation
+    # 估计量的抽样性质
+    "4": stat-sampling
+    "5": stat-sampling
+    # 推断的四个主题
     "7": stat-tests
     "8": stat-anova
     "9": stat-interval
     "10": stat-interval
-    "11": stat-fit
-    "14": stat-ols
-    "15": stat-mle
-    "16": stat-random
+    # 拟合、渐近与随机设计
+    "11": stat-fit-asymptotic
+    "15": stat-fit-asymptotic
+    "16": stat-fit-asymptotic
+  # 工具卡按 01–06 的分组号归属
   groups:
     "1": prob-moments
-    "2": prob-chisquare
+    "2": prob-distributions
     "3": stat-estimation
-    "4": la-projection
-    "5": prob-asymptotic
-    "6": stat-fit
-  modules:
-    M1: stat-ols
+    "4": linear-algebra
+    "5": prob-limit
+    "6": stat-estimation
+  # 模块号（M1/M2…）暂不区分，整门课兜底到「估计与最小二乘」；
+  # 细到 § 的规则在 nums 里，这里只在出现未登记的新 § 时接住，免得掉进未分类。
   courses:
-    regression-analysis: stat-ols
+    regression-analysis: stat-estimation
 default: misc-inbox

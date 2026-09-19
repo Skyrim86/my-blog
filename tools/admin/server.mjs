@@ -45,7 +45,7 @@ import {
 import { addTerm, checkTerm, readTaxonomy } from './lib/taxonomy.mjs';
 import * as gitlib from './lib/git.mjs';
 import { HugoPreview } from './lib/hugo.mjs';
-import { resolveBash, runScript, git } from './lib/exec.mjs';
+import { resolveBash, runScript, runPythonScript, git } from './lib/exec.mjs';
 import { checkItems, runCheckById } from './lib/checks.mjs';
 import { searchContent, invalidateSearchCache } from './lib/search.mjs';
 import { saveAsset } from './lib/asset.mjs';
@@ -225,6 +225,39 @@ function hostAllowed(req) {
 }
 
 // ---------------- 业务处理 ----------------
+
+/* ---------------- 知识库（wiki）发布 ---------------- */
+// 知识库里的卡片由 tools/wiki-publish/publish.py 发布进数学库 / CS 库。
+// 管理页只做外壳：跑脚本、把输出原样交给界面（规则与 push-blog.sh 一致——
+// 界面不自己判断「该不该发」，那套判据在脚本里，只有一份）。
+const WIKI_PUBLISHER = 'tools/wiki-publish/publish.py';
+// 知识库默认在 D:\Study\projects\wiki\statml-wiki（写死在发布器里）；换位置时用
+// ADMIN_WIKI 指定，与 ADMIN_BASH / ADMIN_PYTHON 是同一套出口。
+const wikiArgs = (extra = []) =>
+  (process.env.ADMIN_WIKI ? ['--wiki', process.env.ADMIN_WIKI] : []).concat(extra);
+
+async function handleWikiStatus() {
+  try {
+    const result = await runPythonScript(REPO_ROOT, WIKI_PUBLISHER, wikiArgs(['--check']), { timeoutMs: 120000 });
+    return { ok: result.code === 0, code: result.code, stdout: result.stdout, stderr: result.stderr };
+  } catch (err) {
+    // 「没有 Python / 缺 PyYAML」是前提缺失，不是发布失败 —— 返回可读提示而不是 500，
+    // 否则界面上只会看到一个红叉，看不出该去装什么。
+    return { ok: false, unavailable: true, error: err.message, stdout: '', stderr: '' };
+  }
+}
+
+async function handleWikiPublish() {
+  let result;
+  try {
+    result = await runPythonScript(REPO_ROOT, WIKI_PUBLISHER, wikiArgs(), { timeoutMs: 300000 });
+  } finally {
+    // 发布会新建 content/courses/**/toolbox/<id>/index.md 之类的文件，列表缓存要失效
+    invalidateList();
+    invalidatePermalinks();
+  }
+  return { ok: result.code === 0, code: result.code, stdout: result.stdout, stderr: result.stderr };
+}
 
 async function handleState() {
   const st = await gitlib.status(REPO_ROOT);
@@ -711,6 +744,13 @@ const server = http.createServer(async (req, res) => {
       }
       case 'POST /api/publish':
         await handlePublish(req, res, await readJsonBody(req));
+        return;
+      case 'GET /api/wiki/status':
+        json(res, 200, await handleWikiStatus());
+        return;
+      case 'POST /api/wiki/publish':
+        // 注意与上面的 POST /api/publish 区分：那是 git 推送，这里是从知识库生成卡片
+        json(res, 200, await handleWikiPublish());
         return;
       case 'GET /api/preview/url':
         json(res, 200, await handlePreviewUrl(searchParams));

@@ -8,14 +8,112 @@
   ],
   "branches": [
     {
-      "key": "probability",
-      "name": "概率论",
-      "summary": "随机变量与矩、条件期望、常见分布、极限定理与渐近方法",
+      "key": "analysis",
+      "name": "分析",
+      "summary": "极限与连续、微分与积分、级数、测度与函数空间",
+      "sections": [
+        {
+          "key": "mathematical-analysis",
+          "name": "数学分析",
+          "summary": "极限、连续、一元与多元微积分、级数与一致收敛"
+        },
+        {
+          "key": "real-analysis",
+          "name": "实分析",
+          "summary": "测度与积分、收敛定理、$L^p$ 空间"
+        },
+        {
+          "key": "complex-analysis",
+          "name": "复分析",
+          "summary": "全纯函数、柯西积分、留数与解析延拓"
+        },
+        {
+          "key": "functional-analysis",
+          "name": "泛函分析",
+          "summary": "巴拿赫与希尔伯特空间、有界算子、对偶与谱"
+        },
+        {
+          "key": "fourier-analysis",
+          "name": "傅里叶分析",
+          "summary": "傅里叶级数与变换、卷积、采样与不确定性"
+        },
+        {
+          "key": "ode",
+          "name": "常微分方程",
+          "summary": "一阶方程、线性方程组、存在唯一性与稳定性"
+        }
+      ]
+    },
+    {
+      "key": "algebra",
+      "name": "代数",
+      "summary": "线性代数、抽象代数与同调方法",
+      "sections": [
+        {
+          "key": "linear-algebra",
+          "name": "高等代数",
+          "summary": "矩阵与线性映射、二次型、投影与幂等、分块与秩"
+        },
+        {
+          "key": "abstract-algebra",
+          "name": "抽象代数",
+          "summary": "群、环、域与模，同态与商结构"
+        },
+        {
+          "key": "commutative-algebra",
+          "name": "交换代数",
+          "summary": "理想与局部化、诺特环、维数与分解"
+        },
+        {
+          "key": "homological-algebra",
+          "name": "同调代数",
+          "summary": "复形与正合列、导出函子、谱序列"
+        }
+      ]
+    },
+    {
+      "key": "geometry-topology",
+      "name": "几何与拓扑",
+      "summary": "空间的形状与连续变形",
+      "sections": [
+        {
+          "key": "basic-geometry",
+          "name": "基础几何",
+          "summary": "欧氏几何、解析几何、变换与不变量"
+        },
+        {
+          "key": "point-set-topology",
+          "name": "点集拓扑",
+          "summary": "开集与连续映射、紧致与连通、度量化与分离性"
+        }
+      ]
+    },
+    {
+      "key": "foundations-discrete",
+      "name": "基础与离散",
+      "summary": "集合、逻辑与数论",
+      "sections": [
+        {
+          "key": "set-theory",
+          "name": "集合论",
+          "summary": "集合运算、关系与函数、基数与序数、选择公理"
+        },
+        {
+          "key": "number-theory",
+          "name": "数论基础",
+          "summary": "整除与同余、算术函数、二次剩余与原根"
+        }
+      ]
+    },
+    {
+      "key": "probability-stochastic",
+      "name": "概率与随机",
+      "summary": "随机变量与分布、极限定理与渐近方法、随机过程",
       "sections": [
         {
           "key": "prob-moments",
-          "name": "期望、方差与协方差",
-          "summary": "线性运算法则、Cauchy–Schwarz 界、不相关与方差可加"
+          "name": "矩、协方差与相关",
+          "summary": "期望与方差的运算法则、协方差与相关系数、Cauchy–Schwarz 界"
         },
         {
           "key": "prob-conditioning",
@@ -23,149 +121,120 @@
           "summary": "条件期望、全期望律、全方差律"
         },
         {
-          "key": "prob-normal",
-          "name": "正态分布与多元正态",
-          "summary": "标准正态、正态线性组合、线性变换封闭性、二元正态条件分布"
-        },
-        {
-          "key": "prob-chisquare",
-          "name": "卡方分布与二次型",
-          "summary": "卡方分布的定义与矩、幂等二次型、Fisher 引理、非中心卡方"
-        },
-        {
-          "key": "prob-tf",
-          "name": "t 分布与 F 分布",
-          "summary": "t 与 F 的构造，以及长尾的来源"
+          "key": "prob-distributions",
+          "name": "常见分布与二次型",
+          "summary": "标准正态、卡方与 t/F 的构造、多元正态与线性变换封闭性、幂等二次型"
         },
         {
           "key": "prob-limit",
-          "name": "大数律与中心极限定理",
-          "summary": "Khinchine 弱大数律、Lindeberg–Lévy 中心极限定理"
+          "name": "极限定理与渐近方法",
+          "summary": "大数律与中心极限定理、Slutsky 与连续映射、delta 方法"
         },
         {
-          "key": "prob-asymptotic",
-          "name": "收敛方式与渐近方法",
-          "summary": "依分布/依概率收敛、Slutsky 定理、连续映射、delta 方法"
+          "key": "advanced-probability",
+          "name": "高等概率论",
+          "summary": "测度论概率、条件期望的一般理论、鞅与收敛方式"
+        },
+        {
+          "key": "stochastic-process",
+          "name": "随机过程",
+          "summary": "马尔可夫链、泊松过程、布朗运动与平稳过程"
         }
       ]
     },
     {
-      "key": "statistics",
-      "name": "数理统计",
-      "summary": "估计与检验、回归与线性模型",
+      "key": "statistics-data",
+      "name": "统计与数据",
+      "summary": "估计、检验与回归：从抽样性质到区间、拟合与渐近",
       "sections": [
         {
           "key": "stat-estimation",
-          "name": "估计量与无偏性",
-          "summary": "偏差、MSE 分解、线性估计类与 BLUE"
+          "name": "估计与最小二乘",
+          "summary": "无偏性与 BLUE、极大似然与充分性、最小二乘与几何、模型设定与误差方差"
         },
         {
-          "key": "stat-bounds",
-          "name": "信息与方差下界",
-          "summary": "Fisher 信息、Cramér–Rao 下界"
-        },
-        {
-          "key": "stat-likelihood",
-          "name": "似然、充分性与极值",
-          "summary": "极大似然、不变性、充分统计量与因子分解定理"
-        },
-        {
-          "key": "stat-model",
-          "name": "模型设定与假设",
-          "summary": "简单线性回归模型、假设分层、过原点模型"
-        },
-        {
-          "key": "stat-ols",
-          "name": "最小二乘与几何",
-          "summary": "正规方程、正交投影、残差性质、中心化形式、过原点回归"
-        },
-        {
-          "key": "stat-properties",
-          "name": "估计量的性质与抽样分布",
-          "summary": "无偏性、方差与协方差、Gauss–Markov、误差方差估计、标准误"
+          "key": "stat-sampling",
+          "name": "估计量的抽样性质",
+          "summary": "无偏性、方差与协方差、Gauss–Markov、抽样分布与标准误"
         },
         {
           "key": "stat-tests",
-          "name": "参数的检验",
-          "summary": "t 检验、显著性、p 值、检验与区间的等价性"
+          "name": "假设检验",
+          "summary": "拒绝域与 t 检验、显著性、p 值、检验与区间估计的等价性"
         },
         {
           "key": "stat-anova",
-          "name": "方差分析与 F 检验",
-          "summary": "平方和分解、自由度、F 统计量、期望均方"
+          "name": "方差分析",
+          "summary": "平方和与自由度分解、F 检验与期望均方"
         },
         {
           "key": "stat-interval",
           "name": "区间估计与预测",
-          "summary": "系数与误差方差的区间、均值响应、预测区间"
+          "summary": "系数与误差方差的区间、均值响应、预测区间与收敛速度"
         },
         {
-          "key": "stat-fit",
-          "name": "拟合优度与相关",
-          "summary": "R²、调整 R²、样本相关系数与 Fisher z 变换"
+          "key": "stat-fit-asymptotic",
+          "name": "拟合优度与渐近",
+          "summary": "$R^2$ 与相关、回归的极大似然与渐近性质、随机回归量"
         },
         {
-          "key": "stat-mle",
-          "name": "极大似然与回归的渐近性质",
-          "summary": "正态误差下的 MLE、误差方差的偏差、无正态假设时的推断"
+          "key": "bayesian",
+          "name": "贝叶斯统计",
+          "summary": "先验与后验、共轭分布、贝叶斯估计与决策"
         },
         {
-          "key": "stat-random",
-          "name": "随机回归量与相关模型",
-          "summary": "固定设计 vs 随机设计、条件与无条件矩、稳健性"
+          "key": "time-series",
+          "name": "时间序列分析",
+          "summary": "平稳性、ARMA 模型、谱方法与预测"
+        },
+        {
+          "key": "actuarial",
+          "name": "精算学",
+          "summary": "损失分布、风险度量、准备金与生存模型"
         }
       ]
     },
     {
-      "key": "linear-algebra",
-      "name": "线性代数",
-      "summary": "矩阵运算、投影与二次型、秩与分块",
+      "key": "computation-optimization",
+      "name": "计算与优化",
+      "summary": "数值方法与最优化的理论与算法",
       "sections": [
         {
-          "key": "la-projection",
-          "name": "正交投影与幂等矩阵",
-          "summary": "投影矩阵、幂等性、特征值与秩-迹相等"
+          "key": "numerical-analysis",
+          "name": "数值分析",
+          "summary": "误差与稳定性、方程求根、数值线性代数、数值积分与微分方程数值解"
         },
         {
-          "key": "la-block",
-          "name": "分块矩阵与消元",
-          "summary": "Schur 补、分块求逆、Frisch–Waugh–Lovell 引理"
+          "key": "operations-research",
+          "name": "运筹学",
+          "summary": "线性与整数规划、网络流、排队论与决策"
+        },
+        {
+          "key": "optimization",
+          "name": "最优化",
+          "summary": "凸性与最优性条件、无约束与约束问题、数值算法"
         }
       ]
     },
     {
-      "key": "analysis",
-      "name": "数学分析",
-      "summary": "极限与连续、微分与积分、级数与不等式",
+      "key": "applied",
+      "name": "交叉与应用",
+      "summary": "数学在建模、物理与经济学里的用法",
       "sections": [
         {
-          "key": "analysis-ineq",
-          "name": "不等式与极值",
-          "summary": "常用不等式、凸性、最值条件"
-        }
-      ]
-    },
-    {
-      "key": "numerical",
-      "name": "数值分析与科学计算",
-      "summary": "误差与稳定性、数值线性代数、微分方程数值解",
-      "sections": [
+          "key": "mathematical-modeling",
+          "name": "数学建模",
+          "summary": "建模假设、量纲分析、模型求解与仿真检验"
+        },
         {
-          "key": "numerical-linalg",
-          "name": "数值线性代数与误差",
-          "summary": "最小二乘的数值实现、条件数与抵消误差"
-        }
-      ]
-    },
-    {
-      "key": "optimization",
-      "name": "最优化",
-      "summary": "凸性、无约束与约束问题、数值算法",
-      "sections": [
+          "key": "physics",
+          "name": "物理",
+          "summary": "力学、电磁学与统计物理里用到的数学"
+        },
         {
-          "key": "optim-convex",
-          "name": "凸性与最优性条件",
-          "summary": "凸函数、一阶/二阶条件、无约束下降法"
+          "key": "economics",
+          "name": "经济学",
+          "summary": "效用与均衡、博弈论、计量方法与金融数学"
         }
       ]
     },
@@ -234,7 +303,7 @@
       "note": "**注** 方差公式对**任意**随机变量成立（不必独立、不必正态）。凡是用到\"和的方差 = 方差之和\"的地方，一律先查[线性组合的方差公式](#card-tool-1-4)的条件——独立不是默认前提。",
       "course": "regression-analysis",
       "section": "prob-moments",
-      "branch": "probability"
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-1-2",
@@ -253,7 +322,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-conditioning",
-      "branch": "probability"
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-1-3",
@@ -271,7 +340,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-moments",
-      "branch": "probability"
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-1-4",
@@ -290,7 +359,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-moments",
-      "branch": "probability"
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-2-1",
@@ -307,8 +376,8 @@
       "usage": "**用途** $SS_{\\rm res}/\\sigma^2$ 、$SS_T/\\sigma^2$、$SS_{\\rm reg}/\\sigma^2$ 的分布都是卡方分布，t 与 F 检验的临界值由它派生。",
       "note": "",
       "course": "regression-analysis",
-      "section": "prob-chisquare",
-      "branch": "probability"
+      "section": "prob-distributions",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-2-2",
@@ -325,8 +394,8 @@
       "usage": "**用途** $\\hat\\beta_0$、$\\hat\\beta_1$、$\\hat\\mu_{y\\mid x_0}$、预测误差 $\\psi$ 都是 $y_i$ 的线性组合，正态性由本条给出——这是 $\\hat\\beta_1$ 能写成 $z$ 统计量的第一步。",
       "note": "**注** 仅\"联合正态\"（而非独立）时结论仍成立，形式为 $a'\\mathbf Y\\sim N(a'\\boldsymbol\\mu,a'\\Sigma a)$，见[多元正态的线性变换](#card-tool-2-3)。",
       "course": "regression-analysis",
-      "section": "prob-normal",
-      "branch": "probability"
+      "section": "prob-distributions",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-2-3",
@@ -343,8 +412,8 @@
       "usage": "**用途** M2 整章建立在 $\\hat{\\boldsymbol\\beta}=(\\mathbf X'\\mathbf X)^{-1}\\mathbf X'\\mathbf y$ 之上：分布、协方差、二次型结果全靠本条。一行矩阵代数，后面所有推断都从它长出来。",
       "note": "**注（非满秩）** $\\Sigma$ 或不 $A\\Sigma A'$ 可能奇异，此时 $\\mathbf a'\\mathbf Y$ 的正态性定义仍然有效，分布退化为集中在某个低维仿射子空间上（\"奇异的多元正态\"）。后文凡遇奇异情形都按此理解。",
       "course": "regression-analysis",
-      "section": "prob-normal",
-      "branch": "probability"
+      "section": "prob-distributions",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-2-4",
@@ -361,8 +430,8 @@
       "usage": "**用途** $SS_{\\rm res}/\\sigma^2=\\mathbf e'\\mathbf e/\\sigma^2$ 中 $\\mathbf e=(I-H)\\mathbf y$、$M=I-H$ 幂等，故 $SS_{\\rm res}/\\sigma^2\\sim\\chi^2_{n-2}$；同理 $SS_{\\rm reg}/\\sigma^2\\sim\\chi^2_1$（M1 §8）。幂等是这条结论的全部力量来源，非幂等的二次型不能这样谈分布。",
       "note": "**注（推广形式，M1 §8 用到）** 若 $\\mathbf Z\\sim N_n(\\mathbf 0,I_n)$，$A$ 对称但**非**幂等，则 $\\mathbf Z'A\\mathbf Z$ 的分布一般不是卡方；但当 $A$ 可写成 $A=B'B$ 且 $B$ 的行正交（$BB'=I$）时，$\\mathbf Z'A\\mathbf Z=\\|B\\mathbf Z\\|^2\\sim\\chi^2_r$，$r=\\operatorname{rank}(B)$，这是因为 $B\\mathbf Z\\sim N(\\mathbf 0,I_r)$。",
       "course": "regression-analysis",
-      "section": "prob-chisquare",
-      "branch": "probability"
+      "section": "prob-distributions",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-2-5",
@@ -377,8 +446,8 @@
       "usage": "**用途** $\\sigma$ 未知时用 $\\hat\\sigma$ 替代，$z$ 退化为 $t$，自由度恰是残差自由度 $n-2$；$F$ 则用于方差分析。",
       "note": "",
       "course": "regression-analysis",
-      "section": "prob-chisquare",
-      "branch": "probability"
+      "section": "prob-distributions",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-2-6",
@@ -393,8 +462,8 @@
       "usage": "**用途** $t$ 统计量的全部合法性压在这条独立性上：$\\dfrac{\\hat\\beta_1-\\beta_1}{\\sigma/\\sqrt{S_{xx}}}$ 是标准正态，$\\hat\\sigma/\\sigma$ 由与之独立的卡方开方得到，两者相除才配叫 $t_{n-2}$。缺了独立性，M1 §7 的检验无从建立。",
       "note": "",
       "course": "regression-analysis",
-      "section": "prob-chisquare",
-      "branch": "probability"
+      "section": "prob-distributions",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-2-7",
@@ -411,8 +480,8 @@
       "usage": "**用途** $E(MS_{\\rm res})=\\sigma^2$ 与 $E(MS_{\\rm reg})=\\sigma^2+\\beta_1^2S_{xx}$ 是 $F$ 检验的方向依据：原假设下两者期望相同，备择下差出 $\\beta_1^2S_{xx}$——这个差（非中心参数 $\\lambda=\\beta_1^2S_{xx}/\\sigma^2$）就是势的来源。",
       "note": "",
       "course": "regression-analysis",
-      "section": "prob-chisquare",
-      "branch": "probability"
+      "section": "prob-distributions",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-3-1",
@@ -431,7 +500,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "tool-3-2",
@@ -450,7 +519,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "tool-3-3",
@@ -467,8 +536,8 @@
       "usage": "**用途** 正态误差下\"回归系数的 MLE 与 OLS 完全相同\"，由得分方程与正规方程逐项对照得出（M1 §15）；$\\sigma^2$ 的 MLE 则有偏。",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-likelihood",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "tool-3-4",
@@ -485,8 +554,8 @@
       "usage": "**用途** 正态误差下 $(\\bar y,\\ S_{xx},\\ S_{xy},\\ SS_{\\rm res})$（等价地 $(\\hat\\beta_0,\\hat\\beta_1,\\hat\\sigma^2)$）是 $(\\beta_0,\\beta_1,\\sigma^2)$ 的充分统计量：样本里与推断有关的全部信息已被这几个数承载，回归软件输出之所以\"够用\"，依据在此。",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-likelihood",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "tool-3-5",
@@ -503,8 +572,8 @@
       "usage": "**用途** 正态误差下 $\\hat\\beta_1$ 的 Fisher 信息为 $S_{xx}/\\sigma^2$，界就是 $\\sigma^2/S_{xx}$——恰好是 OLS 的方差。所以 OLS 不只是 [BLUE](#card-tool-3-2)，而是全部无偏估计中达到下界的那个（M1 §4、§15）。",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-bounds",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "tool-4-1",
@@ -521,8 +590,8 @@
       "usage": "**用途** 同一批结果有两种写法：**代数**（对 $SS$ 求导、解正规方程）与**几何**（投影）。M1 用前者，M2 整体换成后者，让 $\\hat{\\mathbf y}=H\\mathbf y$ 一句顶十行推导。M1 §8 的方差分析分解其实就是勾股定理（$\\|\\mathbf y-\\bar y\\mathbf 1\\|^2=\\|\\mathbf e\\|^2+\\|\\hat{\\mathbf y}-\\bar y\\mathbf 1\\|^2$），成立的前提是两个投影方向正交。",
       "note": "",
       "course": "regression-analysis",
-      "section": "la-projection",
-      "branch": "linear-algebra"
+      "section": "linear-algebra",
+      "branch": "algebra"
     },
     {
       "id": "tool-4-2",
@@ -539,8 +608,8 @@
       "usage": "**用途** M1 §5 的残差自由度是 $n-2$，依据是 $\\operatorname{rank}(I-H)=n-\\operatorname{rank}(H)=n-2$；$SS_{\\rm res}/\\sigma^2$ 的期望是 $n-2$，依据是[非中心卡方与二次型的期望](#card-tool-2-7)里的 $\\operatorname{tr}(A\\Sigma)$ 与幂等矩阵的秩与迹。",
       "note": "",
       "course": "regression-analysis",
-      "section": "la-projection",
-      "branch": "linear-algebra"
+      "section": "linear-algebra",
+      "branch": "algebra"
     },
     {
       "id": "tool-4-3",
@@ -559,8 +628,8 @@
       "usage": "**用途** \"控制其他变量后某变量的净效应\"（M2 的偏回归系数）与\"加入一组变量后 $SS_{\\rm reg}$ 的增量\"（M4），用 FWL 一句话就能讲清。这条值得早记：它是\"回归系数为什么这样解释\"的严格依据。",
       "note": "",
       "course": "regression-analysis",
-      "section": "la-block",
-      "branch": "linear-algebra"
+      "section": "linear-algebra",
+      "branch": "algebra"
     },
     {
       "id": "tool-5-1",
@@ -579,7 +648,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-limit",
-      "branch": "probability"
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-5-2",
@@ -597,8 +666,8 @@
       "usage": "**用途** 把 $t$ 统计量写成 $\\dfrac{\\hat\\beta_1-\\beta_1}{\\hat\\sigma/\\sqrt{S_{xx}}}=\\dfrac{z_0}{\\hat\\sigma/\\sigma}$：分子渐近正态、分母依概率收敛到 $1$，两者相除仍渐近标准正态。无正态假设下 $t$ 检验近似成立，靠的就是这一步。",
       "note": "",
       "course": "regression-analysis",
-      "section": "prob-asymptotic",
-      "branch": "probability"
+      "section": "prob-limit",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-5-3",
@@ -613,8 +682,8 @@
       "usage": "**用途** 相关系数作 Fisher $z$ 变换（$z=\\operatorname{arctanh}r$）后作区间估计（M1 §16），正是用本条把 $r$ 的渐近方差搬到 $z$ 上。",
       "note": "",
       "course": "regression-analysis",
-      "section": "prob-asymptotic",
-      "branch": "probability"
+      "section": "prob-limit",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-6-1",
@@ -629,8 +698,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "prob-normal",
-      "branch": "probability"
+      "section": "prob-distributions",
+      "branch": "probability-stochastic"
     },
     {
       "id": "tool-6-2",
@@ -647,8 +716,8 @@
       "usage": "**用途** 相关系数的检验与区间估计全部走这条通道：$z$ 变换后按正态处理，$H_0:\\rho=\\rho_0$ 才有可用的临界值（M1 §16）。",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-fit",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-2-1",
@@ -663,8 +732,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-model",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-3-2",
@@ -679,8 +748,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-ols",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-3-3",
@@ -695,8 +764,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-ols",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-3-4",
@@ -711,8 +780,8 @@
       "usage": "",
       "note": "**注 3.5（性质 1、3、4 的依赖条件）** 这三条都依赖**模型含截距**。过原点回归（§14）中 $\\sum e_i\\ne0$，性质 1、4 失效；这正是 §14 中 $R^2$ 分解式失效的根源。\n\n**注 3.6（$S_{xx}=0$ 的退化情形）** 若所有 $x_i$ 相同，则 $x$ 无变异，斜率不可识别：$RSS$ 的最小值在任意 $\\beta_1$ 处（$\\beta_0$ 被唯一确定）取得，最小二乘解不唯一，$\\hat\\beta_1$ 无定义。这是\"数据无信息\"的极端情形，软件会报奇异。\n\n这个解值得记的不是公式，而是它的适用限度：$S_{xx}=0$（所有 $x$ 相同）时解不存在。这不是数学上的麻烦，是数据里根本没有斜率的信息——换任何方法都救不回来。",
       "course": "regression-analysis",
-      "section": "stat-ols",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-4-1",
@@ -727,8 +796,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-4-2",
@@ -743,8 +812,8 @@
       "usage": "",
       "note": "**注（无偏性的本质是 $\\hat\\beta$ 的系数与 $x$ 正交于 $1$）** (4.2) 的两组正交条件同时充当\"无偏约束\"（证明中用到）与\"最优性约束\"（§4.4 用到）。这不是巧合：$E\\hat\\beta_1=\\beta_1$ 对**所有** $\\beta_0,\\beta_1$ 成立，等价于系数同时与 $\\mathbf 1$ 和 $\\mathbf x$ 正交的恒等式。",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-4-3",
@@ -759,8 +828,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-4-4",
@@ -775,8 +844,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-4-5",
@@ -791,8 +860,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-4-6",
@@ -807,8 +876,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-5-1",
@@ -823,8 +892,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-5-2",
@@ -839,8 +908,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-5-3",
@@ -855,8 +924,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-5-4",
@@ -871,8 +940,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-5-5",
@@ -887,8 +956,8 @@
       "usage": "",
       "note": "**注意** $\\operatorname{se}(\\hat\\beta_1)$ **是随机变量**（含 $\\hat\\sigma$），$\\sqrt{\\operatorname{Var}(\\hat\\beta_1)}=\\sigma/\\sqrt{S_{xx}}$ 才是常数。软件的 `Std. Error` 列报告的是前者。",
       "course": "regression-analysis",
-      "section": "stat-properties",
-      "branch": "statistics"
+      "section": "stat-sampling",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-6-1",
@@ -903,8 +972,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-ols",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-6-2",
@@ -919,8 +988,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-ols",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-7-1",
@@ -936,7 +1005,7 @@
       "note": "**注 7.2（为什么单边用 $\\alpha$ 而不是 $\\alpha/2$）** 单边检验把全部 $\\alpha$ 的错误概率放在**一个方向**上，因此临界值更宽松。这不是技巧，而是\"我们只关心某一侧的偏离\"这一先验信息的合法利用——前提是**在看完数据之前**就已确定方向。事后根据 $\\hat\\beta_1$ 的符号挑方向，实际水平会膨胀到约 $2\\alpha$。\n\n**注 7.3（$\\hat\\beta_0$ 的检验）** 完全平行：$t_0=\\big(\\hat\\beta_0-\\beta_{00}\\big)/\\operatorname{se}(\\hat\\beta_0)\\sim t_{n-2}$ 在 $H_0:\\beta_0=\\beta_{00}$ 下成立。一般线性组合 $a\\beta_0+b\\beta_1$ 的检验同理，方差由 (4.3) 组合得到。",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-7-4",
@@ -952,7 +1021,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-7-5",
@@ -968,7 +1037,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-7-6",
@@ -984,7 +1053,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-7-7",
@@ -1000,7 +1069,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-7-8",
@@ -1016,7 +1085,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-8-1",
@@ -1032,7 +1101,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-8-3",
@@ -1048,7 +1117,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-8-4",
@@ -1064,7 +1133,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-8-5",
@@ -1080,7 +1149,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-8-6",
@@ -1096,7 +1165,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-8-7",
@@ -1112,7 +1181,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-8-8",
@@ -1128,7 +1197,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-8-9",
@@ -1144,7 +1213,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-9-1",
@@ -1160,7 +1229,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-9-2",
@@ -1176,7 +1245,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-9-4",
@@ -1192,7 +1261,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-9-6",
@@ -1208,7 +1277,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-9-7",
@@ -1224,7 +1293,7 @@
       "note": "**注意两个方差的来源**：$1/n$ 项来自\"$\\bar y$ 的不确定性\"，$(x_0-\\bar x)^2/S_{xx}$ 项来自\"斜率的不确定性被放大到距离 $x_0-\\bar x$ 上\"。\n\n**例 9.8（续例 2.1）** 在 $x_0=\\bar x=13.3625$ 处 $\\hat\\mu=\\bar y=2131.358$，且\n\n$$\n\\operatorname{se}(\\hat\\mu)=\\frac{96.106}{\\sqrt{20}}=21.49,\\qquad\n\\mu\\in2131.358\\pm2.101\\times21.49=[2086.2,\\ 2176.5].\n$$\n\n注意在 $x_0=\\bar x$ 处方差只剩 $\\sigma^2/n$，**这是全部 $x_0$ 中最窄的点**。",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-10-1",
@@ -1240,7 +1309,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-10-2",
@@ -1256,7 +1325,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-10-3",
@@ -1272,7 +1341,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-10-4",
@@ -1288,7 +1357,7 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics"
+      "branch": "statistics-data"
     },
     {
       "id": "thm-11-1",
@@ -1303,8 +1372,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-fit",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-11-2",
@@ -1319,8 +1388,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-fit",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-11-3",
@@ -1335,8 +1404,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-fit",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-11-4",
@@ -1351,8 +1420,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-fit",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-11-5",
@@ -1367,8 +1436,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-fit",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-11-6",
@@ -1383,8 +1452,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-fit",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-14-1",
@@ -1399,8 +1468,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-model",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-14-2",
@@ -1415,8 +1484,8 @@
       "usage": "",
       "note": "**注意** $\\sum x_i^2=S_{xx}+n\\bar x^2>S_{xx}$，形式上\"方差比含截距模型小\"，但**这个比较没有意义**：过原点模型在估计斜率时**借用**了 $\\beta_0=0$ 这一先验信息，两者不是同一估计问题。若先验为真，则方差更小；若为假，则会产生偏差。",
       "course": "regression-analysis",
-      "section": "stat-ols",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-14-3",
@@ -1431,8 +1500,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-ols",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-14-4",
@@ -1447,8 +1516,8 @@
       "usage": "",
       "note": "**注 14.5（为什么要专门定义 $R_0^2$）** 由 (14.4) 可定义\n\n$$\nR_0^2=\\frac{\\sum_i\\hat y_i^2}{\\sum_iy_i^2}=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_iy_i^2}, \\tag{14.5}\n$$\n\n即\"围绕**原点**的变异中被解释的比例\"。它**不是**含截距模型的 $R^2$，两者不可直接比较。",
       "course": "regression-analysis",
-      "section": "stat-ols",
-      "branch": "statistics"
+      "section": "stat-estimation",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-15-1",
@@ -1463,8 +1532,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-mle",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-15-2",
@@ -1479,8 +1548,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-mle",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-16-1",
@@ -1495,8 +1564,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-random",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-16-2",
@@ -1511,8 +1580,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-random",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-16-3",
@@ -1527,8 +1596,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-random",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     },
     {
       "id": "thm-16-4",
@@ -1543,8 +1612,8 @@
       "usage": "",
       "note": "",
       "course": "regression-analysis",
-      "section": "stat-random",
-      "branch": "statistics"
+      "section": "stat-fit-asymptotic",
+      "branch": "statistics-data"
     }
   ]
 }

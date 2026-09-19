@@ -9,6 +9,7 @@
 // 谁跟谁不一致，本地全绿而 CI 炸就是必然的。
 import { run } from './exec.mjs';
 import { resolveBash } from './exec.mjs';
+import { resolvePython } from './exec.mjs';
 
 // needsBuild：必须在「站点构建」之后跑（依赖 public/）
 // blocking：失败是否阻断发布（与 push-blog.sh 的阻断项一致，只影响界面上的措辞与颜色）
@@ -40,6 +41,22 @@ const ITEMS = [
     fast: true,
     blocking: true,
     hint: '改了 data/cs-toolbox.json 却忘记重生成卡片页时，正文还是旧的，而构建不会报错',
+  },
+  {
+    id: 'wiki',
+    label: '知识库同步',
+    runtime: 'python',
+    // 只比对不写盘：与「发布」页签的按钮同一口径，写盘由那个按钮负责
+    argv: ['tools/wiki-publish/publish.py', '--check'],
+    fast: true,
+    // **有意只警告、也刻意不进 action.yml 与 push-blog.sh。**
+    // 知识库在 D:\Study\projects\wiki\statml-wiki —— 仓库外的本地绝对路径，CI 的机器上不存在，
+    // 这个检查在那边必然报「知识库不存在」。所以它只能是本地检查，而且它拦的也不是
+    // 「博客有问题」，只是「有卡片还没发布」，不该阻断发布。
+    // 副作用：check-consistency.mjs 的解析规则只认 `bash|node scripts/...`，看不到这一项
+    // （它有 EXPECTED_MIN 下限断言保证不会静默通过，所以这里被跳过是安全且已知的）。
+    blocking: false,
+    hint: '知识库里「已验证」的卡片有没有还没发布到数学库 / CS 库；顺带校验 _meta/分类.yaml 与 data/*-branches.yaml 三处分类表一致。仅本地可跑（CI 上没有知识库）',
   },
   {
     id: 'escapes',
@@ -197,6 +214,27 @@ export async function runCheckItem(repoRoot, item, { timeoutMs = 600000 } = {}) 
   const started = Date.now();
   let cmd = item.runtime;
   let args = item.argv;
+  if (item.runtime === 'python') {
+    // Python 不是本仓库的默认运行时（管理页是零依赖 Node），所以走 resolvePython：
+    // 它顺便确认 PyYAML 在，缺的时候给一句人话，而不是把 traceback 甩到界面上。
+    try {
+      cmd = await resolvePython();
+    } catch (err) {
+      return {
+        id: item.id,
+        label: item.label,
+        ok: false,
+        error: err.message,
+        ms: 0,
+        exitCode: null,
+        stdout: '',
+        stderr: '',
+        issues: [{ level: 'error', path: null, line: null, text: `✗ ${err.message}` }],
+        summary: 'Python 不可用，这项没跑',
+        blocking: item.blocking,
+      };
+    }
+  }
   if (item.runtime === 'bash') {
     try {
       cmd = await resolveBash();

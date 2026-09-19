@@ -70,7 +70,10 @@ function plainTitle(card) {
 
 function pageFrontMatter(card, lib, weight, dateStr) {
   const name = plainTitle(card);
-  const title = name ? `${name}（${card.kind} ${card.num}）` : `${card.kind} ${card.num}`;
+  // 编号可以缺：知识库（wiki）发布过来的卡片没有课程章节号，省略它而不是印出 undefined。
+  // 现有卡片都有 num，所以这条容错不改变任何既有产物。
+  const suffix = [card.kind, card.num].filter(Boolean).join(' ');
+  const title = name ? `${name}（${suffix}）` : suffix;
   return (
     '---\n' +
     `# 卡片页：由 scripts/gen-cards.mjs 从 data/${lib.data}.json 生成，勿手改。\n` +
@@ -131,9 +134,13 @@ function main() {
   }
 
   const changed = [];
+  // 比对时忽略行尾：本机 core.autocrlf=true，同一份内容在「checkout 出来的 CRLF」与
+  // 「本脚本写出的 LF」之间会逐字节不同，而人眼与渲染都看不出差别 —— 那种不一致会让
+  // 本地全绿、CI 炸。归一化之后再比，判据才落在真正的内容上。
+  const norm = (s) => s.replace(/\r\n/g, '\n');
   for (const [file, text] of wanted) {
     const current = existsSync(file) ? readFileSync(file, 'utf8') : null;
-    if (current !== text) changed.push(file);
+    if (current === null || norm(current) !== norm(text)) changed.push(file);
   }
 
   if (CHECK) {

@@ -82,6 +82,48 @@ export async function runScript(repoRoot, scriptRelPath, args = [], opts = {}) {
   return run(bash, [scriptRelPath, ...args], { cwd: repoRoot, ...opts });
 }
 
+/* ---------------- Python ---------------- */
+// 管理页本身是零依赖 Node，但 tools/ 下有一批 Python 生成器（课程导入、封面、图标），
+// 知识库发布器（tools/wiki-publish/publish.py）也是 Python。所以这里只做一件事：
+// 找到可用的 Python，并且**确认它装了 PyYAML** —— 缺依赖时要在这里说清楚，
+// 而不是让脚本抛一堆 traceback 到界面上。
+const PYTHON_CANDIDATES = [process.env.ADMIN_PYTHON, 'python', 'python3', 'py'].filter(Boolean);
+let cachedPython = null;
+
+export async function resolvePython() {
+  if (cachedPython) return cachedPython;
+  let sawPythonWithoutYaml = false;
+  for (const candidate of PYTHON_CANDIDATES) {
+    if (path.isAbsolute(candidate) && !fs.existsSync(candidate)) continue;
+    let withYaml;
+    try {
+      withYaml = await run(candidate, ['-c', 'import yaml'], { cwd: process.cwd(), timeoutMs: 20000 });
+    } catch {
+      continue; // 这个候选根本起不来（ENOENT 等），试下一个
+    }
+    if (withYaml.code === 0) {
+      cachedPython = candidate;
+      return candidate;
+    }
+    try {
+      const plain = await run(candidate, ['-c', 'print(1)'], { cwd: process.cwd(), timeoutMs: 20000 });
+      if (plain.code === 0) sawPythonWithoutYaml = true;
+    } catch {
+      /* 忽略：只是用来区分「没有 Python」与「Python 缺 PyYAML」 */
+    }
+  }
+  if (sawPythonWithoutYaml) {
+    throw new Error('找到了 Python，但它缺少 PyYAML。请运行：python -m pip install pyyaml（或用 ADMIN_PYTHON 指定另一个解释器）。');
+  }
+  throw new Error('找不到可用的 Python。发布知识库卡片需要 Python 3.11+ 与 PyYAML；可用 ADMIN_PYTHON 环境变量指定绝对路径。');
+}
+
+// 跑仓库里的一个 Python 脚本（相对仓库根，如 tools/wiki-publish/publish.py）。
+export async function runPythonScript(repoRoot, scriptRelPath, args = [], opts = {}) {
+  const python = await resolvePython();
+  return run(python, [scriptRelPath, ...args], { cwd: repoRoot, ...opts });
+}
+
 // 起一个长时间运行的脚本（发布、hugo server），调用方自己接 stdout/stderr。
 export async function spawnScript(repoRoot, scriptRelPath, args = [], opts = {}) {
   const bash = await resolveBash();
