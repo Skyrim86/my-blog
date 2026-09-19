@@ -19,7 +19,7 @@
 # 3. **缩放要在预乘 alpha 下做**：PIL 的 resize 直接把 RGBA 各自平均，边界上「透明的白」会被平均进
 #    轮廓色，出图再压一次也还是白圈。所以先乘 alpha 再缩、缩完除回来。
 #
-# 改完回到页面上截图核对（深色主题 + 浅色主题各看一遍）：预览图写在仓库外的 ../.shots/mascot_check.png。
+# 改完回到页面上截图核对（深色主题 + 浅色主题各看一遍）：预览图写在仓库外的 ../lab/shots/mascot_check.png。
 import os
 import sys
 
@@ -34,7 +34,7 @@ except ImportError:
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SRC = os.path.join(ROOT, "tools", "icons", "source-ojou-chibi.png")
 DEST = os.path.join(ROOT, "assets", "images", "mascot.webp")
-PREVIEW = os.path.join(ROOT, os.pardir, ".shots", "mascot_check.png")
+PREVIEW = os.path.join(ROOT, os.pardir, "lab", "shots", "mascot_check.png")
 
 CROP_X = 0.74      # 源图右侧是线稿草图，裁掉
 T_BG = 250.0       # 亮于此值 = 背景（领子实测 ≤248）

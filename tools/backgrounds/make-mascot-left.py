@@ -11,7 +11,7 @@ from PIL import Image
 ROOT = r"D:\blog\my-blog"
 SRC = os.path.join(ROOT, "tools", "backgrounds", "source-mascot-left.jpg")
 DEST = os.path.join(ROOT, "assets", "images", "mascot-left.webp")
-PREVIEW = r"D:\blog\.shots\mascot_left_check.png"
+PREVIEW = r"D:\Study\projects\blog\lab\shots\mascot_left_check.png"
 
 im = cv2.imread(SRC)
 h, w = im.shape[:2]

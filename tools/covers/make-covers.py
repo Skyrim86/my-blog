@@ -8,7 +8,7 @@
 
 用法：
   python tools/covers/make-covers.py            # 写 assets/images/covers/
-  python tools/covers/make-covers.py --preview  # 生成到 .shots 供挑选，不写仓库
+  python tools/covers/make-covers.py --preview  # 生成到 ../lab/shots 供挑选，不写仓库
 
 设计约定：
   - 尺寸 1200x600（2:1，卡片里不会太高）；站点正文最宽 44rem，2:1 在两种主题下都不喧宾夺主。

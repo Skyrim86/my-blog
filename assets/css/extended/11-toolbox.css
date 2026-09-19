@@ -172,12 +172,9 @@
   color: var(--secondary);
 }
 
-/* 工具库页给每个分组配一句范围说明（数学库的范围说明走 page-head 的 description） */
-.tb-group-desc {
-  margin: -0.35rem 0 0.85rem;
-  font-size: 0.85rem;
-  color: var(--secondary);
-}
+/* 2026-09-19 删除 `.tb-group-desc`（分组范围说明）：模板、JS 与 data/ 都没有产出过这个类名，
+   构建出的 HTML 里也搜不到（对照：`.tb-group-title` 在 toolbox 页有），是纯粹的遗留选择器。
+   若将来真给分组加范围说明，把这里那条规则连同 `layouts/courses/tools.html` 的渲染一起加回来。 */
 
 .tb-grid {
   display: grid;

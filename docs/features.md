@@ -131,13 +131,13 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **它为什么压得住蒙版**：上半张是大团积云的**边缘**，下半张是牙签一样细的天际线轮廓——都是小尺度明暗对比。夜景那张靠的也是同一件事（「亮窗对暗天」）。反过来，一整块具象的东西（月亮、人物、大片纯色天空）压到 55~85% 就只剩一块灰白斑，这是早先试真图和具象插画失败的原因，经验写在 `make-backgrounds.py` 的文件头与 `skyline()` 的注释里。**顺带把浅色蒙版从 `.55→.85` 调薄到 `.46→.60→.76`**：照片进来之后旧的薄厚只够看见一层灰（依据见下面的对比度实测）。
 
-**「黑长直少女」套（2026-09-19 新增，当前是默认套）**：`bg-daylight-girl.webp`（92 KB）/ `bg-night-girl.webp`（137 KB），由 `make-backgrounds.py` 的 `girl_backgrounds()` 从 `source-girl-day.jpg` / `source-girl-night.jpg` 生成。两张是同一母题的日/夜对照，与城市套同理——都是「少女 + 城市全景 + 天空」：日间是撑透明伞站在山坡上俯瞰海湾城市，夜间是屋顶上看星空下的夜城，人物分别在画面横向 66% / 76% 处，所以切主题时她不跳位置。素材从 safebooru 按 `black_hair long_hair rating:safe` 收的一批候选中挑出（抓取与筛选脚本在仓库外的 `.shots/pick-girl-bg.py` 与 `finalists.py`，接触表留在 `.shots/girlbg/`）。出处都是同人插画、版权在画师手里：pixiv `artworks/87155937`（日）与 `artworks/77002104`（夜），个人非商业使用并保留出处。
+**「黑长直少女」套（2026-09-19 新增，当前是默认套）**：`bg-daylight-girl.webp`（92 KB）/ `bg-night-girl.webp`（137 KB），由 `make-backgrounds.py` 的 `girl_backgrounds()` 从 `source-girl-day.jpg` / `source-girl-night.jpg` 生成。两张是同一母题的日/夜对照，与城市套同理——都是「少女 + 城市全景 + 天空」：日间是撑透明伞站在山坡上俯瞰海湾城市，夜间是屋顶上看星空下的夜城，人物分别在画面横向 66% / 76% 处，所以切主题时她不跳位置。素材从 safebooru 按 `black_hair long_hair rating:safe` 收的一批候选中挑出（抓取与筛选脚本在仓库外的 `../lab/shots/pick-girl-bg.py` 与 `finalists.py`，接触表留在 `../lab/shots/girlbg/`）。出处都是同人插画、版权在画师手里：pixiv `artworks/87155937`（日）与 `artworks/77002104`（夜），个人非商业使用并保留出处。
 
 处理比城市那套克制（掺 5% 主题底色），另有一处纯为体积：夜间那张的密集星场 q74 要 176 KB，加 0.4px 亚像素模糊后 q64 降到 132 KB——它削的是星点的单像素高频噪，在 `.66~.90` 的蒙版下量不出差别（判据是页面截图，不是 RMSE）。
 
 **玻璃感来自「大半径模糊」，不是来自白底（2026-09-19）**：参考 Windows 11 Mica 那种材质的观感，把面板的 `backdrop-filter` 从 `blur(3px)` 提到 **`blur(24px)`**（首页条 16px），同时把 `--surface` 从 `.70` 降到 **`.62`**（深色 `.72` → `.64`）。3px 时图几乎没被抹开，面板被底色压成一块平色，看着像「蒙了一层」；24px 之后透过来的画面是抹开的色块，才读得出玻璃。**底色不能再降**：它决定面板内文字的亮度下限。**当日晚些的「玻璃质感版」把底色提回 `.80` 并撤掉白蒙版**（蒙版一薄，`.62` 就撑不住面板内的次级灰字），`blur(24px)` 这个结论不变 —— 最终值以那一节为准。
 
-**24px 的代价量过，可以忽略**：`.shots/scrollcost.py` 在同一页面对 `blur(3px)` 与 `blur(24px)` 做 A/B —— 帧间隔中位都是 **6.06 ms**、`DirectRenderer::DrawFrame` 各约 39 ms、`LocalFrameView::RunPaintLifecycle` 18.5 → 19.2 ms（约 1.1 秒滚动窗口内属噪声）、掉帧计数相同。Chromium 的 backdrop 模糊代价主要来自「建立 backdrop root」，与半径关系不大。
+**24px 的代价量过，可以忽略**：`../lab/shots/scrollcost.py` 在同一页面对 `blur(3px)` 与 `blur(24px)` 做 A/B —— 帧间隔中位都是 **6.06 ms**、`DirectRenderer::DrawFrame` 各约 39 ms、`LocalFrameView::RunPaintLifecycle` 18.5 → 19.2 ms（约 1.1 秒滚动窗口内属噪声）、掉帧计数相同。Chromium 的 backdrop 模糊代价主要来自「建立 backdrop root」，与半径关系不大。
 
 **彩度是单独一个旋钮（2026-09-19）**：原来这几张在管线里就被**降过彩度**（少女 `Color(0.95)`、浅色城市 `Color(0.86)`），运行时蒙版再洗一遍，等于彩度被削两轮——页面上那个「灰蒙蒙」主要是这么来的。现在改成提彩度：少女日间 `1.35`、夜间新增 `1.30`，城市日间 `1.15`、夜间 `1.20`（实拍图提太狠会出色带，所以比插画保守）。
 
@@ -157,7 +157,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **一个必须认清的物理约束**：AA 要求文字底色足够亮（深字）或足够暗（浅字）。壁纸要是原色、高对比地露着，**任何压在它上面的文字就得配一块 ~0.8 不透明度的底**——没有免费的路。「透明玻璃 + AA 文字 + 全景壁纸」三者不可兼得。这一版选择保住「文字 AA」与「壁纸透亮」，把玻璃的「透」交给 blur、把对比度交给 0.8 的实底。要更透明的唯一正路是换更平、更暗的壁纸图（`make_backgrounds.py` 的 `Brightness` 旋钮，动它必须重测整张表）。
 
-**局部玻璃底衬**（`00-theme.css` 的「直接压在壁纸上的文字」一节）：清单是**量出来的**，不是猜的 —— `.shots/girlbg/measure.py` 遍历页面上每个可见文字元素，凡祖先链里没有面板/卡片的都在表里：
+**局部玻璃底衬**（`00-theme.css` 的「直接压在壁纸上的文字」一节）：清单是**量出来的**，不是猜的 —— `../lab/shots/girlbg/measure.py` 遍历页面上每个可见文字元素，凡祖先链里没有面板/卡片的都在表里：
 
 | 页型 | 元素 |
 |---|---|
@@ -187,7 +187,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 `bg-daylight-sky.webp`（6 KB）是浅色主题**程序生成的备选**（天青→象牙 + 城市剪影 + 日光晕 + 落瓣，`daylight_background()`），当前未使用，留着是为了想切回纯生成时改一行配置就行。`bg-velvet-night.webp`（4 KB）同理，是深色主题的程序质感备选。生成脚本随机种子固定、可复现；**注意浅色那张换图会让 `bg-velvet-night.webp` 的字节也变** —— 它的随机数种子相互独立了，重跑一次即可，别以为脚本产生了随机噪音。改色改密度就改 `site_backgrounds()` / `daylight_city_background()` 的参数，改完回页面截图核对，别只看生成图。管理页那边是另一回事——面板只盖住中间、背景看得见，用的是真实插画，见 `docs/admin.md` §20。
 
-**对比度是量过的，改图或改蒙版都要重量**：做法是在页面里遍历**可见**文字元素，取它自己的算色，沿祖先链把 `background-color` 逐层合成到 `body::before` 的底色上（底色 = 蒙版 rgba 按视口 y 插值后，盖在实际背景图像素上——背景是 `position: fixed`，所以蒙版只取决于视口 y，与滚动无关），再算 `(L1+0.05)/(L2+0.05)`。两个容易做错的细节：**合成祖先链时要排除 `html`**（它的底色是被 `body::before` 盖住的画布背景，算进去会得出「背景永远不透明」的错结论），**底色要按 `cover` 几何用 canvas 取真实像素**而不是取图片平均色。可复跑的脚本在仓库外：`.shots/girlbg/contrast.js`（页内测量）+ `measure.py`（按主题 × 套 × 页型驱动）。**解析器只认 `rgba()`/`rgb()` 与 `color(srgb …)`**，所以底衬这类色值要写成 `rgba()` 字面量，别用 `color-mix()`（理由见下面「局部底衬」）。
+**对比度是量过的，改图或改蒙版都要重量**：做法是在页面里遍历**可见**文字元素，取它自己的算色，沿祖先链把 `background-color` 逐层合成到 `body::before` 的底色上（底色 = 蒙版 rgba 按视口 y 插值后，盖在实际背景图像素上——背景是 `position: fixed`，所以蒙版只取决于视口 y，与滚动无关），再算 `(L1+0.05)/(L2+0.05)`。两个容易做错的细节：**合成祖先链时要排除 `html`**（它的底色是被 `body::before` 盖住的画布背景，算进去会得出「背景永远不透明」的错结论），**底色要按 `cover` 几何用 canvas 取真实像素**而不是取图片平均色。可复跑的脚本在仓库外：`../lab/shots/girlbg/contrast.js`（页内测量）+ `measure.py`（按主题 × 套 × 页型驱动）。**解析器只认 `rgba()`/`rgb()` 与 `color(srgb …)`**，所以底衬这类色值要写成 `rgba()` 字面量，别用 `color-mix()`（理由见下面「局部底衬」）。
 
 2026-09-19 全量实测（单位 1:1；**页型同日从 3 个扩到 6 个**，脚本已同步）：
 
@@ -212,7 +212,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **不要用 `requestAnimationFrame` 做节流**：隐藏标签页里 rAF 不触发，切回来会拿到过期状态——`terms-filter.js` 已经踩过同一个坑，这里直接同步算。
 
-**几何量必须缓存**：正文与每个目录项的绝对偏移只在「重新测量」时算一次，滚动路径上只做 `window.scrollY` 的算术。原来的写法每次 scroll 都要对正文调 `getBoundingClientRect()` 与 `offsetHeight`、再对每个目录项逐个取 rect，而最重的公式页有 1082 KB HTML / 1.68 万个 `<span>`。用 CDP 的 Performance 计数器量（`.shots/jank.py`，110 次滚动）：旧写法 `ScriptDuration` 0.019~0.020 s，缓存后 0.004~0.005 s，**滚动脚本开销降到 1/4**。失效时机是 `resize` / `load` / `document.fonts.ready` / `ResizeObserver(.post-single)`，最后一条是为了兜住「图片或字体迟到导致正文高度变了」。
+**几何量必须缓存**：正文与每个目录项的绝对偏移只在「重新测量」时算一次，滚动路径上只做 `window.scrollY` 的算术。原来的写法每次 scroll 都要对正文调 `getBoundingClientRect()` 与 `offsetHeight`、再对每个目录项逐个取 rect，而最重的公式页有 1082 KB HTML / 1.68 万个 `<span>`。用 CDP 的 Performance 计数器量（`../lab/shots/jank.py`，110 次滚动）：旧写法 `ScriptDuration` 0.019~0.020 s，缓存后 0.004~0.005 s，**滚动脚本开销降到 1/4**。失效时机是 `resize` / `load` / `document.fonts.ready` / `ResizeObserver(.post-single)`，最后一条是为了兜住「图片或字体迟到导致正文高度变了」。
 
 **偏移排序后再扫描**：同一页上常同时有两个目录（正文顶部的折叠目录 + 左侧跟随目录，见 ㉓），两组指向同一批标题，拼在一起不再单调递增，而扫描逻辑是「遇到更大的 `top` 就 break」——不排序的话第一组一结束就收手，左侧目录永远不会亮（实测 `inlineActive: 1 / railActive: 0`）。`marks` 现在按 `top` 稳定排序，同一个标题上的两份目录由靠后出现的那份（左侧栏）拿到高亮。
 
@@ -257,7 +257,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 ### ⑲ 窄屏折叠导航 — `assets/js/nav-toggle.js` + `10-nav.css`
 
-主题这份 PaperMod 的 `#menu` 在窄屏是 `flex-wrap` 换行，7 个菜单项折成两行、顶栏被顶高。脚本在窄屏插一个按钮把菜单收起来，点开才铺开；`Esc`、点空白、回到宽屏都会收起。
+主题这份 PaperMod 的 `#menu` 在窄屏是 `flex-wrap` 换行，8 个菜单项折成两行、顶栏被顶高。脚本在窄屏插一个按钮把菜单收起来，点开才铺开；`Esc`、点空白、回到宽屏都会收起。
 
 **纯渐进增强**：脚本跑起来才给 `<html>` 加 `.has-nav-toggle`，CSS 里的收起规则全挂在它下面——禁用 JS 时菜单照主题原样铺开，不会变成点不开的死菜单。
 
@@ -329,7 +329,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
   2. **不能只把背景变透明**：白底画稿的轮廓是「墨线压在白上」，抗锯齿那圈像素本身是墨 + 白的混合，RGB 里带着白，直接设成半透明就是在深色背景上画一圈白光晕。做法是**去污染**：在离背景 4px 以内的边缘带按覆盖度反解 `C = a·F + (1-a)·白`，得回真正的墨色；`a` 由像素灰度算（`(255-灰度)/(255-墨色)`）。领子不在这条带里，不会被算成半透明。
   3. **缩放要在预乘 alpha 下做**：PIL 的 `resize` 把 RGBA 各通道独立平均，边界上「透明的白」会被平均进轮廓色，出图照样是白圈。先乘 alpha 再缩、缩完除回来。
   
-  另外填掉人物内部 <32px 的纯白噪点（24 处），否则领子上会留透光的针眼。脚本把「深色 / 浅色各一份」的预览写到仓库外的 `../.shots/mascot_check.png`，**改完必须肉眼看一次那两个主题**（白边在深色主题下最明显）。出了图别忘同步 `extend_footer.html` 里 `<img>` 的 `width`/`height`（脚本会打印出图尺寸——按 `height` 反推宽度会差 1px）。
+  另外填掉人物内部 <32px 的纯白噪点（24 处），否则领子上会留透光的针眼。脚本把「深色 / 浅色各一份」的预览写到仓库外的 `../lab/shots/mascot_check.png`，**改完必须肉眼看一次那两个主题**（白边在深色主题下最明显）。出了图别忘同步 `extend_footer.html` 里 `<img>` 的 `width`/`height`（脚本会打印出图尺寸——按 `height` 反推宽度会差 1px）。
 - **尺寸用高度控制**（`height: clamp(168px, 16.5vw, 286px)`）：用宽度会被宽高比带偏。
 - **窗口变窄时分档缩**，不是「一直缩到看不见」：≥1400px 全尺寸；900~1400px 等比缩小；≤900px 再缩一档（150px）；≤640px 全隐藏（正文列贴边，再挂人像就是挡内容）。这一条是被明确要求过的，别改成「一起缩」。
 - **为什么用 `extend_footer.html`**：主题 `footer.html` 里调它一次、且不是 `partialCached`（缓存串页的坑见 ㉓），位置在 `<body>` 末尾，`fixed` 不受父级 containing block 影响。
@@ -502,7 +502,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 覆盖主题的渲染钩子（第 4 节第 9 条），只做两件事：给内容图补 `width`/`height`，并把 PNG 交给构建期转成**无损** WebP。**源文件保持 PNG 不动** —— 那 4 张实验图的出处是实验页里教 `ggsave()` / `png()` 的 R 代码，改文件名会变成「代码写 png、页面里是 webp」，而那个页面本身就是在教这件事。
 
-**为什么是 lossless 而不是常规的 q82**：调色板 PNG（`03_resid.png`、`04_obs_vs_fit.png`）走有损 WebP 会**涨一倍** —— 实测 q82 +100.4%、q90 +150.2%、最大像素差 138；而无损四张全部更小（−39.4% ~ −74.1%）。总账 49598 → 17176 B（**−65.4%**）。**产物与源 PNG 逐像素完全一致**：`Resize "<W>x<H> webp lossless"` 是纯格式转换、不做重采样，已用 `.shots/verify_shipped_webp.py` 对 `public/` 里真正发出的那 4 个文件逐个 `numpy` 比对确认（不是「看着差不多」）。量法脚本 `.shots/imgfmt_measure.py`（各档字节 + PSNR）与 `.shots/hugo_webp_verify.py`（草稿期像素比对）可复跑。
+**为什么是 lossless 而不是常规的 q82**：调色板 PNG（`03_resid.png`、`04_obs_vs_fit.png`）走有损 WebP 会**涨一倍** —— 实测 q82 +100.4%、q90 +150.2%、最大像素差 138；而无损四张全部更小（−39.4% ~ −74.1%）。总账 49598 → 17176 B（**−65.4%**）。**产物与源 PNG 逐像素完全一致**：`Resize "<W>x<H> webp lossless"` 是纯格式转换、不做重采样，已用 `../lab/shots/verify_shipped_webp.py` 对 `public/` 里真正发出的那 4 个文件逐个 `numpy` 比对确认（不是「看着差不多」）。量法脚本 `../lab/shots/imgfmt_measure.py`（各档字节 + PSNR）与 `../lab/shots/hugo_webp_verify.py`（草稿期像素比对）可复跑。
 
 **JPEG 一律不转，顺手记一个「拿错基线」的教训**：首页头像的基线**不是**仓库里那张 21963 B 的 `avatar.jpg`，而是模板 Resize 之后实际发出的 `avatar_hu_*.jpg`（240×240，**13584 B**）—— 拿源文件当基线会得出「省 12 KB」的错误结论。实测 Hugo 出 webp q82 是 15036 B、Pillow q75 是 10384 B，即只有 q75 才赢约 3.2 KB，不值得为 3 KB 引入一次二次编码。**量图片收益时，基线永远是 `public/` 里那个被引用的文件。**
 
@@ -510,7 +510,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **只处理 `png` 这一种副类型**，这是刻意的：`svg` 在 Hugo 里不可处理、`gif` 会被拍平成单帧，所以只认 `png` 就等于把它们（以及 JPEG）全部留给主题原逻辑。**已知边界**：动画 PNG（APNG）的副类型也是 `png`，会被转成静态无损 WebP —— 站点现在没有这种文件，若哪天真要放动图，先在这里加判据。
 
-**`width`/`height` 必须配 `height: auto`**：这是本次唯一「构建能过、页面却坏」的点 —— 主题 reset 只有 `img { max-width: 100% }`（`core/reset.css`），**没有 `height: auto`**，于是窄屏下宽度被压到 100%、高度仍锁在属性值上，图片纵向压扁。`00-theme.css` 的 `.post-content img` 里补了这一行；补上后浏览器仍按属性里的宽高比预留空间，防跳动的收益不受影响。实测 400px 视口：4 张图渲染 333×222、宽高比 1.5 与原图一致，控制台 0 条错误（量法：`.shots/shots.py --js`，注意站点全局有 `scroll-behavior: smooth`，定位截图前要先把滚动改成 `auto`，否则截到的是动画中途）。
+**`width`/`height` 必须配 `height: auto`**：这是本次唯一「构建能过、页面却坏」的点 —— 主题 reset 只有 `img { max-width: 100% }`（`core/reset.css`），**没有 `height: auto`**，于是窄屏下宽度被压到 100%、高度仍锁在属性值上，图片纵向压扁。`00-theme.css` 的 `.post-content img` 里补了这一行；补上后浏览器仍按属性里的宽高比预留空间，防跳动的收益不受影响。实测 400px 视口：4 张图渲染 333×222、宽高比 1.5 与原图一致，控制台 0 条错误（量法：`../lab/shots/shots.py --js`，注意站点全局有 `scroll-behavior: smooth`，定位截图前要先把滚动改成 `auto`，否则截到的是动画中途）。
 
 **已知残留（不影响访客）**：Hugo 默认会发布 page bundle 里的**所有**资源，所以那 4 张源 PNG（49598 B）仍被复制进 `public/`。它们已无任何页面引用（页面里是 WebP），是产物里的死重，但无人引用即不下载，只占产物体积；整站 raw 18323 KB / 预算 24576 KB，余量足够，暂不动。
 
@@ -520,7 +520,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 ## 6. 性能账（2026-09-15 实测）
 
-量法：`D:\blog\.shots\perf.py`（自管 Edge headless + CDP，`--throttle 4g` 按 4 Mbps/70 ms 模拟）与 `.shots/jank.py`（滚动期间读 CDP Performance 计数器）。**下面每个数字都要能复跑**，改完外观/资源后重跑一次对账。
+量法：`../lab/shots/perf.py`（自管 Edge headless + CDP，`--throttle 4g` 按 4 Mbps/70 ms 模拟）与 `../lab/shots/jank.py`（滚动期间读 CDP Performance 计数器）。**下面每个数字都要能复跑**，改完外观/资源后重跑一次对账。
 
 | 指标 | 改前 | 改后 |
 |---|---|---|
@@ -550,9 +550,9 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 ### 2026-09-15 追加五：数学库 `/library/` 拆成三级（一页 80 张卡 → 一页一张目录）
 
-线上量到的病：`/library/` 单页铺 80 张索引卡 + 分支大纲，线上 4 G 实测（`.shots/startjank.py --arms libperf-arms-live.json`）DCL 494 ms / load 1405 ms / 加载期一个 **103 ms** 长任务 / 滚动区 6588 px，而它承担的信息只是「有哪些大类」。
+线上量到的病：`/library/` 单页铺 80 张索引卡 + 分支大纲，线上 4 G 实测（`../lab/shots/startjank.py --arms libperf-arms-live.json`）DCL 494 ms / load 1405 ms / 加载期一个 **103 ms** 长任务 / 滚动区 6588 px，而它承担的信息只是「有哪些大类」。
 
-改法与拆法见 ㉒。**前后对账用同一个方法量**（真窗口 + CDP 4 G 节流，`startjank.py --arms .shots/libperf-before-after.json`）：改前那份不是旧数据，是用 `git worktree add --detach D:/blog/.shots/before-lib HEAD` 把已发布的站点单独构建、另起一个 `serve_public.py` 量出来的（本机 TTFB 两边都是 4 ms，可直接比）。
+改法与拆法见 ㉒。**前后对账用同一个方法量**（真窗口 + CDP 4 G 节流，`startjank.py --arms ../lab/shots/libperf-before-after.json`）：改前那份不是旧数据，是用 `git worktree add --detach D:/Study/projects/blog/lab/shots/before-lib HEAD` 把已发布的站点单独构建、另起一个 `serve_public.py` 量出来的（本机 TTFB 两边都是 4 ms，可直接比）。
 
 | 页面（4 G 节流） | HTML | DOM | DCL | load | 长任务 | 打开后 0–1 s 的掉帧 |
 |---|---|---|---|---|---|---|
@@ -571,7 +571,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 - `render-passthrough.html` 的 `output` 从 `htmlAndMathml` 改成 `html`：整站 9957 → 8065 KB（−19%），最重页 1082 → 902 KB（−17%），DOM 只少 4%。代价是丢掉 MathML，屏幕阅读器与复制公式都退化。**性价比不够，保持 `htmlAndMathml`。**
 - `.post-single` 的 `backdrop-filter: blur(8px)` 是**页面那么高**的元素，本来怀疑它是滚动卡顿源。用 `jank.py` 在 4 G 与本机各量了一轮，`TaskDuration` / `LayoutCount` / 帧间隔都测不出差异（headless 下 rAF 帧间隔恒定 6.05 ms，该探针对合成器侧的开销不敏感）。**测不出问题就不动它**——它同时承担正文可读性。
-- **KaTeX 字形预加载**（`<link rel=preload as=font>` 按本页出现的类名挑字形）：本地延迟模型（`.shots/serve_delay.py`，每请求 +300 ms，HTTP/1.1）下**无效**——首个字体请求确实从 686 ms 提前到 333 ms，但最后一个字体到达时间不变（1265 → 1252 ms），FCP 反而从 802 退到 932 ms（4 次重复，离散 ±10 ms）。原因是浏览器对单主机只有 6 条连接，9 个字形（133 KB）一起挤进去，把阻断首屏的 CSS 往后排。生产的 Fastly 走 HTTP/2 多路复用，不会再排队，**但线上没有实测，所以没合并**（真要试：合并后跑一次 `.shots/startjank.py --arms <线上 arms>` 对 FCP 与字体到达时间，不达标就撤）。
+- **KaTeX 字形预加载**（`<link rel=preload as=font>` 按本页出现的类名挑字形）：本地延迟模型（`../lab/shots/serve_delay.py`，每请求 +300 ms，HTTP/1.1）下**无效**——首个字体请求确实从 686 ms 提前到 333 ms，但最后一个字体到达时间不变（1265 → 1252 ms），FCP 反而从 802 退到 932 ms（4 次重复，离散 ±10 ms）。原因是浏览器对单主机只有 6 条连接，9 个字形（133 KB）一起挤进去，把阻断首屏的 CSS 往后排。生产的 Fastly 走 HTTP/2 多路复用，不会再排队，**但线上没有实测，所以没合并**（真要试：合并后跑一次 `../lab/shots/startjank.py --arms <线上 arms>` 对 FCP 与字体到达时间，不达标就撤）。
 
 ### 2026-09-15 追加四：拆掉最重页的附录
 
@@ -581,7 +581,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 |---|---|---|---|
 | raw HTML | 1082 KB | **658 KB** | 454 KB |
 | DOM 元素 | 23566 | **16222** | 7597 |
-| 最长长任务（headless，warm） | 97 ms | **64 ms**（模型估 60~100，见 `.shots/q3-split-plan.md`） | 52 ms |
+| 最长长任务（headless，warm） | 97 ms | **64 ms**（模型估 60~100，见 `../lab/shots/q3-split-plan.md`） | 52 ms |
 | 该页排序 | 全站第 1 重 | 第 8 重 | — |
 
 同一手术对 M1 三页笔记与作业页还有余量（`courses/regression-analysis/chapter-01/`：作业 1060 KB、notes-02 992 KB、notes 977 KB，现已是全站最重的三页）。
@@ -590,12 +590,12 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **2026-09-15 追加**：一门公式密集的课程（回归分析 M1）让整站 +9.2 MB —— 最重的单页 1082 KB（M1 笔记按 § 拆成 3 页才压回预算内），80 张工具卡页各约 40 KB 页面框架 + 卡片内容。单页预算不变（1638 KB），整站预算 12 → 24 MB。**没有**为了压体积去掉 MathML（理由见上面「试过并否决」）。
 
-- KaTeX 在公式页**按需**加载 woff2 字形（`katex.min.css` 里 20 个 `@font-face`，浏览器只取页面真正用到的那几个）：M1 笔记页最多见 9 个共 **133 KB**（`Math-Italic`、`Main-Bold`、`Math-BoldItalic`、`Caligraphic`、`AMS`、`Size1~3` 等），`katex.min.css` 23 KB。早期记的「6 个 107 KB」是 `startjank.py` 的 resources 列表被截断后的低估，准数请用 `.shots/fonttruth.py` 量 `document.fonts`。只在真有公式的页面加载（`extend_head.html` 的三条件判据）。要再降只能做字体子集化，收益不确定、维护成本高。
+- KaTeX 在公式页**按需**加载 woff2 字形（`katex.min.css` 里 20 个 `@font-face`，浏览器只取页面真正用到的那几个）：M1 笔记页最多见 9 个共 **133 KB**（`Math-Italic`、`Main-Bold`、`Math-BoldItalic`、`Caligraphic`、`AMS`、`Size1~3` 等），`katex.min.css` 23 KB。早期记的「6 个 107 KB」是 `startjank.py` 的 resources 列表被截断后的低估，准数请用 `../lab/shots/fonttruth.py` 量 `document.fonts`。只在真有公式的页面加载（`extend_head.html` 的三条件判据）。要再降只能做字体子集化，收益不确定、维护成本高。
 - 每个页面都多一次 59 字节的 `css/bg-image.css`（渲染阻塞）。它和主样式表是**并行**下载的（不是串行），FCP 实测没有差别，所以不值得为它把背景图 URL 硬编码进 CSS 或往模板里写 `<style>`。
 
 ### 打开页面头几秒的卡顿（2026-09-15 追加三）
 
-稳态早就够了：真窗口、165 Hz（帧预算 6.06 ms）下持续滚动，3 s 之后 p99 6.2–6.3 ms、max 6.3 ms、**没有一帧超过 7 ms**。掉帧全部集中在打开页面后的 1–3 s。量法 `D:\blog\.shots\startjank.py`（`addScriptToEvaluateOnNewDocument` 注入到 document 起点，导航后立刻逐帧滚动，同时收 longtask / layout-shift / 资源时刻）。
+稳态早就够了：真窗口、165 Hz（帧预算 6.06 ms）下持续滚动，3 s 之后 p99 6.2–6.3 ms、max 6.3 ms、**没有一帧超过 7 ms**。掉帧全部集中在打开页面后的 1–3 s。量法 `../lab/shots/startjank.py`（`addScriptToEvaluateOnNewDocument` 注入到 document 起点，导航后立刻逐帧滚动，同时收 longtask / layout-shift / 资源时刻）。
 
 | 场景（重页 1082 KB HTML、23566 个元素） | 主线程长任务 | 滚动帧 |
 |---|---|---|
@@ -613,7 +613,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 ### 滚动流畅度：合成器侧实测（2026-09-15 追加二）
 
-量法：`D:\blog\.shots\scrollcost.py`（headless，逐个 CSS 变体注入，出 `RasterTask` / `DirectRenderer::DrawFrame` 总量）与 `frameab.py`（真窗口 2560×1600 @165 Hz，rAF 帧间隔 → 掉帧数）。**旧的 `jank.py` 只量主线程计数器，看不见合成器侧**，所以前面「backdrop-filter 测不出代价」的判断按下面这组数字修正——代价是真的，只是没到掉帧。
+量法：`../lab/shots/scrollcost.py`（headless，逐个 CSS 变体注入，出 `RasterTask` / `DirectRenderer::DrawFrame` 总量）与 `frameab.py`（真窗口 2560×1600 @165 Hz，rAF 帧间隔 → 掉帧数）。**旧的 `jank.py` 只量主线程计数器，看不见合成器侧**，所以前面「backdrop-filter 测不出代价」的判断按下面这组数字修正——代价是真的，只是没到掉帧。
 
 | 项 | 数字 |
 |---|---|

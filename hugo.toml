@@ -255,7 +255,8 @@ pagerSize = 10
 # 与 2026-09-15 删除归档页同一口径（见上面 mainSections 的注释）。
 # section 本身保留（content/posts/_index.md 还在，URL 不会 404，写文章不受影响），
 # 写第一篇后按 weight = 40 把 posts 那一项加回来即可 —— 50 是留给归档页的，别占。
-# 摘掉后导航回到 7 项，也就是 assets/css/extended/10-nav.css 当初按 7 项调好的布局。
+# 摘掉后导航一度回到 7 项；后来又添了「CS 库」（现在 weight = 16），所以当前是 8 项 ——
+# assets/css/extended/10-nav.css 的窄屏折叠与 19-nav-px.css 的图标位都是按 8 项调的。
 [[menu.main]]
   identifier = 'home'
   name = '首页'
