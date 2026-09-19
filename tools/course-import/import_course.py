@@ -432,7 +432,7 @@ def load_branches(path: Path) -> dict:
 SECTION_LOOKUPS = ("cards", "nums", "groups", "modules", "courses")
 
 # --------------------------------------------------------------------------- #
-# 卡片的主次关系：**配件**（引理 / 推论 / 性质）挂在哪个**正主**下面
+# 卡片的主次关系：**附属结论**（引理 / 推论 / 性质）挂在哪个**主卡**下面
 #
 # 这一步在**导入时算好**、写进每张卡的 parents 字段（与 branch/section 一样是"生成时就写进
 # JSON"），模板不再现算。手写表 data/card-parents.yaml 覆盖规则 —— 引理是公用工具，
@@ -440,7 +440,7 @@ SECTION_LOOKUPS = ("cards", "nums", "groups", "modules", "courses")
 # 全是引工具卡，没有一处引引理）。
 # --------------------------------------------------------------------------- #
 ACCESSORY_KINDS = ("引理", "推论", "性质")
-# 配件优先找的正主类别：性质是「某个东西的性质」，所以找定义/概念；引理与推论找定理/命题。
+# 附属结论优先找的主卡类别：性质是「某个东西的性质」，所以找定义/概念；引理与推论找定理/命题。
 ACCESSORY_PREFERRED = {
     "引理": ("定理", "命题"),
     "推论": ("定理", "命题"),
@@ -472,7 +472,7 @@ def section_of(card: dict, cfg: dict) -> str:
 
 
 def load_parent_table(path: Path) -> dict:
-    """读 data/card-parents.yaml：卡片 id → 正主 id 列表（手写，覆盖规则）。
+    """读 data/card-parents.yaml：卡片 id → 主卡 id 列表（手写，覆盖规则）。
 
     只该出现在「规则推不出来」的地方（当前是三张公用引理）。文件不存在不算错：没有它就全靠规则。
     """
@@ -497,7 +497,7 @@ def section_key_of(card: dict):
 
     来源必须分开：工具卡的分组号（tool-2-x）与课程笔记的节号（thm-2-x）会撞上同一个数字，
     但它们不是同一节（工具分组的「2 正态分布与抽样分布」≠ 笔记 §2「简单线性回归模型」），
-    混在一起找正主会挂错。
+    混在一起找主卡会挂错。
     """
     cid = card.get("id", "")
     num = str(card.get("num") or "")
@@ -508,11 +508,11 @@ def section_key_of(card: dict):
 
 
 def attach_parents(cards: list, table: dict, path: Path) -> None:
-    """给每张卡写 parents（正主 id 列表）：表里的优先，其余按规则推。
+    """给每张卡写 parents（主卡 id 列表）：表里的优先，其余按规则推。
 
-    规则：同一「节」里、排在它前面最近的那个正主；配件按自己的类别优先找特定类别的正主
-    （性质找定义/概念，引理与推论找定理/命题），找不到就退回「前面最近的正主」。
-    正主的 parents 一律为空 —— **只挂两层**，不给配件再挂配件。
+    规则：同一「节」里、排在它前面最近的那个主卡；附属结论按自己的类别优先找特定类别的主卡
+    （性质找定义/概念，引理与推论找定理/命题），找不到就退回「前面最近的主卡」。
+    主卡的 parents 一律为空 —— **只挂两层**，不给附属结论再挂附属结论。
     """
     known = {c["id"] for c in cards}
     for cid, onto in table.items():
@@ -520,13 +520,13 @@ def attach_parents(cards: list, table: dict, path: Path) -> None:
             raise SystemExit("✗ %s：%s 不是任何一张卡片的 id" % (path, cid))
         for pid in onto:
             if pid not in known:
-                raise SystemExit("✗ %s：%s 的正主 %s 不存在" % (path, cid, pid))
+                raise SystemExit("✗ %s：%s 的主卡 %s 不存在" % (path, cid, pid))
             if pid == cid:
-                raise SystemExit("✗ %s：%s 把自己当正主了" % (path, cid))
+                raise SystemExit("✗ %s：%s 把自己当主卡了" % (path, cid))
 
     by_id = {c["id"]: c for c in cards}
-    last_principal: dict = {}   # 节 → 该节上一个正主
-    last_preferred: dict = {}   # (节, 类别) → 该节上一个该类别的正主
+    last_principal: dict = {}   # 节 → 该节上一个主卡
+    last_preferred: dict = {}   # (节, 类别) → 该节上一个该类别的主卡
     for card in cards:
         kind = card.get("kind") or ""
         key = section_key_of(card)
@@ -552,7 +552,7 @@ def attach_parents(cards: list, table: dict, path: Path) -> None:
             pkind = by_id[pid].get("kind") or ""
             if pkind in ACCESSORY_KINDS:
                 raise SystemExit(
-                    "✗ %s：%s（%s）挂到了配件 %s（%s）下面 —— 只挂正主，不给配件再挂配件"
+                    "✗ %s：%s（%s）挂到了附属结论 %s（%s）下面 —— 只挂主卡，不给附属结论再挂附属结论"
                     % (path, card["id"], kind, pid, pkind)
                 )
         card["parents"] = parents
@@ -600,7 +600,7 @@ def build_toolbox(project: Path, cfg: dict) -> tuple[dict, list]:
         card["section"] = section_of(card, cfg)
         card["branch"] = cfg["section_parent"][card["section"]]
 
-    # 主次关系（配件挂正主）：规则 + data/card-parents.yaml 的手写覆盖
+    # 主次关系（附属结论挂主卡）：规则 + data/card-parents.yaml 的手写覆盖
     attach_parents(tool_cards + thm_cards, load_parent_table(PARENTS_FILE), PARENTS_FILE)
 
     toolbox = {

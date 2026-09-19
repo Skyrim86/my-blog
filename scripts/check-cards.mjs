@@ -19,7 +19,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-// 配件类别：这些卡挂在正主下面显示（见 docs/content.md §10），parents 只能指向别的类别
+// 附属结论类别：这些卡挂在主卡下面显示（见 docs/content.md §10），parents 只能指向别的类别
 const ACCESSORY_KINDS = new Set(['引理', '推论', '性质']);
 
 // data/libraries.yaml 只做行解析，不引 yaml 依赖（与 scripts/gen-cards.mjs 同一套做法）
@@ -86,8 +86,8 @@ for (const lib of readLibraries()) {
       bad += 1;
     }
 
-    /* parents（主次关系：配件挂在哪个正主下面，模板按它在一张卡下面缩进渲染配件）。
-       写错一个 id、或挂到配件下面、或成环，页面会静默挂错甚至把渲染绕进去。 */
+    /* parents（主次关系：附属结论挂在哪个主卡下面，模板按它在一张卡下面缩进渲染附属结论）。
+       写错一个 id、或挂到附属结论下面、或成环，页面会静默挂错甚至把渲染绕进去。 */
     const parents = card.parents;
     if (parents === undefined) continue; // 没写 = 不挂（CS 库的 JSON 是手写维护的，允许没有这个字段）
     if (!Array.isArray(parents)) {
@@ -98,15 +98,15 @@ for (const lib of readLibraries()) {
     for (const pid of parents) {
       const p = byId.get(String(pid));
       if (!p) {
-        failures.push(`✗ ${rel}：${id} 的正主「${pid}」不存在 —— 卡片墙上它不会出现在任何地方`);
+        failures.push(`✗ ${rel}：${id} 的主卡「${pid}」不存在 —— 卡片墙上它不会出现在任何地方`);
         bad += 1;
       } else if (String(pid) === id) {
-        failures.push(`✗ ${rel}：${id} 把自己当正主了`);
+        failures.push(`✗ ${rel}：${id} 把自己当主卡了`);
         bad += 1;
       } else if (ACCESSORY_KINDS.has(String(p.kind || '').trim())) {
         failures.push(
-          `✗ ${rel}：${id}（${card.kind}）挂到了配件「${pid}（${p.kind}）」下面 —— 只挂正主，` +
-            `不给配件再挂配件（否则卡片墙会变成三层缩进）`
+          `✗ ${rel}：${id}（${card.kind}）挂到了附属结论「${pid}（${p.kind}）」下面 —— 只挂主卡，` +
+            `不给附属结论再挂附属结论（否则卡片墙会变成三层缩进）`
         );
         bad += 1;
       }

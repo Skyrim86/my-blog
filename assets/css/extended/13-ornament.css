@@ -98,7 +98,10 @@ article.post-entry:hover {
 
 /* ---------- 首页头像：双环 ---------- */
 
-.profile img {
+/* 选择器用 .profile-avatar（模板里那个类）而不是 .profile img：头像的样式职责收敛到一处。
+   原先 09-home.css 里还有一条 `.profile img` 的阴影，与这条同特异度、被它整个盖掉 ——
+   两条规则互相打架，2026-09-19 删掉了那条死代码。模板见 index_profile.html。 */
+.profile .profile-avatar {
   box-shadow: 0 0 0 1px var(--surface-border),
               0 0 0 7px color-mix(in srgb, var(--accent) 12%, transparent),
               0 0 0 8px color-mix(in srgb, var(--accent) 26%, transparent);

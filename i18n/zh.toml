@@ -154,7 +154,7 @@ other = "搜索"
 [searchResultsLabel]
 other = "搜索结果"
 
-# ---------- 首页（见 layouts/_partials/index_profile.html） ----------
+# ---------- 首页（见 layouts/_partials/index_profile.html 与 home-extras.html） ----------
 # 快捷入口（复用主导航，aria-label 用）
 [homeQuickLinks]
 other = "快捷入口"
@@ -163,8 +163,33 @@ other = "快捷入口"
 [homeRecent]
 other = "最近更新"
 
-[homeRecentAll]
-other = "按分类浏览 →"
+# 「最近更新」过滤后一条都没有时的空状态
+[homeRecentEmpty]
+other = "这里还没有可显示的内容"
+
+# 首页「站点规模」那行小字：每项的计数格式（库名来自 data/libraries.yaml，不在这里）
+[homeCardsCount]
+other = "{{ .n }} 张卡"
+
+[homeCoursesCount]
+other = "{{ .n }} 门课程"
+
+[homeProjectsCount]
+other = "{{ .n }} 个项目"
+
+# 首页「按类浏览」区块（layouts/_partials/home-extras.html）
+[homeBrowse]
+other = "按类浏览"
+
+[homeBrowseCats]
+other = "分类"
+
+[homeBrowseTags]
+other = "标签"
+
+# 区块标题右侧的入口（原先挂在「最近更新」标题行上，挪到这里，同一页只留一个）
+[homeBrowseAll]
+other = "全部分类 →"
 
 # ---------- 数学工具库（见 layouts/courses/tools.html、assets/js/toolbox.js） ----------
 # 搜索框提示（工具库页）
@@ -217,19 +242,22 @@ other = "关闭卡片"
 [toolboxLinkLabel]
 other = "这张卡片的固定链接"
 
-# 卡片墙上「正主 + 配件」那一家右侧折叠箭头的可访问名。
+# 卡片墙上「主卡 + 附属结论」那一家右侧折叠箭头的可访问名。
 # 占位符是 Go 模板写法（配 dict 传参）；写成 {n} 会被 go-i18n 当模板吃掉，渲染成空串
 [toolboxFamilyCount]
-other = "{{ .n }} 个配件"
+other = "{{ .n }} 个附属结论"
 
-# 卡片底部的关系列表（见 layouts/_partials/card-rel.html）两个方向各一个标题：
-# 配件 = 挂在它下面、由它得出的引理 / 推论 / 性质
+# 卡片底部的关系列表（见 layouts/_partials/card-rel.html）两个方向各一个标题。
+# 两个词都不带「推出 / 使用」这类动词：三种附属结论的关系方向本来就不一样
+# （引理是被主卡用到、推论是从主卡推出、性质是关于主卡描述的那个对象），一个动词盖不住。
+# 附属结论 = 挂在它这一格下面、由它得出的引理 / 推论 / 性质
 [toolboxRelKids]
-other = "配件"
+other = "附属结论"
 
-# 用在哪 = 本卡自己的正主。配件卡才可能有（一张引理常挂在好几个定理下面）
+# 所属 = 本卡自己挂在哪个（或哪些）主卡下面。只有附属结论卡会有这一行
+# （一张引理常挂在好几个定理下面）
 [toolboxRelParents]
-other = "用在哪"
+other = "所属"
 
 # 弹窗里每栏右上角的关闭按钮（开出第二栏起才出现；关掉最后一栏就是关掉整个弹窗）
 [toolboxPaneClose]

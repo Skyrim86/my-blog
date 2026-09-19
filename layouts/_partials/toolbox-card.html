@@ -30,7 +30,7 @@
   {{- with $card.note }}
   <div class="tb-card-note">{{ partial "toolbox-md.html" (dict "page" $page "text" . "base" $base) }}</div>
   {{- end }}
-  {{- /* 关系（配件 / 用在哪）：卡片自己带上下两向，卡片页与弹窗同一份 markup。
+  {{- /* 关系（附属结论 / 所属）：卡片自己带上下两向，卡片页与弹窗同一份 markup。
          墙上那层缩进只是同一批数据的另一个视图，见 toolbox-wall.html 与 card-rel.html。 */ -}}
   {{- partial "card-rel.html" (dict "page" $page "card" $card) }}
 </article>

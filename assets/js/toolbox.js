@@ -3,7 +3,7 @@
      ① 工具库主页（layouts/courses/tools.html）—— 关键词搜索 + 分组筛选
      ② 任意页 —— 点击正文里的卡片引用（.card-ref）、卡片底部关系列表里的链接（.tb-rel-link）
         或卡片墙上的索引卡（.tb-teaser-link），把对应**卡片页**抓成弹窗。
-     ③ 卡片墙上的「配件折叠」（.tb-family-toggle）——引理/推论/性质默认收起，点箭头才铺开。
+     ③ 卡片墙上的「附属结论折叠」（.tb-family-toggle）——引理/推论/性质默认收起，点箭头才铺开。
 
    卡片正文只在卡片页存在一份（content/courses/<课程>/toolbox/<id>/），抓取结果按 URL 缓存，
    所以同一页反复点开不同卡片最多各请求一次；没有 JS 时链接照常跳到卡片页。
@@ -215,7 +215,7 @@
     state.lastFocus = null;
   }
 
-  /* ---------- 卡片墙：配件折叠（引理 / 推论 / 性质默认收起） ---------- */
+  /* ---------- 卡片墙：附属结论折叠（引理 / 推论 / 性质默认收起） ---------- */
 
   function setFamilyOpen(fam, open) {
     fam.setAttribute("data-open", open ? "true" : "false");
@@ -224,8 +224,8 @@
   }
 
   /* 收起这件事**只有脚本在时才做**：按钮出厂带 hidden，收起的 CSS 挂在 body.tb-collapsible 上，
-     两件事在同一个函数里、中间没有 await —— 否则会出现「箭头已经在、配件还开着」的一帧，
-     或者更糟：没有 JS 时配件被藏起来又点不开。 */
+     两件事在同一个函数里、中间没有 await —— 否则会出现「箭头已经在、附属结论还开着」的一帧，
+     或者更糟：没有 JS 时附属结论被藏起来又点不开。 */
   function initFamilies() {
     var fams = Array.prototype.slice.call(document.querySelectorAll(".tb-family"));
     var openables = fams.filter(function (fam) {
@@ -266,7 +266,7 @@
         var inGroup = activeGroup === "all" || group.dataset.group === activeGroup;
         var visible = 0;
         Array.prototype.forEach.call(group.querySelectorAll(".tb-card"), function (card) {
-          /* 重复份（tb-teaser--dup）是同一张配件挂在别的正主下面的副本：不单独计数
+          /* 重复份（tb-teaser--dup）是同一张附属结论挂在别的主卡下面的副本：不单独计数
              （否则面板上的「N/80」跟分组按钮上的张数对不上），可见性也交给下面按家处理 */
           if (card.classList.contains("tb-teaser--dup")) return;
           total++;
@@ -275,9 +275,9 @@
           card.hidden = !show;
           if (show) visible++;
         });
-        /* 一家子（正主 + 挂在它下面的配件）按**整体**筛：家里任何一张命中，整家都显示。
-           配件命中而正主没命中时，不至于在页面上留一张孤零零的缩进小卡、看不出挂在哪；
-           反过来正主命中、配件没命中时配件也留着 —— 它本来就属于这一家。
+        /* 一家子（主卡 + 挂在它下面的附属结论）按**整体**筛：家里任何一张命中，整家都显示。
+           附属结论命中而主卡没命中时，不至于在页面上留一张孤零零的缩进小卡、看不出挂在哪；
+           反过来主卡命中、附属结论没命中时附属结论也留着 —— 它本来就属于这一家。
            筛空的家与分组一起藏起来，别留一段空的虚线区域。 */
         Array.prototype.forEach.call(group.querySelectorAll(".tb-family"), function (fam) {
           var cards = Array.prototype.slice.call(fam.querySelectorAll(".tb-card"));
@@ -285,7 +285,7 @@
           var hit = real.some(function (card) { return !card.hidden; });
           cards.forEach(function (card) { card.hidden = !hit; });
           fam.hidden = !hit;
-          /* 配件是收起来的：命中的如果正是**被收起来的配件**，不替访客展开就等于没命中
+          /* 附属结论是收起来的：命中的如果正是**被收起来的附属结论**，不替访客展开就等于没命中
              （搜索框说「匹配到了」，眼前却什么都没有）。用户自己点过箭头的家不碰 ——
              他手动设过的开合状态，不该被敲键盘改掉。 */
           var id = fam.getAttribute("data-family");

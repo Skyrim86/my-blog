@@ -225,15 +225,15 @@
   font-weight: 600;
 }
 
-/* ---------- 一家子：正主 + 挂在它下面的配件（引理 / 推论 / 性质）----------
+/* ---------- 一家子：主卡 + 挂在它下面的附属结论（引理 / 推论 / 性质）----------
 
-   卡片墙的网格里，**一家子占一格**：正主卡照旧，配件收在它下面（默认收起，箭头样式就在下面
-   同一节里）。配件是独立的卡（不是塞进正主卡里）—— 塞进去会被正主那层「整卡可点」的链接
-   盖住，点配件会变成点正主（见 docs/traps.md）。谁挂谁由数据里的 parents 定，
+   卡片墙的网格里，**一家子占一格**：主卡照旧，附属结论收在它下面（默认收起，箭头样式就在下面
+   同一节里）。附属结论是独立的卡（不是塞进主卡里）—— 塞进去会被主卡那层「整卡可点」的链接
+   盖住，点附属结论会变成点主卡（见 docs/traps.md）。谁挂谁由数据里的 parents 定，
    见 docs/content.md §10。 */
 .tb-family {
   display: grid;
-  /* 正主占满、箭头按内容宽 —— 箭头在卡**右侧**（用户 2026-09-19 定的形态） */
+  /* 主卡占满、箭头按内容宽 —— 箭头在卡**右侧**（用户 2026-09-19 定的形态） */
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
 }
@@ -256,7 +256,7 @@
 }
 
 /* 折叠：**只有脚本跑起来才收**（body.tb-collapsible 由 toolbox.js 加）。
-   没有 JS 时配件照旧全部铺开 —— 不能让人点了没反应的箭头，也不能把内容藏起来。 */
+   没有 JS 时附属结论照旧全部铺开 —— 不能让人点了没反应的箭头，也不能把内容藏起来。 */
 body.tb-collapsible .tb-family-kids {
   display: none;
 }
@@ -265,8 +265,8 @@ body.tb-collapsible .tb-family[data-open="true"] .tb-family-kids {
   display: grid;
 }
 
-/* 展开箭头：一窄条，跟正主卡一样高（网格默认 stretch），里面一个三角 + 配件张数。
-   它必须是正主卡的**兄弟**：卡片那层铺满整卡的拉伸链接（.tb-teaser-link::after）会盖掉
+/* 展开箭头：一窄条，跟主卡一样高（网格默认 stretch），里面一个三角 + 附属结论张数。
+   它必须是主卡的**兄弟**：卡片那层铺满整卡的拉伸链接（.tb-teaser-link::after）会盖掉
    卡内的一切，箭头塞进去就点不动了。因此这个按钮不需要跟链接抢 z-index。 */
 .tb-family-toggle {
   display: flex;
@@ -320,7 +320,7 @@ body.tb-collapsible .tb-family[data-open="true"] .tb-family-kids {
   }
 }
 
-/* 配件比正主小一号：内边距收窄，名字字号降一档 */
+/* 附属结论比主卡小一号：内边距收窄，名字字号降一档 */
 .tb-family-kids .tb-teaser-link {
   padding: 0.5rem 0.7rem;
 }
@@ -330,8 +330,8 @@ body.tb-collapsible .tb-family[data-open="true"] .tb-family-kids {
   font-weight: 500;
 }
 
-/* 重复份（一张配件被多个正主共用，挂在第二个正主下面时）：画淡、不画左色条、不显示徽章。
-   一眼能看出「这是同一张，正主那边有一份完整的」。
+/* 重复份（一张附属结论被多个主卡共用，挂在第二个主卡下面时）：画淡、不画左色条、不显示徽章。
+   一眼能看出「这是同一张，主卡那边有一份完整的」。
    选择器要带 [data-kind] 才压得住类别色条那条规则（它在文件里更靠后、特异度相同，
    不比它更具体就会被它盖掉 —— 这里用 .tb-card[data-kind].tb-teaser--dup 一次写死）。 */
 .tb-card[data-kind].tb-teaser--dup {
@@ -419,7 +419,7 @@ body.tb-collapsible .tb-family[data-open="true"] .tb-family-kids {
 
    下面三组选择器都同时列了 `.tb-card[data-kind=…]` 与 `.tb-rel-link[data-kind=…]`：
    类别 → 颜色这张映射**只此一份**，卡片、卡片底部关系列表里的类别徽章共用它
-   （关系列表在卡片内部，不能靠外层卡片的 data-kind —— 一张定理卡里可以挂着「定义」类的正主，
+   （关系列表在卡片内部，不能靠外层卡片的 data-kind —— 一张定理卡里可以挂着「定义」类的主卡，
    徽章的形与色该跟着**它自己的**类别走）。自定义属性从最近的祖先继承，所以
    [data-kind] 挂在链接上，里面的 .tb-kind 就取到对应的 --k / --k-soft。 */
 .tb-card[data-kind],
@@ -522,7 +522,7 @@ body.tb-collapsible .tb-family[data-open="true"] .tb-family-kids {
   margin-top: 0.5rem;
 }
 
-/* ---------- 卡片底部的关系列表（配件 / 用在哪，见 _partials/card-rel.html）----------
+/* ---------- 卡片底部的关系列表（附属结论 / 所属，见 _partials/card-rel.html）----------
 
    卡片页与弹窗里同一份 markup：两向各一行，行首一个标题，后面是可点的类别徽章 + 名字。
    点它走的是正文引用徽章那条路（data-card → toolbox.js），弹窗里会**在旁边新开一栏**。 */

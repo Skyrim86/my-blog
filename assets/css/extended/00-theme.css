@@ -176,6 +176,36 @@ body::before {
     var(--bg-image-dark, none);
 }
 
+/* 背景套切换时的临时图层（ghost）—— 由 assets/js/bg-switch.js 在点击那一瞬建出来。
+
+   **为什么不给 background-image 加 transition**：它是离散属性，过渡不插值，写 transition
+   等于没写。真正的做法是叠一层：把**当前 body::before 的已解析背景栈**（含蒙版渐变与图片
+   URL，由脚本用 getComputedStyle 读出来，不在这里抄第二份）快照到这个 div 上，改掉
+   <html data-bg> 之后让它从 1 淡到 0 —— 露出来的就是新套那张图。
+
+   层级：它是 body 的子节点、与 body::before 同为负 z-index，按树序绘制，所以它在 ::before
+   之上、body::after（玻璃质感层）之下 —— 淡出期间质感层不动，画面只有壁纸在换。
+   它只在点击那一瞬存在：页面加载时零开销、不占体积预算；系统要求减少动态时脚本根本不建它
+   （原因见下），所以这里的过渡时长改了要同步 bg-switch.js 的 FADE_MS。 */
+.bg-ghost {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 250ms ease;
+}
+
+.bg-ghost--out {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-ghost {
+    transition: none;
+  }
+}
+
 /* 玻璃质感层（2026-09-19 新增）：壁纸之上、内容之下一层「玻璃板」。
    三层都是纯渐变，不新增请求、不进体积预算：
      1. 斜向高光 —— 像光斜打在一块玻璃上的那道亮带
@@ -284,7 +314,12 @@ body::after {
    不换行（横向溢出）。所以改成给容器加面。逐个确认过：
      - `.profile h1` / `.profile_inner > span`：主题 profile-mode.css 里 `.profile_inner` 是
        flex 列，两者是 flex 子项、本身已是块级盒；
+     - `.home-scale`（2026-09-19 新增的「站点规模」那行）：`.profile_inner` 的 flex 子项，
+       块级盒（`<p>`），且它是 `.profile_inner` 里**唯一直接压在壁纸上的文字** —— 不进这张表
+       就是拿 --secondary 直接写在画面上；
      - `.home-recent-head h2` / `a`：`.home-recent-head` 是 flex 行（09-home.css），同理；
+     - `.home-browse-head h2` / `a` / `.home-browse-label`（2026-09-19 新增的「按类浏览」）：
+       同样在 flex 行里；分类/标签的 chip 自己有不透明的 --surface 底，不必再进这里；
      - `.course-group-heading` / `.course-*.heading` / `.terms-*.title` / `.not-found-hint` /
        `.footer-rss`：本来就是块级元素；
      - `.footer > span` 是行内，所以**页脚走整条 footer**（上面那条规则），不再给 span 单独加底衬；
@@ -299,8 +334,12 @@ body::after {
    改这里的任何 alpha、或改 hugo.toml 的蒙版，都要重跑 `.shots/girlbg/measure.py both`。 */
 :is(.profile h1,
     .profile_inner > span,
+    .home-scale,
     .home-recent-head h2,
     .home-recent-head a,
+    .home-browse-head h2,
+    .home-browse-head a,
+    .home-browse-label,
     .course-group-heading,
     .course-index-heading,
     .course-entries-heading,
