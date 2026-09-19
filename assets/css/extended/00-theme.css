@@ -131,8 +131,8 @@ body::before {
 .header {
   background: var(--surface);
   border-bottom: 1px solid var(--surface-border);
-  backdrop-filter: saturate(150%) blur(6px);
-  -webkit-backdrop-filter: saturate(150%) blur(6px);
+  backdrop-filter: saturate(170%) blur(6px);
+  -webkit-backdrop-filter: saturate(170%) blur(6px);
 }
 
 /* 顶栏下沿一条 1px 的蔷薇渐隐线：滚动时它和内容之间有一道「装订线」 */

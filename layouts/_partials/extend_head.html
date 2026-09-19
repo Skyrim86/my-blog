@@ -122,7 +122,10 @@
 {{- range $side := (slice "light" "dark") }}
 {{- $path := index $p $side }}
 {{- if $path }}
-{{- with resources.Get $path }}
+{{- /* 必须 fingerprint：壁纸 URL 不带内容 hash 的话，换了图字节老访客会一直看着缓存里的旧图
+       （仓库里同类的坑：换 logo 要强刷）。带 hash 之后换素材只改文件名，缓存自动失效。
+       只有当前生效的那一张会被请求，所以多这一层不影响流量。 */}}
+{{- with resources.Get $path | fingerprint }}
 {{- $vars = $vars | append (printf "--bg-image-%s:url('%s')" $side .RelPermalink) }}
 {{- else }}
 {{- errorf "[params.appearance.presets] %q 的 %s 图 %q 在 assets/ 下找不到" $id $side $path }}

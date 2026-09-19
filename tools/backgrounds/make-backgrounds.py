@@ -116,7 +116,7 @@ def city_background():
     src = os.path.join(ROOT, "tools", "backgrounds", "source-night-city.jpg")
     im = Image.open(src).convert("RGB").resize((1600, 900), Image.LANCZOS)
     im = ImageEnhance.Brightness(im).enhance(0.85)
-    im = ImageEnhance.Color(im).enhance(0.92)
+    im = ImageEnhance.Color(im).enhance(1.20)   # 2026-09-19 从 0.92 提起，理由同 daylight_city_background
     im = Image.blend(im, Image.new("RGB", im.size, (120, 165, 220)), 0.06)   # 冷调，压掉一点暖黄灯火
     save(im, os.path.join("assets", "images", "bg-night-city.webp"), quality=74)
 
@@ -199,7 +199,11 @@ def daylight_city_background():
     ch = round(w * 9 / 16)
     im = im.crop((0, h - ch, w, h)).resize((1600, 900), Image.LANCZOS)
     im = ImageEnhance.Brightness(im).enhance(1.02)
-    im = ImageEnhance.Color(im).enhance(0.86)                                # 天空别太蓝，浅色主题压不住
+    # 2026-09-19 从 0.86 提到 1.15。**彩度与亮度是两个旋钮**：蒙版只压亮度、保住了文字对比度，
+    # 但它同时把彩度也洗掉了（叠加这里的降彩度 = 削两轮），「灰蒙蒙」主要来自这里。
+    # ImageEnhance.Color 按 luma 混合，逐像素亮度不变 → 提彩度不动对比度，不必重量那张表。
+    # 实拍图提太狠会出色带，所以比少女套保守。
+    im = ImageEnhance.Color(im).enhance(1.15)
     im = Image.blend(im, Image.new("RGB", im.size, (250, 247, 250)), 0.07)   # 掺主题底色，与蒙版同温
     save(im, os.path.join("assets", "images", "bg-daylight-city.webp"), quality=72)
 
@@ -287,7 +291,7 @@ def girl_backgrounds():
     # 贴顶裁（y0=0）：源图 2048×1352，裁掉的是底部 200px 的甲板栏杆；上缘只留 90px 给她头顶，
     # 再往下裁就切到头发了。
     day = day.crop((0, 0, w, ch)).resize((1600, 900), Image.LANCZOS)
-    day = ImageEnhance.Color(day).enhance(0.95)
+    day = ImageEnhance.Color(day).enhance(1.35)   # 见 daylight_city_background 的注释：彩度是独立旋钮
     day = Image.blend(day, Image.new("RGB", day.size, (250, 247, 250)), 0.05)
     save(day, os.path.join("assets", "images", "bg-daylight-girl.webp"), quality=72)
 
@@ -302,6 +306,7 @@ def girl_backgrounds():
     # 实测 q64 从 156 KB 降到 132 KB（与城市套那张 125 KB 同量级）；两种画法在页面上的差别
     # 由截图核对，不是靠 RMSE —— 蒙版压到 .66~.90 之后这个量级的差异看不见。
     night = night.filter(ImageFilter.GaussianBlur(0.4))
+    night = ImageEnhance.Color(night).enhance(1.30)   # 2026-09-19 新增：原来这张只掺墨色、没提彩度
     night = Image.blend(night, Image.new("RGB", night.size, (11, 10, 15)), 0.05)   # 掺墨色，压住城市灯火的橙
     save(night, os.path.join("assets", "images", "bg-night-girl.webp"), quality=64)
 

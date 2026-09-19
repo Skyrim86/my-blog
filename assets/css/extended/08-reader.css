@@ -44,16 +44,17 @@
   letter-spacing: .02em;
 }
 
-/* 正文容器卡片化。2026-09-19：blur 8px → 5px，让透过来的壁纸「清楚」而不只是「更亮」
-   （--surface 同步降到 .70，见 00-theme.css）。顺带是合成开销的净收益。 */
+/* 正文容器卡片化。2026-09-19：blur 8px → 5px → 3px，并加 saturate —— 面板的「灰」来自
+   底色把身后的图同时压暗**和**去彩，而 saturate() 按 luma 系数保持亮度，所以提彩不动文字
+   对比度（--surface 同步降到 .70，见 00-theme.css）。降 blur 同理只增清晰、不改亮度统计。 */
 .post-single {
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: 14px;
   padding: 2.2rem 2.4rem 2.6rem;
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: saturate(135%) blur(3px);
+  -webkit-backdrop-filter: saturate(135%) blur(3px);
 }
 
 @media (max-width: 640px) {
