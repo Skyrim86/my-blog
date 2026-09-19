@@ -42,11 +42,11 @@
         <span class="tb-group-name">{{ .name }}</span>
         <span class="tb-group-count">{{ len $cards }}</span>
       </h2>
-      <div class="tb-grid">
-        {{- range $cards }}
-        {{- partial "toolbox-teaser.html" (dict "page" $ "card" . "url" (printf "%s%s/" $tbURL .id)) }}
-        {{- end }}
-      </div>
+      {{- $items := slice }}
+      {{- range $cards }}
+        {{- $items = $items | append (dict "card" . "url" (printf "%s%s/" $tbURL .id)) }}
+      {{- end }}
+      {{- partial "toolbox-wall.html" (dict "page" $ "items" $items) }}
     </section>
     {{- end }}
   </div>

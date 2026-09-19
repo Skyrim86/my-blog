@@ -303,7 +303,8 @@
       "note": "**注** 方差公式对**任意**随机变量成立（不必独立、不必正态）。凡是用到\"和的方差 = 方差之和\"的地方，一律先查[线性组合的方差公式](#card-tool-1-4)的条件——独立不是默认前提。",
       "course": "regression-analysis",
       "section": "prob-moments",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-1-2",
@@ -322,7 +323,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-conditioning",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-1-3",
@@ -340,7 +342,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-moments",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-1-4",
@@ -359,7 +362,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-moments",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-2-1",
@@ -377,7 +381,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-distributions",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-2-2",
@@ -395,7 +400,8 @@
       "note": "**注** 仅\"联合正态\"（而非独立）时结论仍成立，形式为 $a'\\mathbf Y\\sim N(a'\\boldsymbol\\mu,a'\\Sigma a)$，见[多元正态的线性变换](#card-tool-2-3)。",
       "course": "regression-analysis",
       "section": "prob-distributions",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-2-3",
@@ -413,7 +419,8 @@
       "note": "**注（非满秩）** $\\Sigma$ 或不 $A\\Sigma A'$ 可能奇异，此时 $\\mathbf a'\\mathbf Y$ 的正态性定义仍然有效，分布退化为集中在某个低维仿射子空间上（\"奇异的多元正态\"）。后文凡遇奇异情形都按此理解。",
       "course": "regression-analysis",
       "section": "prob-distributions",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-2-4",
@@ -431,7 +438,8 @@
       "note": "**注（推广形式，M1 §8 用到）** 若 $\\mathbf Z\\sim N_n(\\mathbf 0,I_n)$，$A$ 对称但**非**幂等，则 $\\mathbf Z'A\\mathbf Z$ 的分布一般不是卡方；但当 $A$ 可写成 $A=B'B$ 且 $B$ 的行正交（$BB'=I$）时，$\\mathbf Z'A\\mathbf Z=\\|B\\mathbf Z\\|^2\\sim\\chi^2_r$，$r=\\operatorname{rank}(B)$，这是因为 $B\\mathbf Z\\sim N(\\mathbf 0,I_r)$。",
       "course": "regression-analysis",
       "section": "prob-distributions",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-2-5",
@@ -447,7 +455,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-distributions",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-2-6",
@@ -463,7 +472,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-distributions",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-2-7",
@@ -481,7 +491,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-distributions",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-3-1",
@@ -500,7 +511,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "tool-3-2",
@@ -519,7 +531,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "tool-3-3",
@@ -537,7 +550,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "tool-3-4",
@@ -555,7 +569,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "tool-3-5",
@@ -573,7 +588,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "tool-4-1",
@@ -591,7 +607,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "linear-algebra",
-      "branch": "algebra"
+      "branch": "algebra",
+      "parents": []
     },
     {
       "id": "tool-4-2",
@@ -609,7 +626,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "linear-algebra",
-      "branch": "algebra"
+      "branch": "algebra",
+      "parents": []
     },
     {
       "id": "tool-4-3",
@@ -629,7 +647,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "linear-algebra",
-      "branch": "algebra"
+      "branch": "algebra",
+      "parents": []
     },
     {
       "id": "tool-5-1",
@@ -648,7 +667,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-limit",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-5-2",
@@ -667,7 +687,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-limit",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-5-3",
@@ -683,7 +704,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-limit",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-6-1",
@@ -699,7 +721,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "prob-distributions",
-      "branch": "probability-stochastic"
+      "branch": "probability-stochastic",
+      "parents": []
     },
     {
       "id": "tool-6-2",
@@ -717,7 +740,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-2-1",
@@ -733,7 +757,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-3-2",
@@ -749,7 +774,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-3-3",
@@ -765,7 +791,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-3-4",
@@ -781,7 +808,10 @@
       "note": "**注 3.5（性质 1、3、4 的依赖条件）** 这三条都依赖**模型含截距**。过原点回归（§14）中 $\\sum e_i\\ne0$，性质 1、4 失效；这正是 §14 中 $R^2$ 分解式失效的根源。\n\n**注 3.6（$S_{xx}=0$ 的退化情形）** 若所有 $x_i$ 相同，则 $x$ 无变异，斜率不可识别：$RSS$ 的最小值在任意 $\\beta_1$ 处（$\\beta_0$ 被唯一确定）取得，最小二乘解不唯一，$\\hat\\beta_1$ 无定义。这是\"数据无信息\"的极端情形，软件会报奇异。\n\n这个解值得记的不是公式，而是它的适用限度：$S_{xx}=0$（所有 $x$ 相同）时解不存在。这不是数学上的麻烦，是数据里根本没有斜率的信息——换任何方法都救不回来。",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": [
+        "thm-3-3"
+      ]
     },
     {
       "id": "thm-4-1",
@@ -797,7 +827,13 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": [
+        "thm-4-2",
+        "thm-4-3",
+        "thm-4-4",
+        "thm-4-5"
+      ]
     },
     {
       "id": "thm-4-2",
@@ -813,7 +849,8 @@
       "note": "**注（无偏性的本质是 $\\hat\\beta$ 的系数与 $x$ 正交于 $1$）** (4.2) 的两组正交条件同时充当\"无偏约束\"（证明中用到）与\"最优性约束\"（§4.4 用到）。这不是巧合：$E\\hat\\beta_1=\\beta_1$ 对**所有** $\\beta_0,\\beta_1$ 成立，等价于系数同时与 $\\mathbf 1$ 和 $\\mathbf x$ 正交的恒等式。",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-4-3",
@@ -829,7 +866,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-4-4",
@@ -845,7 +883,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-4-5",
@@ -861,7 +900,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-4-6",
@@ -877,7 +917,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-5-1",
@@ -893,7 +934,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-5-2",
@@ -909,7 +951,10 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": [
+        "thm-5-3"
+      ]
     },
     {
       "id": "thm-5-3",
@@ -925,7 +970,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-5-4",
@@ -941,7 +987,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-5-5",
@@ -957,7 +1004,8 @@
       "note": "**注意** $\\operatorname{se}(\\hat\\beta_1)$ **是随机变量**（含 $\\hat\\sigma$），$\\sqrt{\\operatorname{Var}(\\hat\\beta_1)}=\\sigma/\\sqrt{S_{xx}}$ 才是常数。软件的 `Std. Error` 列报告的是前者。",
       "course": "regression-analysis",
       "section": "stat-sampling",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-6-1",
@@ -973,7 +1021,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-6-2",
@@ -989,7 +1038,10 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": [
+        "thm-6-1"
+      ]
     },
     {
       "id": "thm-7-1",
@@ -1005,7 +1057,8 @@
       "note": "**注 7.2（为什么单边用 $\\alpha$ 而不是 $\\alpha/2$）** 单边检验把全部 $\\alpha$ 的错误概率放在**一个方向**上，因此临界值更宽松。这不是技巧，而是\"我们只关心某一侧的偏离\"这一先验信息的合法利用——前提是**在看完数据之前**就已确定方向。事后根据 $\\hat\\beta_1$ 的符号挑方向，实际水平会膨胀到约 $2\\alpha$。\n\n**注 7.3（$\\hat\\beta_0$ 的检验）** 完全平行：$t_0=\\big(\\hat\\beta_0-\\beta_{00}\\big)/\\operatorname{se}(\\hat\\beta_0)\\sim t_{n-2}$ 在 $H_0:\\beta_0=\\beta_{00}$ 下成立。一般线性组合 $a\\beta_0+b\\beta_1$ 的检验同理，方差由 (4.3) 组合得到。",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-7-4",
@@ -1021,7 +1074,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-7-5",
@@ -1037,7 +1091,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-7-6",
@@ -1053,7 +1108,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-7-7",
@@ -1069,7 +1125,10 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": [
+        "thm-7-5"
+      ]
     },
     {
       "id": "thm-7-8",
@@ -1085,7 +1144,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-8-1",
@@ -1101,7 +1161,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-8-3",
@@ -1117,7 +1178,11 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": [
+        "thm-8-5",
+        "thm-8-8"
+      ]
     },
     {
       "id": "thm-8-4",
@@ -1133,7 +1198,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-8-5",
@@ -1149,7 +1215,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-8-6",
@@ -1165,7 +1232,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-8-7",
@@ -1181,7 +1249,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-8-8",
@@ -1197,7 +1266,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-8-9",
@@ -1213,7 +1283,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-anova",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-9-1",
@@ -1229,7 +1300,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-9-2",
@@ -1245,7 +1317,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-tests",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-9-4",
@@ -1261,7 +1334,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-9-6",
@@ -1277,7 +1351,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-9-7",
@@ -1293,7 +1368,8 @@
       "note": "**注意两个方差的来源**：$1/n$ 项来自\"$\\bar y$ 的不确定性\"，$(x_0-\\bar x)^2/S_{xx}$ 项来自\"斜率的不确定性被放大到距离 $x_0-\\bar x$ 上\"。\n\n**例 9.8（续例 2.1）** 在 $x_0=\\bar x=13.3625$ 处 $\\hat\\mu=\\bar y=2131.358$，且\n\n$$\n\\operatorname{se}(\\hat\\mu)=\\frac{96.106}{\\sqrt{20}}=21.49,\\qquad\n\\mu\\in2131.358\\pm2.101\\times21.49=[2086.2,\\ 2176.5].\n$$\n\n注意在 $x_0=\\bar x$ 处方差只剩 $\\sigma^2/n$，**这是全部 $x_0$ 中最窄的点**。",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-10-1",
@@ -1309,7 +1385,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-10-2",
@@ -1325,7 +1402,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-10-3",
@@ -1341,7 +1419,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-10-4",
@@ -1357,7 +1436,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-interval",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-11-1",
@@ -1373,7 +1453,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-11-2",
@@ -1389,7 +1470,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-11-3",
@@ -1405,7 +1487,10 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": [
+        "thm-11-2"
+      ]
     },
     {
       "id": "thm-11-4",
@@ -1421,7 +1506,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-11-5",
@@ -1437,7 +1523,10 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": [
+        "thm-11-4"
+      ]
     },
     {
       "id": "thm-11-6",
@@ -1453,7 +1542,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-14-1",
@@ -1469,7 +1559,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-14-2",
@@ -1485,7 +1576,8 @@
       "note": "**注意** $\\sum x_i^2=S_{xx}+n\\bar x^2>S_{xx}$，形式上\"方差比含截距模型小\"，但**这个比较没有意义**：过原点模型在估计斜率时**借用**了 $\\beta_0=0$ 这一先验信息，两者不是同一估计问题。若先验为真，则方差更小；若为假，则会产生偏差。",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-14-3",
@@ -1501,7 +1593,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-14-4",
@@ -1517,7 +1610,8 @@
       "note": "**注 14.5（为什么要专门定义 $R_0^2$）** 由 (14.4) 可定义\n\n$$\nR_0^2=\\frac{\\sum_i\\hat y_i^2}{\\sum_iy_i^2}=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_iy_i^2}, \\tag{14.5}\n$$\n\n即\"围绕**原点**的变异中被解释的比例\"。它**不是**含截距模型的 $R^2$，两者不可直接比较。",
       "course": "regression-analysis",
       "section": "stat-estimation",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-15-1",
@@ -1533,7 +1627,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-15-2",
@@ -1549,7 +1644,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-16-1",
@@ -1565,7 +1661,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-16-2",
@@ -1581,7 +1678,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-16-3",
@@ -1597,7 +1695,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     },
     {
       "id": "thm-16-4",
@@ -1613,7 +1712,8 @@
       "note": "",
       "course": "regression-analysis",
       "section": "stat-fit-asymptotic",
-      "branch": "statistics-data"
+      "branch": "statistics-data",
+      "parents": []
     }
   ]
 }

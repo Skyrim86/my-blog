@@ -1,0 +1,66 @@
+{{- /* 卡片墙：把「正主 + 挂在它下面的配件」渲染成**一家子一个格子**。
+
+     参数：
+       page   渲染上下文页
+       items  [{card, url}, …] —— 顺序就是要显示的先后顺序（工具库页按分组、数学库按细分）
+
+     为什么要有这一层：引理/推论/性质是**配件**，不该跟定理、定义平起平坐地各占一个卡位
+     （见 docs/content.md §10）。这里按每张卡 parents 字段里的正主 id 把配件挂到正主下面：
+       · 正主 + 它的配件 = 一个 .tb-family，占网格里的一格；配件缩进排在正主下面；
+       · 一张配件被多个正主共用（引理常这样），**每个正主下面都渲染一份**，第二份起画淡一些
+         （--dup：不显示类别徽章、名字用次要色）—— 这样"哪个定理用到它"一眼看得见；
+       · 配件的正主都不在本页时（比如以后被分到别的分支），按原样单独排在自己的位置，不缩进。
+
+     配件是**独立的卡**，不塞进正主的卡框里 —— 塞进去会被正主那层「整卡可点」的链接盖住，
+     点配件会变成点正主（见 docs/traps.md 里那条）。 */ -}}
+{{- $page := .page -}}
+{{- $items := .items -}}
+
+{{- $present := newScratch -}}
+{{- $byId := newScratch -}}
+{{- range $items -}}
+  {{- $present.Set .card.id true -}}
+  {{- $byId.Set .card.id . -}}
+{{- end -}}
+
+{{- $kids := newScratch -}}      {{- /* 正主 id → 挂在它下面的配件 id 列表 */ -}}
+{{- $attached := newScratch -}}  {{- /* 配件 id → true（它已挂在某个正主下面，不再单独占位） */ -}}
+{{- range $items -}}
+  {{- $card := .card -}}
+  {{- with $card.parents -}}
+    {{- $here := slice -}}
+    {{- range . -}}
+      {{- if $present.Get . -}}{{- $here = $here | append . -}}{{- end -}}
+    {{- end -}}
+    {{- if $here -}}
+      {{- $attached.Set $card.id true -}}
+      {{- range $here -}}
+        {{- $kids.Set . (($kids.Get .) | default slice | append $card.id) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $rendered := newScratch -}}
+<div class="tb-grid">
+  {{- range $items -}}
+    {{- $card := .card -}}
+    {{- if $attached.Get $card.id -}}
+      {{- /* 已经挂在正主下面渲染过了，这里不再占一格 */ -}}
+    {{- else -}}
+    <div class="tb-family">
+      {{- partial "toolbox-teaser.html" (dict "page" $page "card" $card "url" .url) -}}
+      {{- with $kids.Get $card.id -}}
+      <div class="tb-family-kids">
+        {{- range . -}}
+          {{- $kid := $byId.Get . -}}
+          {{- $dup := $rendered.Get . -}}
+          {{- $rendered.Set . true -}}
+          {{- partial "toolbox-teaser.html" (dict "page" $page "card" $kid.card "url" $kid.url "dup" $dup) -}}
+        {{- end -}}
+      </div>
+      {{- end -}}
+    </div>
+    {{- end -}}
+  {{- end -}}
+</div>

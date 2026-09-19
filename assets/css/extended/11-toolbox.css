@@ -225,6 +225,47 @@
   font-weight: 600;
 }
 
+/* ---------- 一家子：正主 + 挂在它下面的配件（引理 / 推论 / 性质）----------
+
+   卡片墙的网格里，**一家子占一格**：正主卡照旧，配件缩进排在它下面，用一条细虚线连起来。
+   配件是独立的卡（不是塞进正主卡里）—— 塞进去会被正主那层「整卡可点」的链接盖住，点配件
+   会变成点正主（见 docs/traps.md）。谁挂谁由数据里的 parents 定，见 docs/content.md §10。 */
+.tb-family-kids {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0 1.1rem;
+  padding-left: 0.6rem;
+  border-left: 1px dashed var(--border);
+}
+
+/* 配件比正主小一号：内边距收窄，名字字号降一档 */
+.tb-family-kids .tb-teaser-link {
+  padding: 0.5rem 0.7rem;
+}
+
+.tb-family-kids .tb-teaser-title {
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+/* 重复份（一张配件被多个正主共用，挂在第二个正主下面时）：画淡、不画左色条、不显示徽章。
+   一眼能看出「这是同一张，正主那边有一份完整的」。
+   选择器要带 [data-kind] 才压得住类别色条那条规则（它在文件里更靠后、特异度相同，
+   不比它更具体就会被它盖掉 —— 这里用 .tb-card[data-kind].tb-teaser--dup 一次写死）。 */
+.tb-card[data-kind].tb-teaser--dup {
+  box-shadow: var(--shadow-card);
+  background: transparent;
+}
+
+.tb-teaser--dup .tb-teaser-title {
+  color: var(--secondary);
+  font-weight: 500;
+}
+
+.tb-teaser--dup .tb-teaser-link:hover .tb-teaser-title {
+  color: var(--accent);
+}
+
 /* ---------- 单张卡片页（layouts/courses/toolcard.html） ---------- */
 .tb-single {
   margin: 1.1rem 0 1.4rem;

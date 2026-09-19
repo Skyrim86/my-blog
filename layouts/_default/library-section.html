@@ -23,26 +23,26 @@
     <a href="{{ printf "%s%s/" $lib.path $key | relLangURL }}">{{ .Params.branchName }}</a>
   </nav>
 
-  <div class="tb-grid">
-    {{- range $cards }}
-    {{- $card := . }}
-    {{- $url := "" }}
-    {{- with $lib.cards }}
-      {{- /* 卡片平铺在库下（CS 库：/cs/<id>/） */ -}}
-      {{- $url = printf "%s%s/" (. | relLangURL) $card.id }}
-    {{- else }}
-      {{- /* 卡片挂在课程工具库里（数学库：/courses/<课程>/toolbox/<id>/） */ -}}
-      {{- with site.GetPage (printf "/courses/%s/toolbox/%s" $card.course $card.id) }}
-        {{- $url = .RelPermalink }}
-      {{- end }}
+  {{- $items := slice }}
+  {{- range $cards }}
+  {{- $card := . }}
+  {{- $url := "" }}
+  {{- with $lib.cards }}
+    {{- /* 卡片平铺在库下（CS 库：/cs/<id>/） */ -}}
+    {{- $url = printf "%s%s/" (. | relLangURL) $card.id }}
+  {{- else }}
+    {{- /* 卡片挂在课程工具库里（数学库：/courses/<课程>/toolbox/<id>/） */ -}}
+    {{- with site.GetPage (printf "/courses/%s/toolbox/%s" $card.course $card.id) }}
+      {{- $url = .RelPermalink }}
     {{- end }}
-    {{- if $url }}
-      {{- partial "toolbox-teaser.html" (dict "page" $ "card" $card "url" $url) }}
-    {{- else }}
-      {{- warnf "library: 卡片 %s 没有对应的卡片页（课程 %s）" $card.id $card.course }}
-    {{- end }}
-    {{- end }}
-  </div>
+  {{- end }}
+  {{- if $url }}
+    {{- $items = $items | append (dict "card" $card "url" $url) }}
+  {{- else }}
+    {{- warnf "library: 卡片 %s 没有对应的卡片页（课程 %s）" $card.id $card.course }}
+  {{- end }}
+  {{- end }}
+  {{- partial "toolbox-wall.html" (dict "page" $ "items" $items) }}
 </article>
 
 {{- end }}{{/* end main */}}

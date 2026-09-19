@@ -154,11 +154,25 @@
         var inGroup = activeGroup === "all" || group.dataset.group === activeGroup;
         var visible = 0;
         Array.prototype.forEach.call(group.querySelectorAll(".tb-card"), function (card) {
+          /* 重复份（tb-teaser--dup）是同一张配件挂在别的正主下面的副本：不单独计数
+             （否则面板上的「N/80」跟分组按钮上的张数对不上），可见性也交给下面按家处理 */
+          if (card.classList.contains("tb-teaser--dup")) return;
           total++;
           var hitText = !q || (card.dataset.search || "").toLowerCase().indexOf(q) !== -1;
           var show = inGroup && hitText;
           card.hidden = !show;
           if (show) visible++;
+        });
+        /* 一家子（正主 + 挂在它下面的配件）按**整体**筛：家里任何一张命中，整家都显示。
+           配件命中而正主没命中时，不至于在页面上留一张孤零零的缩进小卡、看不出挂在哪；
+           反过来正主命中、配件没命中时配件也留着 —— 它本来就属于这一家。
+           筛空的家与分组一起藏起来，别留一段空的虚线区域。 */
+        Array.prototype.forEach.call(group.querySelectorAll(".tb-family"), function (fam) {
+          var cards = Array.prototype.slice.call(fam.querySelectorAll(".tb-card"));
+          var real = cards.filter(function (card) { return !card.classList.contains("tb-teaser--dup"); });
+          var hit = real.some(function (card) { return !card.hidden; });
+          cards.forEach(function (card) { card.hidden = !hit; });
+          fam.hidden = !hit;
         });
         group.hidden = visible === 0;
         /* 数学库是「大类 → 细分」两级：细分小节里卡全被筛掉就整块收起，

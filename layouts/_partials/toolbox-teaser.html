@@ -1,4 +1,5 @@
-{{- /* 工具库 / 数学库的索引卡。参数：page（所在页）、card（data/math-toolbox.json 的一条）、url（卡片页地址）。
+{{- /* 工具库 / 数学库的索引卡。参数：page（所在页）、card（data/math-toolbox.json 的一条）、url（卡片页地址）、
+     dup（可选，true = 这是同一张配件挂在另一个正主下面的重复份，画淡一些）。
 
      一块卡片的显示：类别徽章 → 名字。类别同时决定卡片左缘的色条与徽章的形态
      （定义类描边 / 定理类实色，见 11-toolbox.css 的「类别色」一节）。
@@ -7,14 +8,19 @@
          不再画在卡上（2026-09-19 起）。想按编号找卡直接搜「4.4」—— data-search 里带着它。
        - 名字 = 条目标题（如「Fisher 引理」）。每张卡都必须有名字：导入器（require_name）与
          scripts/check-cards.mjs 都会拦住无名卡，所以这里没有「退回编号」的分支。
+       - dup（重复份）：不画类别徽章、名字用次要色 —— 一张引理常被好几个定理共用，
+         挂到第二个正主下面时画淡，一眼能看出「这是同一张，正主那边还有一份完整的」。
        - data-search 给截图不进正文的信息（名字、编号、类别、正文）供搜索用，
          见 assets/js/toolbox.js 的筛选。 */ -}}
 {{- $card := .card -}}
+{{- $dup := .dup -}}
 {{- $search := printf "%s %s %s %s" $card.kind $card.num $card.title ($card.body | plainify) -}}
-<article class="tb-card tb-teaser" data-id="{{ $card.id }}" data-group="{{ $card.group }}"
+<article class="tb-card tb-teaser{{ if $dup }} tb-teaser--dup{{ end }}" data-id="{{ $card.id }}" data-group="{{ $card.group }}"
          data-kind="{{ $card.kind }}" data-search="{{ substr $search 0 240 }}">
   <a class="tb-teaser-link" href="{{ .url }}">
+    {{- if not $dup }}
     <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>
+    {{- end }}
     {{- with $card.title }}
     <span class="tb-teaser-title">{{ $.page.RenderString . }}</span>
     {{- end }}

@@ -431,6 +431,23 @@ def load_branches(path: Path) -> dict:
 # 但工具卡的分组号（"1"–"6"）与课程定理卡的模块号（"M1"）不会互相命中，所以共用一个字段。
 SECTION_LOOKUPS = ("cards", "nums", "groups", "modules", "courses")
 
+# --------------------------------------------------------------------------- #
+# 卡片的主次关系：**配件**（引理 / 推论 / 性质）挂在哪个**正主**下面
+#
+# 这一步在**导入时算好**、写进每张卡的 parents 字段（与 branch/section 一样是"生成时就写进
+# JSON"），模板不再现算。手写表 data/card-parents.yaml 覆盖规则 —— 引理是公用工具，
+# 一条常服务好几个定理，规则推不出来，只能逐条点（为什么是手写：正文里那 48 处交叉引用
+# 全是引工具卡，没有一处引引理）。
+# --------------------------------------------------------------------------- #
+ACCESSORY_KINDS = ("引理", "推论", "性质")
+# 配件优先找的正主类别：性质是「某个东西的性质」，所以找定义/概念；引理与推论找定理/命题。
+ACCESSORY_PREFERRED = {
+    "引理": ("定理", "命题"),
+    "推论": ("定理", "命题"),
+    "性质": ("定义", "概念"),
+}
+PARENTS_FILE = REPO / "data" / "card-parents.yaml"
+
 
 def card_section_key(card: dict, table: str):
     """按维度取查表用的值：卡片 id / 节号（thm-<节>-<序> 的 <节>）/ 分组号 / 课程。"""
@@ -452,6 +469,93 @@ def section_of(card: dict, cfg: dict) -> str:
         if hit:
             return hit
     return cfg["default"]
+
+
+def load_parent_table(path: Path) -> dict:
+    """读 data/card-parents.yaml：卡片 id → 正主 id 列表（手写，覆盖规则）。
+
+    只该出现在「规则推不出来」的地方（当前是三张公用引理）。文件不存在不算错：没有它就全靠规则。
+    """
+    if not path.exists():
+        return {}
+    if yaml is None:
+        raise SystemExit("✗ 读 %s 需要 PyYAML（pip install pyyaml）" % path)
+    cfg = yaml.safe_load(read_text(path)) or {}
+    table: dict = {}
+    for item in cfg.get("parents") or []:
+        cid = item.get("card")
+        if not cid:
+            raise SystemExit("✗ %s 里有一条没写 card" % path)
+        if cid in table:
+            raise SystemExit("✗ %s 里 %s 写了两遍" % (path, cid))
+        table[cid] = [str(x) for x in (item.get("onto") or [])]
+    return table
+
+
+def section_key_of(card: dict):
+    """卡片所在的「节」：**同一个来源内部**按编号的第一段分组；分不出节就返回 None。
+
+    来源必须分开：工具卡的分组号（tool-2-x）与课程笔记的节号（thm-2-x）会撞上同一个数字，
+    但它们不是同一节（工具分组的「2 正态分布与抽样分布」≠ 笔记 §2「简单线性回归模型」），
+    混在一起找正主会挂错。
+    """
+    cid = card.get("id", "")
+    num = str(card.get("num") or "")
+    if "." not in num:
+        return None
+    prefix = cid.split("-", 1)[0] if "-" in cid else ""
+    return (prefix, num.split(".", 1)[0])
+
+
+def attach_parents(cards: list, table: dict, path: Path) -> None:
+    """给每张卡写 parents（正主 id 列表）：表里的优先，其余按规则推。
+
+    规则：同一「节」里、排在它前面最近的那个正主；配件按自己的类别优先找特定类别的正主
+    （性质找定义/概念，引理与推论找定理/命题），找不到就退回「前面最近的正主」。
+    正主的 parents 一律为空 —— **只挂两层**，不给配件再挂配件。
+    """
+    known = {c["id"] for c in cards}
+    for cid, onto in table.items():
+        if cid not in known:
+            raise SystemExit("✗ %s：%s 不是任何一张卡片的 id" % (path, cid))
+        for pid in onto:
+            if pid not in known:
+                raise SystemExit("✗ %s：%s 的正主 %s 不存在" % (path, cid, pid))
+            if pid == cid:
+                raise SystemExit("✗ %s：%s 把自己当正主了" % (path, cid))
+
+    by_id = {c["id"]: c for c in cards}
+    last_principal: dict = {}   # 节 → 该节上一个正主
+    last_preferred: dict = {}   # (节, 类别) → 该节上一个该类别的正主
+    for card in cards:
+        kind = card.get("kind") or ""
+        key = section_key_of(card)
+        if kind not in ACCESSORY_KINDS:
+            card["parents"] = []
+            if key is not None:
+                last_principal[key] = card["id"]
+                last_preferred[(key, kind)] = card["id"]
+            continue
+
+        if card["id"] in table:
+            parents = table[card["id"]]
+        else:
+            parents = []
+            for pk in ACCESSORY_PREFERRED.get(kind, ()):
+                if (key, pk) in last_preferred:
+                    parents = [last_preferred[(key, pk)]]
+                    break
+            if not parents and key in last_principal:
+                parents = [last_principal[key]]
+
+        for pid in parents:
+            pkind = by_id[pid].get("kind") or ""
+            if pkind in ACCESSORY_KINDS:
+                raise SystemExit(
+                    "✗ %s：%s（%s）挂到了配件 %s（%s）下面 —— 只挂正主，不给配件再挂配件"
+                    % (path, card["id"], kind, pid, pkind)
+                )
+        card["parents"] = parents
 
 
 def build_toolbox(project: Path, cfg: dict) -> tuple[dict, list]:
@@ -495,6 +599,9 @@ def build_toolbox(project: Path, cfg: dict) -> tuple[dict, list]:
         card["course"] = COURSE
         card["section"] = section_of(card, cfg)
         card["branch"] = cfg["section_parent"][card["section"]]
+
+    # 主次关系（配件挂正主）：规则 + data/card-parents.yaml 的手写覆盖
+    attach_parents(tool_cards + thm_cards, load_parent_table(PARENTS_FILE), PARENTS_FILE)
 
     toolbox = {
         "note": "由 tools/course-import/import_course.py 从课程项目生成，勿手改。",
