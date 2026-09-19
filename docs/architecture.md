@@ -51,7 +51,8 @@ my-blog/
 │   │   ├── 16-list-tools.css  #     列表排序与标签筛选条（配合 assets/js/list-tools.js）
 │   │   ├── 17-a11y.css        #     跳过导航链接 + .sr-only（见 features.md 第 4 节的第 7 处覆盖）
 │   │   ├── 18-bg-switch.css   #     顶栏背景套切换按钮（配合 assets/js/bg-switch.js，见 ⑫）
-│   │   └── 19-nav-px.css      #     导航栏像素小人的盒子（图由 tools/icons/make-icons.py 生成，见第 6 节）
+│   │   ├── 19-nav-px.css      #     导航栏像素小人的盒子（图由 tools/icons/make-icons.py 生成，见第 6 节）
+│   │   └── 20-lens.css        #     玻璃透镜：面板复制背景图 + SVG 位移（真折射），见 ⑫ 末段
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
 │   │   ├── mascot.webp        #   看板娘半身像（从 tools/icons/ 那份素材抠出来，见 ㉕）
@@ -89,7 +90,7 @@ my-blog/
 ├── data/cs-toolbox.json       # CS 卡（手写维护，页面由 scripts/gen-cards.mjs 生成）
 ├── i18n/zh.toml               # 站点级 UI 文案（与主题 i18n 合并，同名覆盖）
 ├── layouts/
-│   ├── baseof.html            # 覆盖主题模板：跳过导航链接 + lang=zh-CN（第 7 处覆盖，见 features.md 第 4 节）
+│   ├── baseof.html            # 覆盖主题模板：跳过导航链接 + lang=zh-CN + 透镜滤镜定义（第 7 处覆盖，见 features.md 第 4 节）
 │   ├── index.json             # 覆盖主题模板：搜索索引（正文截断 + tags + 页内标题）
 │   ├── 404.html               # 覆盖主题模板：404 提示 + 返回首页/搜索/各卡片库（见 features.md 第 4 节）
 │   ├── taxonomy.html          # 覆盖主题模板：词条按 data/tag-groups.yaml 分块（见第 4 节）
@@ -106,6 +107,7 @@ my-blog/
 │   ├── _shortcodes/course-plan.html# 课程规划与进度（课程主页正文里 {{< course-plan >}}）
 │   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
 │       ├── extend_head.html   #   覆盖主题 hook：JS 接线 + KaTeX 样式 + 背景图 CSS
+│       ├── lens-defs.html     #   玻璃透镜的 SVG 滤镜定义，由 baseof 插在 <body> 开头（第 3 节 ⑫ 末段）
 │       ├── google_analytics.html  #  覆盖主题缺失的 partial：**有意的空实现**（第 5 节末段）
 │       ├── templates/schema_json.html  # 覆盖主题模板：JSON-LD（删 articleBody + 零值日期/@type，见 features.md ㉟）
 │       ├── index_profile.html #   覆盖主题同名 partial：首页快捷入口 + 最近更新

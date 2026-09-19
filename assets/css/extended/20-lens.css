@@ -1,0 +1,320 @@
+/* ============================================
+   玻璃透镜（真折射）
+
+   目标：承载内容的面板不再是「磨砂玻璃」，而是一块能把身后背景**真的弯一下**的透镜；
+   整页壁纸层同时读成一块厚玻璃。全站玻璃面板共用同一套机制。
+
+   ---------- 机制（三个必须，改之前先读） ----------
+
+   1. 折射只能在面板内部**复制一份背景图**再做位移，不能直接弯折身后内容。
+      因为 backdrop-filter 只接受 filter 函数、**不接受 url() 引用**（Chromium/WebKit 都不支持），
+      所以滤镜定义（layouts/_partials/lens-defs.html）里的 #lens-panel 只能作用在自己身上。
+
+   2. 复制层用 background-attachment: fixed，与 body::before 共用同一个视口坐标系。
+      元素在视口里滚到哪就显示壁纸在那一处的画面 —— 这正是「透镜是身后世界的窗口」的行为，
+      也是它能与周围壁纸严丝合缝的原因。**实测过**：同一页面在 scrollY = 0 / 1250 / 2100 三个
+      位置，边界两侧的像素逐字节相同（视口锚定成立）；把两侧换成同一张图后，跨面板边界的像素差
+      （中位 5）与面板外相邻 4px 的天然梯度（中位 5~9）同量级 —— 边界在统计上不可见，即逐像素
+      对齐。不需要 JS 同步。
+
+   3. 面板上的 backdrop-filter 要覆盖成 none（`.post-single` / `.page-header` / 顶栏 / 首页条原本有）。
+      两个理由都是实测的：① 它会让面板成为 position: fixed 后代的**包含块** —— 左侧目录栏当初就是
+      因此才要用 JS 挪到 <body>（docs/traps.md 有登记）；② 复制层是不透明的，它压在上面根本看不见，
+      留着只是白做工（scrollcost 那组数字里也确实是净省）。
+
+   **不要**顺手写下「transform 会打断 background-attachment: fixed」——2026-09-19 实测过，不成立：
+   元素自身的 identity 变换、元素自身的 translateY(-2px)、祖先的 translateY(0)、祖先的
+   filter: blur(0)，四种情形下背景都仍然锚定视口（滚动前后同一屏幕区域的差异 98~100%，被打断才会
+   接近 0）。所以卡片 hover 的 translateY 抬升**原样保留**，不要为了「修锚定」把它删掉。
+   真会打断锚定的是 iOS Safari 把 fixed 当成 scroll —— 那条由 640px 断点的降级处理，见文件末尾。
+
+   ---------- 权重：本文件最容易出错的地方 ----------
+
+   基础规则与降级规则必须**成对使用同样的选择器形状**，靠「后出现」取胜。原因是 :is() 的权重
+   取参数里**最高**的那个：`body:has(> .lens-defs) :is(.post-single, .page-header, .header,
+   .home-recent-item, article.post-entry)` 里的 article.post-entry 是「元素 + 类」，把整条抬到
+   (0,2,2)；而降级里写 `:is(.post-single, .page-header)` 只有 (0,2,1) —— 低一档，基础规则的
+   backdrop-filter: none 会一直赢。2026-09-19 就踩了这个：375px 下面板既没有透镜、也没有原本的
+   毛玻璃，比改造前还透，而构建全绿、只有看图才发现（实测 `getComputedStyle().backdropFilter`
+   在 375px 下是 none）。所以下面每个「组的 base」和「组的降级」都用同一条选择器。
+
+   ---------- 为什么 --surface 的底色要留在面板本体上 ----------
+
+   兜底：复制层可能不渲染（`presets` 留空、浏览器不支持，或者哪天有人把伪元素写坏）。面板本体
+   保住底色，最坏情况只是退回「没有折射」的旧观感，而不是露出一块裸背景、让正文对比度崩掉。
+   注意这条是**防御性**的，别照抄「filter 指向不存在的定义时元素会完全不渲染」——
+   2026-09-19 实测 Chromium 下那只是当作没有滤镜、照常渲染（红色方块均色仍是纯红）。
+
+   ---------- 开关 ----------
+
+   整套机制挂在 body:has(> .lens-defs) 上：滤镜定义由 lens-defs.html 只在配了站点背景
+   （[params.appearance].presets 非空）时输出。于是「有没有定义」与「走不走透镜」是同一个事实源，
+   不会出现「CSS 生效但滤镜不存在」（那正是上面要防的静默失效）。01-cards.css 的网格也用了 :has()，
+   这个用法在本仓库有先例。presets 留空 = 整套透镜不生效、站点回到原来的观感，一行都不用改。
+
+   ---------- 为什么面板里的副本用「未蒙版」的图、再自己压一层弱蒙版 ----------
+
+   body::before 上压着 0.66~0.93 的三段蒙版，那是给**直接压在壁纸上**的文字保对比度的。
+   面板内部不需要那么厚：那里由 --lens-tint 承担主要对比度。所以副本只取 --bg-image-*（未蒙版），
+   让折射真的看得见；但纯未蒙版会把面板内的亮度下限拉到「图上纯黑处」，正文色 --content 扛得住，
+   次级文字 --secondary（日期、面包屑、元信息）扛不住 —— 浅色最坏 4.09:1、深色最坏 3.91:1，
+   都低于 AA 的 4.5。于是再叠一层由**同一批蒙版变量**派生的弱蒙版（--lens-mask-factor）：
+   浅色最坏 4.79:1、深色最坏 4.78:1，折射可见度仍留 ~12%。
+
+   实测（16 个取样点，面板/页头/顶栏/卡片 × 浅深 × 正文/次级，最坏像素而非平均）：
+   透镜开启最差 4.66:1，关闭最差 5.39:1，AA 线 4.5 —— 量法见 docs/features.md ⑫。
+
+   ---------- 尺寸与余量 ----------
+
+   --lens-bleed 必须大于滤镜的位移上限（lens-defs.html：#lens-panel 是 30、#lens-sm 是 14）：
+   伪元素四边各外扩，滤镜的边缘伪影就落在裁切线之外。实测过位移超出余量的样子（scale 90 配
+   22px 余量）：边缘出现硬切的透明缺口。
+   裁切只做在伪元素上（clip-path），**不给面板本体加 overflow/clip-path** ——
+   .page-header::after 那个角上的菱形是有意溢出面板的（13-ornament.css），裁面板会把它切掉。
+   ============================================ */
+
+/* 滤镜定义的容器：定义在 layouts/_partials/lens-defs.html，这里只保证它不占位。
+   不加 :has() 开关：定义不存在时它匹配不到任何元素，本来就没有副作用。 */
+.lens-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* ---------- 令牌 ---------- */
+
+:root {
+  --lens-bleed: 36px;          /* 必须 >= #lens-panel 的 scale（30） */
+  --lens-radius: 14px;
+  --lens-inset: 1px;           /* 裁切时往里收这么多，把面板自己的描边让出来 */
+  --lens-filter: url(#lens-panel);
+  --lens-glow-h: 14px;
+  /* 面板内部的底色。默认与面板原本的 --surface 同值（正文对比度就靠它）。 */
+  --lens-tint: var(--surface);
+  /* 副本弱蒙版相对 body::before 蒙版的倍率。数值由算式倒推（对 --secondary 解背景亮度上限），
+     不是试出来的；改它必须重量对比度。 */
+  --lens-mask-factor: .45;
+  /* 边缘：光从上方来的那套暗示 —— 顶边提亮、底边压暗、两侧最弱。 */
+  --lens-edge-top: rgba(255, 255, 255, .55);
+  --lens-edge-side: rgba(255, 255, 255, .16);
+  --lens-edge-bottom: rgba(22, 20, 27, .07);
+  /* 顶边往里的一道柔光，读成玻璃的厚度 */
+  --lens-glow: rgba(255, 255, 255, .16);
+  /* 整页那块厚玻璃：视口四边的晕影与描边 */
+  --lens-vignette: rgba(18, 14, 24, .16);
+  --lens-frame: rgba(255, 255, 255, .30);
+}
+
+:root[data-theme="dark"] {
+  --lens-mask-factor: .80;
+  --lens-edge-top: rgba(255, 255, 255, .14);
+  --lens-edge-side: rgba(255, 255, 255, .06);
+  --lens-edge-bottom: rgba(0, 0, 0, .35);
+  --lens-glow: rgba(255, 255, 255, .07);
+  --lens-vignette: rgba(0, 0, 0, .35);
+  --lens-frame: rgba(255, 255, 255, .08);
+}
+
+/* ---------- 面板：透镜本体 ---------- */
+/* 「全站玻璃面板」的两处定义点：下面这条共用规则 + 各自的 --lens-* 覆写。
+   加一个新面板 = 往 :is() 里加一个选择器、再按需覆写令牌。 */
+
+/* isolation 不能省：伪元素是 z-index: -1，只有面板自己成为层叠上下文，它才会画在
+   面板底色之上、正文之下；否则它会掉到面板底色后面，整块看不见。
+   position: relative 是伪元素的定位基准。
+   这里刻意**不写** backdrop-filter：那一项必须按组成对写（见文件头「权重」一节）。 */
+body:has(> .lens-defs) :is(.post-single, .page-header, .header, .home-recent-item, article.post-entry) {
+  position: relative;
+  isolation: isolate;
+}
+
+/* 复制层。四层背景（自上而下）：
+     1. 顶边柔光（跟着元素，高度固定）
+     2. --lens-tint —— 主要对比度由它承担，默认与面板原本的底色同值
+     3. 弱蒙版（--lens-mask-layers，由 --bg-mask-* 派生）—— 抬亮度下限，见文件头
+     4. 未蒙版的背景图 —— fixed 锚定视口，与 body::before 对得上
+   注意第 2 层是「与面板本体同值的第二层 tint」：它压在图上，而面板本体那层被不透明的复制层
+   完全盖住，所以图上**不会**被压两次（本体那层只在伪元素不渲染时兜底）。 */
+body:has(> .lens-defs) :is(.post-single, .page-header, .header, .home-recent-item, article.post-entry)::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--lens-bleed));
+  z-index: -1;
+  pointer-events: none;
+  /* max(0px, …) 不能省：--lens-radius 为 0 的面板（顶栏取 1px）会算出负半径，
+     整个 clip-path 声明随之失效 —— 表现为伪元素不再被裁、横向溢出且不报错。 */
+  clip-path: inset(calc(var(--lens-bleed) + var(--lens-inset))
+                   round max(0px, calc(var(--lens-radius) - var(--lens-inset))));
+  background-image:
+    linear-gradient(180deg, var(--lens-glow), transparent),
+    linear-gradient(var(--lens-tint), var(--lens-tint)),
+    var(--lens-mask-layers),
+    var(--bg-image-light, none);
+  background-size: 100% var(--lens-glow-h), 100% 100%, cover, cover;
+  background-position: top, center, var(--bg-position), var(--bg-position);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+  background-attachment: scroll, scroll, fixed, fixed;
+  filter: var(--lens-filter);
+}
+
+/* 副本的弱蒙版层：与 body::before 同形状（三段、cover、随视口），只是按 --lens-mask-factor 压薄。
+   颜色取 --theme（00-theme.css 里那段蒙版用的就是主题底色），透明度直接由 --bg-mask-* 派生 ——
+   这样蒙版数值仍然只有 hugo.toml 一个事实源，本文件不写第二份。
+   浅/深各一份写成变量，是为了让下面暗色规则只需要换背景图那一层。 */
+:root {
+  --lens-mask-layers: linear-gradient(180deg,
+    color-mix(in srgb, var(--theme) calc(var(--bg-mask-light-1) * var(--lens-mask-factor) * 100%), transparent) 0%,
+    color-mix(in srgb, var(--theme) calc(var(--bg-mask-light-2) * var(--lens-mask-factor) * 100%), transparent) 52%,
+    color-mix(in srgb, var(--theme) calc(var(--bg-mask-light-3) * var(--lens-mask-factor) * 100%), transparent) 100%);
+}
+
+:root[data-theme="dark"] {
+  --lens-mask-layers: linear-gradient(180deg,
+    color-mix(in srgb, var(--theme) calc(var(--bg-mask-dark-1) * var(--lens-mask-factor) * 100%), transparent) 0%,
+    color-mix(in srgb, var(--theme) calc(var(--bg-mask-dark-2) * var(--lens-mask-factor) * 100%), transparent) 52%,
+    color-mix(in srgb, var(--theme) calc(var(--bg-mask-dark-3) * var(--lens-mask-factor) * 100%), transparent) 100%);
+}
+
+:root[data-theme="dark"] body:has(> .lens-defs) :is(.post-single, .page-header, .header, .home-recent-item, article.post-entry)::before {
+  background-image:
+    linear-gradient(180deg, var(--lens-glow), transparent),
+    linear-gradient(var(--lens-tint), var(--lens-tint)),
+    var(--lens-mask-layers),
+    var(--bg-image-dark, none);
+}
+
+/* ---------- 各面板的差异 ---------- */
+
+/* 顶栏：整条通栏，没有圆角。--lens-radius 取 1px 而不是 0，配合上面的 max() 落在 0。
+   位移强度换 #lens-sm：这条只有 ~60px 高，用面板那档 30px 位移会把它揉烂。 */
+body:has(> .lens-defs) .header {
+  --lens-bleed: 20px;
+  --lens-radius: 1px;
+  --lens-filter: url(#lens-sm);
+  --lens-glow-h: 8px;
+}
+
+/* 首页「最近更新」条 */
+body:has(> .lens-defs) .home-recent-item {
+  --lens-bleed: 20px;
+  --lens-radius: 10px;
+  --lens-filter: url(#lens-sm);
+  --lens-glow-h: 8px;
+}
+
+/* 列表卡片：原本是不透明的 --code-bg（01-cards.css 里注明了是故意的），换成透镜后要保住
+   那档更暗的底色，所以用 color-mix 把它变成同色的半透明版，而不是直接改用 --surface。 */
+body:has(> .lens-defs) article.post-entry {
+  --lens-bleed: 20px;
+  --lens-radius: 12px;
+  --lens-inset: 2px;           /* 让出 border-left 那 2px 强调线 */
+  --lens-filter: url(#lens-sm);
+  --lens-glow-h: 10px;
+  --lens-tint: color-mix(in srgb, var(--code-bg) 84%, transparent);
+}
+
+/* ---------- 覆盖背景与描边（按组成对，见文件头「权重」） ---------- */
+
+/* 1) 正文 / 页头 / 首页条：三面 1px 描边的面板，覆写四周描边颜色。
+   article.post-entry 不在其中：它的 border-left 是 2px 的 accent 强调线（13-ornament.css），
+   一起覆写会把这根线变成淡白。 */
+body:has(> .lens-defs) :is(.post-single, .page-header, .home-recent-item) {
+  border-color: var(--lens-edge-top) var(--lens-edge-side) var(--lens-edge-bottom) var(--lens-edge-side);
+}
+
+body:has(> .lens-defs) .header {
+  border-bottom-color: var(--lens-edge-bottom);
+}
+
+/* 2) 去掉 backdrop-filter。分组写是为了让下面降级段能用「同一条选择器」压回来。 */
+body:has(> .lens-defs) :is(.post-single, .page-header) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body:has(> .lens-defs) .header {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body:has(> .lens-defs) .home-recent-item {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body:has(> .lens-defs) article.post-entry {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ---------- 整页壁纸：读成一块厚玻璃 ---------- */
+
+/* 只加滤镜与四边晕影，**不动 00-theme.css 里的蒙版与 position**（那些数值是量过对比度的，
+   唯一事实源在 hugo.toml）。实测透镜开关在 9 个取样点上的亮度差 <= 0.03（见 docs/features.md ⑫）。
+   位移会把图像挪动，所以改蒙版仍要重量对比度。 */
+body:has(> .lens-defs)::before {
+  filter: url(#lens-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--lens-frame),
+    inset 0 0 140px var(--lens-vignette);
+}
+
+/* ---------- 降级 ---------- */
+/* 两条降级段里的选择器必须与上面「按组」的基础规则逐字一致，否则权重低一档会压不住
+   （见文件头「权重」一节）。 */
+
+/* 窄屏不做折射：iOS Safari 的 background-attachment: fixed 不可靠（会被当成 scroll），
+   复制层会与壁纸错位。这里让复制层消失并把 backdrop-filter 还回去 —— 与看板娘在移动端隐藏
+   是同一套做法（14-mascot.css）。面板本体的底色一直都在，所以观感回到改造前。 */
+@media (max-width: 640px) {
+  body:has(> .lens-defs) :is(.post-single, .page-header, .header, .home-recent-item, article.post-entry)::before {
+    display: none;
+  }
+
+  body:has(> .lens-defs) :is(.post-single, .page-header, .home-recent-item) {
+    border-color: var(--surface-border);
+  }
+
+  body:has(> .lens-defs) .header {
+    border-bottom-color: var(--surface-border);
+  }
+
+  body:has(> .lens-defs) :is(.post-single, .page-header) {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  body:has(> .lens-defs) .header {
+    backdrop-filter: saturate(150%) blur(10px);
+    -webkit-backdrop-filter: saturate(150%) blur(10px);
+  }
+
+  body:has(> .lens-defs) .home-recent-item {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+}
+
+/* 要求降低透明度 / 更高对比度：这两类偏好下，半透明底本身就是问题，透镜属于要牺牲的观感。
+   退回不透明底（--entry）比退回半透明 --surface 更贴合偏好。 */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  body:has(> .lens-defs) :is(.post-single, .page-header, .header, .home-recent-item, article.post-entry)::before {
+    display: none;
+  }
+
+  body:has(> .lens-defs) :is(.post-single, .page-header, .home-recent-item) {
+    background: var(--entry);
+    border-color: var(--surface-border);
+  }
+
+  body:has(> .lens-defs) .header {
+    background: var(--entry);
+    border-bottom-color: var(--surface-border);
+  }
+
+  /* 卡片的底色本来就是不透明的 --code-bg，只把复制层去掉即可 */
+  body:has(> .lens-defs) article.post-entry::before {
+    display: none;
+  }
+}
