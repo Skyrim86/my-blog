@@ -206,6 +206,47 @@ if (existsSync(FACES_DIR)) {
   }
 }
 
+/* ---------- 卡面风格的两条纪律（2026-09-20 重做时定的） ----------
+
+   它们是**观感问题**，构建期与浏览器都不会报错，只能靠脚本盯：
+   ① 用 1px 硬停的 repeating 渐变「画直线」——那是尺子画的，272px 下像纱窗（重做前织锦一张卡
+      有约 394 条这样的线）。线要写成「亮芯偏在一侧 + 一圈淡晕」的软渐变停。
+   ② `filter: url(#某id)` 里的 id 在模板里不存在 —— **静默失效**，页面照样渲染，只是没有任何手抖感。 */
+const stylesOpen = css.indexOf('---------- 卡面风格');
+const stylesClose = css.indexOf('/* ---------- 减少动态');
+if (stylesOpen < 0 || stylesClose < 0 || stylesClose <= stylesOpen) {
+  failures.push(`✗ ${CSS} 里找不到卡面风格段（分隔注释被改过？）—— 这两条纪律的扫描范围就失效了，请同步调整 check-deck.mjs`);
+} else {
+  const styleSection = css.slice(stylesOpen, stylesClose);
+  const hard = [];
+  for (const m of styleSection.matchAll(/repeating-(?:linear|conic|radial)-gradient\(/g)) {
+    const chunk = styleSection.slice(m.index, m.index + 420);
+    if (/\s0\s+1(?:\.\d+)?px/.test(chunk)) hard.push(m.index);
+  }
+  if (hard.length) {
+    failures.push(
+      `✗ ${CSS} 的卡面风格里还有 ${hard.length} 处 1px 硬停的 repeating 渐变 —— 那是「尺子画的直线」，` +
+        `改成软渐变停（亮芯 + 淡晕，见该文件顶部第 2 条规矩）`
+    );
+  }
+
+  // 滤镜 id：CSS 里 url(#x) 的每个 x，模板里都要有对应的 id
+  const ids = new Set();
+  for (const m of css.matchAll(/url\(#([\w-]+)\)/g)) ids.add(m[1]);
+  if (ids.size) {
+    const tpl = readFileSync(join('layouts', '_partials', 'home-cards.html'), 'utf8');
+    const have = new Set([...tpl.matchAll(/id="([\w-]+)"/g)].map((m) => m[1]));
+    for (const id of ids) {
+      if (!have.has(id)) {
+        failures.push(
+          `✗ ${CSS} 引用了 url(#${id})，但 layouts/_partials/home-cards.html 里没有 id="${id}" —— ` +
+            `滤镜找不到就是**静默失效**（页面照常渲染，只是没有手抖/颗粒效果）`
+        );
+      }
+    }
+  }
+}
+
 /* ---------- 词条 ---------- */
 const i18n = readFileSync(I18N, 'utf8');
 for (const key of I18N_KEYS) {

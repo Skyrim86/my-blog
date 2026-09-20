@@ -52,17 +52,36 @@
      「细密条纹随角度变」而不是「一大块彩虹」。 */
   --coverlay:
     repeating-linear-gradient(104deg,
-      rgba(255, 128, 200, .30) 0 4px, rgba(255, 208, 128, .26) 4px 8px,
-      rgba(150, 255, 200, .24) 8px 12px, rgba(130, 205, 255, .30) 12px 16px,
-      rgba(190, 150, 255, .28) 16px 20px, rgba(255, 128, 200, .30) 20px 24px),
-    linear-gradient(118deg, rgba(255, 255, 255, .34) 6%, rgba(255, 255, 255, 0) 44%,
-      rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, .26) 88%);
-  --cblend: screen;
-  --coverlay-op: .5;
+      rgba(255, 132, 198, 0) 0 3px, rgba(255, 132, 198, .30) 6px 9px,
+      rgba(255, 214, 132, .24) 13px 16px, rgba(150, 255, 200, .20) 20px 23px,
+      rgba(130, 205, 255, .30) 27px 30px, rgba(190, 150, 255, .24) 34px 37px,
+      rgba(255, 132, 198, 0) 41px 48px),
+    linear-gradient(118deg, rgba(255, 255, 255, .30) 4%, rgba(255, 255, 255, .04) 30%,
+      rgba(255, 255, 255, 0) 46%, rgba(255, 255, 255, .20) 66%, rgba(255, 255, 255, 0) 84%),
+    var(--grain-fine);
+  --cblend: overlay;
+  --coverlay-op: .85;
   --coverlay-size: auto;
   /* 叠层的 mask：纹样**不许盖住主体**。卡面 5:7、取景是「人像完整」，人物基本落在中间偏上
      那一竖条里，所以默认在中心挖空、四边留纹样（各风格可覆写，`none` = 不挖）。 */
   --coverlay-mask: none;
+
+  --grain: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'160'%20height%3D'160'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'0.9'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.4'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.14'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
+  --grain-fine: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'140'%20height%3D'140'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'1.6'%20numOctaves%3D'2'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.35'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.10'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
+  --grain-fiber: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'200'%20height%3D'200'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'0.02%201.1'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.5'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.18'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
+  --tex-crack: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.34'%20stroke-width%3D'7.5'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.5'%20stroke-width%3D'3.2'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'1'%20stroke-width%3D'2.0'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'1'%20stroke-width%3D'1.1'%3E%3Cpath%20d%3D'M74%20214%20c%2026%208,%2042%202,%2064%2018'/%3E%3Cpath%20d%3D'M218%20176%20c%20-20%2012,%20-30%208,%20-48%2020'/%3E%3Cpath%20d%3D'M118%20106%20c%2016%20-14,%2030%20-12,%2044%20-26'/%3E%3C/g%3E%3C/svg%3E");
+  --tex-petal: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20fill%3D'%23fff'%20opacity%3D'.92'%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(46%2096)%20rotate(-22)%20scale(1.15)'/%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(196%20108)%20rotate(34)%20scale(0.95)'/%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(74%20300)%20rotate(12)%20scale(1.05)'/%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(222%20286)%20rotate(-8)%20scale(1.25)'/%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(150%2060)%20rotate(58)%20scale(0.72)'/%3E%3C/g%3E%3Cg%3E%3Ccircle%20cx%3D'118'%20cy%3D'150'%20r%3D'2.1'/%3E%3Ccircle%20cx%3D'206'%20cy%3D'212'%20r%3D'1.7'/%3E%3Ccircle%20cx%3D'58'%20cy%3D'212'%20r%3D'1.4'/%3E%3C/g%3E%3C/svg%3E");
+  --tex-flake: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'72'%20height%3D'62'%20viewBox%3D'0%200%2072%2062'%3E%3Cg%20transform%3D'translate(36%2031)'%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'1'%20stroke-width%3D'2.2'%3E%3Cpath%20d%3D'M0%200%20L0.00%20-26.00'/%3E%3Cpath%20d%3D'M0%200%20L22.52%20-13.00'/%3E%3Cpath%20d%3D'M0%200%20L22.52%2013.00'/%3E%3Cpath%20d%3D'M0%200%20L0.00%2026.00'/%3E%3Cpath%20d%3D'M0%200%20L-22.52%2013.00'/%3E%3Cpath%20d%3D'M0%200%20L-22.52%20-13.00'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.9'%20stroke-width%3D'1.2'%3E%3Cpath%20d%3D'M0.00%20-11.44%20l7.79%20-4.50'/%3E%3Cpath%20d%3D'M0.00%20-11.44%20l-7.79%20-4.50'/%3E%3Cpath%20d%3D'M0.00%20-18.72%20l5.63%20-3.25'/%3E%3Cpath%20d%3D'M0.00%20-18.72%20l-5.63%20-3.25'/%3E%3Cpath%20d%3D'M9.91%20-5.72%20l7.79%204.50'/%3E%3Cpath%20d%3D'M9.91%20-5.72%20l0.00%20-9.00'/%3E%3Cpath%20d%3D'M16.21%20-9.36%20l5.63%203.25'/%3E%3Cpath%20d%3D'M16.21%20-9.36%20l0.00%20-6.50'/%3E%3Cpath%20d%3D'M9.91%205.72%20l0.00%209.00'/%3E%3Cpath%20d%3D'M9.91%205.72%20l7.79%20-4.50'/%3E%3Cpath%20d%3D'M16.21%209.36%20l0.00%206.50'/%3E%3Cpath%20d%3D'M16.21%209.36%20l5.63%20-3.25'/%3E%3Cpath%20d%3D'M0.00%2011.44%20l-7.79%204.50'/%3E%3Cpath%20d%3D'M0.00%2011.44%20l7.79%204.50'/%3E%3Cpath%20d%3D'M0.00%2018.72%20l-5.63%203.25'/%3E%3Cpath%20d%3D'M0.00%2018.72%20l5.63%203.25'/%3E%3Cpath%20d%3D'M-9.91%205.72%20l-7.79%20-4.50'/%3E%3Cpath%20d%3D'M-9.91%205.72%20l0.00%209.00'/%3E%3Cpath%20d%3D'M-16.21%209.36%20l-5.63%20-3.25'/%3E%3Cpath%20d%3D'M-16.21%209.36%20l0.00%206.50'/%3E%3Cpath%20d%3D'M-9.91%20-5.72%20l-0.00%20-9.00'/%3E%3Cpath%20d%3D'M-9.91%20-5.72%20l-7.79%204.50'/%3E%3Cpath%20d%3D'M-16.21%20-9.36%20l-0.00%20-6.50'/%3E%3Cpath%20d%3D'M-16.21%20-9.36%20l-5.63%203.25'/%3E%3C/g%3E%3Cpath%20d%3D'M2.10%20-3.64%20L4.20%20-0.00%20L2.10%203.64%20L-2.10%203.64%20L-4.20%200.00%20L-2.10%20-3.64%20Z'%20fill%3D'%23fff'%20opacity%3D'.95'/%3E%3C/g%3E%3C/svg%3E");
+  --tex-rib: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.7'%20stroke-width%3D'0.9'%3E%3Cpath%20d%3D'M14.2%20335.2%20Q-62.7%20294.4%20-62.7%20294.4'/%3E%3Cpath%20d%3D'M26.6%20315.9%20Q-43.4%20261.6%20-42.4%20262.9'/%3E%3Cpath%20d%3D'M42.0%20298.9%20Q-14.8%20237.5%20-17.2%20235.2'/%3E%3Cpath%20d%3D'M60.1%20284.8%20Q8.3%20209.6%2012.2%20212.1'/%3E%3Cpath%20d%3D'M80.2%20273.8%20Q50.3%20196.5%2045.0%20194.2'/%3E%3Cpath%20d%3D'M101.9%20266.3%20Q74.1%20180.4%2080.4%20182.0'/%3E%3Cpath%20d%3D'M124.5%20262.5%20Q124.2%20176.4%20117.3%20175.8'/%3E%3Cpath%20d%3D'M147.5%20262.5%20Q147.8%20176.4%20154.7%20175.8'/%3E%3Cpath%20d%3D'M170.1%20266.3%20Q197.9%20180.4%20191.6%20182.0'/%3E%3Cpath%20d%3D'M191.8%20273.8%20Q221.7%20196.5%20227.0%20194.2'/%3E%3Cpath%20d%3D'M211.9%20284.8%20Q263.7%20209.6%20259.8%20212.1'/%3E%3Cpath%20d%3D'M230.0%20298.9%20Q286.8%20237.5%20289.2%20235.2'/%3E%3Cpath%20d%3D'M245.4%20315.9%20Q315.4%20261.6%20314.4%20262.9'/%3E%3Cpath%20d%3D'M257.8%20335.2%20Q334.7%20294.4%20334.7%20294.4'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.8'%20stroke-width%3D'1.5'%3E%3Cpath%20d%3D'M-62.7%20294.4%20Q-62.7%20294.4%20-139.5%20253.5'/%3E%3Cpath%20d%3D'M-42.4%20262.9%20Q-43.4%20261.6%20-111.4%20209.9'/%3E%3Cpath%20d%3D'M-17.2%20235.2%20Q-14.8%20237.5%20-76.5%20171.5'/%3E%3Cpath%20d%3D'M12.2%20212.1%20Q8.3%20209.6%20-35.7%20139.5'/%3E%3Cpath%20d%3D'M45.0%20194.2%20Q50.3%20196.5%209.9%20114.6'/%3E%3Cpath%20d%3D'M80.4%20182.0%20Q74.1%20180.4%2058.9%2097.7'/%3E%3Cpath%20d%3D'M117.3%20175.8%20Q124.2%20176.4%20110.1%2089.1'/%3E%3Cpath%20d%3D'M154.7%20175.8%20Q147.8%20176.4%20161.9%2089.1'/%3E%3Cpath%20d%3D'M191.6%20182.0%20Q197.9%20180.4%20213.1%2097.7'/%3E%3Cpath%20d%3D'M227.0%20194.2%20Q221.7%20196.5%20262.1%20114.6'/%3E%3Cpath%20d%3D'M259.8%20212.1%20Q263.7%20209.6%20307.7%20139.5'/%3E%3Cpath%20d%3D'M289.2%20235.2%20Q286.8%20237.5%20348.5%20171.5'/%3E%3Cpath%20d%3D'M314.4%20262.9%20Q315.4%20261.6%20383.4%20209.9'/%3E%3Cpath%20d%3D'M334.7%20294.4%20Q334.7%20294.4%20411.5%20253.5'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.5'%20stroke-width%3D'1.1'%3E%3Cpath%20d%3D'M-63.2%20327.5%20A%20212%20212%200%200%201%20335.2%20327.5'/%3E%3Cpath%20d%3D'M-134.6%20301.5%20A%20288%20288%200%200%201%20406.6%20301.5'/%3E%3C/g%3E%3C/svg%3E");
+  /* 手抖滤镜：卡面的纹样全是 CSS 画的直线（铅条、扇骨、裂纹、经纬…），272px 下是「尺子画的」。
+     挂上这个 SVG 位移滤镜（内联在 home-cards.html 里，约 300 字节）之后，十四种风格的直线一起
+     变成手绘的那点不平整 —— 一处生效。**滤镜 id 拼错是静默失效**，所以 check-deck 会核 id。
+     用 `filter`（不是 backdrop）——它只作用于这一层自己的绘制，不会把身下的画作也一起抖。 */
+  --cfilter: none;
+  /* mask 的尺寸与平铺：渐变 mask 用默认（铺满、不平铺）即可；弯曲形状的 mask 里，
+     雪花要**平铺**（小图重复）、裂缝花瓣要**铺满**（preserveAspectRatio='none' 拉伸）。 */
+  --cmask-size: 100% 100%;
+  --cmask-repeat: no-repeat;
   --cradius: 12px;
   --cplate-font: inherit;
 
@@ -101,11 +120,16 @@
   background-size: var(--coverlay-size);
   mix-blend-mode: var(--cblend);
   opacity: var(--coverlay-op);
+  filter: var(--cfilter);
   /* 纹样在主体处挖空（`--coverlay-mask`，各风格自己给；默认 none 不挖）。加 mask 的分支要写
      `-webkit-`：`mask-image` 前缀版在 Chromium 上仍然更早被支持，少了它 Edge/旧 Chrome
      会把整层盖回去 —— 表现就是「明明设了挖空，人还是被格子糊住」。 */
   mask-image: var(--coverlay-mask);
   -webkit-mask-image: var(--coverlay-mask);
+  mask-size: var(--cmask-size);
+  -webkit-mask-size: var(--cmask-size);
+  mask-repeat: var(--cmask-repeat);
+  -webkit-mask-repeat: var(--cmask-repeat);
   transition: opacity .3s ease;
 }
 
@@ -396,44 +420,56 @@ a.home-deck-dialog-credit:hover {
 
 /* ============================================
    ---------- 卡面风格：十四种，只改一组自定义属性 ----------
-   2026-09-20 全部重做（原来十种）+ 新增四种（雪华 / 织锦 / 金继 / 团扇）。
+   2026-09-20 新增这一版（第二版）：**把「尺子画的直线」换成手绘笔触**。
+   第一版的毛病是量出来的 —— 织锦一张卡上约 394 条 1px 硬线（1px/4px 三向网格）、
+   麻叶纹 ≈97、和纸 ≈89、全息 ≈89 条 4px 硬边彩虹条；金继是三根笔直的金线；
+   玻璃只有「一道斜渐变 + 1px 内环 + 半张磨砂」，零立体线索。
 
-   重做的由头都是**在 272px 实际尺寸下看出来的毛病**（对比图在 lab/shots/deck2/）：
-     · glass —— 整卡 blur(2px)，脸糊成一团认不出人；
-     · gothic —— 铅条是 44/38/56px 的等距十字线，一屏只有 6 格，看着像纱窗；
-     · asanoha —— 16px 的麻叶格 multiply 盖在人物上，人是糊白的；
-     · sakura / washi —— 花瓣是 6~11px 实心圆（像红点）、纸纹 .06 的细线根本看不见；
-     · gold —— screen .42 在浅色画上过曝；foil —— 七色 conic 一次铺满、互相抵消，发脏；
-     · seigaiha —— 44×22px 平铺太疏，看不出是波纹；pixel —— 用 border 画边（占盒尺寸）。
-
-   重做后定下的四条规矩（改风格前先读）：
-   1. **纹样不许盖住主体**：用 `--coverlay-mask` 在中心挖空（默认 none = 不挖）。卡是 5:7、
-      取景是「人像完整」，人物基本落在中间偏上那一竖条，所以挖空的位置取 `at 50% 40%`。
-   2. **直线纹样的周期要跟卡宽成比例**：卡显示 272px 宽，周期取 4~34px；**不许等距十字**
-      （两组线要斜、周期要不等，否则就是纱窗）。
-   3. **每种都要同时给 `--cplate-solid` 与 `--cplate`**：实心色喂对比度脚本（它只沿祖先链合成
-      background-color，看不见渐变，只写渐变会报 2.7:1 的假失败），渐变换观感。见 traps 第 69 条。
-   4. **边一律 box-shadow（inset），不用 border**：border 占盒尺寸，卡会比别的卡大一圈（㊱ 的约定）。
+   六条规矩（改风格前必读）：
+   1. **纹样不许盖住主体**：`--coverlay-mask` 在中心偏上挖空；弯曲形状的 mask 自己避开中央。
+   2. **不许 1px 硬停的直线**：写 `rgba(…,.3) 0 1px, transparent 1px 11px` 就是「尺子画的」。
+      线的写法是「亮芯偏在一侧 + 一圈淡晕」的软渐变停，周期取互质数、每层各自错开 background-position。
+      确实需要等距的地方（麻叶纹的三向格、青海波的鳞）靠第 3 条的手抖滤镜救。
+   3. **直线纹样一律挂 `--cfilter: url(#deck-rough)`**（裂缝/扇骨用更强的一档 `#deck-rough-crack`）：
+      这一对共享的 SVG 位移滤镜把直线抖成手绘的那点不平整，一处生效、十四种共用。
+      **滤镜 id 拼错是静默失效**，`scripts/check-deck.mjs` 会拿模板里的 `<filter id>` 核对。
+   4. **混合模式要在浅色与深色两种画作上都读得出来**：`screen` 压在浅画上等于没有（金继第一版就栽在
+      这里：金色裂缝在「木刀」那张浅画上完全看不见）、`multiply` 压在深画上同理。加「亮材料」用
+      `normal` / `soft-light` + 半透明颜色，比 `screen` 稳。
+   5. **每种都要同时给 `--cplate-solid` 与 `--cplate`**：实心色喂对比度脚本（它只沿祖先链合成
+      background-color，看不见渐变），渐变换观感。见 traps 第 69 条。
+   6. **边一律 inset box-shadow，不用 border**（border 占盒尺寸）；深色主题逐条给 `--coverlay-op`，
+      **新增风格必须补一条**，否则它在深色下要么白掉、要么整层消失。
    ============================================ */
 
-/* 金边：暖金渐变框 + 细斜格纹 + 描金角 + 金名牌 */
+/* 全息（基础规则默认值）：软边虹彩带 + 扫光 + 细光栅。
+   物理上的全息膜是**衍射光栅**：色带随角度看才动，静态的彩虹条看着像格纹布、会动的才像镭射膜。
+   所以 hover 时把带位平移一点 —— **只给全息**：青海波 / 像素那几种的图案是**平铺**的，
+   同样的位移会让整片纹样在悬停时跳一下（像卡了）。全息有 `home-card--foil` 这个类
+   （模板与 JS 都会给它加上，只是没有对应的 CSS 规则），所以这里能精确挑出它。 */
+.home-card--foil:hover::before {
+  background-position: 22px 0, 0 0, 0 0;
+}
+
+/* 金边：拉丝金属框 + 斜向柔光 + 描金角（**没有菱格了**：45°/−45° 等距十字是「纱窗」） */
 .home-card--gold {
-  --cframe: linear-gradient(140deg, #fff3c4, #c9a227 34%, #fff8dd 52%, #a8791a 78%, #ffeeb8);
+  --cframe: linear-gradient(140deg, #fff6d5, #e7cd7e 16%, #c9a227 32%, #fff8dd 50%, #b8991f 66%, #a8791a 84%, #ffeeb8);
   --cplate: linear-gradient(to top, rgba(30, 21, 6, .93), rgba(30, 21, 6, .62));
   --cplate-solid: rgba(30, 21, 6, .88);
   --cplate-text: #fbeecb;
   --cplate-accent: #e8cf8f;
   --coverlay:
-    repeating-linear-gradient(45deg, rgba(255, 222, 150, .18) 0 1px, transparent 1px 18px),
-    repeating-linear-gradient(-45deg, rgba(255, 222, 150, .13) 0 1px, transparent 1px 18px),
-    radial-gradient(circle 7px at 13% 87%, rgba(255, 238, 186, .5) 0 42%, transparent 100%),
-    radial-gradient(circle 7px at 87% 13%, rgba(255, 238, 186, .42) 0 42%, transparent 100%),
-    linear-gradient(118deg, rgba(255, 240, 200, .18) 6%, transparent 44%);
-  --cblend: screen;
-  --coverlay-op: .34;
+    linear-gradient(118deg, rgba(255, 242, 206, 0) 6%, rgba(255, 242, 206, .34) 26%, rgba(255, 226, 150, .10) 44%, rgba(255, 248, 224, .28) 62%, rgba(255, 238, 186, 0) 88%),
+    radial-gradient(circle 9px at 12% 88%, rgba(255, 240, 196, .5) 0 34%, rgba(255, 240, 196, 0) 100%),
+    radial-gradient(circle 9px at 88% 12%, rgba(255, 240, 196, .44) 0 34%, rgba(255, 240, 196, 0) 100%),
+    var(--grain-fine);
+  --cblend: overlay;
+  --coverlay-op: .7;
+  --cfilter: none;
 }
 
-/* 和纸：米色纸纹（看得见的纤维）+ 几片薄花瓣 */
+/* 和纸：**各向异性**纤维（横向的长丝）+ 两团纸浆的云斑。
+   上一版是 90°/0° 等距十字 —— 那是织布，不是纸：纸的纤维只朝一个方向，而且有长有短。 */
 .home-card--washi {
   --cframe: linear-gradient(140deg, #f4ecdc, #d8c9b2 52%, #faf4e8);
   --cplate: linear-gradient(to top, rgba(48, 35, 25, .92), rgba(48, 35, 25, .6));
@@ -441,34 +477,35 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #fdf7ec;
   --cplate-accent: #e2b9a4;
   --coverlay:
-    repeating-linear-gradient(90deg, rgba(122, 96, 62, .2) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(0deg, rgba(122, 96, 62, .10) 0 2px, transparent 2px 11px),
-    radial-gradient(ellipse 7px 4px at 18% 22%, rgba(186, 104, 104, .34), transparent 100%),
-    radial-gradient(ellipse 6px 3px at 76% 36%, rgba(186, 104, 104, .28), transparent 100%),
-    radial-gradient(ellipse 9px 4px at 44% 74%, rgba(186, 104, 104, .24), transparent 100%);
-  --cblend: soft-light;
+    var(--grain-fiber),
+    radial-gradient(62% 36% at 30% 24%, rgba(186, 140, 108, .18), rgba(186, 140, 108, 0) 100%),
+    radial-gradient(54% 32% at 74% 70%, rgba(150, 120, 90, .16), rgba(150, 120, 90, 0) 100%),
+    var(--grain);
+  --cblend: multiply;
   --coverlay-op: 1;
   --coverlay-mask: radial-gradient(58% 46% at 50% 40%, transparent 0 40%, #000 82%);
+  --cfilter: none;
 }
 
-/* 霜蓝：冰蓝框 + 霜晶（6 根主枝 / 12 根短枝）+ 顶部冷光 */
+/* 霜蓝：收尖的软扇骨（6 主枝 + 12 短枝）+ 顶部冷光 + 细霜颗粒。
+   上一版是 .7° 的硬锥形线 —— 冰晶该是「中间亮、两端收」的。 */
 .home-card--frost {
   --cframe: linear-gradient(140deg, #eaf6ff, #8fc4e8 46%, #f7fcff);
   --cplate: linear-gradient(to top, rgba(10, 24, 38, .94), rgba(10, 24, 38, .72));
   --cplate-solid: rgba(10, 24, 38, .9);
   --cplate-text: #eaf6ff;
   --cplate-accent: #b7dcf5;
-  /* 26 根细辐条（5°/13°）在 272px 下糊成一圈光晕，看不出「霜晶」；改成 6 根主枝 + 12 根短枝，
-     线更亮、数量更少，才有晶体的骨架。**不挖空**：它是细线不是面，压在脸上是「结霜」而不是「盖住」。 */
   --coverlay:
-    repeating-conic-gradient(from 0deg at 50% 36%, rgba(232, 248, 255, .55) 0 .7deg, transparent .7deg 60deg),
-    repeating-conic-gradient(from 30deg at 50% 36%, rgba(198, 232, 255, .34) 0 .5deg, transparent .5deg 30deg),
-    radial-gradient(80% 46% at 50% 0%, rgba(255, 255, 255, .28), transparent 74%);
+    repeating-conic-gradient(from 0deg at 50% 36%, rgba(238, 250, 255, 0) 0 .15deg, rgba(238, 250, 255, .5) .75deg, rgba(238, 250, 255, .16) 1.5deg, rgba(238, 250, 255, 0) 2.6deg, rgba(238, 250, 255, 0) 60deg),
+    repeating-conic-gradient(from 30deg at 50% 36%, rgba(206, 236, 255, 0) 0 .2deg, rgba(206, 236, 255, .3) .7deg, rgba(206, 236, 255, 0) 1.6deg, rgba(206, 236, 255, 0) 30deg),
+    radial-gradient(80% 46% at 50% 0%, rgba(255, 255, 255, .26), rgba(255, 255, 255, 0) 74%),
+    var(--grain-fine);
   --cblend: screen;
-  --coverlay-op: .46;
+  --coverlay-op: .5;
+  --cfilter: url(#deck-rough);
 }
 
-/* 墨：近黑框 + 极淡的宣纸横纹 + 一道飞白 + 底部压深 */
+/* 墨：底部压深 + 一道飞白 + 纸颗粒（原来那 2px/6px 的横向细纹在 272px 下只是瑕疵，去掉了） */
 .home-card--ink {
   --cframe: linear-gradient(140deg, #3b3543, #141119 55%, #4b4452);
   --cplate: linear-gradient(to top, rgba(8, 7, 11, .94), rgba(8, 7, 11, .68));
@@ -476,31 +513,38 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #efe8f0;
   --cplate-accent: var(--accent);
   --coverlay:
-    linear-gradient(0deg, rgba(0, 0, 0, .32), rgba(0, 0, 0, 0) 52%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, .045) 0 2px, transparent 2px 6px),
-    linear-gradient(122deg, transparent 60%, rgba(255, 255, 255, .10) 67%, transparent 74%);
+    linear-gradient(0deg, rgba(0, 0, 0, .34), rgba(0, 0, 0, 0) 54%),
+    linear-gradient(122deg, rgba(255, 255, 255, 0) 56%, rgba(255, 255, 255, .10) 68%, rgba(255, 255, 255, 0) 80%),
+    var(--grain);
   --cblend: overlay;
-  --coverlay-op: .6;
+  --coverlay-op: .65;
+  --cfilter: none;
 }
 
-/* 玻璃：磨砂只做**下半张**（上半张保持通透），罩子的观感靠内圈亮边 + 斜向反光。
-   上一版整卡 blur(2px) 在 272px 下把脸糊到认不出（实测截图）—— 玻璃感有了，但卡里没人了。
-   mask 让磨砂从 46% 处渐入：脸在通透区，衣裙与背景被糊开，「隔着一层玻璃看画」的意思还在。 */
+/* 玻璃：**四件套**（倒角 + 柔和高光 + 边缘折射 + 假厚度）。
+   上一版只有「一道斜渐变 + 1px 内环 + 半张磨砂」，零立体线索。真玻璃的深度感来自四件事，
+   这里逐件做：① 倒角 —— 左上受光、右下背光的分层 inset 阴影（不占盒尺寸）；② 高光 —— 三个软椭圆
+   的径向渐变（不再是硬光带）；③ 边缘折射 —— 底边一道 1px 亮线与一圈玻璃边；④ **厚度** —— 装饰
+   子元素 `.home-card-lens` 把画作（`--art`）再铺一遍、放大错位模糊后**只在边缘露出**，模拟厚玻璃
+   把画面折过去的那一圈。磨砂仍然只做下半张（上半张通透，脸才看得清）。 */
 .home-card--glass {
-  --cframe: linear-gradient(150deg, rgba(255, 255, 255, .82), rgba(214, 236, 255, .3) 42%, rgba(255, 255, 255, .66));
+  --cframe: linear-gradient(150deg, rgba(255, 255, 255, .84), rgba(214, 236, 255, .34) 42%, rgba(255, 255, 255, .68));
   --cplate: linear-gradient(to top, rgba(14, 22, 32, .9), rgba(14, 22, 32, .55));
   --cplate-solid: rgba(14, 22, 32, .86);
   --cplate-text: #f2f8ff;
   --cplate-accent: #cfe6ff;
-  --coverlay: linear-gradient(118deg,
-      rgba(255, 255, 255, .30) 0%, rgba(255, 255, 255, .05) 24%, rgba(255, 255, 255, 0) 40%,
-      rgba(255, 255, 255, .16) 60%, rgba(255, 255, 255, 0) 76%);
+  --coverlay: linear-gradient(to bottom, rgba(255, 255, 255, 0) 44%, rgba(255, 255, 255, .07) 74%);
   --cblend: normal;
   --coverlay-op: 1;
-  --coverlay-mask: linear-gradient(to bottom, transparent 0 46%, #000 78%);
-  /* 内圈亮边画在**卡片自己**身上（不占盒尺寸），不画在 ::before 上 —— ::before 现在带 mask，
-     画在它身上的边会跟着一起被挖掉（上半圈会缺一截）。 */
-  box-shadow: var(--shadow-card), inset 0 0 0 1px rgba(255, 255, 255, .5);
+  --coverlay-mask: linear-gradient(to bottom, transparent 0 44%, #000 74%);
+  --cfilter: none;
+  box-shadow:
+    var(--shadow-card),
+    inset 1px 1px 0 rgba(255, 255, 255, .55),            /* 左上受光的倒角 */
+    inset -1px -1px 0 rgba(0, 0, 0, .26),                /* 右下背光 */
+    inset 0 0 0 1px rgba(255, 255, 255, .3),             /* 一圈玻璃边 */
+    inset 0 -2px 1px -1px rgba(255, 255, 255, .5),       /* 底边的折射亮线 */
+    inset 0 16px 28px -22px rgba(255, 255, 255, .55);    /* 顶部内侧的体积光 */
 }
 
 .home-card--glass::before {
@@ -508,9 +552,45 @@ a.home-deck-dialog-credit:hover {
   -webkit-backdrop-filter: blur(2.5px) saturate(112%);
 }
 
-/* 哥特教堂玻璃：**斜的、疏密不匀的**铅条分格 + 金/蓝/玫红三块宝石片 + 暗角。
-   等距十字线（原来 0/90/45 度、44/38/56px）在 272px 下就是一层纱窗 —— 手工铅条是不规则的，
-   所以这里只用两组**斜**线（14°与 76°，周期 34/26px），再靠三块宝石片与重暗角给「教堂」的意思。 */
+.home-card--glass::after {
+  /* 镜面高光**不能挂在 ::before 上**：那一层带着「磨砂只做下半张」的 mask，高光会被一起压到下半张，
+     于是卡变成「上平下发白」。挪到不挂 mask 的 ::after 上，光才落在该在的位置（光从上面来）。
+     代价是玻璃这一种没有换卡扫光 —— 它自己的高光已经够了（金继也这么换掉了扫光）。 */
+  background-image:
+    radial-gradient(44% 19% at 28% 10%, rgba(255, 255, 255, .34), rgba(255, 255, 255, 0) 76%),
+    radial-gradient(26% 13% at 78% 85%, rgba(255, 255, 255, .2), rgba(255, 255, 255, 0) 80%),
+    linear-gradient(180deg, rgba(255, 255, 255, .13), rgba(255, 255, 255, 0) 22%);
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-position: 0 0, 0 0, 0 0;
+  mix-blend-mode: screen;
+  opacity: 1;
+}
+
+/* 玻璃的厚度层：默认不显示（只有玻璃这一种卡用它），所以关掉 JS 的首屏也是对的 */
+.home-card-lens {
+  display: none;
+}
+
+.home-card--glass .home-card-lens {
+  display: block;
+  position: absolute;
+  inset: 2px;
+  border-radius: calc(var(--cradius) - 2px);
+  background-image: var(--art);
+  background-size: cover;
+  background-position: center;
+  /* 放大 + 错位 = 玻璃把画面折过去的位移；模糊 = 屈光；提亮 = 玻璃本身的透过率 */
+  transform: scale(1.055) translateY(1.5px);
+  filter: blur(2.6px) saturate(1.1) brightness(1.05);
+  /* 只在边缘露出：中间整块挖掉（那部分是真正的画面，由 <img> 负责） */
+  mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 60%, #000 100%);
+  -webkit-mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 60%, #000 100%);
+  opacity: .55;
+  pointer-events: none;
+}
+
+/* 哥特教堂玻璃：软笔触铅条（粗细不等、带晕）+ 四块宝石片 + 暗角 + 纸颗粒。
+   铅条手抖过（`#deck-rough`），所以不再是「一层纱窗」——真铅条是弯的、宽窄不一的。 */
 .home-card--gothic {
   --cframe: linear-gradient(150deg, #6d5a86, #2a2136 45%, #7a5f8f);
   --cplate: linear-gradient(to top, rgba(12, 8, 18, .94), rgba(12, 8, 18, .66));
@@ -518,38 +598,38 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #f3ecff;
   --cplate-accent: #ffd9a8;
   --coverlay:
-    repeating-linear-gradient(14deg, rgba(9, 7, 13, .40) 0 1.6px, transparent 1.6px 34px),
-    repeating-linear-gradient(76deg, rgba(9, 7, 13, .34) 0 1.4px, transparent 1.4px 26px),
-    radial-gradient(26% 19% at 24% 20%, rgba(255, 196, 92, .46) 0 58%, transparent 100%),
-    radial-gradient(23% 17% at 79% 45%, rgba(96, 162, 255, .4) 0 56%, transparent 100%),
-    radial-gradient(25% 18% at 37% 84%, rgba(216, 94, 142, .42) 0 58%, transparent 100%),
-    radial-gradient(19% 14% at 62% 66%, rgba(140, 220, 190, .3) 0 56%, transparent 100%),
-    radial-gradient(125% 95% at 50% 50%, transparent 40%, rgba(6, 4, 10, .5) 100%);
+    repeating-linear-gradient(14deg, rgba(9, 7, 13, 0) 0 3.4px, rgba(9, 7, 13, .42) 4.6px 5.8px, rgba(9, 7, 13, .12) 7px 8.6px, rgba(9, 7, 13, 0) 10.4px 44px),
+    repeating-linear-gradient(76deg, rgba(9, 7, 13, 0) 0 2.6px, rgba(9, 7, 13, .34) 3.6px 4.6px, rgba(9, 7, 13, .1) 5.6px 6.8px, rgba(9, 7, 13, 0) 8.2px 33px),
+    radial-gradient(26% 19% at 24% 20%, rgba(255, 196, 92, .44) 0 40%, rgba(255, 196, 92, 0) 100%),
+    radial-gradient(23% 17% at 79% 45%, rgba(96, 162, 255, .38) 0 38%, rgba(96, 162, 255, 0) 100%),
+    radial-gradient(25% 18% at 37% 84%, rgba(216, 94, 142, .4) 0 40%, rgba(216, 94, 142, 0) 100%),
+    radial-gradient(19% 14% at 62% 66%, rgba(140, 220, 190, .28) 0 38%, rgba(140, 220, 190, 0) 100%),
+    radial-gradient(125% 95% at 50% 50%, rgba(6, 4, 10, 0) 40%, rgba(6, 4, 10, .5) 100%),
+    var(--grain);
   --cblend: normal;
-  --coverlay-op: .7;
+  --coverlay-op: .95;
+  --cfilter: url(#deck-rough);
 }
 
-/* 樱纹：淡粉底 + 五片错落的椭圆花瓣（其中一片带更亮的瓣心） */
+/* 樱纹：五片**真的花瓣轮廓**（形状在 mask 里，颜色在 CSS 里）+ 瓣内细颗粒。
+   上一版是五个模糊椭圆 —— 272px 下就是几个粉点，看不出是花瓣。 */
 .home-card--sakura {
   --cframe: linear-gradient(140deg, #ffe8f0, #f3bfd3 48%, #fff3f7);
   --cplate: linear-gradient(to top, rgba(58, 26, 38, .9), rgba(58, 26, 38, .58));
   --cplate-solid: rgba(58, 26, 38, .86);
   --cplate-text: #fff2f6;
   --cplate-accent: #ffc9da;
-  /* 正圆在 272px 下就是红点；椭圆 + 一片偏在一侧的亮瓣心才有花瓣的样子。 */
   --coverlay:
-    radial-gradient(ellipse 11px 6px at 68% 26%, rgba(255, 168, 198, .52), transparent 100%),
-    radial-gradient(ellipse 5px 2px at 72% 24%, rgba(255, 236, 244, .6), transparent 100%),
-    radial-gradient(ellipse 9px 5px at 34% 56%, rgba(255, 152, 188, .44), transparent 100%),
-    radial-gradient(ellipse 13px 7px at 82% 70%, rgba(255, 182, 206, .4), transparent 100%),
-    radial-gradient(ellipse 8px 4px at 14% 80%, rgba(255, 160, 194, .34), transparent 100%);
-  --cblend: soft-light;
-  --coverlay-op: 1;
-  --coverlay-mask: radial-gradient(56% 44% at 50% 40%, transparent 0 44%, #000 84%);
+    linear-gradient(146deg, rgba(255, 178, 206, .92), rgba(255, 214, 230, .84) 46%, rgba(250, 168, 200, .92)),
+    var(--grain-fine);
+  --cblend: normal;
+  --coverlay-op: .72;
+  --coverlay-mask: var(--tex-petal);
+  --cfilter: none;
 }
 
-/* 麻叶纹：三向细线（60/-60/0）的三角格，周期 11px（原来 16px + 粗线，272px 下人是糊白的），
-   并在人物那一块挖空 —— 纹样是底子，不是面纱。 */
+/* 麻叶纹：三向格本来就是**等距**的（那是这个纹样的定义），所以不靠改周期去「去生硬」，
+   靠两件事：软笔触（亮芯 + 淡晕）与手抖滤镜。挖空区比上一版更大，人物那一块是干净的。 */
 .home-card--asanoha {
   --cframe: linear-gradient(140deg, #eff4ea, #c9d8c2 50%, #f5f9f2);
   --cplate: linear-gradient(to top, rgba(28, 44, 28, .92), rgba(28, 44, 28, .6));
@@ -557,16 +637,17 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #f2f8ee;
   --cplate-accent: #cfe3c0;
   --coverlay:
-    repeating-linear-gradient(60deg, rgba(44, 70, 44, .34) 0 1px, transparent 1px 11px),
-    repeating-linear-gradient(-60deg, rgba(44, 70, 44, .34) 0 1px, transparent 1px 11px),
-    repeating-linear-gradient(0deg, rgba(44, 70, 44, .2) 0 1px, transparent 1px 19px);
-  --cblend: multiply;
-  --coverlay-op: .3;
+    repeating-linear-gradient(60deg, rgba(52, 76, 52, 0) 0 2.6px, rgba(52, 76, 52, .5) 3.4px 4.2px, rgba(52, 76, 52, .18) 5px 6px, rgba(52, 76, 52, 0) 6.8px 12px),
+    repeating-linear-gradient(-60deg, rgba(52, 76, 52, 0) 0 2.6px, rgba(52, 76, 52, .5) 3.4px 4.2px, rgba(52, 76, 52, .18) 5px 6px, rgba(52, 76, 52, 0) 6.8px 12px),
+    repeating-linear-gradient(0deg, rgba(52, 76, 52, 0) 0 4.4px, rgba(52, 76, 52, .3) 5.4px 6.4px, rgba(52, 76, 52, .1) 7.4px 8.6px, rgba(52, 76, 52, 0) 9.6px 21px),
+    var(--grain);
+  --cblend: soft-light;
+  --coverlay-op: .9;
   --coverlay-mask: radial-gradient(68% 56% at 50% 42%, transparent 0 52%, #000 90%);
+  --cfilter: url(#deck-rough);
 }
 
-/* 青海波：重叠的半圆波纹。三块同尺寸径向渐变错位平铺（单个圆做不出来，要左右各半圆）。
-   平铺尺寸从 44×22px 收到 30×15px、每格三道环：272px 下一屏才有十来个「鳞」，看得出是海波。 */
+/* 青海波：鳞状半圆（**渐隐的环**，不再是 1% 宽的硬边）+ 每排一点色调差 + 细颗粒 */
 .home-card--seigaiha {
   --cframe: linear-gradient(140deg, #e8f1fa, #b9cfe6 50%, #f2f8fd);
   --cplate: linear-gradient(to top, rgba(16, 34, 54, .92), rgba(16, 34, 54, .6));
@@ -574,17 +655,20 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #eef6ff;
   --cplate-accent: #bcdcff;
   --coverlay:
-    radial-gradient(circle at 50% 100%, transparent 0 38%, rgba(46, 88, 132, .4) 39% 42%, transparent 43% 64%, rgba(46, 88, 132, .3) 65% 68%, transparent 69%),
-    radial-gradient(circle at 0% 100%, transparent 0 38%, rgba(46, 88, 132, .32) 39% 42%, transparent 43% 64%, rgba(46, 88, 132, .26) 65% 68%, transparent 69%),
-    radial-gradient(circle at 100% 100%, transparent 0 38%, rgba(46, 88, 132, .32) 39% 42%, transparent 43% 64%, rgba(46, 88, 132, .26) 65% 68%, transparent 69%);
-  --coverlay-size: 30px 15px;
-  --cblend: multiply;
-  --coverlay-op: .5;
+    radial-gradient(circle at 50% 100%, rgba(46, 88, 132, 0) 0 34%, rgba(46, 88, 132, .44) 41%, rgba(46, 88, 132, .16) 47%, rgba(46, 88, 132, 0) 54%, rgba(46, 88, 132, 0) 64%, rgba(46, 88, 132, .34) 70%, rgba(46, 88, 132, .12) 75%, rgba(46, 88, 132, 0) 81%),
+    radial-gradient(circle at 0% 100%, rgba(46, 88, 132, 0) 0 34%, rgba(46, 88, 132, .36) 41%, rgba(46, 88, 132, .13) 47%, rgba(46, 88, 132, 0) 54%, rgba(46, 88, 132, 0) 64%, rgba(46, 88, 132, .28) 70%, rgba(46, 88, 132, .1) 75%, rgba(46, 88, 132, 0) 81%),
+    radial-gradient(circle at 100% 100%, rgba(46, 88, 132, 0) 0 34%, rgba(46, 88, 132, .36) 41%, rgba(46, 88, 132, .13) 47%, rgba(46, 88, 132, 0) 54%, rgba(46, 88, 132, 0) 64%, rgba(46, 88, 132, .28) 70%, rgba(46, 88, 132, .1) 75%, rgba(46, 88, 132, 0) 81%),
+    var(--grain-fine);
+  --coverlay-size: 32px 16px, 32px 16px, 32px 16px, auto;
+  --cblend: overlay;
+  --coverlay-op: .95;
   --coverlay-mask: radial-gradient(56% 44% at 50% 40%, transparent 0 44%, #000 82%);
+  --cfilter: url(#deck-rough);
 }
 
-/* 雪华：六角雪花结晶 —— 6 根主枝 + 每根上的短分枝 + 中心一小块光核。
-   与 frost 的分工：frost 是**放射的光**（从一点向外渐隐），雪华是**有结构的花**（枝 / 节 / 核）。 */
+/* 雪华：**真雪花**（主枝 + 60° 分枝 + 棱面核心，形状在 mask 里）平铺成一片雪野。
+   上一版是平铺的六向星号，而且注释里承诺的分枝在代码里根本不存在。冷蓝而不是纯白 ——
+   纯白的图案压在浅色画上等于没有（浅画的背景本身就接近白）。 */
 .home-card--yukika {
   --cframe: linear-gradient(140deg, #f4fcff, #a8d4ee 46%, #ffffff);
   --cplate: linear-gradient(to top, rgba(12, 28, 44, .93), rgba(12, 28, 44, .68));
@@ -592,17 +676,18 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #eef8ff;
   --cplate-accent: #cde9ff;
   --coverlay:
-    repeating-conic-gradient(from 0deg at 50% 50%, rgba(238, 250, 255, .62) 0 1.1deg, transparent 1.1deg 60deg),
-    radial-gradient(circle 2.8px at 50% 50%, rgba(255, 255, 255, .68) 0 60%, transparent 100%),
-    radial-gradient(70% 40% at 50% 100%, rgba(180, 216, 240, .2), transparent 72%);
-  --coverlay-size: 52px 44px, 52px 44px, auto;
-  --cblend: screen;
+    linear-gradient(150deg, rgba(92, 138, 190, .95), rgba(140, 186, 226, .9) 48%, rgba(78, 122, 172, .95));
+  --cblend: normal;
   --coverlay-op: .62;
-  --coverlay-mask: radial-gradient(58% 46% at 50% 40%, transparent 0 46%, #000 86%);
+  --coverlay-mask: var(--tex-flake);
+  --cmask-size: 72px 62px;
+  --cmask-repeat: repeat;
+  --cfilter: none;
 }
 
-/* 织锦：经纬各一层细线 + 一层斜纹（twill），满幅织物感。
-   与 gold 的分工：gold 是**边框与菱格**（金属、横向描金），织锦是**布本身**（经纬即画面）。 */
+/* 织锦：**绸面**（浮线的柔光亮带 + 各向异性的纤维 + 斜纹暗示）。
+   上一版是 1px/4px 的三向网格（一张卡 394 条线，等距直角交叉）；真织锦的光泽是「一片流动的
+   柔光」，纹样边缘因为浮线转折而毛，不是格。 */
 .home-card--nishiki {
   --cframe: linear-gradient(140deg, #fdf0d0, #c9a34e 40%, #fff6de 62%, #a8842f);
   --cplate: linear-gradient(to top, rgba(34, 24, 8, .93), rgba(34, 24, 8, .66));
@@ -610,23 +695,20 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #fdf1d4;
   --cplate-accent: #e6c884;
   --coverlay:
-    repeating-linear-gradient(90deg, rgba(255, 234, 180, .18) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(0deg, rgba(255, 234, 180, .14) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(45deg, rgba(120, 84, 24, .12) 0 1px, transparent 1px 2px),
-    linear-gradient(140deg, rgba(255, 240, 200, .2) 6%, transparent 46%);
+    repeating-linear-gradient(90deg, rgba(255, 238, 190, 0) 0 5px, rgba(255, 238, 190, .22) 7.4px 9.4px, rgba(255, 238, 190, .06) 12px 14px, rgba(255, 238, 190, 0) 17px 23px),
+    linear-gradient(142deg, rgba(255, 244, 210, .3) 6%, rgba(255, 244, 210, .06) 38%, rgba(255, 236, 186, .26) 74%, rgba(255, 244, 210, .12) 96%),
+    var(--grain-fiber),
+    var(--grain);
   --cblend: soft-light;
-  --coverlay-op: .9;
+  --coverlay-op: .95;
   --coverlay-mask: radial-gradient(56% 44% at 50% 40%, transparent 0 42%, #000 82%);
+  --cfilter: url(#deck-rough);
 }
 
-/* 金继：黑底 + 三道**缝**（不是三道细金线）。
-   裂缝在 CSS 里只能画直线，所以「不像裂纹」的风险全靠这三件事压住：
-   1. **缝要有暗边，而且要细**：金线 1.2px，两侧各压 0.6px 暗线 —— 暗边给「裂开后补上金」的厚度，
-      宽度决定它像裂缝还是像贴上去的胶带（3px 那版就是黄胶带，实测截图）。金线用 `normal` 混合：
-      screen 会把两侧的暗边吃掉（黑色在 screen 下等于什么都没做），那就又回到「金丝」了。
-   2. **只留三道、角度与落点都错开**（34% / 58% / 28%，23° / 72° / 147°）：六条全从卡片中部穿过
-      时看着是放射的网（改过两版才定下来）。
-   3. 暗角单独放在 ::after —— ::before 是 normal，暗角挂它会连画面一起压平。 */
+/* 金继：黑底 + 4~5 道**弯曲分叉**的金缝（形状在 mask 里、颜色在 CSS 里）。
+   上一版是三根笔直的 linear-gradient 金线 —— CSS 画不出弯的，读作「金丝」。现在每道缝在 mask 里
+   画两遍（宽的 34% 当漆面的晕、窄的 100% 当金属亮芯），收尖靠「递减线宽的路径链」。
+   **混合模式用 normal 而不是 screen**：金色裂缝在浅色画上（木刀那张）用 screen 会完全消失（实测）。 */
 .home-card--kintsugi {
   --cframe: linear-gradient(140deg, #4a4048, #16131a 52%, #3d3640);
   --cplate: linear-gradient(to top, rgba(10, 8, 12, .94), rgba(10, 8, 12, .7));
@@ -634,10 +716,12 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #f6efe4;
   --cplate-accent: #e5b96a;
   --coverlay:
-    linear-gradient(23deg, transparent calc(34% - 1.9px), rgba(8, 6, 10, .42) calc(34% - 1.9px) calc(34% - 1.4px), rgba(246, 210, 130, .96) calc(34% - 1.4px) calc(34% - .2px), rgba(8, 6, 10, .42) calc(34% - .2px) calc(34% + .7px), transparent calc(34% + .7px)),
-    linear-gradient(72deg, transparent calc(58% - 1.9px), rgba(8, 6, 10, .42) calc(58% - 1.9px) calc(58% - 1.4px), rgba(240, 200, 118, .9) calc(58% - 1.4px) calc(58% - .2px), rgba(8, 6, 10, .42) calc(58% - .2px) calc(58% + .7px), transparent calc(58% + .7px)),
-    linear-gradient(147deg, transparent calc(28% - 1.9px), rgba(8, 6, 10, .42) calc(28% - 1.9px) calc(28% - 1.4px), rgba(234, 192, 106, .84) calc(28% - 1.4px) calc(28% - .2px), rgba(8, 6, 10, .42) calc(28% - .2px) calc(28% + .7px), transparent calc(28% + .7px));  --cblend: normal;
+    linear-gradient(150deg, rgba(228, 180, 96, .95), rgba(252, 228, 164, .9) 44%, rgba(206, 158, 76, .95)),
+    var(--grain-fine);
+  --cblend: normal;
   --coverlay-op: .9;
+  --coverlay-mask: var(--tex-crack);
+  --cfilter: url(#deck-rough-crack);
 }
 
 .home-card--kintsugi::after {
@@ -649,9 +733,8 @@ a.home-deck-dialog-credit:hover {
   opacity: 1;
 }
 
-/* 团扇：扇钉在**下边缘中点**，扇骨从那里向上发散 + 两道扇箍。
-   与霜蓝 / 雪华的分工：那两条是「从一点向四面放射」（六向均匀），团扇是**朝一个方向开扇**
-   （圆心在下边、只有上半圈有骨）—— 绫华的兵器。 */
+/* 团扇：**弓形**扇骨（内细外粗、形状在 mask 里）+ 两道软扇箍 + 纸面透光。
+   上一版是 33 根笔直的锥形射线 —— 竹骨是弯的，而且没有那么多根。 */
 .home-card--uchiwa {
   --cframe: linear-gradient(140deg, #fdf3e6, #d9b98f 48%, #fff8ee);
   --cplate: linear-gradient(to top, rgba(38, 26, 18, .92), rgba(38, 26, 18, .62));
@@ -659,18 +742,18 @@ a.home-deck-dialog-credit:hover {
   --cplate-text: #fdf3e6;
   --cplate-accent: #e8c79a;
   --coverlay:
-    repeating-conic-gradient(from 200deg at 50% 104%, rgba(152, 106, 56, .42) 0 .8deg, transparent .8deg 11deg),
-    repeating-conic-gradient(from 200deg at 50% 104%, transparent 0 22deg, rgba(152, 106, 56, .24) 22deg 23.2deg, transparent 23.2deg 44deg),
-    radial-gradient(circle at 50% 104%, transparent 0 45.6%, rgba(152, 106, 56, .28) 46.2% 47.2%, transparent 47.8%),
-    radial-gradient(circle at 50% 104%, transparent 0 65.6%, rgba(152, 106, 56, .22) 66.2% 67.2%, transparent 67.8%);
-  --cblend: multiply;
-  --coverlay-op: .6;
-  --coverlay-mask: radial-gradient(58% 46% at 50% 42%, transparent 0 46%, #000 86%);
+    linear-gradient(160deg, rgba(198, 156, 106, .9), rgba(246, 226, 196, .78) 50%, rgba(176, 134, 88, .9)),
+    radial-gradient(46% 30% at 50% 6%, rgba(255, 246, 226, .5), rgba(255, 246, 226, 0) 100%),
+    var(--grain-fiber);
+  --cblend: overlay;
+  --coverlay-op: .8;
+  --coverlay-mask: var(--tex-rib);
+  --cfilter: url(#deck-rough-crack);
 }
 
 /* 像素：硬边方角 + 棋盘网点 + 等宽字名牌。**当前没有卡用它**（2026-09-19 按「不要像素小人头」
    把那 8 张撤了），生成器里的 pixel 通道（最近邻放大 + 棋盘底）与这条样式都留着 ——
-   想加回像素卡只需在 YAML 里写 `style: pixel`。 */
+   想加回像素卡只需在 YAML 里写 `style: pixel`。硬边是这一种的**题材本身**，所以它不挂手抖滤镜。 */
 .home-card--pixel {
   --cframe: none;
   --cradius: 4px;
@@ -684,32 +767,30 @@ a.home-deck-dialog-credit:hover {
   --coverlay-op: 1;
   --coverlay-size: 6px 6px;
   background-color: #1a1821;
-  /* 硬边用 inset box-shadow 而不是 border：border 占盒尺寸，这张卡会比别的卡大一圈
-     （2026-09-20 改；㊱ 那条「边一律 box-shadow」的约定就是这么来的）。 */
+  /* 硬边用 inset box-shadow 而不是 border：border 占盒尺寸，这张卡会比别的卡大一圈（㊱ 的约定）。 */
   box-shadow: var(--shadow-card), inset 0 0 0 2px var(--edge);
 }
 
 /* ---------- 深色主题：**逐条给值，不要一条通吃** ----------
 
-   默认那条（.3）是给 foil / frost / gold / yukika 这类用 screen 的风格的：深底上它们提亮很猛，
-   不压整张卡会白掉。而 glass（normal + backdrop-filter）、gothic / asanoha / seigaiha / uchiwa /
-   nishiki（multiply + normal）、kintsugi（screen 但底就是黑的）在深色下观感本来正常 ——
+   默认那条是给 foil / frost 这类「往上加亮」的风格的：深底上提亮很猛，不压整张卡会白掉。
+   而 washi / kintsugi / uchiwa 这类 `normal` + 半透明材料的，在深色下本来正常，压了反而没质感。
    早先一条 `.home-card { --coverlay-op: .18 }` 把哥特的铅条玻璃压没了（实测），所以这里逐条给值。
-   **新增风格时必须同时补上这一条**，否则它在深色下要么白掉、要么整层消失。 */
-:root[data-theme="dark"] .home-card { --coverlay-op: .3; }
-:root[data-theme="dark"] .home-card--gold { --coverlay-op: .3; }
-:root[data-theme="dark"] .home-card--frost { --coverlay-op: .28; }
-:root[data-theme="dark"] .home-card--yukika { --coverlay-op: .34; }
-:root[data-theme="dark"] .home-card--washi { --coverlay-op: .85; }
-:root[data-theme="dark"] .home-card--nishiki { --coverlay-op: .7; }
-:root[data-theme="dark"] .home-card--ink { --coverlay-op: .55; }
+   **新增风格必须补一条**，否则它在深色下要么白掉、要么整层消失。 */
+:root[data-theme="dark"] .home-card { --coverlay-op: .6; }
+:root[data-theme="dark"] .home-card--gold { --coverlay-op: .6; }
+:root[data-theme="dark"] .home-card--washi { --coverlay-op: 1; }
+:root[data-theme="dark"] .home-card--frost { --coverlay-op: .4; }
+:root[data-theme="dark"] .home-card--ink { --coverlay-op: .6; }
 :root[data-theme="dark"] .home-card--glass { --coverlay-op: 1; }
-:root[data-theme="dark"] .home-card--kintsugi { --coverlay-op: .9; }
-:root[data-theme="dark"] .home-card--gothic { --coverlay-op: .9; }
-:root[data-theme="dark"] .home-card--sakura { --coverlay-op: .9; }
-:root[data-theme="dark"] .home-card--asanoha { --coverlay-op: .5; }
-:root[data-theme="dark"] .home-card--seigaiha { --coverlay-op: .5; }
-:root[data-theme="dark"] .home-card--uchiwa { --coverlay-op: .55; }
+:root[data-theme="dark"] .home-card--gothic { --coverlay-op: .95; }
+:root[data-theme="dark"] .home-card--sakura { --coverlay-op: .8; }
+:root[data-theme="dark"] .home-card--asanoha { --coverlay-op: .9; }
+:root[data-theme="dark"] .home-card--seigaiha { --coverlay-op: .85; }
+:root[data-theme="dark"] .home-card--yukika { --coverlay-op: .85; }
+:root[data-theme="dark"] .home-card--nishiki { --coverlay-op: .85; }
+:root[data-theme="dark"] .home-card--kintsugi { --coverlay-op: .95; }
+:root[data-theme="dark"] .home-card--uchiwa { --coverlay-op: .6; }
 
 /* ---------- 减少动态：不轮播（JS 侧直接跳过）、不做淡入淡出与扫光 ---------- */
 @media (prefers-reduced-motion: reduce) {

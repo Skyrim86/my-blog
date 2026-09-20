@@ -287,6 +287,9 @@
     img.srcset = it.s + ' 1x, ' + (it.l || it.s) + ' 2x';
     img.width = it.w;
     img.height = it.h;
+    // 玻璃的「厚度」层靠 `--art` 再铺一遍同一张画作（模板首次渲染也给了这个变量）。
+    // 与 src 同一个 URL，所以不多一次请求；换卡时必须一起换，否则厚度层还停在上一张画上。
+    card.style.setProperty('--art', "url('" + (it.l || it.s) + "')");
     if (label) label.textContent = it.label || '';
     if (indexEl) indexEl.textContent = pad(j + 1) + ' / ' + pad(items.length);
     // 风格类：**按前缀清掉旧的**，不写死风格清单 —— 写死过一次（新增 glass/gothic/… 时忘了同步），
