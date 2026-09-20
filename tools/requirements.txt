@@ -7,14 +7,19 @@
 # ---- 谁需要什么 ----
 #   Pillow         tools/icons/make-icons.py、tools/covers/make-covers.py、
 #                  tools/backgrounds/make-backgrounds.py、make-admin-bg.py、
-#                  tools/cards/make-cards.py
+#                  tools/cards/make-cards.py、tools/cards/make-depth.py
 #    numpy         tools/backgrounds/make-backgrounds.py、make-mascot.py、make-mascot-left.py、
-#                  tools/cards/make-cards.py
+#                  tools/cards/make-cards.py、tools/cards/make-depth.py
 #    opencv-python tools/backgrounds/make-mascot.py、make-mascot-left.py（白底抠图）
 #    PyYAML        tools/cards/make-cards.py（读 data/home-cards.yaml）、
+#                  tools/cards/make-depth.py（读同一份清单）、
 #                  tools/course-import/import_course.py（读 data/math-branches.yaml，import 带兜底）、
 #                  tools/wiki-publish/{publish,cards}.py
 #    —— tools/course-import/import_course.py 除 YAML 外只用标准库
+#
+#   **不在本文件里的**：tools/cards/make-depth.py 还需要 torch / transformers / scipy，
+#   那三项是 CUDA 级的重依赖（torch 的 wheel 接近 2 GB），单独写在
+#   tools/cards/requirements-depth.txt —— 让「只想重生成一张图标」的人不必付这笔下载。
 #
 # 2026-09-18 立此文件前，这三项依赖完全没有声明：换一台机器想重生成图标或背景图，只能靠
 # 读脚本的 import 反推版本。而仓库其余部分的锁版本纪律很严（Hugo 钉在 action.yml、所有 Action

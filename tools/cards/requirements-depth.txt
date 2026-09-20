@@ -1,0 +1,21 @@
+# tools/cards/make-depth.py 的**额外**依赖（在 tools/requirements.txt 的基础上）。
+#
+# 为什么单独一个文件、而不是并进 tools/requirements.txt：
+# 这三项是 CUDA 级的重依赖（torch 的 wheel 接近 2 GB）。而 tools/requirements.txt 是
+# 「跑任何生成器前都先装上」的那一份 —— 把 torch 塞进去，等于让「只想重生成一张图标」的人
+# 也付 2 GB 与一次几分钟的安装。要跑深度图的人是大批生成卡面时才跑一次，所以这里分开写。
+#
+# 用法（在仓库根目录，先装基础依赖再装这一份）：
+#   pip install -r tools/requirements.txt -r tools/cards/requirements-depth.txt
+#
+# 版本是本机（2026-09-20）实测版本。torch 的 `+cu128` 后缀是 PyPI 上的 CUDA 12.8 构建，
+# 换机器时按 https://pytorch.org 的对应 CUDA 版本装；**没有 GPU 也能跑**（脚本自动退到 CPU，
+# 只是慢很多）。
+#
+# 模型权重不进仓库：make-depth.py 首次运行会从 **hf-mirror.com** 下载
+# depth-anything/Depth-Anything-V2-Small-hf（约 100 MB）到 HuggingFace 缓存，
+# 之后离线可用。**huggingface.co 在开发机上不通**，脚本里把 HF_ENDPOINT 默认指到镜像，
+# 换网络环境时可以用环境变量覆盖。
+torch==2.11.0
+transformers==5.17.0
+scipy==1.15.3

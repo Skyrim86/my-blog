@@ -152,6 +152,54 @@
   bigImg.setAttribute('draggable', 'false');
   bigImg.alt = '';
 
+  /* ---------- 3D 检视台 ----------
+     弹层里放的是一个「台面」：正常情况下里面是 canvas（assets/js/card-3d.js 渲染的可转动真卡），
+     没有 WebGL 或着色器编译失败时里面是上面的平面大图 —— 两者占地口径一致（都是 5:7 的盒子），
+     所以回退时布局不会跳。 */
+  var stage = document.createElement('div');
+  stage.className = 'home-deck-stage';
+  stage.appendChild(bigImg);
+
+  // 翻面按钮：**由脚本注入**（禁 JS 时不存在，也就不会留下点不动的控件）。
+  // 它同时是「转动」的无障碍入口 —— 拖拽手势读屏用户拿不到，键盘用户只能靠它和方向键。
+  var flipBtn = document.createElement('button');
+  flipBtn.type = 'button';
+  flipBtn.className = 'home-deck-flip';
+  flipBtn.setAttribute('aria-pressed', 'false');
+  flipBtn.textContent = deck.dataset.flip || 'flip';
+  flipBtn.addEventListener('click', function () {
+    if (!viewer) return;
+    var back = viewer.flip();
+    flipBtn.setAttribute('aria-pressed', back ? 'true' : 'false');
+    flipBtn.textContent = (back ? deck.dataset.flipBack : deck.dataset.flip) || flipBtn.textContent;
+  });
+  var actions = document.createElement('div');
+  actions.className = 'home-deck-actions';
+  actions.hidden = true;              // 只有 3D 可用时才现身（见 ensureViewer）
+  actions.appendChild(flipBtn);
+
+  // 只在**第一次打开**时才建 WebGL 上下文：绝大多数访客不会点 ⤢，
+  // 为他们每人建一个 GL 上下文 + 上传两张纹理会白占显存。
+  var viewer = null, viewerTried = false;
+  function ensureViewer() {
+    if (viewerTried) return viewer;
+    viewerTried = true;
+    if (!window.card3d || typeof window.card3d.attach !== 'function') {
+      // 脚本没加载（被拦截、或改坏了）：等同于「没有 3D」，但要留痕，不静默
+      console.warn('[home-deck] card-3d.js 没加载，弹层里只能看平面大图');
+      return null;
+    }
+    viewer = window.card3d.attach(stage, deck) ? window.card3d : null;
+    if (viewer) {
+      bigImg.hidden = true;            // 3D 可用时平面大图退居幕后（卡背信息仍有等价的 DOM 文本）
+      actions.hidden = false;
+    } else {
+      stage.classList.add('is-gl-failed');
+      stage.setAttribute('data-gl-note', deck.dataset.glFail || '');
+    }
+    return viewer;
+  }
+
   var meta = document.createElement('div');
   meta.className = 'home-deck-dialog-meta';
   var metaName = document.createElement('span');
@@ -193,7 +241,8 @@
     panel.appendChild(b);
   });
 
-  panel.appendChild(bigImg);
+  panel.appendChild(stage);
+  panel.appendChild(actions);
   panel.appendChild(meta);
   panel.appendChild(closeBtn);
   dlg.appendChild(backdrop);
@@ -211,14 +260,17 @@
     metaName.textContent = item.label || '';
     metaSeries.textContent = item.series || '';
     metaIndex.textContent = pad(i + 1) + ' / ' + pad(items.length);
+    // 卡背上的信息与这里**是同一份**：卡背是 canvas 画出来的，对比度脚本与读屏都看不见它，
+    // 所以这一行 DOM 文本必须留着（少了它，卡背上的字就成了只有看得见的人拿得到的信息）。
+    var credit = item.url ? creditLabel + ' ' + (item.credit || '') : (item.credit ? creditLabel + ' ' + item.credit : '');
     if (item.url) {
       creditLink.href = item.url;
-      creditLink.textContent = creditLabel + ' ' + (item.credit || '');
+      creditLink.textContent = credit;
       creditLink.hidden = false;
       creditText.hidden = true;
     } else if (item.credit) {
       // 官方立绘与站点自己的看板娘没有可点的出处：显示文字，不编一个链接上去
-      creditText.textContent = creditLabel + ' ' + item.credit;
+      creditText.textContent = credit;
       creditText.hidden = false;
       creditLink.hidden = true;
     } else {
@@ -226,12 +278,38 @@
       creditText.hidden = true;
     }
     dlg.setAttribute('aria-label', dialogTpl.replace('{label}', item.label || ''));
+    if (viewer) {
+      viewer.setItem({
+        s: item.s, l: item.l, d: item.d || '',
+        label: item.label || '', series: item.series || '', style: item.style || 'foil',
+        rank: item.rank || 'collector', rankLabel: item.rankLabel || '',
+        indexText: pad(i + 1) + ' / ' + pad(items.length),
+        creditText: credit
+      });
+      // 读屏用户看不到画布，用 aria-label 把「这张卡是谁、能怎么操作」说全
+      var c = stage.querySelector('canvas');
+      if (c) {
+        c.setAttribute('aria-label', (deck.dataset.rotate || '{label}')
+          .replace('{label}', item.label || '')
+          .replace('{n}', i + 1).replace('{total}', items.length));
+      }
+      flipBtn.setAttribute('aria-pressed', 'false');
+      flipBtn.textContent = deck.dataset.flip || flipBtn.textContent;
+    }
   }
 
   function openDialog() {
-    fillDialog(items[i]);
+    // 顺序要紧：viewer 必须先建好（attach 之后 setItem 才有效），而 setOpen 要在弹层**可见之后**
+    // 再调 —— 画布尺寸取自 clientWidth，hidden 的时候它是 0。
+    ensureViewer();
     dlg.hidden = false;
     deck.classList.add('is-dialog');
+    // 弹层是模态：页面上的浮动控件（返回顶部 / 滚到底部，z-index 比弹层高）要收起来。
+    // 实测窄屏下「滚到底部」那个圆正好盖住弹层右下角的「01 / 32」，而且它们在模态里还可点 ——
+    // 点一下会把背后的页面滚走。用 html 上的类控制（CSS 里一条规则收掉它们）。
+    document.documentElement.classList.add('is-deck-dialog');
+    fillDialog(items[i]);
+    if (viewer) viewer.setOpen(true);
     stop();                        // 弹层开着时不要在背后换卡
     progress.classList.add('is-paused');
     closeBtn.focus();
@@ -239,7 +317,9 @@
 
   function closeDialog() {
     if (dlg.hidden) return;
+    if (viewer) viewer.setOpen(false);   // 停掉动画循环：弹层关着时不该占着 GPU
     dlg.hidden = true;
+    document.documentElement.classList.remove('is-deck-dialog');
     deck.classList.remove('is-dialog');
     // 焦点**还给放大按钮**，而不是「记下打开前谁有焦点」：这个弹层只有放大按钮能打开，而
     // 程序化触发的点击不会移动焦点，于是「打开前的焦点」往往在别处（实测回到 .list 上，
@@ -248,24 +328,30 @@
     start();                       // 关掉之后接着轮播，进度条跟着重来
   }
 
-  /* 弹层里的键盘：Esc 关、左右切（切的是同一副牌，弹层里的大图跟着换）。 */
+  /* 弹层里的键盘：Esc 关、左右切（切的是同一副牌，弹层里的大图跟着换）。
+     注意**焦点在画布上时左右键归画布**（那是转卡，不是换卡）—— 两个监听都在 document 上，
+     不分开的话按一下会既转卡又换卡。 */
   document.addEventListener('keydown', function (e) {
     if (dlg.hidden) return;
+    var onCanvas = e.target && e.target.classList && e.target.classList.contains('home-deck-canvas');
     if (e.key === 'Escape') {
       e.preventDefault();
       closeDialog();
       return;
     }
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !onCanvas) {
       e.preventDefault();
       go(e.key === 'ArrowRight' ? 1 : -1, true);
       return;
     }
     if (e.key === 'Tab') {
-      // 焦点锁在弹层里：只有这两个按钮（+ 可能的出处链接）该被 tab 到，出了弹层就等于跑到背后去了
-      var f = dlg.querySelectorAll('button, a[href]');
+      // 焦点锁在弹层里：只有这几个控件该被 tab 到，出了弹层就等于跑到背后去了。
+      // 画布也在名单里 —— 它 tabindex=0 且方向键能用，漏掉它会让 Tab 顺序断在中间。
+      var f = dlg.querySelectorAll('button, a[href], canvas[tabindex]');
       if (!f.length) return;
-      var first = f[0], last = f[f.length - 1];
+      var list = Array.prototype.filter.call(f, function (el) { return !el.hidden; });
+      if (!list.length) return;
+      var first = list[0], last = list[list.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
@@ -301,6 +387,12 @@
       if (cls.indexOf('home-card--') === 0) card.classList.remove(cls);
     });
     card.classList.add('home-card--' + (it.style || 'foil'));
+    // 等级类同样按前缀清掉旧的（与风格类同一套做法：写死清单就会漏，而漏了不报错、
+    // 只是某张卡的框还停在上一个等级上）。前缀与 home-card-- 不同，所以两者互不干扰。
+    Array.prototype.slice.call(card.classList).forEach(function (cls) {
+      if (cls.indexOf('home-card-rank--') === 0) card.classList.remove(cls);
+    });
+    card.classList.add('home-card-rank--' + (it.rank || 'collector'));
     if (other) announce(it);
     if (!dlg.hidden) fillDialog(it);   // 弹层开着时换卡：大图跟着换
     restartProgress();                 // 新的一张开始计时，进度条从头走

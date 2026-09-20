@@ -26,9 +26,17 @@ const MANIFEST = join('data', 'home-cards.yaml');
 const CSS = join('assets', 'css', 'extended', '21-card-deck.css');
 const I18N = join('i18n', 'zh.toml');
 const FACES_DIR = join('assets', 'images', 'cards');
+// 3D 查看器用的浮雕高度图（灰阶、与卡面同尺寸），由 tools/cards/make-depth.py 出。
+// **路径是从 image 推导的，不是 YAML 里的字段** —— 所以它最容易出的错是「卡面改了名、
+// 深度图没跟上」，而那种错的表现只是浮雕悄悄消失（平整卡面），页面上不会报任何东西。
+// 这就是它必须在构建期被核一遍的原因。
+const DEPTH_DIR = join(FACES_DIR, 'depth');
+const depthOf = (image) => join(DEPTH_DIR, basename(image));
 
 // 卡片组要用的词条：文案走 data-* 从模板传给 JS（JS 调不到 i18n），少一条就只剩兜底模板
-const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClose', 'deckCredit', 'deckDialogLabel'];
+const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClose', 'deckCredit',
+  'deckDialogLabel', 'deckFlip', 'deckFlipBack', 'deckRotate', 'deckGlFail',
+  'deckRankCollector', 'deckRankEpic', 'deckRankLegend', 'deckRankMiracle'];
 // 出处里能推出可点链接的几种写法（弹层里 credit_url 就用它核）；官方立绘 / 站点看板娘没有链接，留空是对的
 const CREDIT_URLS = [
   [/^pixiv (\d+)/, (m) => `https://www.pixiv.net/artworks/${m[1]}`],
@@ -157,6 +165,14 @@ for (const [idx, c] of entries.entries()) {
     if (!existsSync(face)) {
       failures.push(`✗ ${where}：产物 ${face} 不在 —— 先跑 tools/cards/make-cards.py（这张卡会被整张跳过）`);
     }
+    // 深度图（3D 查看器的浮雕）：缺了不会报错，只会「这张卡转起来是平的」
+    const depth = depthOf(image);
+    if (!existsSync(depth)) {
+      failures.push(
+        `✗ ${where}：深度图 ${depth} 不在 —— 先跑 tools/cards/make-depth.py。` +
+          `缺它的表现是**静默**的：卡能转，但这一张是平的、没有浮雕`
+      );
+    }
   }
 
   if (c.src && !existsSync(String(c.src))) {
@@ -193,15 +209,43 @@ for (const [idx, c] of entries.entries()) {
   }
 }
 
+/* ---------- 等级：必填 + 值域 ----------
+
+   为什么把 rank 做成**必填**：漏写它不会报错、只会按「收藏」渲染 —— 一张本该是传世的卡
+   静默降级，而那种错在页面上完全看不出来（只有把三档摆在一起才发现某张的框不对）。
+   这正是这个仓库反复强调要拦的那类静默失败。 */
+const RANKS = new Set(['collector', 'epic', 'legend', 'miracle']);
+for (let i = 0; i < entries.length; i++) {
+  const c = entries[i];
+  const where = `${MANIFEST} 第 ${i + 1} 条（${c.name || c.series || c.image}）`;
+  const r = String(c.rank ?? '');
+  if (!RANKS.has(r)) {
+    failures.push(
+      `✗ ${where}：rank 缺失或拼错（现在是「${r}」）—— 合法值：${[...RANKS].join(' / ')}；` +
+        `缺了会静默按 collector 处理`
+    );
+  }
+}
+{
+  const cnt = {};
+  for (const c of entries) cnt[c.rank] = (cnt[c.rank] || 0) + 1;
+  notes.push('· 等级分布：' + Object.entries(cnt).map(([k, v]) => `${k} ${v}`).join('，'));
+}
+
 /* ---------- 孤儿产物：目录里有、清单里没有 ---------- */
-if (existsSync(FACES_DIR)) {
-  const orphans = readdirSync(FACES_DIR)
-    .filter((f) => statSync(join(FACES_DIR, f)).isFile() && !seenImage.has(`images/cards/${f}`))
+// 卡面与深度图**共用同一批文件名**，所以两边用同一份期望集合核（深度图目录里出现卡面没有的
+// 名字，就说明撤卡时只删了一半）。
+const expectedBase = new Set([...seenImage.keys()].map((p) => basename(p)));
+
+for (const [dir, what] of [[FACES_DIR, '卡面'], [DEPTH_DIR, '深度图']]) {
+  if (!existsSync(dir)) continue;
+  const orphans = readdirSync(dir)
+    .filter((f) => statSync(join(dir, f)).isFile() && !expectedBase.has(f))
     .sort();
   if (orphans.length) {
     failures.push(
-      `✗ ${FACES_DIR} 里有 ${orphans.length} 个产物不在清单里（撤卡后忘了删？）：` +
-        orphans.map((f) => `${f}(${Math.round(statSync(join(FACES_DIR, f)).size / 1024)}KB)`).join('、')
+      `✗ ${dir} 里有 ${orphans.length} 个${what}不在清单里（撤卡后忘了删？）：` +
+        orphans.map((f) => `${f}(${Math.round(statSync(join(dir, f)).size / 1024)}KB)`).join('、')
     );
   }
 }
@@ -252,6 +296,36 @@ const i18n = readFileSync(I18N, 'utf8');
 for (const key of I18N_KEYS) {
   if (!new RegExp(`^\\[${key}\\]`, 'm').test(i18n)) {
     failures.push(`✗ ${I18N} 里缺词条 [${key}] —— 卡片组的按钮名/播报会退回兜底英文`);
+  }
+}
+
+/* ---------- 3D 查看器的风格参数表 ----------
+
+   YAML 里的 style 字段有**两处**消费点：首页那张卡走 CSS 类（home-card--<style>），
+   弹层里的 3D 卡走 assets/js/card-3d.js 里的 STYLE_3D 表。少写一种风格**不会报错**，
+   只会静默套用兜底（foil）—— 表现是「这张卡在首页看着是金边、转起来却是普通全息」，
+   而那种不一致只有把两种视图摆在一起才看得出来。所以这里核一次键。 */
+const CARD3D = join('assets', 'js', 'card-3d.js');
+if (!existsSync(CARD3D)) {
+  failures.push(`✗ 找不到 ${CARD3D} —— 3D 查看器的风格参数表没了，这条守卫会失效`);
+} else {
+  const js = readFileSync(CARD3D, 'utf8');
+  const block = js.slice(js.indexOf('var STYLE_3D'), js.indexOf('var STYLE_FALLBACK'));
+  const table = new Set();
+  for (const m of block.matchAll(/^\s{4}'?([a-z][a-z0-9-]*)'?\s*:\s*\{/gm)) table.add(m[1]);
+  if (!table.size) {
+    failures.push(`✗ ${CARD3D} 里没能解析出 STYLE_3D 的键 —— 那条正则与代码结构脱节了，请同步`);
+  }
+  const missing = [...usedStyles].filter((s) => !table.has(s)).sort();
+  if (missing.length) {
+    failures.push(
+      `✗ 这些风格在清单里用到了，但 ${CARD3D} 的 STYLE_3D 里没有条目：${missing.join(' / ')} —— ` +
+        `3D 卡会静默套用兜底的 foil 参数（首页看着是它、转起来不是它）`
+    );
+  }
+  const extra = [...table].filter((s) => !knownStyles.has(s)).sort();
+  if (extra.length) {
+    notes.push(`· ${CARD3D} 的 STYLE_3D 里有 CSS 中不存在的风格：${extra.join(' / ')}`);
   }
 }
 

@@ -72,9 +72,7 @@
   --grain-fiber: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'200'%20height%3D'200'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'0.02%201.1'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.5'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.18'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
   --tex-crack: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.34'%20stroke-width%3D'7.5'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.5'%20stroke-width%3D'3.2'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'1'%20stroke-width%3D'2.0'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'1'%20stroke-width%3D'1.1'%3E%3Cpath%20d%3D'M74%20214%20c%2026%208,%2042%202,%2064%2018'/%3E%3Cpath%20d%3D'M218%20176%20c%20-20%2012,%20-30%208,%20-48%2020'/%3E%3Cpath%20d%3D'M118%20106%20c%2016%20-14,%2030%20-12,%2044%20-26'/%3E%3C/g%3E%3C/svg%3E");
   --tex-crack-shade: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20transform%3D'translate(1.3%201.6)'%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.5'%20stroke-width%3D'3.4'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.85'%20stroke-width%3D'1.6'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.7'%20stroke-width%3D'1.0'%3E%3Cpath%20d%3D'M74%20214%20c%2026%208,%2042%202,%2064%2018'/%3E%3Cpath%20d%3D'M218%20176%20c%20-20%2012,%20-30%208,%20-48%2020'/%3E%3Cpath%20d%3D'M118%20106%20c%2016%20-14,%2030%20-12,%2044%20-26'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  --tex-petal: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20fill%3D'%23fff'%20opacity%3D'.92'%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(46%2096)%20rotate(-22)%20scale(1.15)'/%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(196%20108)%20rotate(34)%20scale(0.95)'/%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(74%20300)%20rotate(12)%20scale(1.05)'/%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(222%20286)%20rotate(-8)%20scale(1.25)'/%3E%3Cpath%20d%3D'M0%200%20C-7%20-7%20-11%20-16%20-9%20-25%20C-8%20-30%20-3%20-32%200%20-29%20C3%20-32%208%20-30%209%20-25%20C11%20-16%207%20-7%200%200%20Z'%20transform%3D'translate(150%2060)%20rotate(58)%20scale(0.72)'/%3E%3C/g%3E%3Cg%3E%3Ccircle%20cx%3D'118'%20cy%3D'150'%20r%3D'2.1'/%3E%3Ccircle%20cx%3D'206'%20cy%3D'212'%20r%3D'1.7'/%3E%3Ccircle%20cx%3D'58'%20cy%3D'212'%20r%3D'1.4'/%3E%3C/g%3E%3C/svg%3E");
   --tex-flake: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20transform%3D'translate(44%2096)%20scale(1.50)'%20opacity%3D'0.85'%3E%3Cpath%20d%3D'M0%200L21.6%20-14.5m9.5%20-6.4%20l8.1%203.9m9.5%20-6.4%20l-0.6%20-9.0m15.5%20-10.5%20l5.8%202.8m15.5%20-10.5%20l-0.5%20-6.5M0%200L23.4%2011.4m10.3%205.0%20l0.6%209.0m10.3%205.0%20l7.5%20-5.0m16.8%208.2%20l0.5%206.5m16.8%208.2%20l5.4%20-3.6M0%200L1.8%2025.9m0.8%2011.4%20l-7.5%205.0m0.8%2011.4%20l8.1%203.9m1.3%2018.7%20l-5.4%203.6m1.3%2018.7%20l5.8%202.8M0%200L-21.6%2014.5m-9.5%206.4%20l-8.1%20-3.9m-9.5%206.4%20l0.6%209.0m-15.5%2010.5%20l-5.8%20-2.8m-15.5%2010.5%20l0.5%206.5M0%200L-23.4%20-11.4m-10.3%20-5.0%20l-0.6%20-9.0m-10.3%20-5.0%20l-7.5%205.0m-16.8%20-8.2%20l-0.5%20-6.5m-16.8%20-8.2%20l-5.4%203.6M0%200L-1.8%20-25.9m-0.8%20-11.4%20l7.5%20-5.0m-0.8%20-11.4%20l-8.1%20-3.9m-1.3%20-18.7%20l5.4%20-3.6m-1.3%20-18.7%20l-5.8%20-2.8'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.33'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(214%2062)%20scale(1.05)'%20opacity%3D'0.70'%3E%3Cpath%20d%3D'M0%200L1.8%20-25.9m0.8%20-11.4%20l8.1%20-3.9m0.8%20-11.4%20l-7.5%20-5.0m1.3%20-18.7%20l5.8%20-2.8m1.3%20-18.7%20l-5.4%20-3.6M0%200L23.4%20-11.4m10.3%20-5.0%20l7.5%205.0m10.3%20-5.0%20l0.6%20-9.0m16.8%20-8.2%20l5.4%203.6m16.8%20-8.2%20l0.5%20-6.5M0%200L21.6%2014.5m9.5%206.4%20l-0.6%209.0m9.5%206.4%20l8.1%20-3.9m15.5%2010.5%20l-0.5%206.5m15.5%2010.5%20l5.8%20-2.8M0%200L-1.8%2025.9m-0.8%2011.4%20l-8.1%203.9m-0.8%2011.4%20l7.5%205.0m-1.3%2018.7%20l-5.8%202.8m-1.3%2018.7%20l5.4%203.6M0%200L-23.4%2011.4m-10.3%205.0%20l-7.5%20-5.0m-10.3%205.0%20l-0.6%209.0m-16.8%208.2%20l-5.4%20-3.6m-16.8%208.2%20l-0.5%206.5M0%200L-21.6%20-14.5m-9.5%20-6.4%20l0.6%20-9.0m-9.5%20-6.4%20l-8.1%203.9m-15.5%20-10.5%20l0.5%20-6.5m-15.5%20-10.5%20l-5.8%202.8'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.90'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(120%20330)%20scale(1.70)'%20opacity%3D'0.90'%3E%3Cpath%20d%3D'M0%200L13.0%20-22.5m5.7%20-9.9%20l9.0%20-0.0m5.7%20-9.9%20l-4.5%20-7.8m9.4%20-16.2%20l6.5%20-0.0m9.4%20-16.2%20l-3.2%20-5.6M0%200L26.0%20-0.0m11.4%20-0.0%20l4.5%207.8m11.4%20-0.0%20l4.5%20-7.8m18.7%20-0.0%20l3.3%205.6m18.7%20-0.0%20l3.2%20-5.6M0%200L13.0%2022.5m5.7%209.9%20l-4.5%207.8m5.7%209.9%20l9.0%200.0m9.4%2016.2%20l-3.3%205.6m9.4%2016.2%20l6.5%200.0M0%200L-13.0%2022.5m-5.7%209.9%20l-9.0%200.0m-5.7%209.9%20l4.5%207.8m-9.4%2016.2%20l-6.5%200.0m-9.4%2016.2%20l3.2%205.6M0%200L-26.0%200.0m-11.4%200.0%20l-4.5%20-7.8m-11.4%200.0%20l-4.5%207.8m-18.7%200.0%20l-3.3%20-5.6m-18.7%200.0%20l-3.3%205.6M0%200L-13.0%20-22.5m-5.7%20-9.9%20l4.5%20-7.8m-5.7%20-9.9%20l-9.0%200.0m-9.4%20-16.2%20l3.2%20-5.6m-9.4%20-16.2%20l-6.5%200.0'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.18'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(238%20300)%20scale(1.20)'%20opacity%3D'0.75'%3E%3Cpath%20d%3D'M0%200L18.7%20-18.1m8.2%20-7.9%20l8.7%202.5m8.2%20-7.9%20l-2.2%20-8.7m13.5%20-13.0%20l6.2%201.8m13.5%20-13.0%20l-1.6%20-6.3M0%200L25.0%207.2m11.0%203.2%20l2.2%208.7m11.0%203.2%20l6.5%20-6.3m18.0%205.2%20l1.6%206.3m18.0%205.2%20l4.7%20-4.5M0%200L6.3%2025.2m2.8%2011.1%20l-6.5%206.3m2.8%2011.1%20l8.7%202.5m4.5%2018.2%20l-4.7%204.5m4.5%2018.2%20l6.2%201.8M0%200L-18.7%2018.1m-8.2%207.9%20l-8.7%20-2.5m-8.2%207.9%20l2.2%208.7m-13.5%2013.0%20l-6.2%20-1.8m-13.5%2013.0%20l1.6%206.3M0%200L-25.0%20-7.2m-11.0%20-3.2%20l-2.2%20-8.7m-11.0%20-3.2%20l-6.5%206.3m-18.0%20-5.2%20l-1.6%20-6.3m-18.0%20-5.2%20l-4.7%204.5M0%200L-6.3%20-25.2m-2.8%20-11.1%20l6.5%20-6.3m-2.8%20-11.1%20l-8.7%20-2.5m-4.5%20-18.2%20l4.7%20-4.5m-4.5%20-18.2%20l-6.2%20-1.8'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.67'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(26%20224)%20scale(0.85)'%20opacity%3D'0.50'%3E%3Cpath%20d%3D'M0%200L6.3%20-25.2m2.8%20-11.1%20l8.7%20-2.5m2.8%20-11.1%20l-6.5%20-6.3m4.5%20-18.2%20l6.2%20-1.8m4.5%20-18.2%20l-4.7%20-4.5M0%200L25.0%20-7.2m11.0%20-3.2%20l6.5%206.3m11.0%20-3.2%20l2.2%20-8.7m18.0%20-5.2%20l4.7%204.5m18.0%20-5.2%20l1.6%20-6.3M0%200L18.7%2018.1m8.2%207.9%20l-2.2%208.7m8.2%207.9%20l8.7%20-2.5m13.5%2013.0%20l-1.6%206.3m13.5%2013.0%20l6.2%20-1.8M0%200L-6.3%2025.2m-2.8%2011.1%20l-8.7%202.5m-2.8%2011.1%20l6.5%206.3m-4.5%2018.2%20l-6.2%201.8m-4.5%2018.2%20l4.7%204.5M0%200L-25.0%207.2m-11.0%203.2%20l-6.5%20-6.3m-11.0%203.2%20l-2.2%208.7m-18.0%205.2%20l-4.7%20-4.5m-18.0%205.2%20l-1.6%206.3M0%200L-18.7%20-18.1m-8.2%20-7.9%20l2.2%20-8.7m-8.2%20-7.9%20l-8.7%202.5m-13.5%20-13.0%20l1.6%20-6.3m-13.5%20-13.0%20l-6.2%201.8'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'2.35'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(196%20186)%20scale(0.70)'%20opacity%3D'0.42'%3E%3Cpath%20d%3D'M0%200L4.5%20-25.6m2.0%20-11.3%20l8.5%20-3.1m2.0%20-11.3%20l-6.9%20-5.8m3.3%20-18.4%20l6.1%20-2.2m3.3%20-18.4%20l-5.0%20-4.2M0%200L24.4%20-8.9m10.8%20-3.9%20l6.9%205.8m10.8%20-3.9%20l1.6%20-8.9m17.6%20-6.4%20l5.0%204.2m17.6%20-6.4%20l1.1%20-6.4M0%200L19.9%2016.7m8.8%207.4%20l-1.6%208.9m8.8%207.4%20l8.5%20-3.1m14.3%2012.0%20l-1.1%206.4m14.3%2012.0%20l6.1%20-2.2M0%200L-4.5%2025.6m-2.0%2011.3%20l-8.5%203.1m-2.0%2011.3%20l6.9%205.8m-3.3%2018.4%20l-6.1%202.2m-3.3%2018.4%20l5.0%204.2M0%200L-24.4%208.9m-10.8%203.9%20l-6.9%20-5.8m-10.8%203.9%20l-1.6%208.9m-17.6%206.4%20l-5.0%20-4.2m-17.6%206.4%20l-1.1%206.4M0%200L-19.9%20-16.7m-8.8%20-7.4%20l1.6%20-8.9m-8.8%20-7.4%20l-8.5%203.1m-14.3%20-12.0%20l1.1%20-6.4m-14.3%20-12.0%20l-6.1%202.2'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'2.86'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(72%2040)%20scale(0.60)'%20opacity%3D'0.38'%3E%3Cpath%20d%3D'M0%200L10.6%20-23.8m4.7%20-10.5%20l9.0%20-0.9m4.7%20-10.5%20l-5.3%20-7.3m7.6%20-17.1%20l6.5%20-0.7m7.6%20-17.1%20l-3.8%20-5.3M0%200L25.9%20-2.7m11.4%20-1.2%20l5.3%207.3m11.4%20-1.2%20l3.7%20-8.2m18.6%20-2.0%20l3.8%205.3m18.6%20-2.0%20l2.6%20-5.9M0%200L15.3%2021.0m6.7%209.3%20l-3.7%208.2m6.7%209.3%20l9.0%20-0.9m11.0%2015.1%20l-2.6%205.9m11.0%2015.1%20l6.5%20-0.7M0%200L-10.6%2023.8m-4.7%2010.5%20l-9.0%200.9m-4.7%2010.5%20l5.3%207.3m-7.6%2017.1%20l-6.5%200.7m-7.6%2017.1%20l3.8%205.3M0%200L-25.9%202.7m-11.4%201.2%20l-5.3%20-7.3m-11.4%201.2%20l-3.7%208.2m-18.6%202.0%20l-3.8%20-5.3m-18.6%202.0%20l-2.6%205.9M0%200L-15.3%20-21.0m-6.7%20-9.3%20l3.7%20-8.2m-6.7%20-9.3%20l-9.0%200.9m-11.0%20-15.1%20l2.6%20-5.9m-11.0%20-15.1%20l-6.5%200.7'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'3.33'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(44%20366)%20scale(0.75)'%20opacity%3D'0.45'%3E%3Cpath%20d%3D'M0%200L11.4%20-23.4m5.0%20-10.3%20l9.0%20-0.6m5.0%20-10.3%20l-5.0%20-7.5m8.2%20-16.8%20l6.5%20-0.5m8.2%20-16.8%20l-3.6%20-5.4M0%200L25.9%20-1.8m11.4%20-0.8%20l5.0%207.5m11.4%20-0.8%20l3.9%20-8.1m18.7%20-1.3%20l3.6%205.4m18.7%20-1.3%20l2.8%20-5.8M0%200L14.5%2021.6m6.4%209.5%20l-3.9%208.1m6.4%209.5%20l9.0%20-0.6m10.5%2015.5%20l-2.8%205.8m10.5%2015.5%20l6.5%20-0.5M0%200L-11.4%2023.4m-5.0%2010.3%20l-9.0%200.6m-5.0%2010.3%20l5.0%207.5m-8.2%2016.8%20l-6.5%200.5m-8.2%2016.8%20l3.6%205.4M0%200L-25.9%201.8m-11.4%200.8%20l-5.0%20-7.5m-11.4%200.8%20l-3.9%208.1m-18.7%201.3%20l-3.6%20-5.4m-18.7%201.3%20l-2.8%205.8M0%200L-14.5%20-21.6m-6.4%20-9.5%20l3.9%20-8.1m-6.4%20-9.5%20l-9.0%200.6m-10.5%20-15.5%20l2.8%20-5.8m-10.5%20-15.5%20l-6.5%200.5'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'2.67'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(176%20372)%20scale(0.65)'%20opacity%3D'0.34'%3E%3Cpath%20d%3D'M0%200L3.6%20-25.7m1.6%20-11.3%20l8.3%20-3.4m1.6%20-11.3%20l-7.1%20-5.5m2.6%20-18.5%20l6.0%20-2.4m2.6%20-18.5%20l-5.1%20-4.0M0%200L24.1%20-9.7m10.6%20-4.3%20l7.1%205.5m10.6%20-4.3%20l1.3%20-8.9m17.4%20-7.0%20l5.1%204.0m17.4%20-7.0%20l0.9%20-6.4M0%200L20.5%2016.0m9.0%207.0%20l-1.3%208.9m9.0%207.0%20l8.3%20-3.4m14.8%2011.5%20l-0.9%206.4m14.8%2011.5%20l6.0%20-2.4M0%200L-3.6%2025.7m-1.6%2011.3%20l-8.3%203.4m-1.6%2011.3%20l7.1%205.5m-2.6%2018.5%20l-6.0%202.4m-2.6%2018.5%20l5.1%204.0M0%200L-24.1%209.7m-10.6%204.3%20l-7.1%20-5.5m-10.6%204.3%20l-1.3%208.9m-17.4%207.0%20l-5.1%20-4.0m-17.4%207.0%20l-0.9%206.4M0%200L-20.5%20-16.0m-9.0%20-7.0%20l1.3%20-8.9m-9.0%20-7.0%20l-8.3%203.4m-14.8%20-11.5%20l0.9%20-6.4m-14.8%20-11.5%20l-6.0%202.4'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'3.08'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3C/svg%3E");
-  --tex-rib: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.7'%20stroke-width%3D'0.9'%3E%3Cpath%20d%3D'M14.2%20335.2%20Q-62.7%20294.4%20-62.7%20294.4'/%3E%3Cpath%20d%3D'M26.6%20315.9%20Q-43.4%20261.6%20-42.4%20262.9'/%3E%3Cpath%20d%3D'M42.0%20298.9%20Q-14.8%20237.5%20-17.2%20235.2'/%3E%3Cpath%20d%3D'M60.1%20284.8%20Q8.3%20209.6%2012.2%20212.1'/%3E%3Cpath%20d%3D'M80.2%20273.8%20Q50.3%20196.5%2045.0%20194.2'/%3E%3Cpath%20d%3D'M101.9%20266.3%20Q74.1%20180.4%2080.4%20182.0'/%3E%3Cpath%20d%3D'M124.5%20262.5%20Q124.2%20176.4%20117.3%20175.8'/%3E%3Cpath%20d%3D'M147.5%20262.5%20Q147.8%20176.4%20154.7%20175.8'/%3E%3Cpath%20d%3D'M170.1%20266.3%20Q197.9%20180.4%20191.6%20182.0'/%3E%3Cpath%20d%3D'M191.8%20273.8%20Q221.7%20196.5%20227.0%20194.2'/%3E%3Cpath%20d%3D'M211.9%20284.8%20Q263.7%20209.6%20259.8%20212.1'/%3E%3Cpath%20d%3D'M230.0%20298.9%20Q286.8%20237.5%20289.2%20235.2'/%3E%3Cpath%20d%3D'M245.4%20315.9%20Q315.4%20261.6%20314.4%20262.9'/%3E%3Cpath%20d%3D'M257.8%20335.2%20Q334.7%20294.4%20334.7%20294.4'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.8'%20stroke-width%3D'1.5'%3E%3Cpath%20d%3D'M-62.7%20294.4%20Q-62.7%20294.4%20-139.5%20253.5'/%3E%3Cpath%20d%3D'M-42.4%20262.9%20Q-43.4%20261.6%20-111.4%20209.9'/%3E%3Cpath%20d%3D'M-17.2%20235.2%20Q-14.8%20237.5%20-76.5%20171.5'/%3E%3Cpath%20d%3D'M12.2%20212.1%20Q8.3%20209.6%20-35.7%20139.5'/%3E%3Cpath%20d%3D'M45.0%20194.2%20Q50.3%20196.5%209.9%20114.6'/%3E%3Cpath%20d%3D'M80.4%20182.0%20Q74.1%20180.4%2058.9%2097.7'/%3E%3Cpath%20d%3D'M117.3%20175.8%20Q124.2%20176.4%20110.1%2089.1'/%3E%3Cpath%20d%3D'M154.7%20175.8%20Q147.8%20176.4%20161.9%2089.1'/%3E%3Cpath%20d%3D'M191.6%20182.0%20Q197.9%20180.4%20213.1%2097.7'/%3E%3Cpath%20d%3D'M227.0%20194.2%20Q221.7%20196.5%20262.1%20114.6'/%3E%3Cpath%20d%3D'M259.8%20212.1%20Q263.7%20209.6%20307.7%20139.5'/%3E%3Cpath%20d%3D'M289.2%20235.2%20Q286.8%20237.5%20348.5%20171.5'/%3E%3Cpath%20d%3D'M314.4%20262.9%20Q315.4%20261.6%20383.4%20209.9'/%3E%3Cpath%20d%3D'M334.7%20294.4%20Q334.7%20294.4%20411.5%20253.5'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.5'%20stroke-width%3D'1.1'%3E%3Cpath%20d%3D'M-63.2%20327.5%20A%20212%20212%200%200%201%20335.2%20327.5'/%3E%3Cpath%20d%3D'M-134.6%20301.5%20A%20288%20288%200%200%201%20406.6%20301.5'/%3E%3C/g%3E%3C/svg%3E");
   /* 手抖滤镜：卡面的纹样全是 CSS 画的直线（铅条、扇骨、裂纹、经纬…），272px 下是「尺子画的」。
      挂上这个 SVG 位移滤镜（内联在 home-cards.html 里，约 300 字节）之后，十四种风格的直线一起
      变成手绘的那点不平整 —— 一处生效。**滤镜 id 拼错是静默失效**，所以 check-deck 会核 id。
@@ -91,7 +89,7 @@
   isolation: isolate;
   overflow: hidden;
   aspect-ratio: 5 / 7;
-  padding: 2px;                     /* 这 2px 就是卡边：外层渐变露出来的那一圈 */
+  padding: var(--rank-frame, 2px);
   border-radius: var(--cradius);
   background-image: var(--cframe);
   background-color: rgba(20, 18, 25, .35);
@@ -368,13 +366,129 @@
   -webkit-backdrop-filter: saturate(140%) blur(18px);
 }
 
-.home-deck-dialog-panel img {
-  display: block;
-  /* 三个上限取最小：气泡宽 430 / 视口宽 / 视口高换算成 5:7 的宽（别让高把图挤出屏幕） */
+/* 卡片弹层是**模态**：开着的时候把页面上的浮动控件收起来。
+   两个理由，都是实测出来的：
+   ① 层级上它们比弹层高（#top-link / #bottom-link 是 99，弹层是 90）—— 窄屏下「滚到底部」
+      那个圆正好压在弹层右下角的「01 / 32」上面；
+   ② 它们本来就不该在模态里可点：点一下会把弹层背后的页面滚走（焦点锁只管弹层内部，
+      管不到这两个页面级控件）。
+   类由 home-deck.js 在开关弹层时打在 <html> 上。 */
+html.is-deck-dialog #top-link,
+html.is-deck-dialog #bottom-link {
+  display: none;
+}
+
+/* 弹层里那块「台面」：里面要么是平面大图（无 WebGL / 着色器失败），要么是 3D 卡（canvas）。
+   两者的占地口径一致（5:7 的同一个盒子），所以回退时布局不会跳。
+   上面那圈 radial 是**台面的柔光**：卡片浮在它上面转，才有个「放卡的地方」；
+   少了它，深色主题下卡边的黑色分界线会糊在遮罩里。 */
+.home-deck-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  /* 三个上限取最小：面板宽 430 / 视口宽 / 视口高换算成 5:7 的宽（别让高把卡挤出屏幕） */
   width: min(430px, calc(100vw - 4.4rem), calc((100vh - 13rem) * 5 / 7));
-  height: auto;
+  aspect-ratio: 5 / 7;
   border-radius: 10px;
-  background: rgba(20, 18, 25, .35);
+  background:
+    radial-gradient(60% 46% at 50% 44%, var(--deckstage-glow), transparent 72%),
+    var(--deckstage-bg);
+}
+
+/* 大图与画布都**绝对定位铺满台面**。
+   为什么不用 `height: 100%`：台面是个 grid 容器，而 grid 项的高度不是"确定"高度，
+   子元素的百分比高度会解析成 auto —— canvas 于是退回它自己的固有比例（300×150 的属性尺寸），
+   实测拿到的是 430×215（比 5:7 的 430×602 矮了一大截），画出来的卡被压扁。
+   绝对定位取的是台面已经算好的盒子，与 aspect-ratio 的结果一致。 */
+.home-deck-stage img,
+.home-deck-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+}
+
+.home-deck-stage img {
+  object-fit: contain;
+}
+
+/* 3D 卡画布：
+   - `touch-action: none` —— 拖动卡面就是转卡，浏览器不该把它当成滚动/缩放。弹层的内容
+     本来就在一屏内（面板高度也按视口算过），所以不会出现「想滚动但滚不动」。
+   - `cursor: grab/grabbing` 是「这东西可以拖」的最直接提示。 */
+.home-deck-canvas {
+  cursor: grab;
+  touch-action: none;
+}
+
+.home-deck-canvas.is-dragging {
+  cursor: grabbing;
+}
+
+/* 没有 WebGL、或着色器编译失败时（脚本会在容器上写 data-gl="error"）：
+   画布不存在，平面大图顶上。`.is-gl-failed` 由脚本加在 stage 上。 */
+.home-deck-stage.is-gl-failed::after {
+  content: attr(data-gl-note);
+  position: absolute;
+  right: 0;
+  bottom: -.1rem;
+  color: var(--secondary);
+  font-size: .72rem;
+}
+
+/* 翻面按钮那一排：只有 3D 卡可用时才存在（脚本控制 hidden） */
+.home-deck-actions {
+  display: flex;
+  justify-content: center;
+  gap: .5rem;
+}
+
+/* 翻面按钮：只在 3D 卡可用时出现（脚本注入，禁 JS 时不存在）。
+   它与 ‹ › 不是一类东西 —— 那两个换的是「别的卡」，它换的是「这张卡的另一面」，
+   所以给文字而不是符号，并且用 aria-pressed 表明它是一个开关。 */
+.home-deck-flip {
+  align-self: center;
+  padding: .18rem .7rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary);
+  font-size: .78rem;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease;
+}
+
+.home-deck-flip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* 卡背（3D 卡的反面）的配色：由 assets/js/card-3d.js 用 canvas 画出来，颜色**从这里读**
+   （见该文件里的 readVars）。写成 CSS 变量的意义不只是「统一」——对比度脚本只看得见 DOM
+   里的元素，canvas 上的字它看不见；把配色放在变量里，至少让这套颜色是被主题管着的那一套，
+   而不是脚本里写死的魔数。 */
+:root {
+  --cardback-bg1: #33384a;
+  --cardback-bg2: #1b1e2b;
+  --cardback-fg: #f4f5f9;
+  --cardback-dim: #c3c8d8;
+  --cardback-line: #8b93ad;
+  --cardback-accent: #d9b673;
+  --deckstage-bg: rgba(20, 18, 25, .30);
+  --deckstage-glow: rgba(196, 208, 255, .13);
+}
+
+:root[data-theme="dark"] {
+  --cardback-bg1: #262a38;
+  --cardback-bg2: #11131b;
+  --cardback-fg: #f2f3f8;
+  --cardback-dim: #b8bdcd;
+  --cardback-line: #767e96;
+  --cardback-accent: #e0c184;
+  --deckstage-bg: rgba(8, 8, 12, .34);
+  --deckstage-glow: rgba(150, 170, 235, .16);
 }
 
 .home-deck-dialog-meta {
@@ -440,10 +554,14 @@ a.home-deck-dialog-credit:hover {
   border-color: var(--accent);
 }
 
-/* 弹层里的 ‹ › 压在大图两侧 */
+/* 弹层里的 ‹ › 压在卡的两侧。
+   **必须给 z-index**：这两颗按钮在 DOM 里排在台面**之前**，而台面里那张画布是绝对定位的，
+   同一个层叠上下文里「后画的盖住先画的」—— 按钮于是被卡面盖掉一半（窄视口下几乎整颗都被盖住）。
+   以前没这问题，是因为那时台面里只有一张窄大图，按钮正好落在图片外面。 */
 .home-deck-dialog-step {
   position: absolute;
   top: 42%;
+  z-index: 2;
   transform: translateY(-50%);
 }
 
@@ -483,9 +601,6 @@ a.home-deck-dialog-credit:hover {
    同样的位移会让整片纹样在悬停时跳一下（像卡了）。全息有 `home-card--foil` 这个类
    （模板与 JS 都会给它加上，只是没有对应的 CSS 规则），所以这里能精确挑出它。 */
 .home-card--foil:hover::before,
-.home-card--holo-gold:hover::before {
-  background-position: 26px 0, 0 0, 0 0, 0 0;
-}
 
 /* 星芒全息的「动」不是平移带子，而是整层**转一点**（像把卡在光里转了个角度） */
 .home-card--holo-prism::before {
@@ -519,27 +634,6 @@ a.home-deck-dialog-credit:hover {
   --cblend: overlay;
   --coverlay-op: .8;
   --cfilter: url(#deck-rough);
-}
-
-/* 金箔全息（holo-gold）：暖金箔 + 镜面窄反光。
-   与金边（gold）的分工：gold 是**边框与拉丝**（金属在哪都在），金箔是**整张箔上的虹彩**
-   （金箔本身也衍射：彩虹是压在金色上的，不是白底上的）。 */
-.home-card--holo-gold {
-  --cframe: linear-gradient(140deg, #fff2c6, #d9b64e 28%, #fff9e2 50%, #b58f24 74%, #ffeeb8);
-  --cplate: linear-gradient(to top, rgba(32, 22, 6, .94), rgba(32, 22, 6, .64));
-  --cplate-solid: rgba(32, 22, 6, .89);
-  --cplate-text: #fdf2cf;
-  --cplate-accent: #eccf8c;
-  --coverlay:
-    repeating-linear-gradient(112deg,
-      rgba(226, 158, 62, 0) 0 4px, rgba(226, 158, 62, .4) 8px 12px,
-      rgba(255, 232, 176, .3) 18px 22px, rgba(198, 140, 52, .38) 28px 32px,
-      rgba(255, 206, 118, 0) 38px 46px),
-    linear-gradient(118deg, rgba(255, 255, 255, 0) 41%, rgba(255, 250, 224, .3) 47%, rgba(255, 255, 255, 0) 53%),
-    var(--grain-fine);
-  --cblend: overlay;
-  --coverlay-op: .9;
-  --cfilter: none;
 }
 
 /* 金边：拉丝金属框 + 斜向柔光 + 描金角（**没有菱格了**：45°/−45° 等距十字是「纱窗」） */
@@ -576,24 +670,6 @@ a.home-deck-dialog-credit:hover {
   --coverlay-op: 1;
   --coverlay-mask: radial-gradient(58% 46% at 50% 40%, transparent 0 40%, #000 82%);
   --cfilter: none;
-}
-
-/* 霜蓝：收尖的软扇骨（6 主枝 + 12 短枝）+ 顶部冷光 + 细霜颗粒。
-   上一版是 .7° 的硬锥形线 —— 冰晶该是「中间亮、两端收」的。 */
-.home-card--frost {
-  --cframe: linear-gradient(140deg, #eaf6ff, #8fc4e8 46%, #f7fcff);
-  --cplate: linear-gradient(to top, rgba(10, 24, 38, .94), rgba(10, 24, 38, .72));
-  --cplate-solid: rgba(10, 24, 38, .9);
-  --cplate-text: #eaf6ff;
-  --cplate-accent: #b7dcf5;
-  --coverlay:
-    repeating-conic-gradient(from 0deg at 50% 36%, rgba(238, 250, 255, 0) 0 .15deg, rgba(238, 250, 255, .5) .75deg, rgba(238, 250, 255, .16) 1.5deg, rgba(238, 250, 255, 0) 2.6deg, rgba(238, 250, 255, 0) 60deg),
-    repeating-conic-gradient(from 30deg at 50% 36%, rgba(206, 236, 255, 0) 0 .2deg, rgba(206, 236, 255, .3) .7deg, rgba(206, 236, 255, 0) 1.6deg, rgba(206, 236, 255, 0) 30deg),
-    radial-gradient(80% 46% at 50% 0%, rgba(255, 255, 255, .26), rgba(255, 255, 255, 0) 74%),
-    var(--grain-fine);
-  --cblend: screen;
-  --coverlay-op: .5;
-  --cfilter: url(#deck-rough);
 }
 
 /* 墨：底部压深 + 一道飞白 + 纸颗粒（原来那 2px/6px 的横向细纹在 272px 下只是瑕疵，去掉了） */
@@ -711,83 +787,6 @@ a.home-deck-dialog-credit:hover {
   opacity: .9;
 }
 
-/* 哥特教堂玻璃：软笔触铅条（粗细不等、带晕）+ 四块宝石片 + 暗角 + 纸颗粒。
-   铅条手抖过（`#deck-rough`），所以不再是「一层纱窗」——真铅条是弯的、宽窄不一的。 */
-.home-card--gothic {
-  --cframe: linear-gradient(150deg, #6d5a86, #2a2136 45%, #7a5f8f);
-  --cplate: linear-gradient(to top, rgba(12, 8, 18, .94), rgba(12, 8, 18, .66));
-  --cplate-solid: rgba(12, 8, 18, .9);
-  --cplate-text: #f3ecff;
-  --cplate-accent: #ffd9a8;
-  --coverlay:
-    repeating-linear-gradient(14deg, rgba(9, 7, 13, 0) 0 3.4px, rgba(9, 7, 13, .4) 4.6px 5.8px, rgba(9, 7, 13, .1) 7px 8.6px, rgba(9, 7, 13, 0) 10.4px 56px),
-    repeating-linear-gradient(76deg, rgba(9, 7, 13, 0) 0 2.6px, rgba(9, 7, 13, .32) 3.6px 4.6px, rgba(9, 7, 13, .09) 5.6px 6.8px, rgba(9, 7, 13, 0) 8.2px 44px),
-    radial-gradient(26% 19% at 24% 20%, rgba(255, 196, 92, .44) 0 40%, rgba(255, 196, 92, 0) 100%),
-    radial-gradient(23% 17% at 79% 45%, rgba(96, 162, 255, .38) 0 38%, rgba(96, 162, 255, 0) 100%),
-    radial-gradient(25% 18% at 37% 84%, rgba(216, 94, 142, .4) 0 40%, rgba(216, 94, 142, 0) 100%),
-    radial-gradient(19% 14% at 62% 66%, rgba(140, 220, 190, .28) 0 38%, rgba(140, 220, 190, 0) 100%),
-    radial-gradient(125% 95% at 50% 50%, rgba(6, 4, 10, 0) 40%, rgba(6, 4, 10, .5) 100%),
-    var(--grain);
-  --cblend: normal;
-  --coverlay-op: .95;
-  --cfilter: url(#deck-rough);
-}
-
-/* 樱纹：五片**真的花瓣轮廓**（形状在 mask 里，颜色在 CSS 里）+ 瓣内细颗粒。
-   上一版是五个模糊椭圆 —— 272px 下就是几个粉点，看不出是花瓣。 */
-.home-card--sakura {
-  --cframe: linear-gradient(140deg, #ffe8f0, #f3bfd3 48%, #fff3f7);
-  --cplate: linear-gradient(to top, rgba(58, 26, 38, .9), rgba(58, 26, 38, .58));
-  --cplate-solid: rgba(58, 26, 38, .86);
-  --cplate-text: #fff2f6;
-  --cplate-accent: #ffc9da;
-  --coverlay:
-    linear-gradient(146deg, rgba(255, 178, 206, .92), rgba(255, 214, 230, .84) 46%, rgba(250, 168, 200, .92)),
-    var(--grain-fine);
-  --cblend: normal;
-  --coverlay-op: .72;
-  --coverlay-mask: var(--tex-petal);
-  --cfilter: none;
-}
-
-/* 麻叶纹：三向格本来就是**等距**的（那是这个纹样的定义），所以不靠改周期去「去生硬」，
-   靠两件事：软笔触（亮芯 + 淡晕）与手抖滤镜。挖空区比上一版更大，人物那一块是干净的。 */
-.home-card--asanoha {
-  --cframe: linear-gradient(140deg, #eff4ea, #c9d8c2 50%, #f5f9f2);
-  --cplate: linear-gradient(to top, rgba(28, 44, 28, .92), rgba(28, 44, 28, .6));
-  --cplate-solid: rgba(28, 44, 28, .88);
-  --cplate-text: #f2f8ee;
-  --cplate-accent: #cfe3c0;
-  --coverlay:
-    repeating-linear-gradient(60deg, rgba(52, 76, 52, 0) 0 2.6px, rgba(52, 76, 52, .5) 3.4px 4.2px, rgba(52, 76, 52, .18) 5px 6px, rgba(52, 76, 52, 0) 6.8px 12px),
-    repeating-linear-gradient(-60deg, rgba(52, 76, 52, 0) 0 2.6px, rgba(52, 76, 52, .5) 3.4px 4.2px, rgba(52, 76, 52, .18) 5px 6px, rgba(52, 76, 52, 0) 6.8px 12px),
-    repeating-linear-gradient(0deg, rgba(52, 76, 52, 0) 0 4.4px, rgba(52, 76, 52, .3) 5.4px 6.4px, rgba(52, 76, 52, .1) 7.4px 8.6px, rgba(52, 76, 52, 0) 9.6px 21px),
-    var(--grain);
-  --cblend: soft-light;
-  --coverlay-op: .9;
-  --coverlay-mask: radial-gradient(68% 56% at 50% 42%, transparent 0 52%, #000 90%);
-  --cfilter: url(#deck-rough);
-}
-
-/* 青海波：鳞状半圆（**渐隐的环**，不再是 1% 宽的硬边）+ 每排一点色调差 + 细颗粒 */
-.home-card--seigaiha {
-  --cframe: linear-gradient(140deg, #e8f1fa, #b9cfe6 50%, #f2f8fd);
-  --cplate: linear-gradient(to top, rgba(16, 34, 54, .92), rgba(16, 34, 54, .6));
-  --cplate-solid: rgba(16, 34, 54, .88);
-  --cplate-text: #eef6ff;
-  --cplate-accent: #bcdcff;
-  --coverlay:
-    radial-gradient(circle at 50% 100%, rgba(46, 88, 132, 0) 0 34%, rgba(46, 88, 132, .44) 41%, rgba(46, 88, 132, .16) 47%, rgba(46, 88, 132, 0) 54%, rgba(46, 88, 132, 0) 64%, rgba(46, 88, 132, .34) 70%, rgba(46, 88, 132, .12) 75%, rgba(46, 88, 132, 0) 81%),
-    radial-gradient(circle at 0% 100%, rgba(46, 88, 132, 0) 0 34%, rgba(46, 88, 132, .36) 41%, rgba(46, 88, 132, .13) 47%, rgba(46, 88, 132, 0) 54%, rgba(46, 88, 132, 0) 64%, rgba(46, 88, 132, .28) 70%, rgba(46, 88, 132, .1) 75%, rgba(46, 88, 132, 0) 81%),
-    radial-gradient(circle at 100% 100%, rgba(46, 88, 132, 0) 0 34%, rgba(46, 88, 132, .36) 41%, rgba(46, 88, 132, .13) 47%, rgba(46, 88, 132, 0) 54%, rgba(46, 88, 132, 0) 64%, rgba(46, 88, 132, .28) 70%, rgba(46, 88, 132, .1) 75%, rgba(46, 88, 132, 0) 81%),
-    var(--grain-fine);
-  --coverlay-size: 32px 16px, 32px 16px, 32px 16px, auto;
-  --cblend: overlay;
-  --coverlay-op: .95;
-  --coverlay-mask: radial-gradient(56% 44% at 50% 40%, transparent 0 44%, #000 82%);
-  --cfilter: url(#deck-rough);
-}
-
 /* 雪华：**散落**的九朵真雪花（主枝 + 60° 分枝 + 棱面核心，形状在 mask 里）。
    第一版是平铺的六向星号；第二版把一朵雪花按 72×62 平铺 —— 用户看了一眼就说「整齐排列然后铺满
    卡面很呆」。**规整的平铺读起来像壁纸，雪要的是疏密不匀**：现在这一张是整卡尺寸的一次性贴花
@@ -808,26 +807,6 @@ a.home-deck-dialog-credit:hover {
   --cmask-size: 100% 100%;
   --cmask-repeat: no-repeat;
   --cfilter: none;
-}
-
-/* 织锦：**绸面**（浮线的柔光亮带 + 各向异性的纤维 + 斜纹暗示）。
-   上一版是 1px/4px 的三向网格（一张卡 394 条线，等距直角交叉）；真织锦的光泽是「一片流动的
-   柔光」，纹样边缘因为浮线转折而毛，不是格。 */
-.home-card--nishiki {
-  --cframe: linear-gradient(140deg, #fdf0d0, #c9a34e 40%, #fff6de 62%, #a8842f);
-  --cplate: linear-gradient(to top, rgba(34, 24, 8, .93), rgba(34, 24, 8, .66));
-  --cplate-solid: rgba(34, 24, 8, .89);
-  --cplate-text: #fdf1d4;
-  --cplate-accent: #e6c884;
-  --coverlay:
-    repeating-linear-gradient(90deg, rgba(255, 238, 190, 0) 0 5px, rgba(255, 238, 190, .22) 7.4px 9.4px, rgba(255, 238, 190, .06) 12px 14px, rgba(255, 238, 190, 0) 17px 23px),
-    linear-gradient(142deg, rgba(255, 244, 210, .3) 6%, rgba(255, 244, 210, .06) 38%, rgba(255, 236, 186, .26) 74%, rgba(255, 244, 210, .12) 96%),
-    var(--grain-fiber),
-    var(--grain);
-  --cblend: soft-light;
-  --coverlay-op: .95;
-  --coverlay-mask: radial-gradient(56% 44% at 50% 40%, transparent 0 42%, #000 82%);
-  --cfilter: url(#deck-rough);
 }
 
 /* 金继：黑底 + 4~5 道**弯曲分叉**的金缝（形状在 mask 里、颜色在 CSS 里）。
@@ -879,42 +858,70 @@ a.home-deck-dialog-credit:hover {
   pointer-events: none;
 }
 
-/* 团扇：**弓形**扇骨（内细外粗、形状在 mask 里）+ 两道软扇箍 + 纸面透光。
-   上一版是 33 根笔直的锥形射线 —— 竹骨是弯的，而且没有那么多根。 */
-.home-card--uchiwa {
-  --cframe: linear-gradient(140deg, #fdf3e6, #d9b98f 48%, #fff8ee);
-  --cplate: linear-gradient(to top, rgba(38, 26, 18, .92), rgba(38, 26, 18, .62));
-  --cplate-solid: rgba(38, 26, 18, .88);
-  --cplate-text: #fdf3e6;
-  --cplate-accent: #e8c79a;
-  --coverlay:
-    linear-gradient(160deg, rgba(198, 156, 106, .9), rgba(246, 226, 196, .78) 50%, rgba(176, 134, 88, .9)),
-    radial-gradient(46% 30% at 50% 6%, rgba(255, 246, 226, .5), rgba(255, 246, 226, 0) 100%),
-    var(--grain-fiber);
-  --cblend: overlay;
-  --coverlay-op: .8;
-  --coverlay-mask: var(--tex-rib);
-  --cfilter: url(#deck-rough-crack);
+
+/* ---------- 等级：只改一组令牌，不动版式 ----------
+
+   等级（rank）与纹样（style）是**正交**的两件事：等级管材质与边框，纹样管卡面上的图案。
+   所以这里只声明一组 `--rank-*` 令牌、由四个 rank 类各自赋值，**不写「8 风格 × 4 等级」
+   那 32 种组合** —— 组合爆炸正是这个文件当初膨胀的原因。
+
+   令牌：
+     --rank-frame  外框粗细（那条露出 --cframe 的边）
+     --rank-foil   整卡覆膜的强度（一层虹彩，压在纹样之上；0 = 没有）
+     --rank-orn    四角纹章与压印边的显隐（0/1）
+
+   **奇迹的正面与收藏完全一样**，这不是漏写：隐藏等级的定义就是「看不出来」。
+   它的令牌值照抄收藏那一套，只有 3D 里转满一圈触发显形之后，JS 才会给它加
+   `.is-revealed`，那时才切到另一组值。 */
+.home-card-rank--collector { --rank-frame: 2px; --rank-foil: 0;   --rank-orn: 0; }
+.home-card-rank--epic      { --rank-frame: 4px; --rank-foil: .40; --rank-orn: .35;
+                             --cframe: linear-gradient(150deg, #d3dae6, #8b94a6 26%, #f2f6fc 50%, #767e8e 74%, #c6cdd9); }
+.home-card-rank--legend    { --rank-frame: 5px; --rank-foil: .60; --rank-orn: 1;
+                             --cframe: linear-gradient(150deg, #dcb96e, #6b5120 22%, #f8e6ac 48%, #46340f 72%, #c8a258); }
+.home-card-rank--miracle   { --rank-frame: 2px; --rank-foil: 0;   --rank-orn: 0; }
+.home-card-rank--miracle.is-revealed {
+  --rank-frame: 5px; --rank-foil: .85; --rank-orn: 1;
+  --cframe: linear-gradient(150deg, #ffe9b0, #7a5c1c 20%, #fff6db 46%, #4a3710 70%, #d8b76a);
 }
 
-/* 像素：硬边方角 + 棋盘网点 + 等宽字名牌。**当前没有卡用它**（2026-09-19 按「不要像素小人头」
-   把那 8 张撤了），生成器里的 pixel 通道（最近邻放大 + 棋盘底）与这条样式都留着 ——
-   想加回像素卡只需在 YAML 里写 `style: pixel`。硬边是这一种的**题材本身**，所以它不挂手抖滤镜。 */
-.home-card--pixel {
-  --cframe: none;
-  --cradius: 4px;
-  --cplate: linear-gradient(to top, rgba(8, 8, 12, .95), rgba(8, 8, 12, .8));
-  --cplate-solid: rgba(8, 8, 12, .92);
-  --cplate-text: #e8e6ef;
-  --cplate-accent: #9be3c8;
-  --cplate-font: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --coverlay: repeating-conic-gradient(rgba(255, 255, 255, .07) 0 25%, transparent 0 50%);
-  --cblend: normal;
-  --coverlay-op: 1;
-  --coverlay-size: 6px 6px;
-  background-color: #1a1821;
-  /* 硬边用 inset box-shadow 而不是 border：border 占盒尺寸，这张卡会比别的卡大一圈（㊱ 的约定）。 */
-  box-shadow: var(--shadow-card), inset 0 0 0 2px var(--edge);
+/* 等级层：整卡覆膜 + 四角纹章 + 压印内边。**独立一层**（模板里那个 span），
+   不复用 ::before/::after —— 那两层已经被纹样与扫光占着，而玻璃/金继还各自占用了
+   .home-card-lens，抢层会让某一种风格突然少一个效果。 */
+.home-card-rank {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--rank-foil, 0);
+  /* 虹彩：三层不同角度的软带 + 一圈边缘光。周期取互质数，避免出现等距的「纱窗」 */
+  background:
+    linear-gradient(104deg, transparent 18%, rgba(255,214,150,.5) 31%, rgba(150,220,255,.46) 43%,
+                    rgba(255,160,220,.42) 55%, rgba(190,255,210,.40) 67%, transparent 82%),
+    linear-gradient(196deg, transparent 26%, rgba(255,255,255,.34) 47%, transparent 68%),
+    radial-gradient(120% 90% at 50% 50%, transparent 52%, rgba(255,236,190,.42) 88%, transparent 100%);
+  /* 混合模式取 **overlay 而不是 screen**：screen 是「提亮」，压在浅色画上等于什么都没做
+     —— 实测在这批卡（浅底居多）里，screen 的虹彩完全看不见。overlay 会跟着底子明暗走，
+     浅画深画都读得出来（这条规矩在文件顶部第 4 条已经写过一次，我这次又踩了一遍）。 */
+  mix-blend-mode: overlay;
+}
+
+/* 四角纹章：用四块角上的径向渐变画（不引入图片），只在传世/显形后的奇迹上出现 */
+.home-card-rank::before {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  border-radius: calc(var(--cradius) - 4px);
+  opacity: var(--rank-orn, 0);
+  border: 1px solid rgba(255, 238, 196, .55);
+  box-shadow:
+    inset 0 0 0 1px rgba(90, 68, 22, .35),
+    0 0 0 1px rgba(255, 238, 196, .18);
+  /* 压印感：左上受光、右下落影 —— 与卡面的四条规矩一致（边一律用 inset 阴影） */
+  background:
+    radial-gradient(38% 22% at 8% 8%, rgba(255,240,205,.55), transparent 70%),
+    radial-gradient(38% 22% at 92% 8%, rgba(255,240,205,.55), transparent 70%),
+    radial-gradient(38% 22% at 8% 92%, rgba(255,240,205,.42), transparent 70%),
+    radial-gradient(38% 22% at 92% 92%, rgba(255,240,205,.42), transparent 70%);
 }
 
 /* ---------- 深色主题：**逐条给值，不要一条通吃** ----------
@@ -925,20 +932,12 @@ a.home-deck-dialog-credit:hover {
    **新增风格必须补一条**，否则它在深色下要么白掉、要么整层消失。 */
 :root[data-theme="dark"] .home-card { --coverlay-op: .6; }
 :root[data-theme="dark"] .home-card--holo-prism { --coverlay-op: .75; }
-:root[data-theme="dark"] .home-card--holo-gold { --coverlay-op: .75; }
 :root[data-theme="dark"] .home-card--gold { --coverlay-op: .6; }
 :root[data-theme="dark"] .home-card--washi { --coverlay-op: 1; }
-:root[data-theme="dark"] .home-card--frost { --coverlay-op: .4; }
 :root[data-theme="dark"] .home-card--ink { --coverlay-op: .6; }
 :root[data-theme="dark"] .home-card--glass { --coverlay-op: 1; }
-:root[data-theme="dark"] .home-card--gothic { --coverlay-op: .95; }
-:root[data-theme="dark"] .home-card--sakura { --coverlay-op: .8; }
-:root[data-theme="dark"] .home-card--asanoha { --coverlay-op: .9; }
-:root[data-theme="dark"] .home-card--seigaiha { --coverlay-op: .85; }
 :root[data-theme="dark"] .home-card--yukika { --coverlay-op: .85; }
-:root[data-theme="dark"] .home-card--nishiki { --coverlay-op: .85; }
 :root[data-theme="dark"] .home-card--kintsugi { --coverlay-op: .95; }
-:root[data-theme="dark"] .home-card--uchiwa { --coverlay-op: .6; }
 
 /* ---------- 减少动态：不轮播（JS 侧直接跳过）、不做淡入淡出与扫光 ---------- */
 @media (prefers-reduced-motion: reduce) {

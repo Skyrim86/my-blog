@@ -203,6 +203,35 @@ other = "出处"
 [deckDialogLabel]
 other = "{label}（大图）"
 
+# 3D 查看器（assets/js/card-3d.js）：弹层里那张卡片可以拖着转、可以翻面。
+# deckRotate 是画布上的操作提示（读屏用户看不到「拖动」这个手势，只能靠 aria 说），
+# deckFlipBack 是翻面按钮切到背面之后的名字（按钮名要说明「按下会发生什么」）。
+[deckFlip]
+other = "翻到背面"
+
+[deckFlipBack]
+other = "翻回正面"
+
+[deckRotate]
+other = "{label}，第 {n} 张，共 {total} 张。拖动可转动卡片，翻面按钮看背面"
+
+[deckGlFail]
+other = "这台设备/浏览器没有可用的 WebGL，卡片只能看平面大图"
+
+# 卡片等级（2026-09-20 加）。**只有 3D 卡背与角标会用到这些词** —— 卡面本身不写等级字，
+# 隐藏等级「奇迹」在显形前更不会出现，所以这几个词条的用途是「显形之后把话说全」。
+[deckRankCollector]
+other = "收藏"
+
+[deckRankEpic]
+other = "史诗"
+
+[deckRankLegend]
+other = "传世"
+
+[deckRankMiracle]
+other = "奇迹"
+
 [homeBrowse]
 other = "按类浏览"
 

@@ -18,7 +18,11 @@
           yukika 雪华 / nishiki 织锦 / kintsugi 金继 / uchiwa 团扇），外加备用的 pixel
           —— 全在 21-card-deck.css。换风格只改 YAML 里的 style 字段，不重出图。
        5. **两档图显式给质量**：1x `272x webp q78`（首屏真下的那张）、2x `544x webp q70`
-          （只在高分屏用）。Hugo 默认 q75 对两档是同一个值，而这两档的用途不同。 */ -}}
+          （只在高分屏用）。Hugo 默认 q75 对两档是同一个值，而这两档的用途不同。
+       6. **卡面清单里没有「深度图」字段**：它的路径由 `image` 推导（`depth/<同名>.webp`，
+          见 tools/cards/make-depth.py）。3D 看大图的弹层（assets/js/card-3d.js）用这张灰阶图
+          做浮雕；它缺了不会报错，只会这一张转起来是平的 —— 所以这里 warnf、
+          scripts/check-deck.mjs 里再阻断一次。 */ -}}
 {{- $manifest := index hugo.Data "home-cards" }}
 {{- with $manifest }}
 {{- $items := slice }}
@@ -31,11 +35,22 @@
            一张卡两档合计约 38 KB，是首页体积的大头，加卡前先看 scripts/report-size.sh 的账。 */}}
     {{- $small := $img.Resize "272x webp q78" }}
     {{- $large := $img.Resize "544x webp q70" }}
-{{- $items = $items | append (dict
-    "s" $small.RelPermalink "l" $large.RelPermalink
-    "w" $small.Width "h" $small.Height
-    "label" (.name | default .series) "series" .series "style" (.style | default "foil")
-    "credit" (.credit | default "") "url" (.credit_url | default "")) }}
+    {{- /* 浮雕高度图（3D 查看器用）：灰阶、与卡面同尺寸，路径**由 image 推导**（不是 YAML 字段，
+           见 tools/cards/make-depth.py 头部）。指纹一下是为了缓存失效：重出深度图后 URL 会变。
+           缺失时只是这一张卡转起来是平的 —— 所以这里 warnf，check-deck.mjs 里还会在构建前阻断。 */}}
+    {{- $dpath := printf "images/cards/depth/%s" (path.Base .image) }}
+    {{- $depth := resources.Get $dpath }}
+    {{- $durl := "" }}
+    {{- with $depth }}{{ $durl = (. | fingerprint).RelPermalink }}
+    {{- else }}{{ warnf "深度图 %q 不在（跑 tools/cards/make-depth.py）——这张卡在 3D 查看器里会是平的" $dpath }}{{ end }}
+    {{- $items = $items | append (dict
+        "s" $small.RelPermalink "l" $large.RelPermalink
+        "w" $small.Width "h" $small.Height
+        "d" $durl
+        "label" (.name | default .series) "series" .series "style" (.style | default "foil")
+        "rank" (.rank | default "collector")
+        "rankLabel" (index (dict "collector" (i18n "deckRankCollector") "epic" (i18n "deckRankEpic") "legend" (i18n "deckRankLegend") "miracle" (i18n "deckRankMiracle")) (.rank | default "collector"))
+        "credit" (.credit | default "") "url" (.credit_url | default "")) }}
 {{- else }}
 {{- warnf "data/home-cards.yaml 里的 %q 在 assets/ 下找不到（先跑 tools/cards/make-cards.py），这一张跳过" .image }}
 {{- end }}
@@ -46,8 +61,10 @@
      data-next="{{ i18n "deckNext" }}" data-prev="{{ i18n "deckPrev" }}"
      data-announce="{{ i18n "deckAnnounce" }}"
      data-zoom="{{ i18n "deckZoom" }}" data-close="{{ i18n "deckClose" }}"
-     data-credit="{{ i18n "deckCredit" }}" data-dialog="{{ i18n "deckDialogLabel" }}">
-    <div class="home-card home-card--{{ $first.style }}" style="--art: url('{{ $first.l }}')">
+     data-credit="{{ i18n "deckCredit" }}" data-dialog="{{ i18n "deckDialogLabel" }}"
+     data-flip="{{ i18n "deckFlip" }}" data-flip-back="{{ i18n "deckFlipBack" }}"
+     data-rotate="{{ i18n "deckRotate" }}" data-gl-fail="{{ i18n "deckGlFail" }}">
+    <div class="home-card home-card--{{ $first.style }} home-card-rank--{{ $first.rank }}" style="--art: url('{{ $first.l }}')">
         <img draggable="false" src="{{ $first.s }}"
             srcset="{{ $first.s }} 1x, {{ $first.l }} 2x"
             width="{{ $first.w }}" height="{{ $first.h }}" alt="">
@@ -58,6 +75,8 @@
         {{- /* 玻璃的「厚度」层：把画作（--art）再铺一遍、放大错位模糊后只在边缘露出，模拟玻璃折射。
               别种风格不看它（CSS 里只给 --glass 显形），所以关掉 JS 的首屏也是对的。 */}}
         <span class="home-card-lens" aria-hidden="true"></span>
+        {{- /* 等级层：整卡覆膜 + 四角纹章。见 21-card-deck.css 的「等级」一节 */}}
+        <span class="home-card-rank" aria-hidden="true"></span>
         <span class="home-card-plate">
             <span class="home-card-label">{{ $first.label }}</span>
             <span class="home-card-index">01 / {{ printf "%02d" (len .) }}</span>

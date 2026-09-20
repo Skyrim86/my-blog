@@ -8,14 +8,14 @@
 # 卡面统一 5:7（集换卡比例）。都是按**内容包围盒**取景，两个判据是量出来的：
 # 阈值 45（低到 12 会把浅色花瓣与柔和渐变算成内容，包围盒直接等于整张图）、
 # 坐标取 1%~99% 分位（min/max 会被零星花瓣撑大）。字段怎么选：
-#   · crop: figure       **默认口径（2026-09-19 起）**：把人物整个装进 5:7 的窗（不许切人），
-#                        pad 给呼吸；窗口装不下画布时改成「整幅缩进卡面 + 四周垫底色」
-#   · crop: auto         按内容包围盒**填满**卡面（会切人，只在源图本身就是特写时用）
+#   · crop: figure       **默认口径（2026-09-20 起）**：**填满**卡面、不留空带；窗口上沿贴住
+#                        内容（留一点头顶），多出来的部分从下面裁掉（腿可以切、头不行）
+#   · crop: auto         与 figure 同义（保留是为了不动老清单）
+#   · zoom               构图放开倍数（默认 1.0 = 最紧）：>1 会多留背景，给高等级的卡用
+#                        —— 留下的必须是**源图自己的背景**，不是补出来的色块
 #   · crop: [x0,y0,x1,y1] 分数窗，给构图满、没法定「内容」的画手写
 #   · flat: [[上],[下]]  垫底渐变：给透明源图，或 figure 装不下时手定底色；
 #                        不写则按**实测四角颜色**取（必须按 alpha 挑像素，见 corners_flat）
-#   · pixel: true        源图是像素小人：最近邻放大（双线性会糊成一片），
-#                        并画一层棋盘网点底，做成「像素卡」——当前没有卡用它
 #
 # 出图 600×840（首页卡面显示 264px 宽的 2 倍再加一档），WebP q82；顺手把全部卡面拼一张接触表写到
 # ../lab/shots/cards_check.png —— 取景对不对只能看图定。跑完还会报「目录里有、清单里没有」
@@ -25,7 +25,7 @@ import sys
 
 import numpy as np
 import yaml
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MANIFEST = os.path.join(ROOT, "data", "home-cards.yaml")
@@ -35,7 +35,6 @@ LAB = os.path.join(ROOT, os.pardir, "lab", "shots", "cards_check.png")
 CARD_W, CARD_H = 600, 840
 QUALITY = 82
 AUTO_T = 45          # 内容判据：与四角底色差异大于它才算「内容」
-AUTO_PAD = 1.06      # 自动窗的余量（给大会被夹成整张图，见 make-ayaka-home.py 的注释）
 
 
 def load():
@@ -43,7 +42,8 @@ def load():
         return yaml.safe_load(f)
 
 
-def auto_box(im, pad=AUTO_PAD):
+def content_box(im):
+    """量出「内容」（与四角底色差异明显的像素）的包围盒。判据见文件头：阈值 45 + 1%~99% 分位。"""
     rgb = np.asarray(im.convert("RGB")).astype(np.int16)
     diff = np.abs(rgb - rgb[0, 0]).max(axis=2)
     ys, xs = np.where(diff > AUTO_T)
@@ -51,37 +51,49 @@ def auto_box(im, pad=AUTO_PAD):
         return None
     x0, x1 = np.percentile(xs, [1, 99])
     y0, y1 = np.percentile(ys, [1, 99])
-    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    need_w = max(x1 - x0, (y1 - y0) * CARD_W / CARD_H) * pad
-    w = min(im.width, int(need_w))
-    h = int(w * CARD_H / CARD_W)
-    if h > im.height:
-        h, w = im.height, int(im.height * CARD_W / CARD_H)
-    x = int(min(max(0, cx - w / 2), im.width - w))
-    y = int(min(max(0, cy - h / 2), im.height - h))
-    return (x, y, x + w, y + h)
+    return float(x0), float(y0), float(x1), float(y1)
 
 
-def figure_box(im, pad=1.16):
-    """**人像完整**的取景（2026-09-19 换成默认）：先量出内容包围盒，再把窗口放到「刚好装下它」
-    的 5:7 —— 目的是**不许切人**（旧口径是填满卡面，结果经常只剩半张脸或切掉腿）。
-    pad 给一点呼吸；窗口超出画布时返回 None，交给调用方用源图自己的底色补边（见 flat_from_corners）。"""
-    rgb = np.asarray(im.convert("RGB")).astype(np.int16)
-    diff = np.abs(rgb - rgb[0, 0]).max(axis=2)
-    ys, xs = np.where(diff > AUTO_T)
-    if len(xs) < 80:
-        return None
-    x0, x1 = np.percentile(xs, [1, 99])
-    y0, y1 = np.percentile(ys, [1, 99])
+def fill_box(im, zoom=1.0, head_room=0.08, keep_min=0.55):
+    """**填满卡面**的取景（2026-09-20 起是默认口径）：窗口铺满源图、不留任何空带，
+    上沿贴住内容（留一点头顶空间），多出来的部分**从下面裁掉**。
+
+    为什么推翻上一版：上一版是「把整幅装进卡面，装不下就补边」—— 而 32 张里 20 张装不下，
+    卡面两侧/上下就有了空带。用户连续两轮指出这一点，**要的是没有空带**，不是把补边做好看。
+    卡片的常规构图本来就是胸像/三分身，所以下沿裁掉腿是可以接受的；**头不能被切** ——
+    所以窗口是「上对齐内容上沿、往下长」，而不是垂直居中。
+
+    zoom > 1 把窗口放开一点、多留背景（用户：「高品质的卡可以保留好看的背景」）——
+    注意留下的必须是**源图自己的背景**，不是补出来的色块。上限是源图装不下为止。"""
+    b = content_box(im)
+    if b is None:
+        x0, y0, x1, y1 = 0.0, 0.0, float(im.width), float(im.height)
+    else:
+        x0, y0, x1, y1 = b
     cw, ch = x1 - x0, y1 - y0
-    need_w = max(cw, ch * CARD_W / CARD_H) * pad
-    need_h = need_w * CARD_H / CARD_W
-    if need_w > im.width or need_h > im.height:
-        return None
-    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    x = int(min(max(0, cx - need_w / 2), im.width - need_w))
-    y = int(min(max(0, cy - need_h / 2), im.height - need_h))
-    return (x, y, int(x + need_w), int(y + need_h))
+    # 窗口高度分两步定，两步都是**为了别留白**：
+    #   ① 优先**宽驱动** —— 先算「让内容正好填满卡面宽度」需要多高（cw × 7/5）。
+    #      细长的全身立绘于是被裁成**胸像**（头 + 上身），两侧不留白；卡片的常规构图
+    #      本来就是胸像/三分身，腿可以切、**头不能切**（靠上面的 head_room 保证）。
+    #   ② 但**至少保留 keep_min 的内容高度**（0.55 ≈ 半身）：用户的优先级是
+    #      「先保头像完整、其次半身完整」，所以宁可两侧留一点画面自己的背景，
+    #      也不要把上身裁掉（0.42 那版实测裁到只剩头肩，太狠）。
+    #   ③ 上限是「整个内容都装得下」（再大就是白给背景）。
+    # 头像"完整"是**结构性保证**，不是调参调出来的：窗口上沿取 `y0 - head_room×h`
+    # （y0 是内容最上面一行 = 头发/帽子顶），并且下面那个 clamp 只会把窗口往下推、
+    # 不会推到 y0 以下 —— 所以头顶永远在窗口内，且总有一段留白。
+    need_h = min(max(cw * CARD_H / CARD_W, ch * keep_min), ch) * zoom
+    need_w = need_h * CARD_W / CARD_H
+    if need_w > im.width:                      # 不能超过源图：超了就按源图的边界反过来定
+        need_w = float(im.width)
+        need_h = need_w * CARD_H / CARD_W
+    if need_h > im.height:
+        need_h = float(im.height)
+        need_w = need_h * CARD_W / CARD_H
+    cx = (x0 + x1) / 2
+    x = min(max(0.0, cx - need_w / 2), im.width - need_w)
+    y = min(max(0.0, y0 - head_room * need_h), im.height - need_h)
+    return (int(x), int(y), int(x + need_w), int(y + need_h))
 
 
 def corners_flat(im):
@@ -141,22 +153,6 @@ def gradient(size, top, bottom):
     return Image.fromarray(np.repeat(arr, w, axis=1).astype(np.uint8), "RGB")
 
 
-def build_pixel(im):
-    """像素小人 → 像素卡：最近邻放大到卡面的一半宽，坐在一张棋盘网点底上。"""
-    scale = max(1, (CARD_W // 2) // max(im.width, im.height))
-    big = im.resize((im.width * scale, im.height * scale), Image.NEAREST)
-    board = Image.new("RGB", (CARD_W, CARD_H), (26, 24, 33))
-    d = ImageDraw.Draw(board)
-    step = 12                                    # 棋盘网点：像素画的底纹
-    for yy in range(0, CARD_H, step):
-        for xx in range(0, CARD_W, step):
-            if (xx // step + yy // step) % 2 == 0:
-                d.rectangle([xx, yy, xx + step - 1, yy + step - 1], fill=(32, 30, 41))
-    board.paste(big, ((CARD_W - big.width) // 2, (CARD_H - big.height) // 2),
-                big if big.mode == "RGBA" else None)
-    return board
-
-
 def main():
     cards = load()
     out_dir = os.path.join(ROOT, "assets", "images", "cards")
@@ -168,65 +164,20 @@ def main():
             print(f"✗ 源图不在：{c['src']}（{c['image']}）")
             continue
         im = Image.open(src)
-        if c.get("pixel"):
-            face = build_pixel(im.convert("RGBA"))
-        else:
             transparent = (im.mode in ("RGBA", "LA")
                            and np.asarray(im.convert("RGBA").getchannel("A")).min() < 250)
-            if c.get("crop") == "figure" and not c.get("pixel"):
-                fb = figure_box(im, c.get("pad", 1.16))
-                if fb:
-                    box = fb
-                    crop = im.crop(box).convert("RGB").resize((CARD_W, CARD_H), Image.LANCZOS)
-                    dest = os.path.join(ROOT, "assets", c["image"])
-                    crop.save(dest, "WEBP", quality=QUALITY, method=6)
-                    kb = os.path.getsize(dest) // 1024
-                    total += kb
-                    faces.append((crop, f"{os.path.basename(c['image'])}  {c.get('name') or c['series']}  [{c['style']}]"))
-                    print(f"  {c['image']:26s} {crop.size[0]}x{crop.size[1]}  {kb:3d} KB  {c['style']:7s} "
-                          f"{c.get('name') or c['series']}  (figure, 原图裁切)")
-                    continue
-                flat = c.get("flat") or corners_flat(im)
-                inner = im.convert("RGBA")
-                r = min(CARD_W / inner.width, CARD_H / inner.height)
-                inner = inner.resize((max(1, int(inner.width * r)), max(1, int(inner.height * r))), Image.LANCZOS)
-                # **必须拿 alpha 当遮罩贴**：直接把 RGBA 转 RGB 会把透明区变成黑（官方立绘、看板娘
-                # 这两张透明源图实测被垫成黑底），而这里要的是「画面本身 + 我给的底色/四角底色」。
-                inner_rgb = Image.new("RGB", inner.size, tuple(flat[0]))
-                inner_rgb = Image.composite(inner.convert("RGB"), inner_rgb, inner.getchannel("A"))
-                bg = gradient((CARD_W, CARD_H), tuple(flat[0]), tuple(flat[1]))
-                bg.paste(inner_rgb, ((CARD_W - inner_rgb.width) // 2, (CARD_H - inner_rgb.height) // 2))
-                dest = os.path.join(ROOT, "assets", c["image"])
-                bg.save(dest, "WEBP", quality=QUALITY, method=6)
-                kb = os.path.getsize(dest) // 1024
-                total += kb
-                faces.append((bg, f"{os.path.basename(c['image'])}  {c.get('name') or c['series']}  [{c['style']}]"))
-                print(f"  {c['image']:26s} {bg.size[0]}x{bg.size[1]}  {kb:3d} KB  {c['style']:7s} "
-                      f"{c.get('name') or c['series']}  (figure, 整幅+底色)")
-                continue
-            box = auto_box(im) if c.get("crop") == "auto" else (
-                tuple(int(round(v * s)) for v, s in zip(c["crop"], (im.width, im.height, im.width, im.height)))
-                if isinstance(c.get("crop"), list) else None)
-            if box is None:
-                box = (0, 0, im.width, im.height)
-            if c.get("crop") == "figure" or c.get("fit") in ("contain", "figure"):
-                # 整幅收进卡面（横构图源图用）：缩到能放下，四周垫渐变——
-                # 5:7 硬裁一张横构图的特写只会剩下眼睛与头发（踩到过）
-                r = min(CARD_W / (box[2] - box[0]), CARD_H / (box[3] - box[1]))
-                inner = im.crop(box).convert("RGB")
-                inner = inner.resize((max(1, int(inner.width * r)), max(1, int(inner.height * r))), Image.LANCZOS)
-                top, bottom = c.get("flat", [[248, 245, 250], [224, 218, 232]])
-                bg = gradient((CARD_W, CARD_H), tuple(top), tuple(bottom))
-                bg.paste(inner, ((CARD_W - inner.width) // 2, (CARD_H - inner.height) // 2))
-                face = bg
-                dest = os.path.join(ROOT, "assets", c["image"])   # image 是相对 assets/ 的路径
-                face.save(dest, "WEBP", quality=QUALITY, method=6)
-                kb = os.path.getsize(dest) // 1024
-                total += kb
-                faces.append((face, f"{os.path.basename(c['image'])}  {c.get('name') or c['series']}  [{c['style']}]"))
-                print(f"  {c['image']:26s} {face.size[0]}x{face.size[1]}  {kb:3d} KB  {c['style']:6s} "
-                      f"{c.get('name') or c['series']}  (contain)")
-                continue
+            # 取景只有两条路：**手量窗**（构图满、没法定「内容」的几张）与**填满**
+            # （figure 与 auto 现在是同一件事，见 fill_box 的注释）。上一版那两条
+            # 「整幅缩进 + 补边」的退路已删除 —— 它们正是空带的来源。
+            crop_spec = c.get("crop")
+            if isinstance(crop_spec, list):
+                box = tuple(int(round(v * s2)) for v, s2 in
+                            zip(crop_spec, (im.width, im.height, im.width, im.height)))
+                note = "手量窗"
+            else:
+                # pad 是旧字段名（语义相同），保留兼容；高等级的卡用 zoom 放开构图
+                box = fill_box(im, float(c.get("zoom", c.get("pad", 1.0))))
+                note = "填满"
             crop = fit_ratio(im.crop(box))
             if transparent:
                 top, bottom = c.get("flat", [[246, 243, 249], [222, 216, 232]])
@@ -240,8 +191,12 @@ def main():
         kb = os.path.getsize(dest) // 1024
         total += kb
         faces.append((face, f"{os.path.basename(c['image'])}  {c.get('name') or c['series']}  [{c['style']}]"))
+        b2 = content_box(face)
+        head = f"头顶 {b2[1] / CARD_H * 100:4.1f}%" if b2 else "头顶  n/a"
+        if b2 and b2[1] < CARD_H * 0.015:
+            print(f"  ⚠ {c['image']} 的头顶几乎贴着卡的上边缘（{b2[1]}px）—— 看一眼取景")
         print(f"  {c['image']:26s} {face.size[0]}x{face.size[1]}  {kb:3d} KB  {c['style']:6s} "
-              f"{c.get('name') or c['series']}")
+              f"{c.get('name') or c['series']}  ({note}, {head})")
     print(f"共 {len(faces)} 张，合计 {total} KB")
 
     # 清单里有、但没出图的（源图缺失在上面逐条报过，这里兜住别的失败路径）

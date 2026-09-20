@@ -11,14 +11,24 @@
 #   flat    垫底渐变（[上, 下] 两个 RGB）：给透明源图，或 figure 取景装不下时手定底色；
 #           不写则用源图四角的实测底色
 #   series  系列名；name = 这张卡自己的名字（名牌显示 name + 系列副标）
-#   style   卡面风格（十六种在用，全是 CSS 画的）：
+#   style   卡面风格（**八种**，全是 CSS 画的；2026-09-20 从十六种精简而来）。
+#           被砍掉的与它们的去向（族内最接近的一个，脚本一次性改的）：
+#             holo-gold→foil（同构，只差色相）、frost/sakura→yukika（冷色花雪）、
+#             gothic→kintsugi（深底 + 金）、asanoha/uchiwa→washi（纸面）、
+#             seigaiha→glass（水波→冷玻璃）、nishiki→gold（织锦→金线）、pixel 直接删除
+#           精简的理由见 docs/features.md ㊴：十六种里其实只有四个原子配方，
+#           同一个配方的变体在 272px 下看不出差别，而每多一种就多一份明暗两套的维护面。
 #           foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 / ink 墨 / glass 玻璃 /
 #           gothic 哥特教堂玻璃 / sakura 樱纹 / asanoha 麻叶纹 / seigaiha 青海波 /
 #           yukika 雪华（六角结晶）/ nishiki 织锦（经纬提花）/ kintsugi 金继（黑底金缝）/
 #           uchiwa 团扇（扇形骨）/ holo-prism 星芒全息 / holo-gold 金箔全息
 #           另有 pixel（像素）当前没有卡在用，样式与生成器的 pixel 通道都还留着。
 #           **写错会静默退回兜底的 foil** —— scripts/check-deck.mjs 会拿 CSS 里的类名核出来。
-#   credit  出处（写进 docs/features.md ㉕；卡面本身不带出处文字）
+#   rank    等级（**必填**，漏了会静默变收藏 —— 所以 check-deck.mjs 会拦）：
+#             collector 收藏 / epic 史诗 / legend 传世 / miracle 奇迹（隐藏）
+#           2026-09-20 首版**按可量化的依据**定级：卡面细节量（文件字节 + 画面梯度）+ 源图分辨率，
+#           刻意不含「角色人气」这类主观项。分档：奇迹 1 张、传世 10%、史诗 30%、其余收藏。
+#           这一版是起点：想调就改这一行，观感由卡面材质与 3D 卡边按等级切换。（写进 docs/features.md ㉕；卡面本身不带出处文字）
 #   credit_url  出处的**可点链接**（可选）：卡片弹层（看大图）里显示成外链，没有就只显示文字。
 #           能推导的都补上了（pixiv → /artworks/<id>、safebooru → post&id=<id>、twitter/wallhaven
 #           同理）；**官方立绘与站点自己的看板娘没有可点的出处**，那两张就留空 —— 别硬编一个主页
@@ -31,6 +41,7 @@
   series: 绫华
   name: 木刀
   style: glass
+  rank: collector
   credit: pixiv 98079154
   credit_url: https://www.pixiv.net/artworks/98079154
 - image: images/cards/ayaka-kimono.webp
@@ -39,6 +50,7 @@
   series: 绫华
   name: 墨羽
   style: ink
+  rank: miracle
   credit: pixiv 91546278
   credit_url: https://www.pixiv.net/artworks/91546278
 - image: images/cards/ayaka-veil.webp
@@ -46,7 +58,8 @@
   crop: figure
   series: 绫华
   name: 花信
-  style: gothic
+  style: kintsugi
+  rank: legend
   credit: twitter wani_Dile
   credit_url: https://twitter.com/wani_Dile
 - image: images/cards/ayaka-desk.webp
@@ -56,13 +69,15 @@
   series: 绫华
   name: 书案
   style: washi
+  rank: legend
   credit: 官方春季立绘 Springbloom Missive
 - image: images/cards/ayaka-03.webp
   src: tools/cards/sources/ayaka-03.webp
   crop: figure
   series: 绫华
   name: 霜华
-  style: frost
+  style: yukika
+  rank: legend
   credit: safebooru 4194498
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4194498
 - image: images/cards/ayaka-04.webp
@@ -71,6 +86,7 @@
   series: 绫华
   name: 白鹭
   style: yukika
+  rank: collector
   credit: safebooru 5815913
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5815913
 - image: images/cards/ayaka-05.webp
@@ -79,6 +95,7 @@
   series: 绫华
   name: 星夜
   style: kintsugi
+  rank: epic
   credit: safebooru 4806294
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4806294
 - image: images/cards/ayaka-09.webp
@@ -86,7 +103,8 @@
   crop: figure
   series: 绫华
   name: 玄袖
-  style: asanoha
+  style: washi
+  rank: collector
   credit: safebooru 6134135
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=6134135
 - image: images/cards/ayaka-11.webp
@@ -94,7 +112,8 @@
   crop: figure
   series: 绫华
   name: 樱堤
-  style: uchiwa
+  style: washi
+  rank: collector
   credit: safebooru 4843454
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4843454
 - image: images/cards/ayaka-14.webp
@@ -102,7 +121,8 @@
   crop: figure
   series: 绫华
   name: 甲刃
-  style: holo-gold
+  style: foil
+  rank: epic
   credit: safebooru 4546356
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4546356
 - image: images/cards/ayaka-23.webp
@@ -110,7 +130,8 @@
   crop: figure
   series: 绫华
   name: 蝶羽
-  style: uchiwa
+  style: washi
+  rank: epic
   credit: safebooru 5359394
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5359394
 - image: images/cards/ayaka-16.webp
@@ -119,7 +140,8 @@
   pad: 1.3
   series: 绫华
   name: 闲坐
-  style: seigaiha
+  style: glass
+  rank: epic
   credit: safebooru 4021132
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4021132
 - image: images/cards/ayaka-18.webp
@@ -128,6 +150,7 @@
   series: 绫华
   name: 午后
   style: washi
+  rank: collector
   credit: safebooru 4012375
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4012375
 - image: images/cards/ayaka-20.webp
@@ -136,6 +159,7 @@
   series: 绫华
   name: 雪舞
   style: yukika
+  rank: collector
   credit: safebooru 3987957
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3987957
 - image: images/cards/ayaka-21.webp
@@ -143,7 +167,8 @@
   crop: figure
   series: 绫华
   name: 流水
-  style: seigaiha
+  style: glass
+  rank: collector
   credit: safebooru 5700504
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5700504
 - image: images/cards/ayaka-28.webp
@@ -152,6 +177,7 @@
   series: 绫华
   name: 夏荫
   style: foil
+  rank: epic
   credit: safebooru 4573787
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4573787
 # ---- 绫华补的 6 张（2026-09-20）：这 6 张源图上一轮就压好放在 sources/ 里、一直没进清单 ----
@@ -160,7 +186,8 @@
   crop: figure
   series: 绫华
   name: 素裙
-  style: frost
+  style: yukika
+  rank: collector
   credit: safebooru 4608952
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4608952
 - image: images/cards/ayaka-15.webp          # 注意：这张的**源图是 ayaka-15.webp**
@@ -172,7 +199,8 @@
   crop: [0.50, 0.0, 0.95, 1.0]
   series: 绫华
   name: 樱簪
-  style: sakura
+  style: yukika
+  rank: collector
   credit: safebooru 4702242
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4702242
 - image: images/cards/ayaka-19.webp
@@ -180,7 +208,8 @@
   crop: figure
   series: 绫华
   name: 学园
-  style: asanoha
+  style: washi
+  rank: collector
   credit: safebooru 3993400
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3993400
 - image: images/cards/ayaka-22.webp
@@ -188,7 +217,8 @@
   crop: figure
   series: 绫华
   name: 花礼
-  style: nishiki
+  style: gold
+  rank: epic
   credit: safebooru 5672112
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5672112
 - image: images/cards/ayaka-32.webp
@@ -197,6 +227,7 @@
   series: 绫华
   name: 糖霜
   style: washi
+  rank: epic
   credit: safebooru 4498197
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4498197
 
@@ -206,7 +237,8 @@
   crop: [0.50, 0.02, 0.92, 0.96]        # 人物在横向 66% 处（见 features.md ⑫ 的取景说明）
   series: 黑长直少女
   name: 日间
-  style: sakura
+  style: yukika
+  rank: epic
   credit: pixiv 87155937（壁纸套·日间）
   credit_url: https://www.pixiv.net/artworks/87155937
 - image: images/cards/girl-night.webp
@@ -215,6 +247,7 @@
   series: 黑长直少女
   name: 夜间
   style: ink
+  rank: epic
   credit: pixiv 77002104（壁纸套·夜间）
   credit_url: https://www.pixiv.net/artworks/77002104
 - image: images/cards/girl-ojou.webp
@@ -224,6 +257,7 @@
   series: 黑长直少女
   name: 大小姐
   style: gold
+  rank: collector
   credit: 站点看板娘（source-ojou-chibi.png，非商用同人）
 - image: images/cards/girl-lantern.webp
   src: tools/backgrounds/source-lady-slice.webp
@@ -231,6 +265,7 @@
   series: 黑长直少女
   name: 提灯
   style: kintsugi
+  rank: collector
   credit: wallhaven 6lwmy7（夜城合成版的人物切片，方案已撤回、素材留着）
   credit_url: https://wallhaven.cc/w/6lwmy7
 
@@ -245,7 +280,8 @@
   crop: figure
   series: 卡夫卡
   name: 猎星
-  style: gothic
+  style: kintsugi
+  rank: collector
   credit: safebooru 4601052
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4601052
 - image: images/cards/kafka-02.webp
@@ -254,6 +290,7 @@
   series: 卡夫卡
   name: 夜行
   style: ink
+  rank: collector
   credit: safebooru 4596259
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4596259
 - image: images/cards/kafka-03.webp
@@ -262,6 +299,7 @@
   series: 卡夫卡
   name: 独奏
   style: kintsugi
+  rank: epic
   credit: safebooru 4396840
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4396840
 - image: images/cards/kafka-04.webp
@@ -269,7 +307,8 @@
   crop: figure
   series: 卡夫卡
   name: 夜宴
-  style: nishiki
+  style: gold
+  rank: collector
   credit: safebooru 4050848
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4050848
 - image: images/cards/kafka-05.webp
@@ -278,6 +317,7 @@
   series: 卡夫卡
   name: 回响
   style: glass
+  rank: epic
   credit: safebooru 4018682
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4018682
 - image: images/cards/kafka-07.webp
@@ -285,7 +325,8 @@
   crop: figure
   series: 卡夫卡
   name: 雨幕
-  style: seigaiha
+  style: glass
+  rank: collector
   credit: safebooru 4092477
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4092477
 - image: images/cards/kafka-08.webp
@@ -294,5 +335,259 @@
   series: 卡夫卡
   name: 绯光
   style: holo-prism
+  rank: epic
   credit: safebooru 4395286
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4395286
+
+# ---- 艾米莉亚 / 初音未来（2026-09-20 加）----
+# 这两批的风格是**按源图明度给族、色相给族内哪一种、并在族内轮转**自动配的
+# （浅冷→玻璃/雪华、浅暖→纸面/金边、中间调→虹彩/金边、深底→墨/金继），
+# 是起点不是定论 —— 想改就改 style 字段，不必重出图。
+- image: images/cards/emilia-01.webp
+  src: tools/cards/sources/emilia-01.webp
+  series: 艾米莉亚
+  name: 银霜
+  style: kintsugi
+  rank: legend
+  credit: safebooru 2948619
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2948619
+- image: images/cards/emilia-02.webp
+  src: tools/cards/sources/emilia-02.webp
+  series: 艾米莉亚
+  name: 冰晶
+  style: gold
+  rank: collector
+  credit: safebooru 3193715
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3193715
+- image: images/cards/emilia-03.webp
+  src: tools/cards/sources/emilia-03.webp
+  series: 艾米莉亚
+  name: 雪原
+  style: washi
+  rank: collector
+  credit: safebooru 3370906
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3370906
+- image: images/cards/emilia-04.webp
+  src: tools/cards/sources/emilia-04.webp
+  series: 艾米莉亚
+  name: 花冠
+  style: gold
+  rank: collector
+  credit: safebooru 3295664
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3295664
+- image: images/cards/emilia-05.webp
+  src: tools/cards/sources/emilia-05.webp
+  series: 艾米莉亚
+  name: 月影
+  style: washi
+  rank: epic
+  credit: safebooru 3285846
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3285846
+- image: images/cards/emilia-06.webp
+  src: tools/cards/sources/emilia-06.webp
+  series: 艾米莉亚
+  name: 银铃
+  style: gold
+  rank: collector
+  credit: safebooru 3220250
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3220250
+- image: images/cards/emilia-07.webp
+  src: tools/cards/sources/emilia-07.webp
+  series: 艾米莉亚
+  name: 薄冰
+  style: washi
+  rank: legend
+  credit: safebooru 3145481
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3145481
+- image: images/cards/emilia-08.webp
+  src: tools/cards/sources/emilia-08.webp
+  series: 艾米莉亚
+  name: 白蔷
+  style: yukika
+  rank: collector
+  credit: safebooru 2776515
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2776515
+- image: images/cards/emilia-09.webp
+  src: tools/cards/sources/emilia-09.webp
+  series: 艾米莉亚
+  name: 霜羽
+  style: washi
+  rank: collector
+  credit: safebooru 2757756
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2757756
+- image: images/cards/emilia-10.webp
+  src: tools/cards/sources/emilia-10.webp
+  series: 艾米莉亚
+  name: 冬芽
+  style: gold
+  rank: epic
+  credit: safebooru 2349791
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2349791
+- image: images/cards/emilia-11.webp
+  src: tools/cards/sources/emilia-11.webp
+  series: 艾米莉亚
+  name: 静水
+  style: washi
+  rank: collector
+  credit: safebooru 3629666
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3629666
+- image: images/cards/emilia-12.webp
+  src: tools/cards/sources/emilia-12.webp
+  series: 艾米莉亚
+  name: 银绢
+  style: gold
+  rank: collector
+  credit: safebooru 4195947
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4195947
+- image: images/cards/emilia-13.webp
+  src: tools/cards/sources/emilia-13.webp
+  series: 艾米莉亚
+  name: 冰纹
+  style: washi
+  rank: collector
+  credit: safebooru 3985983
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3985983
+- image: images/cards/emilia-14.webp
+  src: tools/cards/sources/emilia-14.webp
+  series: 艾米莉亚
+  name: 幽兰
+  style: gold
+  rank: collector
+  credit: safebooru 3978940
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3978940
+- image: images/cards/emilia-15.webp
+  src: tools/cards/sources/emilia-15.webp
+  series: 艾米莉亚
+  name: 雪松
+  style: washi
+  rank: collector
+  credit: safebooru 3954029
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3954029
+- image: images/cards/emilia-16.webp
+  src: tools/cards/sources/emilia-16.webp
+  series: 艾米莉亚
+  name: 初霜
+  style: gold
+  rank: collector
+  credit: safebooru 3849608
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3849608
+- image: images/cards/emilia-17.webp
+  src: tools/cards/sources/emilia-17.webp
+  series: 艾米莉亚
+  name: 银纱
+  style: washi
+  rank: collector
+  credit: safebooru 3748589
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3748589
+- image: images/cards/emilia-18.webp
+  src: tools/cards/sources/emilia-18.webp
+  series: 艾米莉亚
+  name: 冰湖
+  style: gold
+  rank: epic
+  credit: safebooru 3744471
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3744471
+- image: images/cards/emilia-19.webp
+  src: tools/cards/sources/emilia-19.webp
+  series: 艾米莉亚
+  name: 雪铃
+  style: washi
+  rank: collector
+  credit: safebooru 3711031
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3711031
+- image: images/cards/emilia-20.webp
+  src: tools/cards/sources/emilia-20.webp
+  series: 艾米莉亚
+  name: 霜枝
+  style: gold
+  rank: collector
+  credit: safebooru 3392378
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3392378
+- image: images/cards/emilia-21.webp
+  src: tools/cards/sources/emilia-21.webp
+  series: 艾米莉亚
+  name: 银月
+  style: glass
+  rank: collector
+  credit: safebooru 3367232
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3367232
+- image: images/cards/emilia-22.webp
+  src: tools/cards/sources/emilia-22.webp
+  series: 艾米莉亚
+  name: 冰凌
+  style: gold
+  rank: collector
+  credit: safebooru 3176237
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3176237
+- image: images/cards/emilia-23.webp
+  src: tools/cards/sources/emilia-23.webp
+  series: 艾米莉亚
+  name: 白露
+  style: washi
+  rank: collector
+  credit: safebooru 2881553
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2881553
+- image: images/cards/emilia-24.webp
+  src: tools/cards/sources/emilia-24.webp
+  series: 艾米莉亚
+  name: 寒蕊
+  style: yukika
+  rank: collector
+  credit: safebooru 2855461
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2855461
+- image: images/cards/emilia-25.webp
+  src: tools/cards/sources/emilia-25.webp
+  series: 艾米莉亚
+  name: 雪羽
+  style: washi
+  rank: epic
+  credit: safebooru 2837256
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2837256
+- image: images/cards/emilia-26.webp
+  src: tools/cards/sources/emilia-26.webp
+  series: 艾米莉亚
+  name: 银漪
+  style: gold
+  rank: collector
+  credit: safebooru 2825122
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2825122
+- image: images/cards/emilia-27.webp
+  src: tools/cards/sources/emilia-27.webp
+  series: 艾米莉亚
+  name: 冷香
+  style: glass
+  rank: collector
+  credit: safebooru 2803842
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2803842
+- image: images/cards/miku-01.webp
+  src: tools/cards/sources/miku-01.webp
+  series: 初音未来
+  name: 初始之音
+  style: kintsugi
+  rank: epic
+  credit: safebooru 1869610
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=1869610
+- image: images/cards/miku-02.webp
+  src: tools/cards/sources/miku-02.webp
+  series: 初音未来
+  name: 旋律
+  style: ink
+  rank: epic
+  credit: safebooru 1485416
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=1485416
+- image: images/cards/miku-03.webp
+  src: tools/cards/sources/miku-03.webp
+  series: 初音未来
+  name: 电波
+  style: kintsugi
+  rank: legend
+  credit: safebooru 3561974
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3561974
+- image: images/cards/miku-04.webp
+  src: tools/cards/sources/miku-04.webp
+  series: 初音未来
+  name: 琉璃音
+  style: ink
+  rank: epic
+  credit: safebooru 2466422
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2466422
