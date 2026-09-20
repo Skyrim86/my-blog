@@ -12,8 +12,10 @@
 //      重新计时。系统要求减少动态（prefers-reduced-motion: reduce）时**完全不自动轮播** —— 那也是一种
 //      动效，而且这类偏好的人往往就是被自动动的东西干扰的人。
 //   3. **预取后两张**：换过去时图已经在缓存里，不会先看到空白再出图。只预取两张，不是整副牌。
-//   4. **换卡有过渡**：先给旧卡加 .is-out（淡出 + 轻微缩放），200ms 后换 src、切风格类，
-//      再加 .is-in 淡入。不用 3D 翻转：跨浏览器的 backface 与层次问题不值得为一副牌去啃。
+//   4. **换卡是交叉淡入**：`.home-card-ghost` 装住刚显示过的那一张（URL 已在缓存里），主图立刻换成
+//      新的，两张在 320ms 里交叉 —— 中间没有空白帧（旧做法是先淡出到 10%、换 src、再淡入，
+//      那一瞬卡上几乎没东西）。同时按方向给位移：新卡从来的那一侧滑进来、旧卡往反方向退。
+//      不用 3D 翻转：跨浏览器的 backface 与层次问题不值得为一副牌去啃。
 //   5. **按钮由脚本注入**：没有 JS 时只显示第一张卡（模板渲染的那张），不留下点不动的控件。
 //   6. **弹层用 `hidden` 属性开关**，不是只改类名：`hidden` 会让对比度脚本（只遍历可见元素）
 //      跳过它 —— 一块藏在屏外的面板不该进对比度表；键盘焦点也靠它才真的出得去。
@@ -34,6 +36,7 @@
 
   var card = deck.querySelector('.home-card');
   var img = card && card.querySelector('img');
+  var ghost = card && card.querySelector('.home-card-ghost');
   var label = card && card.querySelector('.home-card-label');
   var indexEl = card && card.querySelector('.home-card-index');
   if (!card || !img) return;
@@ -48,7 +51,7 @@
   var creditLabel = deck.dataset.credit || 'credit';
   var dialogTpl = deck.dataset.dialog || '{label}';
   var AUTO_MS = 6000;
-  var FADE_MS = 200;
+  var FADE_MS = 320;     // 与 CSS 里 deck-in / deck-ghost-out 的时长一致
   var i = 0;
   var timer = null;
   var busy = false;
@@ -315,14 +318,23 @@
       if (manual) restart();
       return;
     }
-    card.classList.remove('is-in');
-    card.classList.add('is-out');
+    // 方向感：新卡从来的那一侧滑进来、旧卡往反方向退（两个方向原来长得一样，看不出往哪边翻）
+    card.classList.toggle('is-next', dir > 0);
+    card.classList.toggle('is-prev', dir < 0);
+    // 把**当前这一张**交给残影，主图立刻换成新的 —— 两张交叉，没有空白帧
+    if (ghost) {
+      ghost.src = img.src;
+      ghost.srcset = img.srcset;
+      ghost.width = img.width;
+      ghost.height = img.height;
+      ghost.classList.add('is-on');
+    }
+    i = j;
+    apply(j);
+    prefetch();
     window.setTimeout(function () {
-      i = j;
-      apply(j);
-      card.classList.remove('is-out');
-      card.classList.add('is-in');
-      prefetch();
+      if (ghost) ghost.classList.remove('is-on');   // 收掉残影：别留着上一张的像素
+      card.classList.remove('is-in');
       busy = false;
       if (manual) restart();
     }, FADE_MS);

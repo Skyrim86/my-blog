@@ -11,11 +11,11 @@
 #   flat    垫底渐变（[上, 下] 两个 RGB）：给透明源图，或 figure 取景装不下时手定底色；
 #           不写则用源图四角的实测底色
 #   series  系列名；name = 这张卡自己的名字（名牌显示 name + 系列副标）
-#   style   卡面风格（十四种在用，全是 CSS 画的）：
+#   style   卡面风格（十六种在用，全是 CSS 画的）：
 #           foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 / ink 墨 / glass 玻璃 /
 #           gothic 哥特教堂玻璃 / sakura 樱纹 / asanoha 麻叶纹 / seigaiha 青海波 /
 #           yukika 雪华（六角结晶）/ nishiki 织锦（经纬提花）/ kintsugi 金继（黑底金缝）/
-#           uchiwa 团扇（扇形骨）
+#           uchiwa 团扇（扇形骨）/ holo-prism 星芒全息 / holo-gold 金箔全息
 #           另有 pixel（像素）当前没有卡在用，样式与生成器的 pixel 通道都还留着。
 #           **写错会静默退回兜底的 foil** —— scripts/check-deck.mjs 会拿 CSS 里的类名核出来。
 #   credit  出处（写进 docs/features.md ㉕；卡面本身不带出处文字）
@@ -102,7 +102,7 @@
   crop: figure
   series: 绫华
   name: 甲刃
-  style: gold
+  style: holo-gold
   credit: safebooru 4546356
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4546356
 - image: images/cards/ayaka-23.webp
@@ -151,7 +151,7 @@
   crop: figure
   series: 绫华
   name: 夏荫
-  style: asanoha
+  style: foil
   credit: safebooru 4573787
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4573787
 # ---- 绫华补的 6 张（2026-09-20）：这 6 张源图上一轮就压好放在 sources/ 里、一直没进清单 ----
@@ -293,6 +293,6 @@
   crop: figure
   series: 卡夫卡
   name: 绯光
-  style: foil
+  style: holo-prism
   credit: safebooru 4395286
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4395286
