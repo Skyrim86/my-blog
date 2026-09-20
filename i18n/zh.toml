@@ -190,6 +190,19 @@ other = "上一张卡"
 [deckAnnounce]
 other = "第 {n} 张，共 {total} 张：{label}"
 
+# 卡片弹层（看大图）：按钮名 / 关闭 / 出处标签。卡片组那几条一样走 data-* 传给 JS。
+[deckZoom]
+other = "看大图"
+
+[deckClose]
+other = "关闭"
+
+[deckCredit]
+other = "出处"
+
+[deckDialogLabel]
+other = "{label}（大图）"
+
 [homeBrowse]
 other = "按类浏览"
 

@@ -5,29 +5,34 @@
 # **清单是单一事实源**：模板（layouts/_partials/home-cards.html）读的是同一个 YAML 里的
 # image / series / name / style，所以改卡片（换图、改风格、加一张）只改那个文件再跑一遍这里。
 #
-# 卡面统一 5:7（集换卡比例）。四类处理，都在清单里由字段选：
-#   · crop: auto        按**内容包围盒**自动取景（白底/素底的插画都适用）。两个判据是量出来的：
-#                       阈值 45（低到 12 会把浅色花瓣与柔和渐变算成内容，包围盒直接等于整张图）、
-#                       坐标取 1%~99% 分位（min/max 会被零星花瓣撑大）。
-#   · crop: [x0,y0,x1,y1] 分数窗，给构图满、没法定「内容」的画手写。
-#   · flat: [[上],[下]] 给**透明源图**垫一层竖向渐变（纯色看着像贴纸、渐变才像卡片自己的底）。
-#                       垫底前按**实测最小 alpha** 判断是否真透明 —— 有的 PNG 有 alpha 通道但全 255。
-#   · pixel: true       源图是 32×32 的像素小人：最近邻放大（双线性会糊成一团），
-#                       并画一层棋盘网点底 + 一道内描边，做成「像素卡」。
+# 卡面统一 5:7（集换卡比例）。都是按**内容包围盒**取景，两个判据是量出来的：
+# 阈值 45（低到 12 会把浅色花瓣与柔和渐变算成内容，包围盒直接等于整张图）、
+# 坐标取 1%~99% 分位（min/max 会被零星花瓣撑大）。字段怎么选：
+#   · crop: figure       **默认口径（2026-09-19 起）**：把人物整个装进 5:7 的窗（不许切人），
+#                        pad 给呼吸；窗口装不下画布时改成「整幅缩进卡面 + 四周垫底色」
+#   · crop: auto         按内容包围盒**填满**卡面（会切人，只在源图本身就是特写时用）
+#   · crop: [x0,y0,x1,y1] 分数窗，给构图满、没法定「内容」的画手写
+#   · flat: [[上],[下]]  垫底渐变：给透明源图，或 figure 装不下时手定底色；
+#                        不写则按**实测四角颜色**取（必须按 alpha 挑像素，见 corners_flat）
+#   · pixel: true        源图是像素小人：最近邻放大（双线性会糊成一片），
+#                        并画一层棋盘网点底，做成「像素卡」——当前没有卡用它
 #
-# 出图 480×672（首页卡面显示约 240 宽，即 2 倍），WebP q82；顺手把 29 张拼一张接触表写到
-# ../lab/shots/cards_check.png —— 取景对不对只能看图定。
+# 出图 600×840（首页卡面显示 264px 宽的 2 倍再加一档），WebP q82；顺手把全部卡面拼一张接触表写到
+# ../lab/shots/cards_check.png —— 取景对不对只能看图定。跑完还会报「目录里有、清单里没有」
+# 的孤儿产物（撤掉一张卡时容易忘了删产物）。
 import os
 import sys
 
 import numpy as np
 import yaml
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MANIFEST = os.path.join(ROOT, "data", "home-cards.yaml")
 LAB = os.path.join(ROOT, os.pardir, "lab", "shots", "cards_check.png")
-CARD_W, CARD_H = 480, 672
+# 600×840（2026-09-20 从 480×672 提上来）：首页显示宽度 16.5rem = 264px，模板要 264 与 528
+# 两档，主图比 528 再宽一点才不至于在 2x 屏上被放大（Hugo 的 Resize 放大会发虚还多花字节）。
+CARD_W, CARD_H = 600, 840
 QUALITY = 82
 AUTO_T = 45          # 内容判据：与四角底色差异大于它才算「内容」
 AUTO_PAD = 1.06      # 自动窗的余量（给大会被夹成整张图，见 make-ayaka-home.py 的注释）
@@ -111,6 +116,21 @@ def fit_ratio(im):
     h = int(im.width * target)
     y = (im.height - h) // 2
     return im.crop((0, y, im.width, y + h))
+
+
+def label_font(size=13):
+    """接触表的标签写的是**中文**（卡名与系列），而 PIL 的默认位图字体没有中文字形 —— 不换字体会
+    把每个汉字画成一个方框（2026-09-20 出的那张送审图就是这么废掉的，标签全是 □□）。
+    按平台找一份系统字体，找不到就退回默认（宁可方框，也不要因为字体缺失让脚本报错）。"""
+    for path in (r"C:\Windows\Fonts\msyh.ttc", r"C:\Windows\Fonts\simhei.ttf",
+                 "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, size)
+            except Exception:
+                continue
+    return ImageFont.load_default()
 
 
 def gradient(size, top, bottom):
@@ -224,14 +244,31 @@ def main():
               f"{c.get('name') or c['series']}")
     print(f"共 {len(faces)} 张，合计 {total} KB")
 
+    # 清单里有、但没出图的（源图缺失在上面逐条报过，这里兜住别的失败路径）
+    missing = [c["image"] for c in cards
+               if not os.path.exists(os.path.join(ROOT, "assets", c["image"]))]
+    if missing:
+        print(f"✗ 清单里有 {len(missing)} 条没出图：" + "、".join(missing))
+
+    # 孤儿产物：目录里有、清单里没有的（撤掉一张卡时容易忘记删产物）。**只报告、不自动删** ——
+    # 产物是入库的资产，删之前该看一眼它是不是刚被改名（ayaka-15 → ayaka-23 就是这种）。
+    expected = {os.path.basename(c["image"]) for c in cards}
+    orphans = sorted(f for f in os.listdir(out_dir)
+                     if f not in expected and os.path.isfile(os.path.join(out_dir, f)))
+    if orphans:
+        print(f"⚠ assets/images/cards/ 里有 {len(orphans)} 个不在清单里的产物（撤卡后忘了删？）：")
+        for f in orphans:
+            print(f"    {f}  {os.path.getsize(os.path.join(out_dir, f)) // 1024} KB")
+
     cols = 6
     cw, ch = CARD_W // 2 + 20, CARD_H // 2 + 36
     rows = (len(faces) + cols - 1) // cols
     sheet = Image.new("RGB", (cols * cw, rows * ch), (34, 34, 40))
     d = ImageDraw.Draw(sheet)
+    font = label_font()
     for i, (face, label) in enumerate(faces):
         x, y = (i % cols) * cw, (i // cols) * ch
-        d.text((x + 8, y + 8), label, fill=(235, 235, 240))
+        d.text((x + 8, y + 8), label, fill=(235, 235, 240), font=font)
         sheet.paste(face.resize((CARD_W // 2, CARD_H // 2), Image.LANCZOS), (x + 10, y + 26))
     os.makedirs(os.path.dirname(LAB), exist_ok=True)
     sheet.save(LAB)

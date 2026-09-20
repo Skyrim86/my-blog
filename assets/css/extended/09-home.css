@@ -20,11 +20,12 @@
    ============================================ */
 
 /* 主题把 profile 区撑到一屏高；首页现在还有下面几块，改成自然高度。
-   padding 从 3rem/2rem → 2.2rem/1.2rem → **1.6rem/.9rem**（2026-09-19 再收一档）：
-   上面 hero 与下面两块面板是同一屏里的三段，hero 每多留一分白，「最近更新」就往下走一分。 */
+   padding 从 3rem/2rem → 2.2rem/1.2rem → 1.6rem/.9rem（2026-09-19 再收一档）→ **上边 .8rem**
+   （2026-09-20）：这一档是给「卡片组放大到 17rem」让的位，与下面 .home-hero 的 gap 同一笔账
+   （见 .home-deck 那条注释里的说明）。 */
 .main .profile {
   min-height: auto;
-  padding: 1.6rem 0 .9rem;
+  padding: .8rem 0 .9rem;
 }
 
 .profile .profile_inner {
@@ -38,7 +39,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: .85rem;
+  /* .6rem 而不是 .85rem（2026-09-20）：hero 里可见的只有头像 / 标题 / 副标题 / 站点规模 /
+     卡片组五项，四个间隙各收 4px 一共省 16px。卡从 240 放大到 272 之后，这段节奏紧一档更配
+     —— 大卡配松间隙会散成五块。**头像与标题的尺寸没动**：一开始为了让出首屏高度把它们也缩了，
+     后来查明真正钉住页脚的是主题给 main 的 min-height（首页那条覆盖在下面），就把这两处撤回了。 */
+  gap: .6rem;
   width: 100%;
 }
 
@@ -381,6 +386,16 @@
 @media (min-width: 1024px) {
   main.main:has(.home-recent) {
     max-width: calc(var(--nav-width) + var(--gap) * 2);
+    /* **首屏里能不能看见整条页脚的真正开关在这里。** 主题给 main 的是
+       `min-height: calc(100vh - --header-height - --footer-height)`（main.css），而它不知道
+       首页在页脚**下面**还挂了一条 `.footer-rss`（我们加的，一行 30px + 7.2px 上边距 ≈ 37px）。
+       于是 1440×950 下总高正好是 990：页脚底的最后一截与整条 RSS 块落在首屏外。
+       这个 min-height 撑出来的空白**加在 profile 与页脚之间**，所以收 hero 的间距推不动页脚
+       （2026-09-20 实测：收了两轮间距、hero 上移 23px，页脚纹丝不动）。
+       减掉 40px（RSS 块 37px + 主题对 header/footer 的估值 120 与实际 123 的差）之后总高
+       落在 950 以内：页脚整条可见（底 916）、首页不再需要滚动。
+       header/footer 用主题的变量而不是写死数字：我们改过页脚的 padding，写死就会偏。 */
+    min-height: calc(100vh - var(--header-height) - var(--footer-height) - 40px);
   }
 
   .profile .profile_inner {

@@ -1,30 +1,41 @@
-{{- /* 首页 hero 底部的卡片组（一次只显示一张，可手动切、也会自己轮播）——见 docs/features.md ㉕。
+{{- /* 首页 hero 底部的卡片组（一次只显示一张，可手动切、也会自己轮播，卡下的 ⤢ 打开弹层看大图）
+     —— 见 docs/features.md ㉕。
 
      数据源是 **data/home-cards.yaml**（卡面清单，单一事实源：生成脚本 tools/cards/make-cards.py
-     读它出图，这里读它渲染）。卡面 5:7，出图 480×672，显示约 240 宽。
+     读它出图，这里读它渲染；清单的格式由 scripts/check-deck.mjs 校验）。卡面 5:7，
+     出图 600×840，页内显示宽 272（17rem，见 21-card-deck.css 里那条的取景与尺寸说明）。
 
-     四件事刻意这么做：
+     五件事刻意这么做：
        1. **一次只在 DOM 里放一张 <img>**，其余卡片的 URL 走 `data-deck` 的 JSON 交给 JS 按需换
-          —— 28 张卡如果都渲染成 <img>，它们叠在同一位置、全都在视口里，`loading=lazy` 也拦不住，
-          打开首页就会下 28 张。现在是「先下第一张，再预取后两张」。
-       2. **禁 JS 也能看**：首张卡与名牌都在服务端渲染（含 `01 / 28` 这种序号），切换按钮由脚本注入
-          （一个点不动的控件比没有更糟，同 nav-toggle.js / bg-switch.js 的做法）。
-       3. **纯装饰**：`alt=""` + 容器 `aria-hidden="true"`；切换按钮自己带 aria-label（走 i18n + data-*），
+          —— 三十多张卡如果都渲染成 <img>，它们叠在同一位置、全都在视口里，`loading=lazy` 也拦不住，
+          打开首页就会下三十多张。现在是「先下第一张，再预取后两张」。
+       2. **禁 JS 也能看**：首张卡与名牌都在服务端渲染（含 `01 / 32` 这种序号），切换按钮与弹层都由
+          脚本注入（一个点不动的控件比没有更糟，同 nav-toggle.js / bg-switch.js 的做法）。
+       3. **牌面本身是装饰**：`alt=""`；切换按钮自己带 aria-label（走 i18n + data-*），
           换卡时写进一个 `.sr-only` 的 role="status" 节点播报（JS 侧）。
-       4. **风格（style）走 CSS 类**：foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 / ink 墨 / pixel 像素
-          —— 见 21-card-deck.css。换风格只改 YAML 里的 style 字段。 */ -}}
+       4. **风格（style）走 CSS 类**：十四种在用（foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 /
+          ink 墨 / glass 玻璃 / gothic 哥特教堂玻璃 / sakura 樱纹 / asanoha 麻叶纹 / seigaiha 青海波 /
+          yukika 雪华 / nishiki 织锦 / kintsugi 金继 / uchiwa 团扇），外加备用的 pixel
+          —— 全在 21-card-deck.css。换风格只改 YAML 里的 style 字段，不重出图。
+       5. **两档图显式给质量**：1x `272x webp q78`（首屏真下的那张）、2x `544x webp q70`
+          （只在高分屏用）。Hugo 默认 q75 对两档是同一个值，而这两档的用途不同。 */ -}}
 {{- $manifest := index hugo.Data "home-cards" }}
 {{- with $manifest }}
 {{- $items := slice }}
 {{- range . }}
 {{- $img := resources.Get .image }}
 {{- if $img }}
-{{- $small := $img.Resize "240x" }}
-{{- $large := $img.Resize "480x" }}
+    {{- /* 两档显式给质量（2026-09-20）：Hugo 的 Resize 默认 q75，而这两档的用途不一样 ——
+           1x 那张是首屏真下的、要看清细节（保 q78）；2x 只在高分屏用，铺满一屏也就 272 逻辑
+           像素，收到 q70（webp 的 q70 约等于 jpeg 的 q85，画面是插画不是文字，看不出差别）。
+           一张卡两档合计约 38 KB，是首页体积的大头，加卡前先看 scripts/report-size.sh 的账。 */}}
+    {{- $small := $img.Resize "272x webp q78" }}
+    {{- $large := $img.Resize "544x webp q70" }}
 {{- $items = $items | append (dict
     "s" $small.RelPermalink "l" $large.RelPermalink
     "w" $small.Width "h" $small.Height
-    "label" (.name | default .series) "series" .series "style" (.style | default "foil")) }}
+    "label" (.name | default .series) "series" .series "style" (.style | default "foil")
+    "credit" (.credit | default "") "url" (.credit_url | default "")) }}
 {{- else }}
 {{- warnf "data/home-cards.yaml 里的 %q 在 assets/ 下找不到（先跑 tools/cards/make-cards.py），这一张跳过" .image }}
 {{- end }}
@@ -33,7 +44,9 @@
 {{- $first := index . 0 }}
 <div class="home-deck" data-deck="{{ . | jsonify }}"
      data-next="{{ i18n "deckNext" }}" data-prev="{{ i18n "deckPrev" }}"
-     data-announce="{{ i18n "deckAnnounce" }}">
+     data-announce="{{ i18n "deckAnnounce" }}"
+     data-zoom="{{ i18n "deckZoom" }}" data-close="{{ i18n "deckClose" }}"
+     data-credit="{{ i18n "deckCredit" }}" data-dialog="{{ i18n "deckDialogLabel" }}">
     <div class="home-card home-card--{{ $first.style }}">
         <img draggable="false" src="{{ $first.s }}"
             srcset="{{ $first.s }} 1x, {{ $first.l }} 2x"

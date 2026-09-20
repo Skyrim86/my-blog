@@ -6,17 +6,25 @@
 #
 # ---- 谁需要什么 ----
 #   Pillow         tools/icons/make-icons.py、tools/covers/make-covers.py、
-#                  tools/backgrounds/make-backgrounds.py、make-admin-bg.py
-#    numpy         tools/backgrounds/make-backgrounds.py、make-mascot.py、make-mascot-left.py
+#                  tools/backgrounds/make-backgrounds.py、make-admin-bg.py、
+#                  tools/cards/make-cards.py
+#    numpy         tools/backgrounds/make-backgrounds.py、make-mascot.py、make-mascot-left.py、
+#                  tools/cards/make-cards.py
 #    opencv-python tools/backgrounds/make-mascot.py、make-mascot-left.py（白底抠图）
-#    —— tools/course-import/import_course.py 只用标准库，不需要这里的任何一项
+#    PyYAML        tools/cards/make-cards.py（读 data/home-cards.yaml）、
+#                  tools/course-import/import_course.py（读 data/math-branches.yaml，import 带兜底）、
+#                  tools/wiki-publish/{publish,cards}.py
+#    —— tools/course-import/import_course.py 除 YAML 外只用标准库
 #
 # 2026-09-18 立此文件前，这三项依赖完全没有声明：换一台机器想重生成图标或背景图，只能靠
 # 读脚本的 import 反推版本。而仓库其余部分的锁版本纪律很严（Hugo 钉在 action.yml、所有 Action
 # 钉到 commit SHA、KaTeX CSS/fonts 入库并做配对校验），唯独 Python 这一角是空的。
 #
+# 2026-09-20 补上 PyYAML：make-cards.py 无条件 `import yaml`，但它此前不在本文件里 —— 换台机器
+# 跑卡片生成器会在第一行就 ImportError，而脚本头部注释里的用法只说了「用同一个解释器」。
 # 前两项是**本机实测版本**（Python 3.11.15）；opencv-python 本机没安装，所以给的是区间而不是
 # 精确钉 —— 等哪台机器真跑 make-mascot*.py 时，把 `pip freeze` 到的版本改成精确钉再提交。
 Pillow==12.3.0
 numpy==2.4.3
 opencv-python>=4.10,<5
+PyYAML==6.0.3

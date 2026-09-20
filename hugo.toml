@@ -221,20 +221,13 @@ pagerSize = 10
 # 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html
 [params.home]
   recentCount = 8
-  # 首页 hero 底部的**全息卡片组**（卡面由 tools/backgrounds/make-ayaka-home.py 生成，四张画各
-  # 裁一张 5:7 卡面；「全息」那层是 CSS 画的，不烘进图里）。**不写或留空数组 = 不显示。**
-  # 出场方式是「一组小卡铺在 hero 最下面」——2026-09-19 从「右栏一张大卡」改过来：大卡把页面
-  # 重心拉到右边、左栏空一大片，改成四张小卡正好填左栏。出处与四张画的取舍见 docs/features.md ㉕。
-  # 图要放 assets/ 下（放 static/ 会让 Resize 被静默忽略，见 docs/traps.md）。
-  cards = [
-    'images/cards/ayaka-sword.webp',
-    'images/cards/ayaka-kimono.webp',
-    'images/cards/ayaka-veil.webp',
-    'images/cards/ayaka-desk.webp',
-  ]
-  # 另一种出场形式（**当前关着**）：hero 里一块透明底场景插画。想切回它就把 chara 填上、
-  # 同时把上面的 cards 留空；两种都空着就是「hero 里只有文字」。尺寸由 charaWidth 给。
-  # 由同一个脚本从 source-ayaka-desk.png 生成。
+  # 首页 hero 底部的**卡片组**（一次一张，可手动切也会自己轮播）不在这里配置：
+  # 它由 data/home-cards.yaml 这份清单驱动（生成器 tools/cards/make-cards.py），模板直接读它。
+  # 这里曾经留着一条 `cards = [...]` 的四张图数组，模板早就不读它了（2026-09-20 删掉 ——
+  # 一份改了不起作用的配置比没有配置更糟：改了看不到变化，只会去怀疑样式或缓存）。
+  # 另一种出场形式（**当前关着**）：hero 里一块透明底场景插画。想切回它就把 chara 填上，
+  # 尺寸由 charaWidth 给；它与卡片组互斥，两者都空着就是「hero 里只有文字」。
+  # 由 tools/backgrounds/make-ayaka-home.py 从 source-ayaka-desk.png 生成。
   chara = ''
   charaWidth = 250
 

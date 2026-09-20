@@ -11,9 +11,18 @@
 #   flat    垫底渐变（[上, 下] 两个 RGB）：给透明源图，或 figure 取景装不下时手定底色；
 #           不写则用源图四角的实测底色
 #   series  系列名；name = 这张卡自己的名字（名牌显示 name + 系列副标）
-#   style   卡面风格：foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 / ink 墨 /
-#           glass 玻璃 / gothic 哥特教堂玻璃 / sakura 樱纹 / asanoha 麻叶纹 / seigaiha 青海波
+#   style   卡面风格（十四种在用，全是 CSS 画的）：
+#           foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 / ink 墨 / glass 玻璃 /
+#           gothic 哥特教堂玻璃 / sakura 樱纹 / asanoha 麻叶纹 / seigaiha 青海波 /
+#           yukika 雪华（六角结晶）/ nishiki 织锦（经纬提花）/ kintsugi 金继（黑底金缝）/
+#           uchiwa 团扇（扇形骨）
+#           另有 pixel（像素）当前没有卡在用，样式与生成器的 pixel 通道都还留着。
+#           **写错会静默退回兜底的 foil** —— scripts/check-deck.mjs 会拿 CSS 里的类名核出来。
 #   credit  出处（写进 docs/features.md ㉕；卡面本身不带出处文字）
+#   credit_url  出处的**可点链接**（可选）：卡片弹层（看大图）里显示成外链，没有就只显示文字。
+#           能推导的都补上了（pixiv → /artworks/<id>、safebooru → post&id=<id>、twitter/wallhaven
+#           同理）；**官方立绘与站点自己的看板娘没有可点的出处**，那两张就留空 —— 别硬编一个主页
+#           链接上去，那等于指错地方。
 
 # ---- 绫华：名字按画面取（她的意象是白鹭、霜、扇、樱、舞，名字都往这上面靠）----
 - image: images/cards/ayaka-sword.webp
@@ -23,6 +32,7 @@
   name: 木刀
   style: glass
   credit: pixiv 98079154
+  credit_url: https://www.pixiv.net/artworks/98079154
 - image: images/cards/ayaka-kimono.webp
   src: tools/backgrounds/source-ayaka-kimono.png
   crop: figure
@@ -30,6 +40,7 @@
   name: 墨羽
   style: ink
   credit: pixiv 91546278
+  credit_url: https://www.pixiv.net/artworks/91546278
 - image: images/cards/ayaka-veil.webp
   src: tools/backgrounds/source-ayaka-veil.jpg
   crop: figure
@@ -37,6 +48,7 @@
   name: 花信
   style: gothic
   credit: twitter wani_Dile
+  credit_url: https://twitter.com/wani_Dile
 - image: images/cards/ayaka-desk.webp
   src: tools/backgrounds/source-ayaka-desk.png
   crop: figure
@@ -52,20 +64,23 @@
   name: 霜华
   style: frost
   credit: safebooru 4194498
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4194498
 - image: images/cards/ayaka-04.webp
   src: tools/cards/sources/ayaka-04.webp
   crop: figure
   series: 绫华
   name: 白鹭
-  style: glass
+  style: yukika
   credit: safebooru 5815913
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=5815913
 - image: images/cards/ayaka-05.webp
   src: tools/cards/sources/ayaka-05.webp
   crop: figure
   series: 绫华
   name: 星夜
-  style: gothic
+  style: kintsugi
   credit: safebooru 4806294
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4806294
 - image: images/cards/ayaka-09.webp
   src: tools/cards/sources/ayaka-09.webp
   crop: figure
@@ -73,13 +88,15 @@
   name: 玄袖
   style: asanoha
   credit: safebooru 6134135
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=6134135
 - image: images/cards/ayaka-11.webp
   src: tools/cards/sources/ayaka-11.webp
   crop: figure
   series: 绫华
   name: 樱堤
-  style: sakura
+  style: uchiwa
   credit: safebooru 4843454
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4843454
 - image: images/cards/ayaka-14.webp
   src: tools/cards/sources/ayaka-14.webp
   crop: figure
@@ -87,13 +104,15 @@
   name: 甲刃
   style: gold
   credit: safebooru 4546356
-- image: images/cards/ayaka-15.webp
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4546356
+- image: images/cards/ayaka-23.webp
   src: tools/cards/sources/ayaka-23.webp
   crop: figure
   series: 绫华
   name: 蝶羽
-  style: sakura
+  style: uchiwa
   credit: safebooru 5359394
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=5359394
 - image: images/cards/ayaka-16.webp
   src: tools/cards/sources/ayaka-16.webp
   crop: figure
@@ -102,6 +121,7 @@
   name: 闲坐
   style: seigaiha
   credit: safebooru 4021132
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4021132
 - image: images/cards/ayaka-18.webp
   src: tools/cards/sources/ayaka-18.webp
   crop: figure
@@ -109,13 +129,15 @@
   name: 午后
   style: washi
   credit: safebooru 4012375
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4012375
 - image: images/cards/ayaka-20.webp
   src: tools/cards/sources/ayaka-20.webp
   crop: figure
   series: 绫华
   name: 雪舞
-  style: frost
+  style: yukika
   credit: safebooru 3987957
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3987957
 - image: images/cards/ayaka-21.webp
   src: tools/cards/sources/ayaka-21.webp
   crop: figure
@@ -123,6 +145,7 @@
   name: 流水
   style: seigaiha
   credit: safebooru 5700504
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=5700504
 - image: images/cards/ayaka-28.webp
   src: tools/cards/sources/ayaka-28.webp
   crop: figure
@@ -130,6 +153,52 @@
   name: 夏荫
   style: asanoha
   credit: safebooru 4573787
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4573787
+# ---- 绫华补的 6 张（2026-09-20）：这 6 张源图上一轮就压好放在 sources/ 里、一直没进清单 ----
+- image: images/cards/ayaka-12.webp
+  src: tools/cards/sources/ayaka-12.webp
+  crop: figure
+  series: 绫华
+  name: 素裙
+  style: frost
+  credit: safebooru 4608952
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4608952
+- image: images/cards/ayaka-15.webp          # 注意：这张的**源图是 ayaka-15.webp**
+  src: tools/cards/sources/ayaka-15.webp      # （上一轮 ayaka-15 这个产物名指的是 ayaka-23 那张，
+  # 手量分数窗：源图是 700×448 的横构图，figure 会退成「整幅缩进 + 上下两条空带」（五分之二
+  # 是空的）。窗取她的脸与肩这一段（5:7 后约 320×448），1x 档仍是降采样；代价是源图只有 448 高，
+  # 2x 档（544）要放大 1.7 倍 —— 高分屏上会略软，这是这张源图本身的余量不够（见 fetch-sources.py
+  # 里「长边 700」那条口径）。
+  crop: [0.50, 0.0, 0.95, 1.0]
+  series: 绫华
+  name: 樱簪
+  style: sakura
+  credit: safebooru 4702242
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4702242
+- image: images/cards/ayaka-19.webp
+  src: tools/cards/sources/ayaka-19.webp
+  crop: figure
+  series: 绫华
+  name: 学园
+  style: asanoha
+  credit: safebooru 3993400
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3993400
+- image: images/cards/ayaka-22.webp
+  src: tools/cards/sources/ayaka-22.webp
+  crop: figure
+  series: 绫华
+  name: 花礼
+  style: nishiki
+  credit: safebooru 5672112
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=5672112
+- image: images/cards/ayaka-32.webp
+  src: tools/cards/sources/ayaka-32.webp
+  crop: figure
+  series: 绫华
+  name: 糖霜
+  style: washi
+  credit: safebooru 4498197
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4498197
 
 # ---- 黑长直少女：站上自己的角色资产 ----
 - image: images/cards/girl-day.webp
@@ -139,6 +208,7 @@
   name: 日间
   style: sakura
   credit: pixiv 87155937（壁纸套·日间）
+  credit_url: https://www.pixiv.net/artworks/87155937
 - image: images/cards/girl-night.webp
   src: assets/images/bg-night-girl.webp
   crop: [0.54, 0.06, 0.96, 1.0]         # 夜间那张人物在 76% 处
@@ -146,6 +216,7 @@
   name: 夜间
   style: ink
   credit: pixiv 77002104（壁纸套·夜间）
+  credit_url: https://www.pixiv.net/artworks/77002104
 - image: images/cards/girl-ojou.webp
   src: assets/images/mascot.webp
   crop: figure
@@ -159,5 +230,69 @@
   crop: figure
   series: 黑长直少女
   name: 提灯
-  style: gothic
+  style: kintsugi
   credit: wallhaven 6lwmy7（夜城合成版的人物切片，方案已撤回、素材留着）
+  credit_url: https://wallhaven.cc/w/6lwmy7
+
+# ---- 卡夫卡（崩坏：星穹铁道）：2026-09-20 加的第三系 ----
+# 源图来自 safebooru，取图口径在 lab/shots/revamp/pick-deck.py（打分 + 接触表）与
+# tools/cards/fetch-sources.py（下载 + 归一化到长边 700px）。
+# **这一系每条查询都带 rating:safe**：站点上她的 `solo simple_background` 不带这个过滤有 100 条、
+# 带上只剩 2 条 —— 不带的那些是 questionable，tags 里的敏感词滤不干净，而这是放在公开首页的图。
+# 代价是池子薄（全站 safe 单人只有二十来条，其中能用的七八条），所以这一系只到 8 张。
+- image: images/cards/kafka-01.webp
+  src: tools/cards/sources/kafka-01.webp
+  crop: figure
+  series: 卡夫卡
+  name: 猎星
+  style: gothic
+  credit: safebooru 4601052
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4601052
+- image: images/cards/kafka-02.webp
+  src: tools/cards/sources/kafka-02.webp
+  crop: figure
+  series: 卡夫卡
+  name: 夜行
+  style: ink
+  credit: safebooru 4596259
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4596259
+- image: images/cards/kafka-03.webp
+  src: tools/cards/sources/kafka-03.webp
+  crop: figure
+  series: 卡夫卡
+  name: 独奏
+  style: kintsugi
+  credit: safebooru 4396840
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4396840
+- image: images/cards/kafka-04.webp
+  src: tools/cards/sources/kafka-04.webp
+  crop: figure
+  series: 卡夫卡
+  name: 夜宴
+  style: nishiki
+  credit: safebooru 4050848
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4050848
+- image: images/cards/kafka-05.webp
+  src: tools/cards/sources/kafka-05.webp
+  crop: figure
+  series: 卡夫卡
+  name: 回响
+  style: glass
+  credit: safebooru 4018682
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4018682
+- image: images/cards/kafka-07.webp
+  src: tools/cards/sources/kafka-07.webp
+  crop: figure
+  series: 卡夫卡
+  name: 雨幕
+  style: seigaiha
+  credit: safebooru 4092477
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4092477
+- image: images/cards/kafka-08.webp
+  src: tools/cards/sources/kafka-08.webp
+  crop: figure
+  series: 卡夫卡
+  name: 绯光
+  style: foil
+  credit: safebooru 4395286
+  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4395286

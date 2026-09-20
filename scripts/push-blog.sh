@@ -177,6 +177,22 @@ if [ -n "$dirty" ]; then
     fi
   fi
 
+  # 首页卡片组清单：**阻断**。data/home-cards.yaml 是首页那副牌的单一事实源，但在 2026-09-20
+  # 之前**没有任何脚本读它** —— style 拼错会静默退回全息 foil、crop 拼错会静默改成整幅硬裁、
+  # src/产物路径写错会让模板 warnf 一下就跳过整张牌，全是「构建全绿、页面不对」那一类。
+  # 与上面两项同一口径（CI 有就必须本地也跑），否则本地全绿、推上去才被拦。
+  if [ -f scripts/check-deck.mjs ]; then
+    echo "▸ 首页卡片组清单校验"
+    if cd_log="$(node scripts/check-deck.mjs 2>&1)"; then
+      printf '%s\n' "$cd_log" | tail -1 | sed 's/^/  /'
+    else
+      printf '%s\n' "$cd_log" | sed 's/^/  /'
+      echo "✗ 首页卡片组清单不合规，已中止（未提交、未推送）。"
+      echo "  （改 data/home-cards.yaml；加卡/换图后跑 tools/cards/make-cards.py 重出图。）"
+      exit 1
+    fi
+  fi
+
   # 公式内容预检：**阻断**。数学区里再嵌一个 `$`（区域被提前截断）、数学区里的 `§` 与圈号 `①②③`
   # 都会让 KaTeX 报错、整站构建中止，而且没法自动修。排在构建之前，是为了给出公式本体的
   # 文件:行:列——Hugo 为这类错误报的行列号是模板渲染位置（实测两个坏页都报 19:13，真缺陷在

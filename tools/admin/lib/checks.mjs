@@ -52,6 +52,15 @@ const ITEMS = [
     hint: '每张卡都要有名字，外加 id/kind 非空、id 不重复 —— 无名卡在卡片墙上只是一个裸类别词（「引理 4.1」）',
   },
   {
+    id: 'deck',
+    label: '首页卡片组清单',
+    runtime: 'node',
+    argv: ['scripts/check-deck.mjs'],
+    fast: true,
+    blocking: true,
+    hint: 'data/home-cards.yaml 是首页那副牌的单一事实源：style 拼错会静默退回全息 foil、crop 拼错会静默改成硬裁、产物路径写错会跳过整张牌 —— 全是构建全绿的那种坏',
+  },
+  {
     id: 'wiki',
     label: '知识库同步',
     runtime: 'python',
