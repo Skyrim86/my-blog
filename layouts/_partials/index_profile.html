@@ -62,6 +62,9 @@
         {{- /* 站点规模一行小字：整块在 home-scale.html 里 */ -}}
         {{- partial "home-scale.html" . }}
 
+        {{- /* 全息卡片组：整块在 home-cards.html 里（放在 hero 最下面，见那支 partial 的注释） */ -}}
+        {{- partial "home-cards.html" . }}
+
         {{- with .buttons }}
         <div class="buttons">
             {{- range . }}
@@ -140,6 +143,7 @@
             {{- end }}
         </section>
         {{- end }}
+
         </div>
     </div>
     {{- end }}

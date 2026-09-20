@@ -60,7 +60,7 @@
   letter-spacing: .04em;
 }
 
-/* ---------- hero 里的角色立绘（透明底抠图，生成脚本 tools/backgrounds/make-ayaka-chibi.py）----------
+/* ---------- hero 里的场景插画（原生透明素材，生成脚本 tools/backgrounds/make-ayaka-home.py）----------
 
    **选择器必须带 `.profile` 这一层，不能只写 `.home-chara`**：主题给头像写了两条会命中
    「hero 里任何一张图」的规则，权重都比单个类高：
@@ -70,11 +70,12 @@
    `.profile .home-chara` 是 (0,2,0)，压得住 `.profile img` 的 (0,1,1)；只写 `.home-chara` 是 (0,1,0)，
    压不住 —— 表现是「圆形头像裁切还在」或「窄屏尺寸跳一下」，都不报错。（docs/traps.md 有这条。）
 
-   宽度分档：窄屏 128 / 641px 起 168 / ≥1024px 回到模板给的 charaWidth（`width: auto` 取的就是
-   模板里 width 属性的值，也就是 hugo.toml 的 charaWidth，不在这里写第二份）。改档位要顺带看
-   make-ayaka-chibi.py 的 OUT_W（出图 = 显示宽度的 2 倍）。 */
+   宽度分档：窄屏 144 / 641px 起 196 / ≥1024px 回到模板给的 charaWidth（`width: auto` 取的就是
+   模板里 width 属性的值，也就是 hugo.toml 的 charaWidth，不在这里写第二份）。这三档比 Q 版那版
+   大一圈：这张是带书桌 / 台灯 / 便签板的场景，画得小就看不清在干什么（它的宽高比是 0.79，
+   高比宽大，所以实际占的高度还要再乘 1.27）。改档位要顺带看 make-ayaka-home.py 的 OUT_W。 */
 .profile .home-chara {
-  width: 128px;
+  width: 144px;
   /* height 必须 auto：改了宽度而高度锁在属性值上会被纵向压扁（同 00-theme.css 里内容图那条） */
   height: auto;
   border-radius: 0;
@@ -96,7 +97,7 @@
 
 @media (min-width: 641px) {
   .profile .home-chara {
-    width: 168px;
+    width: 196px;
   }
 }
 
@@ -362,6 +363,11 @@
   font-size: .88rem;
   color: var(--secondary);
 }
+
+/* ---------- 卡片组在 21-card-deck.css（一次一张 + 六种卡面风格）；这里只留位置感 ----------
+
+   hero 最下面那一组，见 data/home-cards.yaml 与 layouts/_partials/home-cards.html。
+   它与右栏两块面板互不影响：窄屏在左侧文字下面，≥1024px 在左栏底部。 */
 
 /* ---------- ≥1024px：两栏 ----------
 

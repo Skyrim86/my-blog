@@ -146,7 +146,7 @@ bash scripts/new-content.sh remove   <content 路径> [--with-bundle] [--dry-run
 
 ## 9. 课程内容从课程项目导入（含数学工具库）
 
-「回归分析」这类课程的项目根不在博客仓库里（`D:\1.Study\course\回归分析`），博客侧的内容与数据由脚本生成：
+「回归分析」这类课程的项目根不在博客仓库里（`D:\Study\courses\回归分析`；09-17 盘位重组前写作 `D:\1.Study\course\回归分析`），博客侧的内容与数据由脚本生成：
 
 ```bash
 python tools/course-import/import_course.py            # 生成 / 更新

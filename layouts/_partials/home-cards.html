@@ -1,0 +1,48 @@
+{{- /* 首页 hero 底部的卡片组（一次只显示一张，可手动切、也会自己轮播）——见 docs/features.md ㉕。
+
+     数据源是 **data/home-cards.yaml**（卡面清单，单一事实源：生成脚本 tools/cards/make-cards.py
+     读它出图，这里读它渲染）。卡面 5:7，出图 480×672，显示约 240 宽。
+
+     四件事刻意这么做：
+       1. **一次只在 DOM 里放一张 <img>**，其余卡片的 URL 走 `data-deck` 的 JSON 交给 JS 按需换
+          —— 28 张卡如果都渲染成 <img>，它们叠在同一位置、全都在视口里，`loading=lazy` 也拦不住，
+          打开首页就会下 28 张。现在是「先下第一张，再预取后两张」。
+       2. **禁 JS 也能看**：首张卡与名牌都在服务端渲染（含 `01 / 28` 这种序号），切换按钮由脚本注入
+          （一个点不动的控件比没有更糟，同 nav-toggle.js / bg-switch.js 的做法）。
+       3. **纯装饰**：`alt=""` + 容器 `aria-hidden="true"`；切换按钮自己带 aria-label（走 i18n + data-*），
+          换卡时写进一个 `.sr-only` 的 role="status" 节点播报（JS 侧）。
+       4. **风格（style）走 CSS 类**：foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 / ink 墨 / pixel 像素
+          —— 见 21-card-deck.css。换风格只改 YAML 里的 style 字段。 */ -}}
+{{- $manifest := index hugo.Data "home-cards" }}
+{{- with $manifest }}
+{{- $items := slice }}
+{{- range . }}
+{{- $img := resources.Get .image }}
+{{- if $img }}
+{{- $small := $img.Resize "240x" }}
+{{- $large := $img.Resize "480x" }}
+{{- $items = $items | append (dict
+    "s" $small.RelPermalink "l" $large.RelPermalink
+    "w" $small.Width "h" $small.Height
+    "label" (.name | default .series) "series" .series "style" (.style | default "foil")) }}
+{{- else }}
+{{- warnf "data/home-cards.yaml 里的 %q 在 assets/ 下找不到（先跑 tools/cards/make-cards.py），这一张跳过" .image }}
+{{- end }}
+{{- end }}
+{{- with $items }}
+{{- $first := index . 0 }}
+<div class="home-deck" data-deck="{{ . | jsonify }}"
+     data-next="{{ i18n "deckNext" }}" data-prev="{{ i18n "deckPrev" }}"
+     data-announce="{{ i18n "deckAnnounce" }}">
+    <div class="home-card home-card--{{ $first.style }}">
+        <img draggable="false" src="{{ $first.s }}"
+            srcset="{{ $first.s }} 1x, {{ $first.l }} 2x"
+            width="{{ $first.w }}" height="{{ $first.h }}" alt="">
+        <span class="home-card-plate">
+            <span class="home-card-label">{{ $first.label }}</span>
+            <span class="home-card-index">01 / {{ printf "%02d" (len .) }}</span>
+        </span>
+    </div>
+</div>
+{{- end }}
+{{- end }}

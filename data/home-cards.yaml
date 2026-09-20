@@ -1,0 +1,163 @@
+# 首页卡片组的清单 —— **单一事实源**：生成脚本（tools/cards/make-cards.py）按它出卡面，
+# 模板（layouts/_partials/home-cards.html）按它渲染卡面、名牌与风格。改卡片只改这个文件。
+#
+# 字段：
+#   image   产物路径（**相对 assets/**，即 images/cards/xxx.webp；生成产物、不要手改）
+#   src     源图路径（仓库根相对）
+#   crop    取景：figure = **整幅人像装进卡面**（默认，2026-09-19 起；先按内容包围盒定窗，
+#           装不下就把整幅缩进卡面、四周用源图四角的底色补边）；auto = 按内容包围盒填满卡面
+#           （会切人，只在源图本身就是特写时用）；[x0,y0,x1,y1] = 分数窗手量
+#   pad     figure 取景的余量（默认 1.16；想让画面更满就调小、想多留底色就调大）
+#   flat    垫底渐变（[上, 下] 两个 RGB）：给透明源图，或 figure 取景装不下时手定底色；
+#           不写则用源图四角的实测底色
+#   series  系列名；name = 这张卡自己的名字（名牌显示 name + 系列副标）
+#   style   卡面风格：foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 / ink 墨 /
+#           glass 玻璃 / gothic 哥特教堂玻璃 / sakura 樱纹 / asanoha 麻叶纹 / seigaiha 青海波
+#   credit  出处（写进 docs/features.md ㉕；卡面本身不带出处文字）
+
+# ---- 绫华：名字按画面取（她的意象是白鹭、霜、扇、樱、舞，名字都往这上面靠）----
+- image: images/cards/ayaka-sword.webp
+  src: tools/backgrounds/source-ayaka-sword.jpg
+  crop: [0.29, 0.0, 0.77, 1.0]          # 手量：自动取景把横过来的刀也算进内容，人被缩到很小
+  series: 绫华
+  name: 木刀
+  style: glass
+  credit: pixiv 98079154
+- image: images/cards/ayaka-kimono.webp
+  src: tools/backgrounds/source-ayaka-kimono.png
+  crop: figure
+  series: 绫华
+  name: 墨羽
+  style: ink
+  credit: pixiv 91546278
+- image: images/cards/ayaka-veil.webp
+  src: tools/backgrounds/source-ayaka-veil.jpg
+  crop: figure
+  series: 绫华
+  name: 花信
+  style: gothic
+  credit: twitter wani_Dile
+- image: images/cards/ayaka-desk.webp
+  src: tools/backgrounds/source-ayaka-desk.png
+  crop: figure
+  flat: [[244, 241, 249], [220, 214, 234]]   # 透明源图：显式给底色（脚本也会按 alpha 采四角）
+  series: 绫华
+  name: 书案
+  style: washi
+  credit: 官方春季立绘 Springbloom Missive
+- image: images/cards/ayaka-03.webp
+  src: tools/cards/sources/ayaka-03.webp
+  crop: figure
+  series: 绫华
+  name: 霜华
+  style: frost
+  credit: safebooru 4194498
+- image: images/cards/ayaka-04.webp
+  src: tools/cards/sources/ayaka-04.webp
+  crop: figure
+  series: 绫华
+  name: 白鹭
+  style: glass
+  credit: safebooru 5815913
+- image: images/cards/ayaka-05.webp
+  src: tools/cards/sources/ayaka-05.webp
+  crop: figure
+  series: 绫华
+  name: 星夜
+  style: gothic
+  credit: safebooru 4806294
+- image: images/cards/ayaka-09.webp
+  src: tools/cards/sources/ayaka-09.webp
+  crop: figure
+  series: 绫华
+  name: 玄袖
+  style: asanoha
+  credit: safebooru 6134135
+- image: images/cards/ayaka-11.webp
+  src: tools/cards/sources/ayaka-11.webp
+  crop: figure
+  series: 绫华
+  name: 樱堤
+  style: sakura
+  credit: safebooru 4843454
+- image: images/cards/ayaka-14.webp
+  src: tools/cards/sources/ayaka-14.webp
+  crop: figure
+  series: 绫华
+  name: 甲刃
+  style: gold
+  credit: safebooru 4546356
+- image: images/cards/ayaka-15.webp
+  src: tools/cards/sources/ayaka-23.webp
+  crop: figure
+  series: 绫华
+  name: 蝶羽
+  style: sakura
+  credit: safebooru 5359394
+- image: images/cards/ayaka-16.webp
+  src: tools/cards/sources/ayaka-16.webp
+  crop: figure
+  pad: 1.3
+  series: 绫华
+  name: 闲坐
+  style: seigaiha
+  credit: safebooru 4021132
+- image: images/cards/ayaka-18.webp
+  src: tools/cards/sources/ayaka-18.webp
+  crop: figure
+  series: 绫华
+  name: 午后
+  style: washi
+  credit: safebooru 4012375
+- image: images/cards/ayaka-20.webp
+  src: tools/cards/sources/ayaka-20.webp
+  crop: figure
+  series: 绫华
+  name: 雪舞
+  style: frost
+  credit: safebooru 3987957
+- image: images/cards/ayaka-21.webp
+  src: tools/cards/sources/ayaka-21.webp
+  crop: figure
+  series: 绫华
+  name: 流水
+  style: seigaiha
+  credit: safebooru 5700504
+- image: images/cards/ayaka-28.webp
+  src: tools/cards/sources/ayaka-28.webp
+  crop: figure
+  series: 绫华
+  name: 夏荫
+  style: asanoha
+  credit: safebooru 4573787
+
+# ---- 黑长直少女：站上自己的角色资产 ----
+- image: images/cards/girl-day.webp
+  src: assets/images/bg-daylight-girl.webp
+  crop: [0.50, 0.02, 0.92, 0.96]        # 人物在横向 66% 处（见 features.md ⑫ 的取景说明）
+  series: 黑长直少女
+  name: 日间
+  style: sakura
+  credit: pixiv 87155937（壁纸套·日间）
+- image: images/cards/girl-night.webp
+  src: assets/images/bg-night-girl.webp
+  crop: [0.54, 0.06, 0.96, 1.0]         # 夜间那张人物在 76% 处
+  series: 黑长直少女
+  name: 夜间
+  style: ink
+  credit: pixiv 77002104（壁纸套·夜间）
+- image: images/cards/girl-ojou.webp
+  src: assets/images/mascot.webp
+  crop: figure
+  flat: [[248, 245, 250], [222, 216, 232]]
+  series: 黑长直少女
+  name: 大小姐
+  style: gold
+  credit: 站点看板娘（source-ojou-chibi.png，非商用同人）
+- image: images/cards/girl-lantern.webp
+  src: tools/backgrounds/source-lady-slice.webp
+  crop: figure
+  series: 黑长直少女
+  name: 提灯
+  style: gothic
+  credit: wallhaven 6lwmy7（夜城合成版的人物切片，方案已撤回、素材留着）

@@ -277,6 +277,13 @@
 <script defer src="{{ $themeFade.RelPermalink }}" integrity="{{ $themeFade.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
+{{- /* 首页卡片组（切换 + 自动轮播）：只在首页加载，脚本不大约 3KB。
+       卡片清单经模板的 data-deck 传入（见 home-cards.html），文案走 data-* 传。 */ -}}
+{{- if .IsHome }}
+{{- $deck := resources.Get "js/home-deck.js" | minify | fingerprint }}
+<script defer src="{{ $deck.RelPermalink }}" integrity="{{ $deck.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}
+
 {{- /* 搜索快捷键（Ctrl/⌘+K，或不在输入框时按 "/"）：全站加载，脚本本身很小。
        搜索页 URL 由 relLangURL 拼出，站点换子路径不用改脚本。 */ -}}
 {{- $searchKey := resources.Get "js/search-shortcut.js" | minify | fingerprint }}

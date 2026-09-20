@@ -178,6 +178,18 @@ other = "{{ .n }} 门课程"
 other = "{{ .n }} 个项目"
 
 # 首页「按类浏览」区块（layouts/_partials/home-extras.html）
+# 首页卡片组（layouts/_partials/home-cards.html + assets/js/home-deck.js）
+# 占位符用 {n}/{total}/{label} 而不是 Hugo 的 {{ .x }}：这三个值是**换卡时**由 JS 填的
+# （与 bgSwitchLabel 的 {name} 同一套做法）。
+[deckNext]
+other = "下一张卡"
+
+[deckPrev]
+other = "上一张卡"
+
+[deckAnnounce]
+other = "第 {n} 张，共 {total} 张：{label}"
+
 [homeBrowse]
 other = "按类浏览"
 
