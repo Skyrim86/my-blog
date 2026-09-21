@@ -3,7 +3,7 @@
      为什么必须覆盖：首页在 profileMode 下，主题的 list.html:4 只调用这一个 partial，
      没有任何 hook 可挂，而首页需要「快捷入口 + 站点规模 + 按类浏览 + 最近更新」几块内容。
 
-     与原版的差异现在有**五处**，其余（标题 / 副标题 / 社交图标 / profileMode.buttons 的内容）
+     与原版的差异现在有**六处**，其余（标题 / 副标题 / 社交图标 / profileMode.buttons 的内容）
      保持原样：
        1. 头像改为经资源管线 Resize（2 倍图 + srcset，高分屏不糊），要求图在 assets/ 下；
        2. 新增快捷入口：复用主导航（跳过首页项），不再单独维护一份链接清单；
@@ -14,8 +14,15 @@
           规模行 / buttons」包成一块，宽屏时整块落在左栏（.profile_inner 在 ≥1024px 是 grid，
           见 09-home.css）。`buttons` 也从「按类浏览与最近更新之间」挪进了 hero —— 它本来就属于
           hero，只是原先插在中间（现在 hugo.toml 没配 buttons，视觉上无变化）。
-          **连带一条**：副标题不再直接是 .profile_inner 的子项，00-theme.css 的局部玻璃底衬与
-          09-home.css 的入场动画都从 `.profile_inner > span` 改成了 `.home-hero > span`。
+          **连带两条**：副标题不再直接是 .profile_inner 的子项（00-theme.css 的局部玻璃底衬与
+          09-home.css 的入场动画都从 `.profile_inner > span` 改成了 `.home-hero > span`）；
+          2026-09-21 又给副标题加了类名 `.home-hero-subtitle`，那四处**一并**改成类名 ——
+          原因写在 00-theme.css 的底衬清单里：加第 6 条的壳时 `.home-hero > span` 误命中了它。
+       6. 头像外面包了一层 `<span class="avatar-halo">`（2026-09-21）：虹彩光环要用伪元素画，
+          而 `<img>` 上没有伪元素。**这一层会改变布局的来源** —— 在此之前头像是 .profile_inner
+          的 flex 子项（被块级化），现在换成了这个 span，所以 13-ornament.css 里给它
+          `display: block; width: fit-content`、给里面的 img 补 `display: block`
+          （行内 img 会多出一条基线缝），否则头像会往下挪几像素。
        **下面两个容器（.home-hero / .home-side）里的内容都刻意不重新缩进**：这个文件是要跟主题
        原版逐行对拍的，为了多一层容器把几十行整体缩进一级，会让每次升级主题时的对拍都多出一大片
        无意义的差异。
@@ -26,6 +33,10 @@
     <div class="profile_inner">
         {{- /* 左栏（窄屏就是普通的一段）：头像、标题、副标题、社交图标、快捷入口、站点规模、按钮 */ -}}
         <div class="home-hero">
+        {{- /* 头像外面这层 .avatar-halo 是 2026-09-21 加的（第六处差异）：虹彩光环要用伪元素画，
+             而 <img> 上没有伪元素。样式在 13-ornament.css 的「首页头像：中缝 + 虹彩光环」一节；
+             它只是 position:relative 的壳，不改变头像尺寸。 */ -}}
+        <span class="avatar-halo">
         {{- if .imageUrl }}
         {{- $img := resources.Get .imageUrl }}
         {{- if $img }}
@@ -43,8 +54,9 @@
             height="{{ .imageHeight | default 150 }}" alt="{{ .imageTitle | default "profile image" }}" title="{{ .imageTitle }}">
         {{- end }}
         {{- end }}
+        </span>
         <h1>{{ .title | default site.Title | markdownify }}</h1>
-        <span>{{ .subtitle | markdownify }}</span>
+        <span class="home-hero-subtitle">{{ .subtitle | markdownify }}</span>
         {{- /* 角色立绘（透明底抠图）：整块在 home-chara.html 里，纯装饰、不参与交互 */ -}}
         {{- partial "home-chara.html" . }}
         {{- partial "social_icons.html" -}}

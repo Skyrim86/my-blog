@@ -1,0 +1,45 @@
+{{- /* 代码块渲染 hook：给代码块加一条「文件名 + 语言」的窗口标题条。
+     （AGENTS 规则 5 的第九处覆盖 —— 这是**渲染 hook**，不是复制主题模板）
+
+    为什么需要它：技术笔记里「这段是哪个文件」和代码本身一样重要，而主题自带的代码块
+     没有放这个名字的地方。Hugo 的围栏代码块支持属性（```python {filename="q3_planner.py"}），
+     但属性只在渲染 hook 里拿得到 —— 没有 hook 时它被静默忽略。
+
+     **硬约束：`.highlight` 里面一个字节都不能动。**
+     主题的复制按钮脚本（themes/PaperMod/layouts/_partials/footer.html）靠
+     `document.querySelectorAll('pre > code')` 找目标，再按**祖先链**决定按钮挂在哪儿：
+        container = code.parentNode.parentNode
+        是 .highlight → 挂到 .highlight；否则看 container.parentNode.firstChild 是不是它自己
+        （行号列那一格就靠这条跳过）；否则再往上数 5 层看是不是 TABLE；都不是才退到 <pre>。
+     往中间插一层就会让它落进最后一个 else —— 按钮位置会跟着变（不报错，只是跑到别处去）。
+     所以本 hook 只**在外面包一层**，里面那段 HTML 原样产出。
+
+     **为什么用 `highlight` 而不是官方文档推荐的 `transform.HighlightCodeBlock`**：
+     后者会把围栏上的自定义属性**原样写到 `.highlight` 那个 div 上**（实测产出
+     `<div class=highlight filename=q3_planner.py>`）。两个后果：文件名在页面里出现两遍；
+     更要紧的是它按裸属性输出、**不加引号** —— 文件名里有空格时（`{filename="my file.py"}`）
+     属性会在空格处断掉，后面半截变成垃圾属性。`highlight .Inner .Type .Options` 不写
+     自定义属性，且与「没有 hook 时」的产出逐字一致（实测对拍过 `notes` 页那个无语言围栏：
+     标记与 `language-fallback` 的猜测结果都与加 hook 前完全相同）。
+
+     属性的读法：`.Attributes` 与 `.Options` 都试（Hugo 各版本对自定义属性放进哪个 map 不一致，
+     两个都读一遍最省事，且都取不到时退化成现在的样子，不会出错）。 */ -}}
+
+{{- $hl := transform.HighlightCodeBlock . -}}
+{{- $file := "" -}}
+{{- with .Attributes }}{{ with .filename }}{{ $file = . }}{{ end }}{{ end -}}
+{{- if not $file }}{{ with .Options }}{{ with .filename }}{{ $file = . }}{{ end }}{{ end }}{{ end -}}
+
+{{- if $file -}}
+<div class="code-block">
+  <div class="code-head">
+    <span class="code-file">{{ $file }}</span>
+    {{- with .Type }}<span class="code-lang">{{ . }}</span>{{ end -}}
+  </div>
+  {{ $hl.Wrapped }}
+</div>
+{{- else -}}
+{{- /* 没写 filename 就完全不包壳：站上绝大多数代码块是这种情况，
+       它们的呈现必须和加这个 hook 之前逐像素一致。 */ -}}
+{{ $hl.Wrapped }}
+{{- end -}}

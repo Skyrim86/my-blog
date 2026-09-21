@@ -1,0 +1,31 @@
+{{- /* 关于页的拼贴（Bento）：把「本站有什么」那几个入口铺成一格一格的方块。
+
+   用法：正文里一句 {{< bento >}}。
+   数据源：data/about-bento.yaml（瓦片清单，单一事实源）—— 加一块瓦片只改那份 YAML。
+
+   为什么用短代码而不是给 front matter 加 `layout:`：那条路要动 front matter（AGENTS 规则 1
+   的禁区），还会把单页模板的评论区、目录、面包屑一起丢掉，得在新 layout 里各自补一遍。
+   短代码只占正文里的一处位置，其余一切照旧。
+
+   **拼贴待在正文列里、不突破宽度**（试过突破又退回来的原因写在
+   assets/css/extended/27-bento.css 的文件头）。
+
+   **href 的写法有个坑**：`relURL "/courses/"` 会**原样返回** `/courses/` —— 以斜杠开头的
+   参数不加 baseURL 子路径（实测：`relLangURL` 吃 `library/algebra/` 这种不带前导斜杠的
+   才补成 `/my-blog/library/algebra/`）。所以这里先 TrimPrefix 掉前导斜杠再 relLangURL，
+   YAML 那边就可以照常写 `/courses/` 这种最自然的写法。
+   写错的后果**部署后才 404**（本地 serve 时 /courses/ 恰好也能通），
+   由 scripts/check-links.mjs 兜着 —— 它专门有一条「站内绝对链接但没带 baseURL 子路径」。 */ -}}
+{{- $manifest := index hugo.Data "about-bento" -}}
+{{- with $manifest.tiles -}}
+<div class="bento">
+  {{- range . }}
+  {{- $color := .color | default "nature" }}
+    <a class="bento-tile bento-tile--{{ $color }}{{ if .wide }} bento-tile--wide{{ end }}"
+       href="{{ strings.TrimPrefix "/" .href | relLangURL }}">
+    <span class="bento-title">{{ .title }}</span>
+    <span class="bento-desc">{{ .desc }}</span>
+  </a>
+  {{- end }}
+</div>
+{{- end -}}

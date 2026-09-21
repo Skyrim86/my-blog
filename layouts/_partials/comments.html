@@ -1,6 +1,12 @@
-{{- /* Giscus 评论系统 - 参数从 hugo.toml [params.giscus] 读取 */ -}}
+{{- /* Giscus 评论系统 - 参数从 hugo.toml [params.giscus] 读取。
+
+     2026-09-21：拿掉模板里那行内联 `style="margin-top: 2rem;"`（AGENTS 规则 6：模板里不写
+     内联样式），间距与玻璃容器一并交给 assets/css/extended/08-reader.css 的「评论区」一节。
+     注意**别把这里的 giscus 主题换成透明的那个**：iframe 自带不透明底，容器这层玻璃只能
+     体现在它周围那一圈内边距上；要让它真透出来得改 data-theme，那会动到评论正文的对比度，
+     必须重测（记在 features.md ㊹ 的「没做」里）。 */ -}}
 {{- with site.Params.giscus }}
-<div class="giscus-wrapper" style="margin-top: 2rem;">
+<div class="giscus-wrapper">
   <script src="https://giscus.app/client.js"
           data-repo="{{ .repo }}"
           data-repo-id="{{ .repoID }}"

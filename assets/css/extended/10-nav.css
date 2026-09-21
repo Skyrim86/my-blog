@@ -41,6 +41,21 @@
    - 折叠逻辑在 assets/js/nav-toggle.js：它给 <html> 加 .has-nav-toggle 并插入按钮，
      下面所有收起规则都挂在这个类下，所以禁用 JS 时菜单照主题原样显示。
    - 断点与主题的 .header-nav 移动端断点保持一致（640px）。
+
+   五、顶栏吸顶（2026-09-21 新增）
+   - 现状改为 position: sticky。**sticky 而不是 fixed**：sticky 仍占文档流里的那 60px，
+     所以没有任何布局位移 —— 主题 main.css 里 `min-height: calc(100vh - --header-height
+     - --footer-height)` 那套算法、以及首页 hero 的高度都不受影响；fixed 会把顶栏
+     从流里摘出去，等于全站 60px 的位移，还得回头补一堆补偿。
+   - 上面「一」里那套 14n = 16(n-1) 的配平等式不受影响：吸顶不改宽度，只有菜单项数才改。
+   - 待确认的代价：首屏可视高度少 60px（顶栏一直在）。截图看过的结论写在 features.md。
+   - z-index 取 40，落在站上已有的层级之间：看板娘 6、进度条 50、卡片弹窗 80、
+     卡片组弹层 90、返回顶部 99、跳过链接 100（层级表见 17-a11y.css 的注释）。
+     低于进度条是有意的 —— 顶部那 2px 进度条压在顶栏上沿的「装订线」上，像骑在顶栏上；
+     低于弹窗也是必须的，弹层打开时要盖住顶栏。
+   - 滚动后加深由 assets/js/header-sticky.js 给 <html> 加 .is-scrolled（IntersectionObserver
+     观察页面顶部一个 1px 哨兵，不用 scroll 监听 —— reading-progress.js 的滚动路径是
+     「纯算术」量过的，别往上加东西）。
    ============================================ */
 
 /* ---------- 菜单项：悬停亮出蔷薇边 ---------- */
@@ -155,5 +170,32 @@
     padding: 2px 7px;
     line-height: 1.7;
     font-size: 0.97rem;
+  }
+}
+
+/* ---------- 五、顶栏吸顶 ---------- */
+
+/* 本文件排在 00-theme.css 之后（extended 按文件名拼接），所以这里重写 .header 的
+   background 能盖住 00-theme 里那条同特异度的规则。 */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  /* 只过渡颜色与投影：粘住的几何量从一开始就是终态，没有需要过渡的位移。 */
+  transition: background-color .22s ease, box-shadow .22s ease;
+}
+
+/* 已离开页面顶部（.is-scrolled 由 assets/js/header-sticky.js 打上）：
+   底色换成更实的 --surface-header，再补一道投影表示「顶栏浮在正文之上」。 */
+html.is-scrolled .header {
+  background: var(--surface-header);
+  box-shadow: var(--shadow-sticky);
+}
+
+/* 减少动效偏好下不做颜色过渡：直接切换。与 08-reader.css 的进度条同一条理由 ——
+   这类淡入淡出对前庭敏感者是多余动效。 */
+@media (prefers-reduced-motion: reduce) {
+  .header {
+    transition: none;
   }
 }

@@ -115,6 +115,99 @@
   background: var(--code-bg);
 }
 
+/* ---------- 代码块的窗口标题条（文件名 + 语言）----------
+
+   由 layouts/_markup/render-codeblock.html 产出，只在围栏代码块写了
+   ```python {filename="q3_planner.py"} 时才有这一层。
+
+   **颜色一律写死、不取主题令牌**：代码块这块「深色板」在明暗两套主题下都是近黑
+   （--code-block-bg 浅色 #16141b / 深色 #100e15，实测像素 (22,20,27)），
+   而主题令牌是跟着明暗翻转的 —— 比如 --accent 在浅色下是暗蔷薇 #8c2f48，
+   压在近黑板上几乎看不见。主题自己处理代码正文用的就是固定值
+   （md-content.css 的 `color: rgb(213, 213, 214)`），这里沿用同一条约定。
+   要改这块的观感请改这里的字面量，别换成 var(--accent) 之类。
+
+   圆角分上下两半拼出来（不用 overflow: hidden 剪）：.highlight 自带
+   `margin-bottom: var(--content-gap)`，父元素一旦 overflow: hidden，
+   这个外卖边距就不再和父折叠、会变成圆角盒内部的一条空白带。
+   所以改成：外层接管底边距，里层归零，两个各拿两个角。 */
+.code-block {
+  margin-bottom: var(--content-gap);
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem .85rem .38rem;
+  /* **底色必须自己带上**：这一条是 .highlight 的兄弟、不是它的子元素，深色板在 .highlight
+     上；只铺一层白光的话，透出来的是**页面背景**（壁纸/面板），于是浅灰的文件名压在浅色底上
+     几乎看不见 —— 第一版就是这么错的（截图里才发现）。
+     写法是「白光叠在 --code-block-bg 上」：底层取令牌（它跟着明暗走，与代码板永远是同一个色），
+     上面一层白光只负责让标题条比代码区亮一档。
+     注意只有**底色**能用令牌：文字色不能 —— 令牌会跟着明暗翻转，而这块板子明暗两套都是深色，
+     浅色主题下的 --accent 是暗蔷薇 #8c2f48，压在近黑板上等于没有。 */
+  background: linear-gradient(rgba(255, 255, 255, .05), rgba(255, 255, 255, .05)), var(--code-block-bg);
+  border-bottom: 1px solid rgba(255, 255, 255, .09);
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-family: Consolas, "Microsoft YaHei", monospace;
+  font-size: .74rem;
+  line-height: 1.35;
+  letter-spacing: .02em;
+}
+
+/* 三个「窗口按钮」：用径向渐变画在伪元素上，不往 DOM 里塞三个空 span。
+   刻意不用 macOS 的红黄绿 —— 这套配色是「墨与蔷薇」，三个原色圆点在这块板子上是外来的。 */
+.code-head::before {
+  content: "";
+  flex: none;
+  width: 26px;
+  height: 8px;
+  background:
+    radial-gradient(circle at 4px 50%, rgba(255, 255, 255, .30) 2.6px, transparent 2.7px),
+    radial-gradient(circle at 13px 50%, rgba(255, 255, 255, .22) 2.6px, transparent 2.7px),
+    radial-gradient(circle at 22px 50%, rgba(255, 255, 255, .16) 2.6px, transparent 2.7px);
+}
+
+.code-file {
+  /* min-width: 0 是必需的：flex 项默认 min-width: auto，不配就压不下去，
+     长文件名会把语言标签挤出容器而不是显示省略号 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(213, 213, 214);
+}
+
+.code-lang {
+  /* 推到最右端 —— 语言是次要信息，位置固定在右边就不用跟着文件名长度浮动 */
+  margin-inline-start: auto;
+  flex: none;
+  color: rgba(213, 213, 214, .5);
+  letter-spacing: .06em;
+}
+
+.code-block > .highlight:not(table) {
+  margin-bottom: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* 窄屏：标题条的字缩一档、三个点也缩一点，免得文件名被挤掉 */
+@media (max-width: 640px) {
+  .code-head {
+    padding: .34rem .6rem .32rem;
+    font-size: .7rem;
+  }
+
+  .code-head::before {
+    width: 22px;
+    background:
+      radial-gradient(circle at 3.5px 50%, rgba(255, 255, 255, .30) 2.2px, transparent 2.3px),
+      radial-gradient(circle at 11px 50%, rgba(255, 255, 255, .22) 2.2px, transparent 2.3px),
+      radial-gradient(circle at 18.5px 50%, rgba(255, 255, 255, .16) 2.2px, transparent 2.3px);
+  }
+}
+
 .post-content table {
   font-size: .95rem;
 }
@@ -147,8 +240,26 @@
   padding-bottom: .2rem;
 }
 
-/* 文末评论区间距 */
-.post-single + .comments,
-.comments {
-  margin-top: 1.5rem;
+/* ---------- 评论区（Giscus）----------
+
+   间距此前是模板上的内联 `style="margin-top: 2rem"`（2026-09-21 搬到这里，AGENTS 规则 6）。
+   这里原来还有一条 `.post-single + .comments, .comments { margin-top: 1.5rem }`，
+   2026-09-21 一并删掉了：**站上没有任何元素带 `class="comments"`** ——
+   本站的 comments.html 直接输出 `.giscus-wrapper`（主题那份是个空 stub，被覆盖了），
+   那条规则从来没有命中过。留着它的坏处很具体：下一个人会以为评论区的间距归它管，
+   改了却看不到效果。
+
+   容器这一圈玻璃的**实际观感要说清楚**：giscus 是跨域 iframe、自带不透明底，
+   所以面板本身透不出来，看得见的只有它周围那圈内边距上的模糊与边线。
+   要让它真透出来得把 giscus 主题换成 transparent，那会改评论正文的对比度、必须重测，
+   所以这次没做（记在 features.md ㊹ 的「没做」里）。 */
+.giscus-wrapper {
+  margin-top: 3.5rem;   /* 原来的 1.5 + 2，两层加起来是这么多，别当成一个数随手改小 */
+  padding: .8rem .9rem;
+  background: var(--glass-tint);
+  border: 1px solid var(--surface-border);
+  /* 与 .post-single 同一个圆角，评论框看起来是正文那张卡片的延伸 */
+  border-radius: 14px;
+  backdrop-filter: saturate(var(--glass-sat)) blur(var(--glass-blur));
+  -webkit-backdrop-filter: saturate(var(--glass-sat)) blur(var(--glass-blur));
 }

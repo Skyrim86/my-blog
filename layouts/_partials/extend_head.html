@@ -1,5 +1,14 @@
 {{- /* 自定义 JS 统一放 assets/js/，此处只做接线：minify + fingerprint（内容 hash 自动 cache-bust） */ -}}
 
+{{- /* 切页转场的样式表：**刻意不压缩**（其他 CSS 都在 css/extended/ 里被串进
+       stylesheet.css 并压缩，而压缩器会把 `@view-transition` 那条 at-rule 整条丢掉 ——
+       实测产物里 navigation:auto 匹配数为 0，名字与 ::view-transition-* 却都还在，
+       于是转场永远不触发且不报错）。原因与验证过程写在 assets/css/view-transition.css 的文件头。
+       也试过老式的 <meta name="view-transition"> opt-in，本机 Edge 下不生效。
+       不压缩 = 多一个约 700 字节的请求（有指纹、缓存住），换来这条 at-rule 真的存在。 */ -}}
+{{- $vt := resources.Get "css/view-transition.css" | fingerprint }}
+<link rel="stylesheet" href="{{ $vt.RelPermalink }}" integrity="{{ $vt.Data.Integrity }}" crossorigin="anonymous">
+
 {{- /* 404 页：主题模板无条件输出 index,follow，这里补一条更严格的 noindex（不复制主题模板） */ -}}
 {{- if eq .Kind "404" }}
 <meta name="robots" content="noindex">
@@ -214,6 +223,13 @@
 {{- if and (eq .Kind "page") (not (in (slice "archives" "search") .Layout)) }}
 {{- $reader := resources.Get "js/reading-progress.js" | minify | fingerprint }}
 <script defer src="{{ $reader.RelPermalink }}" integrity="{{ $reader.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* 正文图片灯箱：判据同上（只有走单页模板的页面有 .post-content）。
+       文案经 data-* 传（JS 不能调 i18n）。样式在 assets/css/extended/26-lightbox.css。 */ -}}
+{{- $lightbox := resources.Get "js/lightbox.js" | minify | fingerprint }}
+<script defer src="{{ $lightbox.RelPermalink }}" integrity="{{ $lightbox.Data.Integrity }}" crossorigin="anonymous"
+        data-label="{{ i18n "lightboxLabel" }}"
+        data-close-label="{{ i18n "lightboxClose" }}"></script>
 {{- end }}
 
 {{- /* 左侧跟随目录（toc-rail）不需要在这里接线：把目录栏挪到 <body> 下、并给 body 加
@@ -255,6 +271,18 @@
 {{- $navToggle := resources.Get "js/nav-toggle.js" | minify | fingerprint }}
 <script defer src="{{ $navToggle.RelPermalink }}" integrity="{{ $navToggle.Data.Integrity }}" crossorigin="anonymous"
         data-label="{{ i18n "navToggleLabel" }}"></script>
+
+{{- /* 顶栏吸顶后的加深状态（<html> 加 .is-scrolled）：全站加载，脚本约 500 字节。
+       顶栏「粘住」是纯 CSS，这里只管颜色那一档，所以禁 JS 时页面照旧吸顶。
+       无文案、无 data-*。样式在 assets/css/extended/10-nav.css 的「五、顶栏吸顶」。 */ -}}
+{{- $stickyNav := resources.Get "js/header-sticky.js" | minify | fingerprint }}
+<script defer src="{{ $stickyNav.RelPermalink }}" integrity="{{ $stickyNav.Data.Integrity }}" crossorigin="anonymous"></script>
+
+{{- /* 滚动出现动画：全站加载（脚本约 1KB，样式另在 assets/css/extended/22-reveal.css）。
+       只作用于首屏之下的列表/卡片，各页型自己找目标，无文案、无 data-*。
+       判据不按页型收窄：目标元素不存在的页面上它什么都不做（空选择器即返回）。 */ -}}
+{{- $reveal := resources.Get "js/reveal.js" | minify | fingerprint }}
+<script defer src="{{ $reveal.RelPermalink }}" integrity="{{ $reveal.Data.Integrity }}" crossorigin="anonymous"></script>
 
 {{- /* 主题模板里硬编码的英文可访问名（#theme-toggle / #top-link / 搜索页的输入框与结果列表）本地化：
        不覆盖主题模板（AGENTS 规则 5/10），改为由脚本补属性；文案经 data-* 传入（规则 7）。

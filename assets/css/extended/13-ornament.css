@@ -20,8 +20,17 @@
   background: linear-gradient(180deg, var(--accent), var(--accent-2));
 }
 
-/* ---------- 分隔线：渐隐细线 + 中心菱形 ---------- */
+/* ---------- 分隔线：渐隐细线 + 中心霜晶 ---------- */
 
+/* 2026-09-21 改：中心那颗菱形换成一颗六角冰晶（用户在三版对比图里圈的 v2，
+   图在 ../lab/shots/beautify/frost/cmp-hr.png）。另外两版是被否掉的：
+   v1 = 原来的菱形；v3 = 不画线、改成一条两端渐隐的斜向碎纹带（「碎」得更彻底，
+   但那条线没了、分段感变弱，在截图里也比另两版淡）。
+
+   **形状用 mask 而不是背景图**：mask 只取 alpha，所以颜色留在 CSS 里 ——
+   冰晶跟着 --accent 走，换主题不用换素材（与 21-card-deck.css 那套
+   --tex-crack / --tex-flake 是同一手法）。data URI 里的 SVG 用单引号、外面套双引号，
+   `#` 不需要转义（这里没有颜色值，描边是 black —— mask 要的就是不透明）。 */
 .post-content hr {
   border: 0;
   height: 15px;
@@ -31,17 +40,24 @@
               center / 100% 1px no-repeat;
 }
 
+/* 26px 的冰晶压在 15px 的 hr 上、靠负外边距居中：上下各探出 5.5px，
+   而 hr 的 2.4em 外边距（约 38px）留够了余量，不会撞到正文。
+   线从冰晶背后穿过去（不像旧的菱形那样用 --theme 色的方块把线挡住）——
+   这是个有意的选择：镂空的冰晶下面有线才像「冰晶结在一条线上」，
+   挡住反而像两个独立的元素叠在一起。 */
 .post-content hr::after {
   content: "";
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 9px;
-  height: 9px;
-  margin: -5px 0 0 -5px;
-  transform: rotate(45deg);
-  background: var(--theme);
-  border: 1px solid var(--accent);
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  background: var(--accent);
+  /* .72：冰晶是描边图形、像素少，纯 --accent 会显得比原本那圈细线重得多 */
+  opacity: .72;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><g fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'><path d='M12 2.6v18.8M3.9 7.3l16.2 9.4M20.1 7.3L3.9 16.7'/><path d='M12 5.7l2.2-2.2M12 5.7L9.8 3.5M12 18.3l2.2 2.2M12 18.3l-2.2 2.2'/></g></svg>") center / contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><g fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round'><path d='M12 2.6v18.8M3.9 7.3l16.2 9.4M20.1 7.3L3.9 16.7'/><path d='M12 5.7l2.2-2.2M12 5.7L9.8 3.5M12 18.3l2.2 2.2M12 18.3l-2.2 2.2'/></g></svg>") center / contain no-repeat;
 }
 
 /* ---------- 引用块：蔷薇竖线 + 极淡底 ---------- */
@@ -96,15 +112,99 @@ article.post-entry:hover {
   border-left: 1px solid var(--accent-soft);
 }
 
-/* ---------- 首页头像：双环 ---------- */
+/* ---------- 首页头像：中缝 + 虹彩光环（2026-09-21 改） ----------
 
-/* 选择器用 .profile-avatar（模板里那个类）而不是 .profile img：头像的样式职责收敛到一处。
-   原先 09-home.css 里还有一条 `.profile img` 的阴影，与这条同特异度、被它整个盖掉 ——
-   两条规则互相打架，2026-09-19 删掉了那条死代码。模板见 index_profile.html。 */
+   2026-09-19 起这里是「双环」：1px 中缝 + 两道同心淡环（7px / 8px 的 accent 色）。
+   2026-09-21 换成一道虹彩环（鼠标悬停时缓缓转），那两道淡环撤掉了 ——
+   **环太多就不是「光环」而是「一圈圈涟漪」**，三条同心环加一个会动的第四道，
+   眼睛找不到该看哪一条。留下的 1px 中缝负责把头像从壁纸上「切」出来，
+   仍用 box-shadow 画（不占盒尺寸）。
+
+   .avatar-halo 这层壳是索引模板里新加的（见 index_profile.html 的第六处差异）：
+   <img> 上没有伪元素，环只能挂在壳上。**它接过了布局职责** —— 之前头像是
+   .profile_inner 的 flex 子项（被块级化），现在是这个 span；给 img 补 display: block
+   是为了消掉行内元素那条基线缝（19-nav-px.css 给注入的 svg 补 display: block 是同一个坑）。 */
 .profile .profile-avatar {
-  box-shadow: 0 0 0 1px var(--surface-border),
-              0 0 0 7px color-mix(in srgb, var(--accent) 12%, transparent),
-              0 0 0 8px color-mix(in srgb, var(--accent) 26%, transparent);
+  display: block;
+  box-shadow: 0 0 0 1px var(--surface-border);
+}
+
+.avatar-halo {
+  position: relative;
+  display: block;
+  /* 不配 fit-content 的话这层壳会撑满 .profile_inner 的整列宽，圆形会变成一个横椭圆 */
+  width: fit-content;
+}
+
+/* 环不是「画」出来的，是**垫在头像下面的一个稍大的圆盘**：头像自己是圆形且不透明，
+   中间那部分自然被盖住，露出来的就只有外圈那 4px。
+   **这比拿 mask 抠一个环好**：mask 会把动画元素变成每帧重新光栅化的对象，
+   而这里动画层上只剩 transform，是浏览器最容易交给合成器处理的那种。
+   代价是环必须垫在头像底下（z-index: -1），不能压在头像上面。
+   早先的 mask 版本量不出可信的差别（量法本身有问题，见下面 animation-play-state 那段），
+   所以按「结构上更省」的那个写。 */
+.avatar-halo::before {
+  content: "";
+  position: absolute;
+  /* -4px：环压在头像外沿、与 1px 中缝之间留一点空隙（缝隙透出壁纸，环才像「浮在外面」）。
+     贴到 -8px 试过：环紧贴中缝，观感更像头像的一条粗边。 */
+  inset: -4px;
+  border-radius: 50%;
+  /* z-index: -1 把它压到头像下面。.avatar-halo 自身没有 z-index、不构成层叠上下文，
+     所以它落在最近的层叠上下文（根）里，绘制顺序在壁纸层（body::before，同为负 z-index、
+     但树序在前）之后、正文之前 —— 不会钻到壁纸底下去。 */
+  z-index: -1;
+  /* 四个色相全部取自 00-theme.css 的既有色板（蔷薇红 / 银紫 / 定理蓝 / 推论青），
+     明度在同一带上 —— 与类别色板同一条取材规则：不引入比 --accent 更亮的颜色。
+     浅色主题下这四个色偏暗，深色主题下自动换成提亮的那一半。 */
+  background: conic-gradient(from 0deg,
+    var(--accent), var(--accent-2), var(--k-prop), var(--k-cor), var(--accent-2), var(--accent));
+  /* 纯装饰：不接指针事件，否则头像周围会多出一圈点不到的死区 */
+  pointer-events: none;
+  animation: avatar-halo-spin 9s linear infinite;
+  /* **静置时不转**（animation-play-state: paused，悬停才 running）。理由有两条：
+     1. 它是全站唯一的常驻动画 —— 其余动效要么是一次性（09-home.css 的入场、卡片组的
+        deck-sweep .65s），要么由悬停触发（卡片全息、药丸边）。常驻动画的代价是按帧算的、
+        而且是「打开页面就在付」，不该在没有证据时说加就加；
+     2. 这个代价**在本机量不出可信数字**：无头环境里一旦有动画在跑，浏览器就把 rAF 对齐到
+        60Hz，没有动画时则自由跑到约 160Hz —— 拿帧率/帧间隔当代理量出来的是节拍变化，
+        不是开销（同一条 ABAB 交替量了三次：3.9 / 15.3 / 6.1 ms，落在噪声里）。
+     悬停才转还有第二个好处：和站上既有的「鼠标来了才动」（卡片全息 hover 转 2.5°）
+     是同一套语言，不引入新的交互习惯。 */
+  animation-play-state: paused;
+}
+
+.avatar-halo:hover::before {
+  animation-play-state: running;
+}
+
+/* 9s 一圈：慢到不像「加载中」，只是让色环自己流动。
+   线性 —— 用缓动会让每圈接口处「顿」一下，反而更显眼。 */
+@keyframes avatar-halo-spin {
+  to { transform: rotate(1turn); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-halo::before {
+    animation: none;
+  }
+}
+
+/* 主题在 ≤768px 给 `.profile img` 写了一条 `transform: scale(.85)`（zmedia.css）。
+   那一条对旧的「双环」是自洽的：box-shadow 是元素自己画上去的，跟着 transform 一起缩，
+   环自然贴住缩小的头像。**但环挂在 .avatar-halo 上之后就不一样了** ——
+   壳的盒子由 img 的**布局**尺寸决定，而 transform 不影响布局，于是头像缩到 0.85、
+   环还停在原位，环就悬在头像外面一圈。
+   所以这一档把缩放从 img 挪到壳上：视觉结果（头像 0.85）一模一样，环跟着一起缩。
+   `.profile .profile-avatar` 是 (0,2,0)，压得住主题 `.profile img` 的 (0,1,1)，不需要 !important。 */
+@media (max-width: 768px) {
+  .profile .avatar-halo {
+    transform: scale(.85);
+  }
+
+  .profile .profile-avatar {
+    transform: none;
+  }
 }
 
 /* ---------- 目录栏当前项：蔷薇色 + 左侧细线 ---------- */

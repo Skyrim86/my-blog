@@ -57,10 +57,15 @@
   margin: 0;
 }
 
-/* 副标题的选择器是 `.home-hero > span`，**不是** `.profile_inner > span`：加了 hero 容器之后
-   它不再是 .profile_inner 的直接子项。00-theme.css 的玻璃底衬清单里那条同步改过了 ——
-   这两处是同一个元素的两份规则，改一处忘一处都不会报错，只是保护或动效静默失效。 */
-.home-hero > span {
+/* 副标题：2026-09-21 起用**自己的类** `.home-hero-subtitle`（模板里加的那个），
+   不再写 `.home-hero > span`。改的原因是一次真实的误伤：给头像加装饰壳时，那层壳是
+   `<span class="avatar-halo">`、同样是 `.home-hero` 的直接 span 子元素，于是这条
+   连同 00-theme.css 的玻璃底衬、以及下面入场动画那两条**一起**命中了它 ——
+   表现是头像凭空多了一圈内边距和一块玻璃底，而四份规则一个都没报错。
+   结构选择器（`X > span`）在容器里一旦多一个同标签子元素就会静默多命中，
+   这里改成类名是把它钉死。改动的四处：本条、00-theme.css 的底衬清单、
+   下面的入场动画（两条）。 */
+.home-hero-subtitle {
   color: var(--secondary);
   letter-spacing: .04em;
 }
@@ -454,7 +459,7 @@
   }
 
   .profile h1,
-  .home-hero > span,
+  .home-hero-subtitle,
   .home-chara,
   .profile-links,
   .home-scale,
@@ -464,7 +469,7 @@
   }
 
   .profile h1 { animation-delay: .04s; }
-  .home-hero > span { animation-delay: .08s; }
+  .home-hero-subtitle { animation-delay: .08s; }
   .home-chara { animation-delay: .1s; }
   .profile-links { animation-delay: .12s; }
   .home-scale { animation-delay: .16s; }

@@ -401,3 +401,11 @@ other = "找到 {count} 条结果"
 
 [searchNoResult]
 other = "没有找到结果"
+
+# ---------- 正文图片灯箱（见 assets/js/lightbox.js） ----------
+# dialog 的 aria-label 与关闭按钮的可访问名。文案在这里，由 extend_head.html 经 data-* 传给脚本。
+[lightboxLabel]
+other = "放大的图片"
+
+[lightboxClose]
+other = "关闭"

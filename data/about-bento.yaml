@@ -1,0 +1,43 @@
+# 关于页那块拼贴（Bento）的瓦片清单 —— **单一事实源**：短代码
+# layouts/_shortcodes/bento.html 按它渲染，页面里只有一句 {{< bento >}}。
+# 加一块瓦片只改这个文件，不动模板、不动正文。
+#
+# 字段：
+#   title  瓦片上的标题（必填）
+#   desc   一句话说明（必填）
+#   href   链接。站点内写 /courses/ 这种根路径即可 —— 短代码会补上 baseURL 子路径
+#          （见 layouts/_shortcodes/bento.html 里关于 relURL / relLangURL 的那段注释）
+#   color  取色，六个可选：concept / skill / prop / lemma / cor / nature
+#          —— 就是 00-theme.css 里那套类别色板（同一批色相、同一明度带，明暗各一半）。
+#          对应 CSS 类是 .bento-tile--<color>；写错或省略都退化成 nature（不报错，但会失去区分）
+#   wide   1 = 宽屏下占两列（拼贴的「大小关系」靠这个字段表达，不要在 CSS 里按序号写死）
+#
+# 为什么不放 front matter：这是展示清单、会随站点长大（加一门课就要加一块），
+# 放在 data/ 里与 home-cards.yaml / tag-groups.yaml 同一种做法。
+tiles:
+  - title: 课程
+    desc: 成体系的课程笔记，按章组织，每章分「学习笔记」与「作业」，讲义与答案可下载
+    href: /courses/
+    color: concept
+    wide: 1
+  - title: 项目
+    desc: 做过的东西，附技术栈与源码地址
+    href: /projects/
+    color: prop
+  - title: 数学库
+    desc: 跨课程的概念索引，按分支归位，一卡一页
+    href: /library/
+    color: lemma
+  - title: CS 库
+    desc: 计算机方向的概念卡与最短可用表述
+    href: /cs/
+    color: cor
+  - title: 文章
+    desc: 零散的技术记录与随想
+    href: /posts/
+    color: skill
+  - title: 标签
+    desc: 按主题横向翻，不受课程与目录结构限制
+    href: /tags/
+    color: nature
+    wide: 1

@@ -1,0 +1,97 @@
+/* ============================================
+   关于页的拼贴（Bento）—— 模板见 layouts/_shortcodes/bento.html，数据见 data/about-bento.yaml
+
+   **不突破正文列宽度，是有意的**（2026-09-21 先试过突破，退回来的）。
+   试的那版把网格铺到 min(960px, 100vw - 2rem)：实测 1440px 视口下网格落在 x∈[240,1200]，
+   而文章那张玻璃面板只有 x∈[361,1078] —— 网格两侧各探出约 120px，边缘两格直接浮在壁纸上，
+   和上方正文的左边界对不齐，看着像没对齐而不是像设计。
+   改回正文列内之后有两个连带好处：一是拼贴与代码块、表格、卡片一样待在面板里，
+   与全站「内容都在玻璃卡内」的语言一致；二是**不需要再动跟随目录** ——
+   突破版为了不与 toc-rail（≥1240px 时固定在 x∈[36,236]）重叠，得用
+   `body:has(.bento) .toc-rail { display: none }` 把它收掉，那条依赖 :has() 的权重、
+   比这一版脆得多。关于页只两个 h2，目录栏本来就没什么用，但少一条机制少一份维护面。
+
+   正文列的内容宽实测是 **640px**（面板 717px 减去两侧各 2.4rem 内边距），
+   所以两列的每格约 314px —— 放「一行标题 + 两行说明」够用。
+   ============================================ */
+
+.bento {
+  display: grid;
+  /* auto-fill + minmax：640px 下自然落到两列，窄屏再落成一列，不必逐档写媒体查询 */
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: .7rem;
+  margin-block: 1.4rem;
+}
+
+.bento-tile {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: .8rem .9rem .85rem;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  /* 12px：比 --radius（7px，那套「大小姐风」的硬朗直线条）圆一档，读起来更像「一块贴片」；
+     又远不到 999px 的胶囊 —— 胶囊在这个站上是控件的语言（药丸、chip、分页），不是容器。 */
+  border-radius: 12px;
+  text-decoration: none;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.bento-tile:hover {
+  border-color: var(--bento);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.bento-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--bento);
+  letter-spacing: .02em;
+}
+
+.bento-title::after {
+  /* 与标题同色的短横：既是「这是个入口」的指示，也让每格有一处呼应自己的类别色 */
+  content: "";
+  display: block;
+  width: 18px;
+  height: 2px;
+  margin-top: .3rem;
+  border-radius: 2px;
+  background: var(--bento);
+  opacity: .5;
+}
+
+.bento-desc {
+  font-size: .8rem;
+  line-height: 1.65;
+  color: var(--secondary);
+}
+
+.bento-tile--wide {
+  grid-column: span 2;
+}
+
+/* 一列都排不下时宽格也退回一格，否则它会撑出横向滚动 */
+@media (max-width: 560px) {
+  .bento-tile--wide {
+    grid-column: auto;
+  }
+}
+
+/* 类别色：与 00-theme.css 那套类别色板同名同源（列表卡的 chip 也是这么取的）。
+   每格只声明一个 --bento，标题、短横、悬停边都读它。 */
+.bento-tile--concept { --bento: var(--k-concept); }
+.bento-tile--skill   { --bento: var(--k-skill); }
+.bento-tile--prop    { --bento: var(--k-prop); }
+.bento-tile--lemma   { --bento: var(--k-lemma); }
+.bento-tile--cor     { --bento: var(--k-cor); }
+.bento-tile--nature  { --bento: var(--k-nature); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bento-tile,
+  .bento-tile:hover {
+    transition: none;
+    transform: none;
+  }
+}

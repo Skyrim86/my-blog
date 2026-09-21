@@ -78,6 +78,13 @@
   --shadow-card: 0 2px 10px rgba(18, 14, 24, .07);
   --shadow-lift: 0 12px 30px rgba(18, 14, 24, .16);
 
+  /* 顶栏吸顶后的底色与投影（2026-09-21 新增，用法见 10-nav.css 的「五、顶栏吸顶」）。
+     **比 --surface 更实**：滚动时正文从顶栏下面穿过，要的是「面板站住」而不是「透出壁纸」。
+     这是往对比度更安全的方向走（底更实 = 面板内文字更亮），所以不必重跑 ⑫ 那张对比度表；
+     反过来，若哪天把它调得比 --surface 更透，就必须复测导航项压在壁纸上的对比度。 */
+  --surface-header: rgba(252, 251, 253, .92);
+  --shadow-sticky: 0 6px 18px rgba(18, 14, 24, .06);
+
   --theme: #f7f5f8;
   --entry: #ffffff;
   --primary: #16141b;
@@ -120,6 +127,8 @@
   --glass-edge: rgba(255, 255, 255, .16);
   --shadow-card: 0 2px 10px rgba(0, 0, 0, .40);
   --shadow-lift: 0 12px 30px rgba(0, 0, 0, .55);
+  --surface-header: rgba(20, 18, 25, .94);
+  --shadow-sticky: 0 6px 18px rgba(0, 0, 0, .34);
 
   --theme: #0b0a0f;
   --entry: #141219;
@@ -323,11 +332,16 @@ body::after {
    **底衬一律挂在块级盒上，不挂在行内元素上**：`backdrop-filter` 在 `display: inline` 上不可靠；
    而旧写法靠 `box-decoration-break: clone` 支持跨行，改成 inline-block 又会让窄屏的长文本整段
    不换行（横向溢出）。所以改成给容器加面。逐个确认过：
-     - `.profile h1` / `.home-hero > span`：主题 profile-mode.css 里 `.profile_inner` 是
-       flex 列，两者是 flex 子项、本身已是块级盒。**副标题那条 2026-09-19 从
-       `.profile_inner > span` 改来** —— 首页两栏布局给 hero 加了一层 `.home-hero` 容器，
-       副标题不再是 `.profile_inner` 的直接子项。这类选择器「结构一变就静默失配」（不报错、
-       只是保护没了），改首页版式后必须重跑对比度脚本，别只看页面像不像坏了；
+     - `.profile h1` / `.home-hero-subtitle`：主题 profile-mode.css 里 `.profile_inner` 是
+       flex 列，两者是 flex 子项、本身已是块级盒。**副标题的选择器走过两步**：2026-09-19 从
+       `.profile_inner > span` 改成 `.home-hero > span`（首页两栏布局给 hero 加了一层
+       `.home-hero` 容器，副标题不再是 `.profile_inner` 的直接子项）；2026-09-21 又改成
+       **类名** —— 那天给头像加了一件装饰壳，那层壳是 `<span class="avatar-halo">`、
+       同样是 `.home-hero` 的直接 span 子元素，于是这条连同 09-home.css 里的三条一起
+       命中了它（头像凭空多出 `.12em` 的内边距与一块玻璃底，**四份规则一个都没报错**）。
+       教训比改写本身重要：`X > span` 这种结构选择器在容器里多一个同标签子元素时
+       会**静默多命中**（不只是静默失配），而这张表是承载对比度的，多命中就是多一层不该有的面。
+       所以容器里的元素一律用类名，别用结构选择器。改首页版式后仍必须重跑对比度脚本；
      - `.home-scale`（「站点规模」那行）：在 `.home-hero` 里、仍然直接压在壁纸上，照旧要底衬；
      - `.home-recent-head h2` / `a`、`.home-browse-head h2` / `a` / `.home-browse-label`：
        **2026-09-19 从这张表里删掉了** —— 那两块现在各自是一块不透明的 `--surface` 面板，
@@ -345,7 +359,7 @@ body::after {
 
    改这里的任何 alpha、或改 hugo.toml 的蒙版，都要重跑 `.shots/girlbg/measure.py both`。 */
 :is(.profile h1,
-    .home-hero > span,
+    .home-hero-subtitle,
     .home-scale,
     .course-group-heading,
     .course-index-heading,
@@ -391,9 +405,15 @@ a {
   scrollbar-color: var(--tertiary) transparent;
 }
 
-/* 标题锚点被固定顶栏遮住的问题（主题只给 #top-link 做了处理） */
+/* 锚点被顶栏遮住的问题（主题只给 #top-link 做了处理）。
+   2026-09-21 顶栏真的吸顶之后（10-nav.css「五、顶栏吸顶」）这条才开始起作用 ——
+   在此之前顶栏是普通流里的元素，滚走就不挡了，它一直是预防性的。
+   第三行 `[id]:target` 是给「不在 .post-content 里的锚点目标」兜底：脚注、带 id 的图、
+   数学工具卡的 .tb-card 卡片锚点。只看 :target 不看所有 [id]：没被跳转到的元素
+   加不加 scroll-margin 都一样，但选择器面越小越不容易误伤。 */
 .post-content :is(h1, h2, h3, h4, h5, h6),
-.post-content .anchor {
+.post-content .anchor,
+[id]:target {
   scroll-margin-top: calc(var(--header-height) + 16px);
 }
 

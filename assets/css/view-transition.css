@@ -1,0 +1,87 @@
+/* ============================================
+   切页转场（原生 View Transitions API，2026-09-21 加）
+
+   一行 `@view-transition { navigation: auto }` 就能让跨文档导航有过渡，**零 JS、零依赖**：
+   静态站没有客户端路由、也没有客户端加载态，这是「加载动画」在这类站点上唯一真实的挂载点。
+   Chromium 126+ 生效；**其他浏览器完全忽略这个 at-rule** —— 这是它最大的好处：
+   最差情况就等于没加（不是「降级成半截效果」，是浏览器根本不知道有这回事）。
+
+   **这个文件为什么不在 assets/css/extended/ 下**：那样会被主题的
+   `resources.Match "css/extended/*.css" | resources.Concat | resources.Minify` 串进
+   stylesheet.css，而压缩器**会把 `@view-transition` 整条丢掉** —— 实测产物里
+   `navigation:auto` 匹配数为 0，同一文件里的 `view-transition-name` 与
+   `::view-transition-*` 却都原样保留（名字和动画都在、转场永远不触发，而且不报任何错）。
+   所以它单独放 assets/css/、由 extend_head.html **不压缩**地外链
+   （与 css/bg-image.css、css/nav-icons.css 同一种接线）。
+
+   也试过老式的 `<meta name="view-transition" content="same-origin">` opt-in：
+   本机 Edge（headless、CDP）下**不生效** —— 探针监听旧页面的 `pageswap`，事件触发了
+   但 `event.viewTransition` 是 null。所以 opt-in 只能是上面那条 at-rule，
+   而它必须走不压缩的路。
+
+   **本文件里不要再手写 `/*` 注释以外的解释性文字**：2026-09-21 手改这里时把一段说明的
+   注释定界符丢了，几行中文成了裸 CSS token，解析器恢复时把紧随其后的 `.header { … }`
+   整条吞掉 —— 症状是 footer 的 view-transition-name 生效、header 的不生效，
+   而且不报任何错（浏览器只是把坏 token 丢掉）。
+
+   两处刻意的取舍：
+
+   一、**站点外壳不参与位移**。给 .header / .footer 起 view-transition-name 之后，
+      它们不再属于 root 那张快照，整页交叉淡入时顶栏与页脚是稳的。不这么做的话
+      每次翻页「整页都在闪」，包括每页都一样的顶栏 —— 那正是廉价转场的观感来源。
+      名字**必须唯一**：同一页上出现两个同名元素时浏览器会整条转场跳过并在控制台告警。
+
+   二、**只动 opacity 与 transform，不做全页模糊、不做 mask 扫过**。这两个是合成器能接管的量；
+      全页 blur / mask 每帧都要重新光栅化整屏，而这个站对帧预算一向逐项量过
+      （features.md 第 6 节）。想要「碎冰拼合」那种更狠的转场得走 mask 扫线，
+      代价明确、要单独量一次，先不做。
+
+   减少动效偏好：把四条 transition 伪元素的动画全关掉。这里不用
+   `@view-transition { navigation: none }` —— 把 at-rule 嵌进 @media 的支持面不稳，
+   而「animation: none」是各版本都认的写法。
+   ============================================ */
+
+@view-transition {
+  navigation: auto;
+}
+
+.header {
+  view-transition-name: site-header;
+}
+
+.footer {
+  view-transition-name: site-footer;
+}
+
+::view-transition-old(root) {
+  animation: vt-page-out .2s ease both;
+}
+
+::view-transition-new(root) {
+  animation: vt-page-in .26s cubic-bezier(.2, .7, .3, 1) both;
+}
+
+@keyframes vt-page-out {
+  to { opacity: 0; }
+}
+
+/* 新页从下方 6px 处落定：位移比纯淡入更能表达「翻到了下一页」，
+   幅度压得很小 —— 整屏位移一大就成了廉价幻灯片。 */
+@keyframes vt-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* 顶栏与页脚只做一次快速交叉淡入（浏览器对具名组的默认行为），不位移：
+   它们每页都一样，跟着内容一起滑会显得整站都在晃。 */
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  ::view-transition-group(site-header),
+  ::view-transition-group(site-footer) {
+    animation: none !important;
+  }
+}

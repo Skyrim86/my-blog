@@ -60,6 +60,15 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 站点外观（配色 / 深色令牌 / 面板透亮度 / 控件细边 `--edge` / 装饰层 / **明暗切换的过渡**） | `assets/css/extended/00-theme.css`、`03`…`13` 组件样式、`20-theme-fade.css` + `assets/js/theme-fade.js`（切换过渡） | [`docs/features.md`](docs/features.md) 第 3 节 ⑫（令牌、24 组对比度实测、过渡的实测代价）与 ㊱（导航/分页的交互） |
 | 图标（favicon / apple-touch / 桌面快捷方式）与**导航栏的像素小人** | `tools/icons/make-icons.py`（**生成产物，不要手改 `static/` 下的 png/ico，也不要手改 `assets/images/nav/*.png`**）；图标位在 `hugo.toml` 菜单的 `pre` 字段、接线在 `extend_head.html`、样式在 `19-nav-px.css` | [`docs/architecture.md`](docs/architecture.md) 第 6 节 |
 | 阅读进度条 / 目录当前项 | `assets/js/reading-progress.js`、`08-reader.css` | 同上 |
+| 顶栏吸顶（毛玻璃吸顶 + 滚动后加深） | `assets/css/extended/10-nav.css`（「五、顶栏吸顶」）、`assets/js/header-sticky.js`、`00-theme.css` 的 `--surface-header` / `--shadow-sticky` | [`docs/features.md`](docs/features.md) ㊶ |
+| 滚动出现动画（首屏之下的列表/卡片入场） | `assets/js/reveal.js`、`assets/css/extended/22-reveal.css` | [`docs/features.md`](docs/features.md) ㊷ |
+| 首页头像的虹彩光环（悬停才转） | `layouts/_partials/index_profile.html`（`.avatar-halo` 壳）、`13-ornament.css` | [`docs/features.md`](docs/features.md) ㊸ |
+| 代码块的**文件名标题条**（`{filename=...}`） | `layouts/_markup/render-codeblock.html`（渲染 hook，**别改成 `highlight .Inner`**）、`08-reader.css` | [`docs/features.md`](docs/features.md) ㊹ |
+| 正文图片灯箱 | `assets/js/lightbox.js`、`26-lightbox.css`、`i18n/zh.toml` 的 `lightbox*` | 同上 ㊹ |
+| 页脚标签胶囊 / 评论区玻璃容器 | `01-cards.css`（`.post-tags a`）、`08-reader.css`（`.giscus-wrapper`）、`comments.html` | 同上 ㊹ |
+| 关于页的拼贴（Bento） | `data/about-bento.yaml`（清单）、`layouts/_shortcodes/bento.html`、`27-bento.css`；正文里一句 `{{< bento >}}` | [`docs/features.md`](docs/features.md) ㊺ |
+| 正文分割线的霜晶 | `13-ornament.css`（`hr::after` 的 mask 形状） | 同上 ㊻ |
+| 切页转场（原生 View Transitions） | `assets/css/view-transition.css`（**不压缩、单独外链**，别挪进 `css/extended/`）、`extend_head.html` | 同上 ㊻ |
 | 无障碍（跳过链接 / 动态列表播报 / 主题英文可访问名本地化 / `sr-only`） | `layouts/baseof.html`（第 7 处覆盖）、`assets/css/extended/17-a11y.css`、`assets/js/a11y-announce.js`、`assets/js/a11y-controls.js`（改主题模板里写死的 `aria-label`，不覆盖模板）、`terms-filter.js` 与 `list-tools.js` 里的 `role="status"` | [`docs/features.md`](docs/features.md) 第 4 节 |
 | JSON-LD 结构化数据（删 `articleBody`、零值日期、`@type`） | `layouts/_partials/templates/schema_json.html`（第 8 处覆盖，逐字保留主题实现，共三处差异） | [`docs/features.md`](docs/features.md) 第 4 节第 8 条 + ㉟ |
 | 正文横向溢出（行间公式滚动）/ 导航与分页悬停 | `assets/css/extended/08-reader.css`、`10-nav.css`，卡片的 `:focus-within` 在 `04`/`05`/`09` | [`docs/features.md`](docs/features.md) ㊱ |

@@ -109,6 +109,27 @@ article.post-entry:hover {
   border-color: var(--accent);
 }
 
+/* 文章页脚的标签（主题 post-single.css 里是「圆角方块 + --code-bg 底 + --border 边」）：
+   与上面那枚胶囊是同一件事的两种画法 —— 列表卡里是胶囊、到正文页脚又变回方块，
+   读者读完整篇会看到同一个概念换了副样子。这里统一到胶囊那一套（连同配色）。
+   **配色不是新定的**：--accent 字压在 --accent-soft 底上就是 .card-chip--tag 的用法，
+   在 00-theme.css 类别色板那套实测口径内（10% 底纹 + 面板底 ≥ 4.5:1）。
+   边用 border 而不是 inset box-shadow：这里没有导航药丸那种像素配平的约束，
+   而主题本来就给了 1px border，只换颜色与圆角最省事。 */
+.post-tags a {
+  border-radius: 999px;
+  border-color: transparent;
+  color: var(--accent);
+  background: var(--accent-soft);
+  transition: border-color .18s ease;
+}
+
+/* 主题那条悬停是「底换成 --border」，压在这层 --accent-soft 上会脏，一并接管。 */
+.post-tags a:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 /* 详情页的元信息位置已经有内容（project-meta 面板、日期·字数），卡片用的 chips 在那里只是重复。
    post_meta.html 同时供列表卡片与详情页使用，所以这里按容器区分。 */
 .post-single .post-meta .card-chips {

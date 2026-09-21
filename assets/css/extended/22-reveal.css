@@ -1,0 +1,43 @@
+/* ============================================
+   滚动出现动画（配对脚本：assets/js/reveal.js）
+
+   只有两个类，且**互斥**：
+     .reveal-pending  由 JS 给「首屏之下」的元素挂上，此时透明不可见
+     .is-revealed     元素滚进视口时挂上（同一帧摘掉 pending），跑一次性入场动画
+   动画结束后 JS 把两个类都摘掉，元素回到它自己的样式与过渡（例如
+   article.post-entry 的 hover 位移用的是 transition，不能被我这条 animation 长期占住）。
+
+   三条刻意的设计：
+   1. **首屏之上的元素永远不参与**。JS 是先量 getBoundingClientRect 再决定挂不挂 pending 的，
+      所以不存在「先隐藏、再淡入」那一闪；JS 失败或被禁用时页面就是平常的样子 ——
+      内容不可见这种失败模式在这套写法里不可能出现。
+   2. 只用 opacity 与 transform。两者都不触发布局，首页那条「0 布局位移」的实测结论
+      （features.md 第 6 节）不受影响；同理也不会改变任何元素的可点区域。
+   3. 缓动与时长与首页入场（09-home.css 的 home-in，.38s cubic-bezier(.2,.7,.3,1)）同族，
+      只是略长一点：这里动的是整块卡片，太短会显得跳。
+
+   --reveal-delay 由 JS 按「同一批进入的元素」写进行内样式（错峰 45ms，最多 5 档），
+   不在 CSS 里用 nth-child 写死：一页里列表项数量不定，写死档位在长列表上会失效。
+   ============================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-pending {
+    opacity: 0;
+  }
+
+  /* 不给 .is-revealed 写 opacity：它只是「该跑了」的标记，终态就是元素平常的样子
+     （动画的 to 值取级联值）。这样即使某个元素本来就有自己的 opacity 设计，也不会被覆盖。 */
+  .is-revealed {
+    animation: reveal-in .46s cubic-bezier(.2, .7, .3, 1) var(--reveal-delay, 0s) backwards;
+  }
+}
+
+/* backwards 填充是必须的（与 09-home.css 的 home-in 同一条理由）：有 --reveal-delay 时，
+   延迟期间元素要停在 from 那一帧，否则会先以终态闪一下再从头播。
+   不用 both：动画结束后继续钉住终态会压过元素自己的 transform 声明。 */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
