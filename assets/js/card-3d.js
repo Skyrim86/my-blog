@@ -78,6 +78,7 @@
   var FX_TAIL_MS = 2500;
   var qualityPicked = false;
   var fxScale = 1;               // 弱设备的新效果整体打折（见 pickQuality）
+  var lidScale = 1;              // 盖子单独一个开关（弱设备 = 0：它那几步 ALU + 一次深度采样也不白给）
 
   // 每种卡面风格在 3D 里的一组着色器参数。**这张表是 YAML 里 style 字段的第二处消费点**：
   // 首页那张卡用 CSS 类（home-card--<style>），弹层里的 3D 卡用这里的参数。
@@ -133,17 +134,23 @@
   // **奇迹在显形前拿的是收藏那一套**：隐藏等级的定义就是看不出来（见 selectRank / rankOf）。
   var RANK_3D = {
     collector: { metal: 0.05, emis: 0.00, diff: 0.00, relief: 1.00, back: 0, shadow: 0.35, sweep: 0.25,
-                 steps: 8,  sparkle: 0.00, holo: 0.00, halo: 0.00, cliff: 0.00, glint: 0.00, bgZoom: 0.000, bgPar: 0.000 },
+                 steps: 8,  sparkle: 0.00, holo: 0.00, halo: 0.00, cliff: 0.00, glint: 0.00, bgZoom: 0.000, bgPar: 0.000,
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
     rare:      { metal: 0.30, emis: 0.01, diff: 0.05, relief: 1.15, back: 1, shadow: 0.48, sweep: 0.38,
-                 steps: 10, sparkle: 0.10, holo: 0.08, halo: 0.05, cliff: 0.15, glint: 0.10, bgZoom: 0.008, bgPar: 0.003 },
+                 steps: 10, sparkle: 0.10, holo: 0.08, halo: 0.05, cliff: 0.15, glint: 0.10, bgZoom: 0.008, bgPar: 0.003,
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
     epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.30, back: 2, shadow: 0.62, sweep: 0.50,
-                 steps: 12, sparkle: 0.28, holo: 0.22, halo: 0.16, cliff: 0.32, glint: 0.25, bgZoom: 0.015, bgPar: 0.006 },
+                 steps: 12, sparkle: 0.28, holo: 0.22, halo: 0.16, cliff: 0.32, glint: 0.25, bgZoom: 0.015, bgPar: 0.006,
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
     arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.50, back: 3, shadow: 0.82, sweep: 0.68,
-                 steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.028, bgPar: 0.012 },
+                 steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.028, bgPar: 0.012,
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
     legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 2.40, back: 4, shadow: 1.00, sweep: 0.85,
-                 steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022 },
+                 steps: 18, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
+                 wall: 0.70, cast: 0.65, lid: 0.75, cone: 0.70, drift: 0.60 },
     miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 2.90, back: 5, shadow: 1.15, sweep: 1.00,
-                 steps: 24, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030 }
+                 steps: 20, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030,
+                 wall: 1.00, cast: 1.00, lid: 1.00, cone: 1.00, drift: 1.00 },
   };
   // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。这两张表是卡背
   // 那套「由素到华丽」的全部依据 —— 以前是一串 `rk === 'epic' / 'legend' / 'miracle'` 的
@@ -384,6 +391,16 @@
     'uniform float uTime, uSteps, uSparkle, uHolo, uHalo, uCliff, uGlint;',
     'uniform float uBgZoom;',
     'uniform vec2 uBgPar;',
+    // 2026-09-21 第二轮（透明盖 + 「好像要脱离卡面」）：
+    //   uLid 盖子强度（**在卡自己的片元里合成**，不再是单独一层几何 —— 见下面那段注释）
+    //   uWall 侧壁取色  uCast 卡面接触投影  uDrift 主体与背景的微视差
+    'uniform float uLid, uWall, uCast, uDrift, uCone;',
+    // 光锥：从**上方斜射**进来的一道柔光（参考图里那一团）。卡与盖子两边都要用它 ——
+    // 卡上是光落下来的提亮（caustic），盖子上是光在玻璃里的那一层。放这里两处共用一份。
+    'float coneAt(vec2 uv) {',
+    '  float band = exp(-pow((uv.x - 0.30 + 0.75 * uv.y) * 5.0, 2.0));',
+    '  return band * smoothstep(0.72, 0.0, uv.y);',
+    '}',
     'float hAt(vec2 uv) { return texture2D(uDepth, clamp(uv, 0.002, 0.998)).r; }',
     // 高度场自阴影：沿光的方向在高度场里采样，只要有比当前点高的就说明这一点被挡住了。
 // **这才是「主体浮起来」的关键**：位移本身只是把画面抬高，而「它把光挡住了、卡面上留下
@@ -417,7 +434,7 @@
     '  if (vFace > 0.5 && vFace < 1.5) u = 1.0 - u;',
     '  return vec2(u, 0.5 - p.y / CARD_H);',
     '}',
-    'vec3 reliefNormalF(vec2 uv, out float slope) {',
+    'vec3 reliefNormalF(vec2 uv, out float slope, out vec2 grad) {',
     // 单尺度（±1 texel）梯度 —— 曾经为了防止深度图补丁网格的台阶而做过「窄窗 + 宽窗平均」，
     // 那条路的代价是整幅画面变软（细节与台阶一起被压）。**台阶最终在数据侧治掉了**
     // （生成器加了一道 3×3 中值，见 make-depth.py 的注释），所以这里保持单尺度、画面最锐。
@@ -425,7 +442,8 @@
     '  float gv = (hAt(uv + vec2(0.0, uTexel.y)) - hAt(uv - vec2(0.0, uTexel.y))) / (2.0 * uTexel.y);',
     // 陡度 = 同一批梯度的长度（与法线倾斜同一量纲，但不带符号）—— 陡坡切边用它。
     // 复用这两个差分、不额外采样：片元着色器里每多一次纹理采样都是实打实的成本。
-    '  slope = length(vec2(gu, gv)) * uRelief / CARD_W;',
+    '  grad = vec2(gu, gv);',
+    '  slope = length(grad) * uRelief / CARD_W;',
     '  return normalize(vec3(-gu * uRelief / CARD_W, gv * uRelief / CARD_H, 1.0));',
     '}',
     // POM：沿视线在高度场里步进，找第一个「高度超过当前层」的位置。
@@ -464,7 +482,8 @@
     '  vec3 albedo;',
     '  float ao = 0.92;',
     '  float hv = 0.5;',                 // 这个点在高度场上的高度（0 背景 / 1 最凸）
-    '  float slope = 0.0;',              // 高度场陡度（陡坡切边用；只有正面才算）
+    '  float slope = 0.0;',              // 高度场陡度（陡坡切边 / 侧壁用；只有正面才算）
+    '  vec2 grad = vec2(0.0);',          // 高度场梯度方向（侧壁取色沿它向下走）
     '  float foilMask = 1.0;',
     // 采样点：正面会先经 POM、再经背景视差挪动。**声明在这里而不是下面那个 if 里** ——
     // 等级效果那一段还要用它（星屑的哈希网格扎在采样点上），写在块里就出了作用域。
@@ -475,11 +494,15 @@
     '      // 卡内 3D 视差：**只有远处（低高度）的像素跟着角度平移**，主体立着不动 —— 于是',
     '      // 「人是从背景里立起来的」这条线索成立。位移量由 JS 按当前转角每帧算（uBgPar），',
     '      // 方向与转动相反，读作背景在卡面之后。放大倍率已经在上面统一吃掉了。',
-    '      float bgW = 1.0 - smoothstep(0.10, 0.34, hAt(puv));',
+    '      float hs = hAt(puv);',
+    '      // uDrift 让**主体往反方向挪一点**：背景与主体分开走，「这一层浮在画面之上」的动感',
+    '      // 才是从**相对运动**来的。位移总量仍受 JS 那道夹取约束（放大多少就只能挪多少）。',
+    '      float bgW = 1.0 - smoothstep(0.10, 0.34, hs)',
+    '                 - uDrift * 0.30 * smoothstep(0.40, 0.95, hs);',
     '      puv = clamp(puv + uBgPar * bgW, 0.002, 0.998);',
     '    }',
     '    albedo = (vFace < 0.5) ? texture2D(uFace, puv).rgb : texture2D(uBack, puv).rgb;',
-    '    N = (vFace < 0.5) ? reliefNormalF(puv, slope) : vec3(0.0, 0.0, -1.0);',
+    '    N = (vFace < 0.5) ? reliefNormalF(puv, slope, grad) : vec3(0.0, 0.0, -1.0);',
     '    if (vFace < 0.5) {',
     '      hv = hAt(puv);',
     '      // 高度当环境光遮蔽：低处（背景、衣褶里）压暗、抬起来的地方亮。',
@@ -487,6 +510,13 @@
     '      ao = mix(0.74, 1.0, hv);',
 '      // 投影只压在卡面（背景）上，不压主体自己',
 '      ao *= 1.0 - uShadow * 0.5 * reliefShadow(puv, uL1, hv);',
+    '      // 卡面接触投影：主体外圈那一带压暗（「它把影子投在卡面上」是浮起来最强的一条线索）。',
+    '      // 做法是看**隔壁**多高：四邻偏移采样取最大值，隔壁是主体、而自己是卡面 → 压暗。',
+    '      // 四个额外采样，只在正面。',
+    '      float nb = max(max(hAt(puv + vec2(3.0 * uTexel.x, 0.0)), hAt(puv - vec2(3.0 * uTexel.x, 0.0))),',
+    '                     max(hAt(puv + vec2(0.0, 3.0 * uTexel.y)), hAt(puv - vec2(0.0, 3.0 * uTexel.y))));',
+    '      float contact = smoothstep(0.30, 0.75, nb) * (1.0 - smoothstep(0.0, 0.10, hv));',
+    '      ao *= 1.0 - uCast * 0.55 * contact;',
     '      foilMask = mix(0.38, 1.0, hv);',   // 箔膜压在浮雕上：抬起来的部分才亮
     '    } else {',
     '      hv = 0.5; foilMask = 0.55; ao = 0.95;',
@@ -558,6 +588,15 @@
   '    float cliffW = smoothstep(0.40, 1.30, slope) * uCliff;',
   '    col *= mix(1.0, 0.54, cliffW);',
   '    col += mix(vec3(1.0), uTint, 0.30) * pow(max(dot(N, H1), 0.0), 30.0) * cliffW * 0.75;',
+  '    // ⑥ 侧壁取色：陡坡上不只是压暗 —— 沿坡**向下**（= 梯度反方向）取一笔崖底的颜色混上去，',
+  '    //    读作「这个凸起有一层从下面延续上来的侧壁」，而不是「一块变暗的凸起」。',
+  '    //    这是「人物好像要脱离卡面」里最实质的一条：有厚度 = 不是画上去的。',
+  '    float wallW = uWall * smoothstep(0.45, 1.30, slope);',
+  '    vec2 wallUv = clamp(puv - grad / max(length(grad), 1.0e-5)',
+  '                        * (0.010 + 0.030 * min(slope, 2.5)), 0.002, 0.998);',
+  '    col = mix(col, texture2D(uFace, wallUv).rgb * (0.60 + 0.30 * hv), wallW * 0.45);',
+  '    // ⑦ 光锥落在画面上（caustic）：与盖子上那道光同一条函数，只是这里提亮而不是加膜。',
+  '    col += mix(vec3(1.0), uTint, 0.30) * coneAt(uv) * uLid * uCone * 0.26 * foilMask;',
   '    // ⑤ 拖拽高光跟手：按住拖动时指针当第三盏灯，一个窄高光斑跟着手走（uGlint 由 JS 给 0',
   '    //    或等级值）。这条正好卡在「鼠标划过卡片不会让它动」那条要求的边界上：',
   '    //    **光可以跟手，卡不能跟手**。',
@@ -588,6 +627,27 @@
     '      col += vec3(1.0) * pow(rim, 8.0) * 0.12;',
     '    }',
     '  }',
+  '  // ---------- 透明厚盖：在卡自己的片元里合成 ----------',
+  '  // 第一版是**单独一层几何 + 混合绘制**，实测代价 6.1 → 8.3ms/帧（211 帧里 179 帧超预算）——',
+  '  // 多一整遍全卡填充是实打实的。而盖子与卡面 footprint 相同、且永远在卡面之前，',
+  '  // 所以「盖上」这件事在数值上就是一次 mix：**同样的观感，零额外填充**。',
+  '  if (vFace < 0.5 && uLid > 0.005) {',
+  '    float ndv = max(V.z, 0.0);',
+  '    float e = -cardSdf(vModel.xy);',
+  '    float w = 0.020 / clamp(ndv, 0.35, 1.0);      // 越斜看越宽（隔着玻璃看切边就是这样）',
+  '    float rim = smoothstep(w, 0.0, e);',
+  '    float core = pow(rim, 5.0);',
+  '    float cone = coneAt(uv) * uCone;',
+  '    float press = smoothstep(0.50, 0.95, hv);     // 主体顶到玻璃的地方（hv 就是这里的高度）',
+  '    float pressRing = smoothstep(0.34, 0.62, hv) * (1.0 - smoothstep(0.62, 0.88, hv));',
+  '    vec3 tint = mix(vec3(1.0), uEdge, 0.25);',
+  '    float a = uLid * (0.010 + 0.055 * (1.0 - ndv))',
+  '            + uLid * (rim * 0.26 + core * 0.40)',
+  '            + uLid * cone * 0.115',
+  '            + uLid * (press * 0.10 + pressRing * 0.15);',
+  '    vec3 lcol = tint * (0.72 + 0.28 * cone) + tint * (rim * 0.35 + core * 0.55) + tint * press * 0.18;',
+  '    col = mix(col, lcol, clamp(a, 0.0, 0.62));',
+  '  }',
     '  col *= mix(1.0, 1.06, uDark);',
     '  gl_FragColor = vec4(col, 1.0);',
     '}'
@@ -796,7 +856,8 @@
   var ptrX = 0, ptrY = 0;      // 指针在台面里的位置（-1~1 的视图空间坐标，用于跟手高光）
   // 送进着色器的**生效值**（draw 每帧填）。stats().fx 直接回它 —— 让 lab 读「真正生效的数」
   // 而不是回读参数表：表到着色器之间还夹着 fxScale 与编译期上限两道，回读表会假绿。
-  var fxEff = { relief: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0, bgZoom: 0, bgParMax: 0 };
+  var fxEff = { relief: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0,
+              bgZoom: 0, bgParMax: 0, wall: 0, cast: 0, lid: 0, cone: 0, drift: 0 };
   var fxOverride = null;       // lab 拍对比图时的临时覆盖（api.setFx），产品路径上恒为 null
 
   function pickQuality() {
@@ -813,6 +874,8 @@
       // 新通道在弱设备上一律打折：切边与流光减半、背景视差整个关掉（它要动的是**采样 uv**，
       // 一旦降级就得同时改顶点位移那边，不值得在低端机上冒这个险）。
       fxScale = 0.5;
+      // 盖子**整个关掉**（不是打折）：它是唯一多一遍绘制的效果，低端机上不值得冒险。
+      lidScale = 0;
     }
   }
 
@@ -872,7 +935,8 @@
       'uFoilScale', 'uSpec', 'uTint', 'uEdge', 'uEye', 'uL1', 'uL2', 'uLp', 'uFoilAxis',
       'uEdgeMetal', 'uEdgeEmis', 'uEdgeDiff', 'uShadow', 'uSweepPos', 'uSweepK',
       'uTime', 'uSteps', 'uSparkle', 'uHolo', 'uHalo', 'uCliff', 'uGlint',
-      'uBgZoom', 'uBgPar', 'uTexel', 'uDark'].forEach(function (n) {
+      'uBgZoom', 'uBgPar', 'uLid', 'uWall', 'uCast', 'uDrift', 'uCone',
+      'uTexel', 'uDark'].forEach(function (n) {
       U[n] = gl.getUniformLocation(prog, n);
     });
 
@@ -995,12 +1059,24 @@
     fxEff.halo = R.halo * fxScale;
     fxEff.cliff = R.cliff * fxScale;
     fxEff.bgZoom = bgZoom;
+    // 「好像要脱离卡面」那四条 + 盖子。盖子单独一个系数：它**多一遍混合绘制**，
+    // 弱设备上直接关掉（见 pickQuality），而不是偷偷降画质。
+    fxEff.wall = R.wall * fxScale;
+    fxEff.cast = R.cast * fxScale;
+    fxEff.drift = R.drift * fxScale;
+    fxEff.lid = R.lid * lidScale;
+    fxEff.cone = R.cone * lidScale;
     gl.uniform1f(U.uSteps, fxEff.steps);
     gl.uniform1f(U.uSparkle, fxEff.sparkle);
     gl.uniform1f(U.uHolo, fxEff.holo);
     gl.uniform1f(U.uHalo, fxEff.halo);
     gl.uniform1f(U.uCliff, fxEff.cliff);
     gl.uniform1f(U.uBgZoom, bgZoom);
+    gl.uniform1f(U.uWall, fxEff.wall);
+    gl.uniform1f(U.uCast, fxEff.cast);
+    gl.uniform1f(U.uDrift, fxEff.drift);
+    gl.uniform1f(U.uLid, fxEff.lid);
+    gl.uniform1f(U.uCone, fxEff.cone);
     // 跟手高光只在**按住拖动**时给。这条正好卡在「鼠标划过卡片不会让它动」那条要求的边界上：
     // 光可以跟手，卡不能跟手。
     fxEff.glint = dragging ? R.glint * fxScale : 0;
@@ -1045,6 +1121,8 @@
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texDepth ? texDepth.tex : null); gl.uniform1i(U.uDepth, 1);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texBack); gl.uniform1i(U.uBack, 2);
 
+    // 盖子**不是单独一遍绘制**（见片元里那段注释）：它是卡面片元里的一次 mix，
+    // 所以这里只有一次 drawElements 一如从前。
     gl.drawElements(gl.TRIANGLES, GL.count, gl.UNSIGNED_SHORT, 0);
     frames++;
     var now = performance.now();
@@ -1397,7 +1475,9 @@
           sparkle: +fxEff.sparkle.toFixed(4), holo: +fxEff.holo.toFixed(4),
           halo: +fxEff.halo.toFixed(4), cliff: +fxEff.cliff.toFixed(4),
           glint: +fxEff.glint.toFixed(4),
-          bgZoom: +fxEff.bgZoom.toFixed(4), bgParMax: +fxEff.bgParMax.toFixed(4)
+          bgZoom: +fxEff.bgZoom.toFixed(4), bgParMax: +fxEff.bgParMax.toFixed(4),
+          wall: +fxEff.wall.toFixed(4), cast: +fxEff.cast.toFixed(4),
+          lid: +fxEff.lid.toFixed(4), cone: +fxEff.cone.toFixed(4), drift: +fxEff.drift.toFixed(4)
         }
       };
     },

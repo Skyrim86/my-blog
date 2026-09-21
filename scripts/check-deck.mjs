@@ -599,7 +599,10 @@ if (!existsSync(CARD3D)) {
      再核一条**名称对齐**：initGL 里的 uniform 名单与 draw() 里实际设置的必须一一对应 ——
      名字拼错时 getUniformLocation 返回 null，而 uniform1f(null, x) 只是静默无效。 */
   const FX_LEGACY = ['metal', 'emis', 'diff', 'relief', 'back', 'shadow', 'sweep'];
-  const FX_NEW = ['steps', 'sparkle', 'holo', 'halo', 'cliff', 'glint', 'bgZoom', 'bgPar'];
+  // 后四项是 2026-09-21 第二轮加的（透明盖 + 「好像要脱离卡面」）：
+  //   lid 盖子（**唯一多一遍混合绘制**的通道）  wall 侧壁取色  cast 卡面接触投影  drift 主体/背景微视差
+  const FX_NEW = ['steps', 'sparkle', 'holo', 'halo', 'cliff', 'glint', 'bgZoom', 'bgPar',
+    'wall', 'cast', 'lid', 'cone', 'drift'];
   const FX_ALL = FX_LEGACY.concat(FX_NEW);
   // 单调不减的通道（back 是序号、glint 只在拖动时有值，都参与；metal/emis/diff 本来就是阶梯）
   const MONO = FX_ALL.filter((f) => f !== 'glint');
