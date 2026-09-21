@@ -3,10 +3,14 @@
    模板见 layouts/_partials/index_profile.html（覆盖主题同名 partial）
    与 layouts/_partials/home-scale.html、home-extras.html
 
-   结构（2026-09-19 起）：
+   结构（2026-09-21 起）：
      .profile_inner
-       .home-hero      头像 / 标题 / 副标题 / 社交图标 / 快捷入口 / 站点规模 / buttons
-       .home-side      .home-browse（按类浏览）+ .home-recent（最近更新）
+       .home-hero      头像 / 标题 / 副标题 / 社交图标 / 快捷入口 / 站点规模 / 卡片组
+       .home-side      .home-clock（时间与时钟）+ .home-recent（最近更新）
+   2026-09-21 用户要求：删掉「按类浏览」那一栏、换成时钟，并把「最近更新」压到右栏底部
+   （与左栏那列的底边齐平）。所以这一档的 `align-items` 从 `start` 改成了 `stretch`
+   —— **「两栏高度互不牵扯」那条旧结论被有意推翻了**，见下面那条注释。
+   `.home-browse` 的那组样式仍留着（partial 也留着），恢复时把调用加回去即可。
    两块内容各自是一块**玻璃面板**（--surface + 1px --edge + 14px 圆角 + 投影）。之前它们是散在
    壁纸上的：每个 chip、每条「最近更新」各自带一小块 --surface 底、各自的标题再各叠一层玻璃底衬，
    一层压一层 —— 观感像散落的小盒子，代价是首页有二十来个 backdrop-filter 元素。改成两块面板
@@ -193,8 +197,79 @@
   width: 100%;
 }
 
-.home-browse,
+/* 「最近更新」压到右栏底部（用户要求：底边与左栏那一列齐平）。
+   `margin-top: auto` 在 flex 列里会吃掉上方所有剩余空间 —— 于是时钟留在顶部、
+   最近更新落在底部，两者之间的距离由左栏的高度决定，不需要任何写死的数值。 */
 .home-recent {
+  margin-top: auto;
+}
+
+/* **1024~1400px 要把右下角给看板娘腾出来。**
+   这一段宽度的特征是「正文列几乎顶到视口边缘」（容器最大 1072 + 两侧 gap）而她就贴在
+   右边缘 14px 处 —— 横向让不开（要让开她得瘦到 24px），只能纵向让。
+   实测（1100px 视口）：面板右下角被她压住 54×27px，正好盖住最后一条的日期；
+   1300px 时还差 31px 不重叠，但再窄一点就开始压。
+   腾出的高度直接读她自己那套变量：--float-bottom 就是「4rem + 她的高度」，
+   减掉 4rem 即她的高度（14-mascot.css 按断点给的三档），于是这里不用手抄第二份数字 ——
+   改她的尺寸时这一条自动跟着走。
+   >1400px 不腾：那时正文列右缘离她还有一段距离（1680px 下差 173px），压满底部没有问题。 */
+@media (min-width: 1024px) and (max-width: 1400px) {
+  .home-recent {
+    margin-bottom: calc(var(--float-bottom) - 4rem - 1.2rem);
+  }
+}
+
+/* ---------- 首页时钟（layouts/_partials/home-clock.html + assets/js/home-clock.js） ----------
+
+   面板的玻璃底、圆角、投影来自上面那条与 .home-browse / .home-recent 共用的规则；
+   这里只管它内部的排版。
+
+   **出厂隐藏**：脚本填好第一帧内容才摘掉 data-pending。用自定义属性而不是 `hidden`
+   属性 —— `.home-clock` 上的 `display: flex` 会压过浏览器默认样式表里的
+   `[hidden] { display: none }`，那样面板会先空着显示出来。 */
+.home-clock[data-pending="1"] {
+  display: none;
+}
+
+.home-clock {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+
+.home-clock-time {
+  display: flex;
+  align-items: baseline;
+  gap: .3rem;
+  line-height: 1;
+  /* 秒数每秒都在变：等宽数字让整块不会随数字宽度左右抖（.home-recent-date 同样处理） */
+  font-variant-numeric: tabular-nums;
+}
+
+.home-clock-hm {
+  font-size: 2.6rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+.home-clock-sec {
+  font-size: 1rem;
+  color: var(--secondary);
+}
+
+.home-clock-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .45rem;
+  font-size: .85rem;
+  letter-spacing: .02em;
+  color: var(--secondary);
+}
+
+.home-browse,
+.home-recent,
+.home-clock {
   width: 100%;
   max-width: calc(var(--main-width) + 40px);
   margin-inline: auto;
@@ -386,8 +461,12 @@
    已有先例）。
 
    列宽 20rem + 2rem 间距 + 剩余给右栏：1024px 内容区下右栏拿到 672px，「最近更新」仍是两列。
-   两个直接子项（hero / side）各占一格、align-items: start —— 高度不互相拉扯，
-   右栏内部由 .home-side 自己的 gap 排两块面板，不与左栏的高低联动。 */
+   两个直接子项（hero / side）各占一格。
+
+   **align-items 从 start 改成 stretch（2026-09-21，用户要求）**：原来是「高度不互相拉扯」，
+   现在要的是「最近更新」的底边与左栏那一列的底边齐平 —— stretch 把右栏拉到与左栏同高，
+   再由 .home-recent 的 `margin-top: auto` 把它压到底（见下面那一条）。
+   参考线是**左栏整体的底边**（卡片组 + 它下面那排控制按钮），不是卡片图片的底边。 */
 @media (min-width: 1024px) {
   main.main:has(.home-recent) {
     max-width: calc(var(--nav-width) + var(--gap) * 2);
@@ -407,7 +486,7 @@
     display: grid;
     grid-template-columns: 20rem minmax(0, 1fr);
     column-gap: 2rem;
-    align-items: start;
+    align-items: stretch;
   }
 
   .home-hero {
@@ -463,6 +542,7 @@
   .home-chara,
   .profile-links,
   .home-scale,
+  .home-clock,
   .home-browse,
   .home-recent {
     animation: home-in .38s cubic-bezier(.2, .7, .3, 1) backwards;
@@ -473,6 +553,8 @@
   .home-chara { animation-delay: .1s; }
   .profile-links { animation-delay: .12s; }
   .home-scale { animation-delay: .16s; }
+  .home-clock { animation-delay: .18s; }
+  /* .home-browse 的档位留着：那块 partial 还在仓库里，恢复调用时不用再改这里 */
   .home-browse { animation-delay: .2s; }
   .home-recent { animation-delay: .24s; }
 

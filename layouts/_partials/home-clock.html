@@ -1,0 +1,34 @@
+{{- /* 首页右栏的时钟面板（2026-09-21 加，用户要求「添加时间与时钟」）。
+
+     **面板内容是空的、由脚本填**：静态站服务端渲染出来的时间只可能是**构建那一刻**，
+     直接写上去就是错的（而且会一直错下去，直到下次构建）。所以这里只出结构，
+     面板带 `data-pending="1"` 由 assets/js/home-clock.js 摘掉 —— 没有 JS 就不显示这一块
+     （与 #bottom-link「一键到底」同一套做法：宁可没有，也不给一个错的）。
+
+     为什么用 `data-pending` 而不是 `hidden` 属性：作者样式里的 `display: flex` 会**压过**
+     浏览器默认样式表里那条 `[hidden] { display: none }`，于是「隐藏」根本不生效 ——
+     面板会先显示成空的。用一个自定义属性做选择器就没这个坑（traps 第 38 条是这条坑的完整版：
+     工具库页那次表现是「筛完只剩一排空框」）。
+
+     文案全部经 data-* 传给脚本（JS 里不硬编码中文，AGENTS 规则 7）：
+     星期用下标与 JS 的 `Date.getDay()` 对齐（0 = 周日），日期模板带 {y}{m}{d} 占位符，
+     与 searchResultCount 的写法一致。 */ -}}
+{{- $dows := slice (i18n "clockDow0") (i18n "clockDow1") (i18n "clockDow2") (i18n "clockDow3") (i18n "clockDow4") (i18n "clockDow5") (i18n "clockDow6") -}}
+<section class="home-clock" data-pending="1"
+         aria-label="{{ i18n "clockLabel" }}"
+         data-dows="{{ $dows | jsonify }}"
+         data-date="{{ i18n "clockDate" }}"
+         data-morning="{{ i18n "clockGreetMorning" }}"
+         data-noon="{{ i18n "clockGreetNoon" }}"
+         data-afternoon="{{ i18n "clockGreetAfternoon" }}"
+         data-evening="{{ i18n "clockGreetEvening" }}"
+         data-late="{{ i18n "clockGreetLate" }}">
+  <div class="home-clock-time">
+    <span class="home-clock-hm"></span>
+    <span class="home-clock-sec"></span>
+  </div>
+  <div class="home-clock-meta">
+    <span class="home-clock-date"></span>
+    <span class="home-clock-greet"></span>
+  </div>
+</section>

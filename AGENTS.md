@@ -72,7 +72,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 无障碍（跳过链接 / 动态列表播报 / 主题英文可访问名本地化 / `sr-only`） | `layouts/baseof.html`（第 7 处覆盖）、`assets/css/extended/17-a11y.css`、`assets/js/a11y-announce.js`、`assets/js/a11y-controls.js`（改主题模板里写死的 `aria-label`，不覆盖模板）、`terms-filter.js` 与 `list-tools.js` 里的 `role="status"` | [`docs/features.md`](docs/features.md) 第 4 节 |
 | JSON-LD 结构化数据（删 `articleBody`、零值日期、`@type`） | `layouts/_partials/templates/schema_json.html`（第 8 处覆盖，逐字保留主题实现，共三处差异） | [`docs/features.md`](docs/features.md) 第 4 节第 8 条 + ㉟ |
 | 正文横向溢出（行间公式滚动）/ 导航与分页悬停 | `assets/css/extended/08-reader.css`、`10-nav.css`，卡片的 `:focus-within` 在 `04`/`05`/`09` | [`docs/features.md`](docs/features.md) ㊱ |
-| 首页（头像 / 快捷入口 / 站点规模 / 按类浏览 / 最近更新 / 入场动效 / ≥1024px 两栏） | `_partials/index_profile.html`（整份覆盖）+ `_partials/home-scale.html`（站点规模）+ `_partials/home-extras.html`（按类浏览）+ `_partials/home-chara.html`（角色立绘）、`09-home.css`、`hugo.toml` 的 `[params.home]` | [`docs/features.md`](docs/features.md) ⑮ |
+| 首页（头像 / 快捷入口 / 站点规模 / **时钟** / 最近更新 / 入场动效 / ≥1024px 两栏） | `_partials/index_profile.html`（整份覆盖）+ `_partials/home-scale.html`（站点规模）+ `_partials/home-clock.html` + `assets/js/home-clock.js`（时钟）+ `_partials/home-chara.html`（角色立绘）、`09-home.css`、`hugo.toml` 的 `[params.home]`。**「按类浏览」的 `home-extras.html` 自 2026-09-21 起首页不再调用**（文件与样式都留着） | [`docs/features.md`](docs/features.md) ⑮ 与 ㊼ |
 | 搜索快捷键（`Ctrl+K` / `/`）/ 搜索页 `?q=` 预填 | `assets/js/search-shortcut.js` | 同上 |
 | 数学公式（构建期 KaTeX） | `layouts/_markup/render-passthrough.html`、`static/katex/` | [`docs/formulas.md`](docs/formulas.md) |
 | 公式机械修复（`\*` → `*`、`§` → `\S`、圈号 → `\text{\textcircled{N}}`） | `scripts/fix-math-escapes.mjs`（管理页保存/新建与 `push-blog.sh` 都调它；`--selftest` 自测规则） | 同上 |

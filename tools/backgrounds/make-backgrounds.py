@@ -292,6 +292,12 @@ def girl_backgrounds():
     # 再往下裁就切到头发了。
     day = day.crop((0, 0, w, ch)).resize((1600, 900), Image.LANCZOS)
     day = ImageEnhance.Color(day).enhance(1.35)   # 见 daylight_city_background 的注释：彩度是独立旋钮
+    # 亮度是**独立旋钮**，2026-09-21 用户要求「背景再透亮一点」时加的：原来这张只提过彩度、
+    # 没动过亮度，所以画面的明度完全等于源图。+8% 是往**对比度安全**的方向走 ——
+    # 浅色主题的文字都是深色，底越亮对比度越高（实测最紧的那处 light/girl/home
+    # 从 4.88 升到 5.4，见 docs/features.md ⑫ 那张表）。
+    # **不要对夜间那张做同样的事**：深色主题的文字是浅色，提亮底 = 压对比度。
+    day = ImageEnhance.Brightness(day).enhance(1.08)
     day = Image.blend(day, Image.new("RGB", day.size, (250, 247, 250)), 0.05)
     save(day, os.path.join("assets", "images", "bg-daylight-girl.webp"), quality=72)
 

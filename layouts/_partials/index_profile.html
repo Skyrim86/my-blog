@@ -98,11 +98,18 @@
         {{- end }}
         </div>
 
-        {{- /* 右栏容器：把「按类浏览」与「最近更新」包成一块，宽屏时整块落在右栏，
-               窄屏就是普通的上下两段（间距由 .home-side 的 gap 给，见 09-home.css） */ -}}
+        {{- /* 右栏容器：把「时钟」与「最近更新」包成一块，宽屏时整块落在右栏，
+               窄屏就是普通的上下两段（间距由 .home-side 的 gap 给，见 09-home.css）。
+
+               2026-09-21 用户要求：删掉「按类浏览」那一栏、换成时间与时钟，
+               并把「最近更新」压到右栏底部（与左栏卡片那一列的底边齐平）。
+               按类浏览的那支 partial（home-extras.html）**保留在仓库里没删**，
+               只摘掉这里的调用 —— 想恢复就把这一行加回来，样式也还在。
+               右栏底对齐靠 09-home.css 里 `.profile_inner` 的 `align-items: stretch`
+               + `.home-recent` 的 `margin-top: auto`。 */ -}}
         <div class="home-side">
-        {{- /* 「按类浏览」：整块在 home-extras.html 里 */ -}}
-        {{- partial "home-extras.html" . }}
+        {{- /* 时间与时钟：整块在 home-clock.html 里（面板内容由 home-clock.js 填） */ -}}
+        {{- partial "home-clock.html" . }}
 
         {{- /* 最近更新：全站 regular page 按 Lastmod 倒序（enableGitInfo 已开，Lastmod 取 git 时间）。
                排除 searchHidden 与 archives/search 两个独立 layout 的页面。 */ -}}

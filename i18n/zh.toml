@@ -409,3 +409,40 @@ other = "放大的图片"
 
 [lightboxClose]
 other = "关闭"
+
+# ---------- 首页的时钟（layouts/_partials/home-clock.html + assets/js/home-clock.js） ----------
+# 面板本身由脚本填内容并按秒更新 —— 服务端渲染出来的时间只可能是**构建那一刻**，
+# 放上去就是错的，所以面板出厂带 data-pending、由脚本摘掉（没有 JS 就不显示这块）。
+# 星期用下标 = JS 的 Date.getDay()（0 = 周日），别按「周一开头」的习惯写。
+[clockLabel]
+other = "现在时间"
+
+# {y} {m} {d} 是脚本替换的占位符（单花括号，别写成 Go 模板的 {{ }}），与 searchResultCount 同一套做法
+[clockDate]
+other = "{y}年{m}月{d}日"
+
+[clockDow0]
+other = "星期日"
+[clockDow1]
+other = "星期一"
+[clockDow2]
+other = "星期二"
+[clockDow3]
+other = "星期三"
+[clockDow4]
+other = "星期四"
+[clockDow5]
+other = "星期五"
+[clockDow6]
+other = "星期六"
+
+[clockGreetMorning]
+other = "早上好"
+[clockGreetNoon]
+other = "中午好"
+[clockGreetAfternoon]
+other = "下午好"
+[clockGreetEvening]
+other = "晚上好"
+[clockGreetLate]
+other = "夜深了"

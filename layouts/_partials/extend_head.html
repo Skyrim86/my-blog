@@ -308,6 +308,10 @@
 {{- /* 首页卡片组（切换 + 自动轮播）：只在首页加载，脚本不大约 3KB。
        卡片清单经模板的 data-deck 传入（见 home-cards.html），文案走 data-* 传。 */ -}}
 {{- if .IsHome }}
+{{- /* 首页右栏的时钟：只在首页加载。文案经 data-* 传（见 home-clock.html）。 */ -}}
+{{- $clock := resources.Get "js/home-clock.js" | minify | fingerprint }}
+<script defer src="{{ $clock.RelPermalink }}" integrity="{{ $clock.Data.Integrity }}" crossorigin="anonymous"></script>
+
 {{- /* 3D 卡片查看器：弹层里那张能转的真卡。**必须排在 home-deck.js 前面** —— 后者在第一次
        打开弹层时会去调 window.card3d.attach。两者都是 defer，按文档顺序执行。
        这也是全站唯一一处 WebGL：它自己约 14KB，代价换来的东西见该文件头部。 */ -}}
