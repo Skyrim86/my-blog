@@ -306,6 +306,32 @@ sparkle / 只开 holo / 只开 cliff / 只开 halo 各拍一张同一角度同�
   三处都是「同一个量在不同条件下含义不同」，所以断言要么按**同一张卡前后比**（奇迹），
   要么在**表上**比（`check-deck.mjs` 核 `RANK_3D` 单调），要么明确排除（工艺参与的那两个通道）。
 
+### 手改 CSS 丢了分号：浏览器一个字都不报（已加守卫）
+
+真事故：用脚本往 `.home-card-rank--epic` 的尾部插一行 `--fret-corner`，插入点落在了
+「最后一个声明」与 `; }` 之间 —— 于是 `--cframe: linear-gradient(...)` **丢了分号**，
+新声明被并进它的值里，六档里那三档的**卡框金属色成了非法值**。hugo、浏览器、其余 11 个
+校验脚本全绿，是**在浏览器里读 `getPropertyValue('--cframe')` 才发现的**（读回来不是渐变）。
+
+判据与守卫：`check-deck.mjs` 的守卫 ⓪ —— 一行以 `)` 收尾、没有分号、下一行又是声明 ⇒ 直接 fail
+（合法的换行续写只会以 `,` 或未闭合括号收尾，所以不误报；守卫本身用一个同形的假故障验过它抓得住）。
+**别在「某条声明的尾部」做字符串插入**：要改就在整条规则上替换，然后跑守卫。
+
+### 点一个 `display:none` 的元素：不报错，也不发生
+
+`el.click()` 对隐藏元素照样派发事件，于是「点了但没反应」与「点了但逻辑自己判了可见性」
+两种都不报错。真事故：URL 筛选（`?rank=`）把不匹配的格子留成 `display:none`，探针点
+「第一个 `.deck-tile`」→ 六档读到的是同一个默认态，而读数**看起来很正当**（全 0 恰好是收藏档的真值）。
+
+做法：探针先挑 `getComputedStyle(el).display !== 'none'` 的那个，并把「读到的通道等不等于
+该档应给的值」写成断言 —— **值对不对是能查的，别只看「有没有报错」**。
+
+### 探针里 `JSON.stringify(null)` 不是 `null`
+
+`js()` 的约定是「返回字符串且以 `[` / `{` 开头就 `JSON.parse`」。所以
+`return x ? JSON.stringify(x) : JSON.stringify(null)` 的空值那一支给回来的是**字符串 `"null"`**，
+下游按对象用就炸成 `string indices must be integers`。空值直接 `return null`。
+
 ## 3. 构建与测量
 
 - **`public/` 不会被自动清空**：Hugo 默认不清目标目录（`Cleaned` 恒为 0），所以只要跑过一次 `hugo -D`，`public/` 里就会留下草稿页等陈旧产物。本地量页数与体积前**必须**用 `--cleanDestinationDir`，否则量的是错的东西（实测页数虚高 5 页，giscus 脚本的「加载页面数」也被这 5 个陈旧页面污染）
@@ -314,6 +340,8 @@ sparkle / 只开 holo / 只开 cliff / 只开 halo 各拍一张同一角度同�
 - **`hugo server --baseURL` 只在首次构建生效**：实测传了 `--baseURL http://localhost:1313/my-blog/` 后，页面里的菜单/favicon 一开始确实是本机地址，但**改一个文件触发重建就又变回 `hugo.toml` 里的线上地址**——本地预览里点菜单会跳到线上站点、改了图标/样式也看不到。改用环境变量 `HUGO_BASEURL=...`（每次构建都读），实测重建前后都保持本机地址。`scripts/preview.sh` 与 `tools/admin/lib/hugo.mjs` 都走环境变量
 - **但资源级 `.Permalink`（封面/图片这类）环境变量救不了**：Hugo 在资源处理时就把 baseURL 烘进绝对地址，所以**跑过一次完整 `hugo`（用配置里的线上 baseURL）之后，正在运行的 preview 会跟着 emit 线上地址**——预览里封面变成空白框、图片 404，而页面链接还是本机的。判据：`curl 127.0.0.1:1313/my-blog/projects/ | grep 'src=".*covers'`，出现 `skyrim86.github.io` 就是中的这个。**修法：重启 preview**（顺序是「先完整构建、后起 preview」，别反过来）
 - **别在 `hugo server`（watch 模式）跑着的时候执行 `hugo --cleanDestinationDir`**：实测 server 的 watcher 会 panic 退出（`hugolib.(*HugoSites).Build` 栈），预览直接死掉。要跑完整构建就先把 preview 停掉
+- **有展开动画的容器：裁切矩形要「拍之前现量」**：弹层刚打开时量到的舞台是 0 宽，`Page.captureScreenshot` 直接报 `Cannot take screenshot with 0 width`。探针里要「先等动画、再量、宽高都 >80 才裁」，别复用刚打开时读到的那份矩形
+- **生成物里的点数/精度按「显示尺寸」给，不是按源图尺寸**：三个曲线角花是 26px 源图、却被 mask 成 6~12px，用 96/160/200 个点是纯过剩（降到 48/64/72 观感不变、字节省一半）。这类 token 放在**每一页都会下载的全局样式表**里，一个点≈13 字节，六档徽记 + 角花加起来就是 gzip +3.6 KB —— 先按显示尺寸算，再谈观感
 - **模板里不能写 `site.Data.math-toolbox`**：Go 模板的字段名不允许连字符，写出来是 `bad character U+002D '-'` 的**语法错误**（而且报在 1:1，指向文件开头，看着像别的地方坏了）。带连字符的 data 只能用 `index hugo.Data "math-toolbox"`。同理任何 `data/` 文件名带 `-` 的都逃不掉
 - **Hugo 报公式渲染错误时会「取消剩下的页面」，所以它列出的坏页可能不全**：实测一次推送里其实有 **3** 个坏页（`问题二_证明笔记.md` 107 行的嵌套 `$`、`问题三_小证明.md` 109 行多出来的 `$`、`问题三_证明_下界.md` 160 行的 `§`），而 `hugo` 只报出前两个——渲染是并行的，报错即取消未完成的任务。**所以「修完报出来的错误」不等于构建就能过**，必须重新构建到绿；`scripts/check-math-katex.mjs`（真检，逐条试渲染）能一次扫全，上面那个第三个坏页就是这一路扫出来的
 

@@ -54,6 +54,11 @@
   // 看不出「有厚度」；1.6% 在 430px 的显示宽度上约 7px，既像卡又不像砖
   // （台面 2026-09-21 放大到 600px 之后，同一句话在这里是约 9.6px）。
   var CARD_W = 1.0, CARD_H = 1.4, CARD_T = 0.016, CARD_R = 0.06;
+  // 角的**形状**指数（2026-09-21 第三轮）：|x/r|^n + |y/r|^n = 1。n = 2 是圆角弧（原来的样子），
+  // n → ∞ 是直角。取 4 与 CSS 的 `corner-shape: superellipse(4)`（21-card-deck.css 的 --cshape）
+  // **必须一致** —— 平面卡与 3D 卡是同一张卡的两种呈现，角不一样就是两种卡。
+  // 几何（perimeter）与着色器（cardSdf）都由这一个常量驱动，着色器那边经 #define 注入。
+  var CARD_N = 4.0;
   // 主体凸起的高度**基准**（模型空间单位，卡宽的比例）；每一档再乘 RANK_3D.relief。
   //
   // 历史（两句话都得留着，否则会有人把它调回 0.032 再踩一遍）：
@@ -156,22 +161,22 @@
   var RANK_3D = {
     collector: { metal: 0.05, emis: 0.00, diff: 0.00, relief: 1.00, back: 0, shadow: 0.35, sweep: 0.25,
                  steps: 8,  sparkle: 0.00, holo: 0.00, halo: 0.00, cliff: 0.00, glint: 0.00, bgZoom: 0.000, bgPar: 0.000,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.00, holoC: 0.00 },
     rare:      { metal: 0.30, emis: 0.01, diff: 0.05, relief: 1.15, back: 1, shadow: 0.48, sweep: 0.38,
                  steps: 10, sparkle: 0.10, holo: 0.08, halo: 0.05, cliff: 0.15, glint: 0.10, bgZoom: 0.008, bgPar: 0.003,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.00, holoC: 0.20 },
     epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.30, back: 2, shadow: 0.62, sweep: 0.50,
                  steps: 12, sparkle: 0.28, holo: 0.22, halo: 0.16, cliff: 0.32, glint: 0.25, bgZoom: 0.015, bgPar: 0.006,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.20, holoC: 0.40 },
     arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.50, back: 3, shadow: 0.82, sweep: 0.68,
                  steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.028, bgPar: 0.012,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.45, holoC: 0.60 },
     legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 2.40, back: 4, shadow: 1.00, sweep: 0.85,
                  steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
-                 wall: 0.70, cast: 0.65, lid: 0.75, cone: 0.70, drift: 0.60 },
+                 wall: 0.70, cast: 0.65, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82 },
     miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 2.90, back: 5, shadow: 1.15, sweep: 1.00,
                  steps: 24, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030,
-                 wall: 1.00, cast: 1.00, lid: 1.00, cone: 1.00, drift: 1.00 },
+                 wall: 1.00, cast: 1.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00 },
   };
   // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。这两张表是卡背
   // 那套「由素到华丽」的全部依据 —— 以前是一串 `rk === 'epic' / 'legend' / 'miracle'` 的
@@ -300,16 +305,29 @@
   }
 
   // 圆角矩形的周长点（闭合回路，逆时针）。侧面与「卡边」的解析法线都用它。
+  // **角是超椭圆**（2026-09-21）：圆角那一段从 sin/cos 换成 (sin a)^{2/n} / (cos a)^{2/n}
+  // —— 超椭圆 |x/r|^n + |y/r|^n = 1 按 a 参数化就是这个形式（n = 2 时退化成原来的 sin/cos，
+  // 所以这条改动对旧值是恒等的）。改成 n = 4 之后，侧面那圈不再是「直边 + 圆弧角」，
+  // 而是与 CSS `corner-shape: superellipse(4)` 同一个形状。
   function perimeter(hw, hh, r, k) {
-    var bx = hw - r, by = hh - r, pts = [], s, a;
+    var bx = hw - r, by = hh - r, pts = [], s, a, e = 2 / CARD_N, cs, sn;
+    function corner(signX, signY, swap) {
+      for (s = 1; s <= k; s++) {
+        a = (Math.PI / 2) * (s / k);
+        cs = Math.pow(Math.cos(a), e);
+        sn = Math.pow(Math.sin(a), e);
+        pts.push(swap ? [signX * bx + signX * cs * r, signY * by + signY * sn * r]
+                      : [signX * bx + signX * sn * r, signY * by + signY * cs * r]);
+      }
+    }
     pts.push([0, hh], [bx, hh]);
-    for (s = 1; s <= k; s++) { a = (Math.PI / 2) * (s / k); pts.push([bx + Math.sin(a) * r, by + Math.cos(a) * r]); }
+    corner(1, 1, false);      // 右上：x = bx + sin^e, y = by + cos^e
     pts.push([hw, -by]);
-    for (s = 1; s <= k; s++) { a = (Math.PI / 2) * (s / k); pts.push([bx + Math.cos(a) * r, -by - Math.sin(a) * r]); }
+    corner(1, -1, true);      // 右下：x = bx + cos^e, y = -by - sin^e
     pts.push([-bx, -hh]);
-    for (s = 1; s <= k; s++) { a = (Math.PI / 2) * (s / k); pts.push([-bx - Math.sin(a) * r, -by - Math.cos(a) * r]); }
+    corner(-1, -1, false);    // 左下
     pts.push([-hw, by]);
-    for (s = 1; s <= k; s++) { a = (Math.PI / 2) * (s / k); pts.push([-bx - Math.cos(a) * r, by + Math.sin(a) * r]); }
+    corner(-1, 1, true);      // 左上
     pts.push([-bx, hh]);
     return pts;
   }
@@ -352,7 +370,12 @@
     'float cardSdfV(vec2 p) {',                 // 与片元里那份同式：只用来求「离卡边还有多远」
     '  vec2 b = vec2(CARD_W * 0.5, CARD_H * 0.5) - CARD_R;',
     '  vec2 d = abs(p) - b;',
-    '  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - CARD_R;',
+    // 角部用 **p-范数** 代替欧氏距离：n = 2 时它就是 length()（原来的圆角矩形），n = 4 是超椭圆角
+    // （与 CSS 的 corner-shape: superellipse(4)、与 perimeter() 三处同一个形状）。
+    // 代价：p-范数不是严格距离（角附近偏小 ≈ 1% 卡宽），所以按距离算宽度的「边缘折射圈」在
+    // 四个角上会比直边略宽一点点 —— 1% 卡宽上肉眼不可分，取值理由见 CARD_N 那条注释。
+    '  float q = pow(pow(max(d.x, 0.0), CARD_N) + pow(max(d.y, 0.0), CARD_N), 1.0 / CARD_N);',
+    '  return q + min(max(d.x, d.y), 0.0) - CARD_R;',
     '}',
     // 高度场梯度 → 法线。推导（uv → 模型空间）：
     //   uv.x = x/W + 0.5  →  ∂h/∂x = (∂h/∂u)/W
@@ -416,11 +439,36 @@
     //   uLid 盖子强度（**在卡自己的片元里合成**，不再是单独一层几何 —— 见下面那段注释）
     //   uWall 侧壁取色  uCast 卡面接触投影  uDrift 主体与背景的微视差
     'uniform float uLid, uWall, uCast, uDrift, uCone;',
+    'uniform float uConeC, uHoloC;',
     // 光锥：从**上方斜射**进来的一道柔光（参考图里那一团）。卡与盖子两边都要用它 ——
     // 卡上是光落下来的提亮（caustic），盖子上是光在玻璃里的那一层。放这里两处共用一份。
+    // ---------- 曲线场（2026-09-21 第三轮）----------
+    // 全息流光与光锥原来都是**一条直线带**（`uv.x - 0.30 + 0.75 * uv.y`）—— 也就是说
+    // 「光在卡上怎么走」与数学无关，而卡的等级体系（六档徽记）与边框（超椭圆）都是数学。
+    // 换成曲线之后光沿曲线走，权重由 uHoloC / uConeC 给：**收藏/珍稀为 0 = 逐像素与加这批之前一致**
+    // —— 与前面那 13 项立体通道同一条纪律（低档不许被顺手美化）。
+    //
+    // ⚠ **量级必须与原来那条直线带同阶**：diag 在整张卡上跨约 2.7，下面两个场都按这个量级归一。
+    // 这一条是文件里早就写过的坑（系数一大，高度场的每处起伏就翻成一条彩虹线，看着像渲染坏了），
+    // 所以数值不是随手取的：ln(r) 的跨度 × 系数 ≈ 1.2，θ 的跨度 (2π) × 系数 ≈ 1.6。
+    'float spiralField(vec2 p) {',      // 对数螺线 r = a·e^{bθ}：同族螺线的相位 = ln r / b − θ
+    '  vec2 q = p * vec2(1.0, CARD_H / CARD_W) * 1.35;',
+    '  float r = max(length(q), 0.06);',
+    '  float th = atan(q.y, q.x);',
+    '  return (log(r) * 0.42 - th * 0.26) + 1.35;',
+    '}',
+    'float roseField(vec2 p, float k) {',   // 玫瑰线 r = cos kθ：等值线就是花瓣线
+    '  vec2 q = p * vec2(1.9, 1.5);',
+    '  float r = length(q);',
+    '  float th = atan(q.y, q.x);',
+    '  return abs(r - (0.16 + 0.30 * cos(k * th)));',
+    '}',
     'float coneAt(vec2 uv) {',
     '  float band = exp(-pow((uv.x - 0.30 + 0.75 * uv.y) * 5.0, 2.0));',
-    '  return band * smoothstep(0.72, 0.0, uv.y);',
+    '  float base = band * smoothstep(0.72, 0.0, uv.y);',
+    // 光斑上的花瓣结构：k = 5 与「传世」那档的徽记同一条曲线 —— 光与标同族，不是另挑一条
+    '  float petal = smoothstep(0.055, 0.0, roseField(uv * 2.0 - 1.0, 5.0));',
+    '  return base * (1.0 + uConeC * (0.15 + 0.85 * petal));',
     '}',
     'float hAt(vec2 uv) { return texture2D(uDepth, clamp(uv, 0.002, 0.998)).r; }',
     // 高度场自阴影：沿光的方向在高度场里采样，只要有比当前点高的就说明这一点被挡住了。
@@ -439,12 +487,21 @@
 'float cardSdf(vec2 p) {',
     '  vec2 b = vec2(CARD_W * 0.5, CARD_H * 0.5) - CARD_R;',
     '  vec2 d = abs(p) - b;',
-    '  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - CARD_R;',
+    // 角部用 **p-范数** 代替欧氏距离：n = 2 时它就是 length()（原来的圆角矩形），n = 4 是超椭圆角
+    // （与 CSS 的 corner-shape: superellipse(4)、与 perimeter() 三处同一个形状）。
+    // 代价：p-范数不是严格距离（角附近偏小 ≈ 1% 卡宽），所以按距离算宽度的「边缘折射圈」在
+    // 四个角上会比直边略宽一点点 —— 1% 卡宽上肉眼不可分，取值理由见 CARD_N 那条注释。
+    '  float q = pow(pow(max(d.x, 0.0), CARD_N) + pow(max(d.y, 0.0), CARD_N), 1.0 / CARD_N);',
+    '  return q + min(max(d.x, d.y), 0.0) - CARD_R;',
     '}',
     'vec2 cardSdfGrad(vec2 p) {',
     '  vec2 b = vec2(CARD_W * 0.5, CARD_H * 0.5) - CARD_R;',
     '  vec2 d = abs(p) - b;',
-    '  if (d.x > 0.0 && d.y > 0.0) return normalize(sign(p) * d);',
+    // 角部的法线同样走 p-范数的梯度方向（与上面的 SDF 同族，否则角上的折射方向会拧）
+    '  if (d.x > 0.0 && d.y > 0.0) {',
+    '    vec2 g = vec2(pow(d.x, CARD_N - 1.0), pow(d.y, CARD_N - 1.0));',
+    '    return normalize(sign(p) * normalize(g));',
+    '  }',
     '  return (d.x > d.y) ? vec2(sign(p.x), 0.0) : vec2(0.0, sign(p.y));',
     '}'
   ];
@@ -585,8 +642,11 @@
   // 它的系数一大就把高度场的每一处起伏都翻成一条彩虹线 —— 看着是一片细网格/经纬线
   // （放大 3 倍才看清，静图上像「渲染坏了」）。所以 f 只留很小的系数（0.10 / 0.8）。
   '    float diag = uv.x * 1.5 + uv.y * 1.2 + hv * 0.35;',
-  '    float wave = sin(diag * 8.0 - uTime * 0.8 + f * 0.8);',
-  '    float hc = fract(diag * 0.35 + f * 0.10 + wave * 0.12 + uTime * 0.04);',
+    // uHoloC = 0 时 field 恒等于 diag（那两档与加这批之前逐像素一致）；越高档越沿对数螺线：
+    // 色带不再是「一条固定斜线扫过」，而是绕卡心旋出去，转动时读作「光在螺线里流」。
+  '    float field = mix(diag, spiralField(uv - vec2(0.5)), uHoloC);',
+  '    float wave = sin(field * 8.0 - uTime * 0.8 + f * 0.8);',
+  '    float hc = fract(field * 0.35 + f * 0.10 + wave * 0.12 + uTime * 0.04);',
   '    vec3 holo = 0.5 + 0.5 * cos(6.28318 * (hc + vec3(0.0, 0.33, 0.67)));',
   // 权重压到 0.20 而且**只在掠射角**（fres）才明显：卡面是一张浅色插画，权重一高就把它洗成
   // 一层脏紫雾（第一版 0.35 就是这样，对比图上一眼可见）。要的是「转起来掠过一道彩」，
@@ -681,6 +741,8 @@
     var defs = ['#define CARD_W ' + CARD_W.toFixed(4),
       '#define CARD_H ' + CARD_H.toFixed(4),
       '#define CARD_R ' + CARD_R.toFixed(4),
+      // 角的形状指数：与 perimeter()、与 CSS 的 --cshape 同一个数（见 CARD_N 那条注释）
+      '#define CARD_N ' + CARD_N.toFixed(1),
       '#define POM_STEPS_MAX ' + POM_STEPS_MAX];
     return { vert: defs.concat(VERT).join('\n'), frag: defs.concat(FRAG_HEAD, FRAG_BODY).join('\n') };
   }
@@ -844,8 +906,10 @@
       g.fillText(data.rankLabel, BW / 2, BH * 0.845);
       g.globalAlpha = 1;
     }
-    g.font = '500 30px ui-monospace, Consolas, monospace'; g.fillStyle = C.accent;
-    g.fillText(data.indexText || '', BW / 2, BH * 0.765);
+    // 「07 / 63」这个序号**不印在卡背上**（2026-09-21 用户要求）：卡背是一张卡，不是一条记录 ——
+    // 编号那种「x / y」样式的元数据属于信息栏。信息本身没丢：弹层里那条 DOM 文本照样有它
+    // （home-deck.js 的 indexText，见文件头第 5 条「卡背文字必须有等价的 DOM 文本」）。
+    // 空出来的位置让给下面那条装饰线到出处之间的一段呼吸。
     if (data.creditText) {
       g.font = '400 26px ' + fam; g.fillStyle = C.dim;
       g.fillText(clampText(g, data.creditText, BW - 160), BW / 2, BH * 0.90);
@@ -881,7 +945,8 @@
   // 送进着色器的**生效值**（draw 每帧填）。stats().fx 直接回它 —— 让 lab 读「真正生效的数」
   // 而不是回读参数表：表到着色器之间还夹着调速器档位与编译期上限两道，回读表会假绿。
   var fxEff = { relief: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0,
-              bgZoom: 0, bgParMax: 0, wall: 0, cast: 0, lid: 0, cone: 0, drift: 0 };
+              bgZoom: 0, bgParMax: 0, wall: 0, cast: 0, lid: 0, cone: 0, drift: 0,
+             coneC: 0, holoC: 0 };
   var fxOverride = null;       // lab 拍对比图时的临时覆盖（api.setFx），产品路径上恒为 null
 
   function pickQuality() {
@@ -958,6 +1023,7 @@
       'uEdgeMetal', 'uEdgeEmis', 'uEdgeDiff', 'uShadow', 'uSweepPos', 'uSweepK',
       'uTime', 'uSteps', 'uSparkle', 'uHolo', 'uHalo', 'uCliff', 'uGlint',
       'uBgZoom', 'uBgPar', 'uLid', 'uWall', 'uCast', 'uDrift', 'uCone',
+      'uConeC', 'uHoloC',
       'uTexel', 'uDark'].forEach(function (n) {
       U[n] = gl.getUniformLocation(prog, n);
     });
@@ -1101,6 +1167,12 @@
     gl.uniform1f(U.uDrift, fxEff.drift);
     gl.uniform1f(U.uLid, fxEff.lid);
     gl.uniform1f(U.uCone, fxEff.cone);
+    // 两个曲线场的权重：与其它通道一样，**进着色器的是生效值**（乘过调速器档位），
+    // 这样 stats().fx 读到的就是真正生效的数
+    fxEff.coneC = R.coneC * G.fx;
+    fxEff.holoC = R.holoC * G.fx;
+    gl.uniform1f(U.uConeC, fxEff.coneC);
+    gl.uniform1f(U.uHoloC, fxEff.holoC);
     // 跟手高光只在**按住拖动**时给。这条正好卡在「鼠标划过卡片不会让它动」那条要求的边界上：
     // 光可以跟手，卡不能跟手。
     fxEff.glint = dragging ? R.glint : 0;
@@ -1547,7 +1619,8 @@
           glint: +fxEff.glint.toFixed(4),
           bgZoom: +fxEff.bgZoom.toFixed(4), bgParMax: +fxEff.bgParMax.toFixed(4),
           wall: +fxEff.wall.toFixed(4), cast: +fxEff.cast.toFixed(4),
-          lid: +fxEff.lid.toFixed(4), cone: +fxEff.cone.toFixed(4), drift: +fxEff.drift.toFixed(4)
+          lid: +fxEff.lid.toFixed(4), cone: +fxEff.cone.toFixed(4), drift: +fxEff.drift.toFixed(4),
+          coneC: +fxEff.coneC.toFixed(4), holoC: +fxEff.holoC.toFixed(4)
         }
       };
     },

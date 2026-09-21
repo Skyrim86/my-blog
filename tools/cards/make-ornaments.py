@@ -331,6 +331,63 @@ def rot90(body, w, h):
     return f'<g transform="translate({h:.0f} 0) rotate(90)">{body}</g>', h, w
 
 
+# ============================================================
+# 曲线角花（2026-09-21 第三轮）
+# ============================================================
+#
+# **这一层必须先说清楚尺寸**：`--fret-corner` 会被 mask 成 `--fret-w × --fret-w`，而它是
+# 「卡边到画面」那段环厚（= max(--rank-mat, --rank-band)），六档实测 6px（史诗）/ 9px（珍稀、
+# 秘藏）/ 11px（传世）/ 12px（收藏、奇迹）。**6px 上画不出花瓣** —— 那不是曲线不够真，
+# 是像素不够。所以这一层能改的只是形状的**家族**：
+#   圆盘（现在的圆花心）→ 凹口（星形线）→ 带齿的环（外摆线）
+# 三者在大尺寸下是三条完全不同的曲线，缩到 6~11px 之后剩下的是「有没有角」「边是不是凹的」
+# 「外缘有没有齿」这三种可分辨的差别。验收就按这个口径看（lab/shots/deck9/corners.py），
+# 不假装能读出五瓣。
+
+
+def _curve_pts(fn, scale, c):
+    """把曲线函数给的点集平移到角花瓦片的中心并缩放（角花是 1:1 的 26px 小图）。"""
+    pts = fn()
+    return [(c + x * scale, c + y * scale) for x, y in pts]
+
+
+def corner_astroid_notch(size=26.0):
+    """角花·**凹角**：星形线 x = cos³t, y = sin³t 直接当轮廓（四尖、边向内凹）。
+
+    与圆花心的差别就是「边是凹的」—— 缩到 6px 之后，这个差别仍然看得出来（圆盘 vs 凹边梭形），
+    这是曲线在这么小的尺寸上还能保住的少数性质之一。角心留一个小圆孔，给宝石层透气。"""
+    c = size / 2
+    pts = _curve_pts(lambda: curve_astroid(n=48), size * 0.47, c)
+    d = "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts) + "Z"
+    return (f'<path d="{d}" fill="#fff"/>'
+            + f'<path d="{circle(c, c, size * 0.10, 1)} {circle(c, c, size * 0.045, 1)}" '
+              f'fill="#fff" fill-rule="evenodd"/>')
+
+
+def corner_rose_disc(size=26.0, k=5):
+    """角花·**玫瑰盘**：玫瑰线 r = cos kθ 当轮廓（k = 5，五瓣）。
+
+    9px 下五瓣缩成「边上有点起伏的圆盘」—— 比纯圆盘多一点信息，但不指望能数出瓣数。"""
+    c = size / 2
+    pts = _curve_pts(lambda: curve_rose(k=k, n=64), size * 0.47, c)
+    d = "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts) + "Z"
+    return (f'<path d="{d}" fill="#fff"/>'
+            + f'<path d="{circle(c, c, size * 0.13, 1)}" fill="#fff"/>')
+
+
+def corner_epicycloid_ring(size=26.0, ratio=5):
+    """角花·**齿轮环**：外缘是外摆线 R/r = 5（尖朝外），内缘是圆 —— evenodd 出一个带齿的环。
+
+    传世那一档的环厚是 11px，是六档里最宽的，所以把最「有齿」的那条曲线放在这里：
+    11px 下能看出外缘不是圆的。"""
+    c = size / 2
+    outer = _curve_pts(lambda: curve_epicycloid(ratio=ratio, n=72), size * 0.47, c)
+    d = "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in outer) + "Z"
+    return (f'<path d="{d} {circle(c, c, size * 0.30, 0)}" fill="#fff" fill-rule="evenodd"/>'
+            + f'<path d="{circle(c, c, size * 0.38, 0)}" fill="none" stroke="#fff" '
+              f'stroke-width="1.0"/>')
+
+
 def corner_boss(seed, size=26.0):
     """角花：一枚圆形花心 + 四片叶 + 外圈。宝石坐在中心（宝石由另一层画）。
 
@@ -432,6 +489,130 @@ def uri(body, w, h, viewbox=None):
     return "url(\"data:image/svg+xml," + quote(s, safe="/:;,'()-._~!*") + "\")"
 
 
+# ============================================================
+# 数学曲线徽记（2026-09-21 第三轮：把「等级标」从手搓多边形换成真曲线）
+# ============================================================
+#
+# 为什么换成**真曲线采样**而不是继续手写 polygon：
+#   六档的徽记原来是一串手搓的百分比（圆点靠 border-radius、菱形/星/盾/皇冠各一串
+#   `polygon(50% 0%, 61% 35%, …)`）。那些形状**没有方程** —— 想调整一下「星芒的凹度」
+#   就只能重数一遍坐标，而每次手改都可能把对称性碰坏（且看不出来）。
+#   换成真曲线之后，形状由方程定，参数只有一个（k、R/r、采样密度），改「五瓣还是七瓣」
+#   是一行的事。这一条与 tools/ 那套「本地生成、产物入库」完全同构。
+#
+# 采样成**密多边形**而不是别的载体，有两个硬理由：
+#   1. **可缩放**：clip-path 的 polygon 用百分比，13px 与 22px 共用一条令牌；
+#      `path()` 是用户单位、不随元素缩放，`mask-image` 又多一层合成，都不如它直接。
+#   2. **零新机制**：`--rank-mark` 本来就吃 clip-path，六个令牌只是换掉值，
+#      六档阶梯、三处用法（卡面徽章 / 卡片墙筛选条 / 首页名牌）一处都不用改。
+#
+# **自交曲线靠 nonzero 填充规则**：玫瑰线（奇 k）与双纽线在原点自交、蝴蝶曲线在
+# r(t)<0 的区间会绕回原点另一侧 —— 这些在 clip-path 里都按 nonzero 填充，正是想要的效果
+# （两瓣/五瓣都被填满）。这一点必须实测（见 lab 里那组 20px/96px 对照图），
+# 因为「填充规则判反」的表现是「徽记缺一半」，而它不会报错。
+#
+# 密度按曲线本身的曲率给：圆 64 点就够（每点 5.6°），玫瑰线 120 点（花瓣尖端要拐得急），
+# 蝴蝶曲线 480 点（它有 24π 的行程与六对翅尖，点数少了翅尖会变成折线）。
+
+
+def _fit(pts, margin=0.02):
+    """把曲线点集**等比**缩放并居中到 [margin, 1-margin]² 里。
+
+    等比而不是分别拉伸到宽高各 1：徽记要的是「这条曲线本来的形状」，拉成正方会把
+    星形线压成另一个图形（而且看不出是被拉过的）。宽扁/高瘦的曲线因此留空边 —— 那是对的，
+    方框只是容器。y 要翻转：数学的 y 向上，clip-path 的 y 向下。"""
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    w = max(xs) - min(xs)
+    h = max(ys) - min(ys)
+    s = (1 - 2 * margin) / max(w, h, 1e-9)
+    cx = (max(xs) + min(xs)) / 2
+    cy = (max(ys) + min(ys)) / 2
+    return [(0.5 + (x - cx) * s, 0.5 - (y - cy) * s) for x, y in pts]
+
+
+def polygon(pts, dec=0):
+    """点集 → CSS `polygon(x% y%, …)`。
+
+    **默认 0 位小数（整数百分比）**：徽记最大的用法是 26px，1% = 0.26px，量化误差 0.13px
+    —— 看不出来；而字符串短了 40%（12.8 KB → 5.6 KB），这份文件是**全站每页都要吃**的
+    全局样式表（gzip 实测差 4.6 KB → 2.0 KB）。密度靠点数补，不靠小数位。"""
+    def f(v):
+        s = f"{v * 100:.{dec}f}"
+        if "." in s:
+            s = s.rstrip("0").rstrip(".")
+        return s or "0"
+    return "polygon(" + ", ".join(f"{f(x)}% {f(y)}%" for x, y in pts) + ")"
+
+
+def _ts(t0, t1, n):
+    return [t0 + (t1 - t0) * i / n for i in range(n)]
+
+
+def _polar(rf, t0, t1, n):
+    return [(rf(t) * math.cos(t), rf(t) * math.sin(t)) for t in _ts(t0, t1, n)]
+
+
+def curve_ring(n=64):
+    """圆（r = 1）。最低档的「素背」，也是这次唯一没动的形状 —— 它本来就是曲线。"""
+    return _polar(lambda t: 1.0, 0.0, 2 * math.pi, n)
+
+
+def curve_lemniscate(n=96):
+    """双纽线（伯努利）：x = cos t / (1 + sin²t), y = sin t cos t / (1 + sin²t)。
+    ∞ 形，在原点自交 —— 自交处两瓣都靠 nonzero 填充留白，实测见对照图。"""
+    return [(math.cos(t) / (1 + math.sin(t) ** 2),
+             math.sin(t) * math.cos(t) / (1 + math.sin(t) ** 2)) for t in _ts(0.0, 2 * math.pi, n)]
+
+
+def curve_astroid(n=64):
+    """星形线：x = cos³t, y = sin³t。四尖、边向内凹 —— 与「四角星」是同一个轮廓，
+    但它是**解析的**：凹度没法手调，也就不会被手调坏。"""
+    return [(math.cos(t) ** 3, math.sin(t) ** 3) for t in _ts(0.0, 2 * math.pi, n)]
+
+
+def curve_rose(k=5, n=160):
+    """玫瑰线 r = cos(kθ)，θ ∈ [0, π]。奇数 k 出 k 瓣、偶数 k 出 2k 瓣 ——
+    这里取 k = 5（五瓣），走一遍 π 就画全（奇 k 的 r 以 π 为周期）。"""
+    return _polar(lambda t: math.cos(k * t), 0.0, math.pi, n)
+
+
+def curve_epicycloid(ratio=5, n=160):
+    """外摆线（圆在圆外滚）：尖**朝外**，R/r = 5 出 5 个尖。
+    与下面的内摆线成对生成，哪个更配「传世」看对照图再定。"""
+    rr, R = 1.0, float(ratio)
+    return [((R + rr) * math.cos(t) - rr * math.cos((R + rr) / rr * t),
+             (R + rr) * math.sin(t) - rr * math.sin((R + rr) / rr * t))
+            for t in _ts(0.0, 2 * math.pi, n)]
+
+
+def curve_hypocycloid(ratio=5, n=160):
+    """内摆线（圆在圆内滚）：R/r = 5 出 5 个尖，尖**朝里收**、整体像五角星的花体。"""
+    rr, R = 1.0, float(ratio)
+    return [((R - rr) * math.cos(t) + rr * math.cos((R - rr) / rr * t),
+             (R - rr) * math.sin(t) - rr * math.sin((R - rr) / rr * t))
+            for t in _ts(0.0, 2 * math.pi, n)]
+
+
+def curve_butterfly(n=480):
+    """蝴蝶曲线（Fay）：r = e^{sin t} − 2cos(4t) + sin⁵((2t − π)/24)，t ∈ [0, 24π]。
+    24π 是它的完整行程（六对翅），r 在若干区间为负 —— 那正是翅的形状，不是错。"""
+    def rf(t):
+        return (math.exp(math.sin(t)) - 2 * math.cos(4 * t)
+                + math.sin((2 * t - math.pi) / 24) ** 5)
+    return _polar(rf, 0.0, 24 * math.pi, n)
+
+
+# 阶梯要用的那两条带参数曲线的固定取值：参数写在**函数名**里（curve_rose5 / curve_hypocycloid5），
+# 这样六档阶梯读起来是「一档一条曲线」，而不是「一档一次带参调用」——调参数时只改这里一处。
+def curve_rose5(n=160):
+    return curve_rose(k=5, n=n)
+
+
+def curve_hypocycloid5(n=160):
+    return curve_hypocycloid(ratio=5, n=n)
+
+
 def main():
     toks = []
 
@@ -479,7 +660,34 @@ def main():
         "角花·圆花心（双圈 + 四叶 + 疏密不匀的点；中心留给宝石）—— 雕花金/金边/玻璃/金继/珐琅彩")
     add("--tex-fret-shard", corner_shard(89), 26, 26,
         "角花·棱角碎星（交叉梭形 + 棱片，故意不做圆）—— 给星芒全息：它的性格是放射与棱面")
+    # —— 曲线角花（三条曲线各自的「轮廓家族」；尺寸说明见上面那一节）——
+    add("--tex-fret-notch", corner_astroid_notch(), 26, 26,
+        "角花·凹角（星形线 cos³t/sin³t 直接当轮廓）—— 给史诗：边向内凹，6px 下与圆盘仍分得开")
+    add("--tex-fret-rosedisc", corner_rose_disc(), 26, 26,
+        "角花·玫瑰盘（玫瑰线 r = cos 5θ）—— 给秘藏：9px 下是「边上有点起伏的盘」")
+    add("--tex-fret-gearring", corner_epicycloid_ring(), 26, 26,
+        "角花·齿轮环（外摆线 R/r = 5，外缘带齿、内缘是圆）—— 给传世：11px 下看得出外缘不是圆的")
     add("--tex-fret-gem", gem(7, 9.0), 9, 9, "宝石（六边明亮式：轮廓 + 切面线）")
+
+    # —— 数学曲线徽记（clip-path，不是 mask：它们是**实心**形状，直接当裁剪路径用）——
+    # 令牌是 CSS 值（polygon），不是 data-URI，所以不能走 add()（那个包的是 url(...)）。这里单出一组。
+    # 六档与尺寸的对应见 21-card-deck.css 的「等级」那一节；这里只负责形状本身。
+    for name, pts, note in (
+        ("--mark-astroid", curve_astroid(),
+         "徽记·星形线 x = cos³t, y = sin³t（珍稀）—— 四芒、边内凹，13px 下仍读得出"),
+        ("--mark-lemniscate", curve_lemniscate(),
+         "徽记·双纽线（伯努利）x = cos t/(1+sin²t), y = sin t cos t/(1+sin²t)（史诗）—— ∞，在原点自交"),
+        ("--mark-hypocycloid5", curve_hypocycloid5(),
+         "徽记·内摆线 R/r = 5（秘藏）—— 五角星花，尖朝里收（「藏」）"),
+        ("--mark-rose5", curve_rose5(),
+         "徽记·玫瑰线 r = cos 5θ（传世）—— 五瓣；奇 k 的 r 以 π 为周期，走一遍就画全"),
+        ("--mark-butterfly", curve_butterfly(n=240),
+         "徽记·蝴蝶曲线 r = e^{sin t} − 2cos4t + sin⁵((2t−π)/24)（奇迹显形后）—— 24π 行程"),
+    ):
+        poly = polygon(_fit(pts))
+        toks.append((name, poly, f"{note}；{len(pts)} 点 / {len(poly)} B"))
+    # 收藏档的圆**不进这个文件**：`border-radius: 50%` 是零字节的真圆，比 64 点的多边形更准也更省
+    # （形状清单里那六个「圆/星形线/双纽线/内摆线/玫瑰线/蝴蝶」是设计口径，实现上圆那一档不走多边形）。
 
     lines = [
         "/* ============================================",

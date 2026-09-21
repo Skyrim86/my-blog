@@ -103,6 +103,10 @@
   --cmask-size: 100% 100%;
   --cmask-repeat: no-repeat;
   --cradius: 12px;
+  /* 角的**形状**（与半径分成两个令牌）：CSS Borders 4 的 corner-shape，不支持的浏览器忽略它、
+     退回纯圆角弧。指数 4 的取舍见 .home-card 那条注释；写成令牌是为了「根 / 焦点环」两处
+     不用各抄一遍数字（继承半径的那 5 层用 `corner-shape: inherit`，因为该属性**不继承**）。 */
+  --cshape: superellipse(4);
   --cplate-font: inherit;
 
   /* ---------- 画面几何：框有多宽、画面从哪儿开始 ----------
@@ -185,8 +189,8 @@
   --rank-orn: 0;
   --rank-ring-op: .85;
   --rank-ring: rgba(255, 255, 255, .34);
-  --rank-mark-size: 13px;
-  --rank-mark-fill: rgba(238, 240, 245, .92);
+  --rank-mark-size: 15px;
+  --rank-mark-fill: rgba(169, 174, 185, .95);
   /* 徽章形状：**圆点用 border-radius 画**（clip-path: none + 半径 50%），其余五档用 polygon()。
      形状清单见「等级」那一节 —— 它是三重编码里的**形状**那一通道，六档两两不同。 */
   --rank-mark: none;
@@ -203,6 +207,14 @@
   aspect-ratio: 5 / 7;
   padding: var(--cart-inset);
   border-radius: var(--cradius);
+  /* 超椭圆外框（2026-09-21）：`superellipse(4)` 属于 CSS Borders 4，Edge 153 实测支持
+     （探针 `CSS.supports('corner-shape','superellipse(4)')` === true）。**不支持的浏览器什么都不做**
+     —— `border-radius` 仍在，退回圆角弧，不会变形也不会消失，所以不需要 @supports 分支。
+     指数 4 是「一眼看出被机器切过、又不至于变成方角」的位置：n = 2 就是现在的圆弧、n → ∞ 是直角；
+     12px 半径上 n = 4 的角比圆弧**往外鼓约 1.4px** —— 在 205px 的格子里看得出来，155px 下也不糊。
+     其它「继承半径」的层各自写了一句 `corner-shape: inherit`（这个属性**不继承**，
+     而 `border-radius: inherit` 只带走长度、不带走形状）。 */
+  corner-shape: var(--cshape);
   /* 两层：**先质感后底色**。底色那一层是不透明的金属渐变，质感层压在上面 —— 上面那层写的是
      半透明，所以从下面透上来的仍是本档的颜色（等级管材料、风格管质感，两条轴在这里各出一层）。 */
   background-image: var(--cframe-finish, none), var(--cframe);
@@ -288,6 +300,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  corner-shape: inherit;
   pointer-events: none;
   opacity: var(--rank-orn, 0);
   /* **必须显式给 z-index**：卡面上的风格层里有几条是挂在 ::before/::after 上的
@@ -415,6 +428,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  corner-shape: inherit;
   pointer-events: none;
   opacity: var(--rank-orn, 0);
   background-color: var(--craft-gem-color, #6fcaa0);
@@ -535,6 +549,11 @@
   flex: none;
   align-self: center;
   margin-left: .3rem;
+  /* 徽记的尺寸随档位长到 26px，而名牌只有一行文字的高度 —— 不封顶就会被撑成两行。
+     1.05rem ≈ 17px：六档在名牌里都读得出来，且不改变名牌的高度（原来那档是 13~22px，
+     22px 已经是上限，所以这里其实只在「奇迹显形后的 26px」上生效）。 */
+  width: min(var(--rank-mark-size, 15px), 1.05rem);
+  height: min(var(--rank-mark-size, 15px), 1.05rem);
 }
 
 .home-card-index {
@@ -658,6 +677,7 @@
   width: 0;
   height: 100%;
   border-radius: inherit;
+  corner-shape: inherit;
   background: var(--accent);
 }
 
@@ -1177,6 +1197,7 @@ a.home-deck-dialog-credit:hover {
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  corner-shape: inherit;
   box-shadow:
     inset 0 0 8px 1px rgba(130, 205, 255, .3),
     inset 0 0 3px 0 rgba(255, 150, 205, .26);
@@ -1397,7 +1418,7 @@ a.home-deck-dialog-credit:hover {
 .home-card-rank--collector { --rank-frame: 2px;   --rank-mat: 12px; --rank-craft: .35;
                              --rank-foil: 0;   --rank-orn: 0;   --rank-ring-op: .85;
                              --rank-ring: rgba(255, 255, 255, .34);
-                             --rank-mark-size: 13px; --rank-mark-fill: rgba(238, 240, 245, .92);
+                             --rank-mark-size: 15px; --rank-mark-fill: rgba(169, 174, 185, .95);
                              /* 圆点：clip-path: none + 半径 50% */
                              --rank-mark: none;                    --rank-mark-radius: 50%;
                              /* 框色显式写一遍（值 = `.home-card` 的基础默认值）：卡片墙上「等级那一排的
@@ -1409,39 +1430,51 @@ a.home-deck-dialog-credit:hover {
 .home-card-rank--rare      { --rank-frame: 3px;   --rank-mat: 9px;  --rank-band: 1px; --rank-band-a: .3; --rank-line: rgba(30, 54, 42, .5); --rank-craft: .55;
                              --rank-foil: .12; --rank-orn: 0;   --rank-ring-op: .7;
                              --rank-ring: rgba(214, 246, 224, .40);
-                             --rank-mark-size: 14px; --rank-mark-fill: #a6dcb6;
-                             /* 菱形 */
-                             --rank-mark: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+                             --rank-mark-size: 17px; --rank-mark-fill: #a6dcb6;
+                             /* 星形线（x = cos³t, y = sin³t）：四芒、边向内凹。
+                                真曲线的凹度是解析的，手改坐标改不出这个形状，也改不坏它。 */
+                             --rank-mark: var(--mark-astroid);
                              --rank-mark-radius: 0;
                              --cframe: linear-gradient(150deg, #dff2e4, #5f9c74 26%, #f2fbf4 50%, #3f7554 74%, #a8ceb5); }
 .home-card-rank--epic      { --rank-frame: 4px;   --rank-mat: 6px;  --rank-band: 5px; --rank-band-a: .42; --rank-line: rgba(236, 246, 255, .85); --rank-craft: .75;
                              --rank-foil: .30; --rank-orn: .30; --rank-ring-op: .55;
                              --rank-ring: rgba(214, 232, 255, .42);
-                             --rank-mark-size: 15px; --rank-mark-fill: #a8caf2;
-                             /* 五角星 */
-                             --rank-mark: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+                             --rank-mark-size: 19px; --rank-mark-fill: #a8caf2;
+                             /* 双纽线（伯努利）x = cos t/(1+sin²t), y = sin t cos t/(1+sin²t)：
+                                ∞ 形，在原点自交 —— 靠 nonzero 填充规则把两瓣都留住（实测过，
+                                自交形状填反的表现是「徽记缺一半」且不报错）。 */
+                             --rank-mark: var(--mark-lemniscate);
                              --rank-mark-radius: 0;
-                             --cframe: linear-gradient(150deg, #d9e7f8, #6386b8 26%, #eff7ff 50%, #3f6191 74%, #aec6e2); }
+                             --cframe: linear-gradient(150deg, #d9e7f8, #6386b8 26%, #eff7ff 50%, #3f6191 74%, #aec6e2);
+                             /* 角花换曲线（史诗：6px 上唯一还看得出的差别是「边是凹的」）。角花只被 mask 成 6~11px，所以这里换的是
+                                「轮廓家族」而不是花瓣数 —— 见 tools/cards/make-ornaments.py 里那一节的开头。 */
+                             --fret-corner: var(--tex-fret-notch); }
 .home-card-rank--arcane    { --rank-frame: 4.5px; --rank-mat: 3px;  --rank-band: 9px; --rank-band-a: .55; --rank-line: rgba(246, 240, 255, .88); --rank-craft: .90;
                              --rank-foil: .50; --rank-orn: .65; --rank-ring-op: .35;
                              --rank-ring: rgba(232, 220, 255, .45);
-                             --rank-mark-size: 17px; --rank-mark-fill: #cbb4ef;
-                             /* 盾形徽章 */
-                             --rank-mark: polygon(50% 0%, 100% 16%, 100% 54%, 50% 100%, 0% 54%, 0% 16%);
+                             --rank-mark-size: 21px; --rank-mark-fill: #cbb4ef;
+                             /* 内摆线 R/r = 5：五角星花，尖朝**里**收 —— 「藏」这个字落在了形状上 */
+                             --rank-mark: var(--mark-hypocycloid5);
                              --rank-mark-radius: 0;
-                             --cframe: linear-gradient(150deg, #e4dbf4, #7558a8 26%, #f4eeff 50%, #503578 74%, #bca5db); }
+                             --cframe: linear-gradient(150deg, #e4dbf4, #7558a8 26%, #f4eeff 50%, #503578 74%, #bca5db);
+                             /* 角花换曲线（秘藏：9px —— 玫瑰线在这一档只剩「边上有起伏」）。角花只被 mask 成 6~11px，所以这里换的是
+                                「轮廓家族」而不是花瓣数 —— 见 tools/cards/make-ornaments.py 里那一节的开头。 */
+                             --fret-corner: var(--tex-fret-rosedisc); }
 .home-card-rank--legend    { --rank-frame: 5px;   --rank-mat: 0px;  --rank-band: 11px; --rank-band-a: .62; --rank-line: #fff3d0; --rank-craft: 1;
                              --rank-foil: .65; --rank-orn: 1;   --rank-ring-op: 0;
                              --rank-ring: rgba(255, 240, 205, .5);
-                             --rank-mark-size: 19px; --rank-mark-fill: #f4dba2;
-                             /* 皇冠 */
-                             --rank-mark: polygon(0% 76%, 6% 20%, 30% 46%, 50% 6%, 70% 46%, 94% 20%, 100% 76%);
+                             --rank-mark-size: 23px; --rank-mark-fill: #f4dba2;
+                             /* 玫瑰线 r = cos 5θ：五瓣。奇 k 的 r 以 π 为周期，所以走一遍 π 就画全五瓣 */
+                             --rank-mark: var(--mark-rose5);
                              --rank-mark-radius: 0;
-                             --cframe: linear-gradient(150deg, #dcb96e, #6b5120 22%, #f8e6ac 48%, #46340f 72%, #c8a258); }
+                             --cframe: linear-gradient(150deg, #dcb96e, #6b5120 22%, #f8e6ac 48%, #46340f 72%, #c8a258);
+                             /* 角花换曲线（传世：11px，六档里最宽的环厚，所以放最「有齿」的那条）。角花只被 mask 成 6~11px，所以这里换的是
+                                「轮廓家族」而不是花瓣数 —— 见 tools/cards/make-ornaments.py 里那一节的开头。 */
+                             --fret-corner: var(--tex-fret-gearring); }
 .home-card-rank--miracle   { --rank-frame: 2px;   --rank-mat: 12px; --rank-band: 0px; --rank-band-a: 0; --rank-line: rgba(255, 255, 255, .9); --rank-craft: .35;
                              --rank-foil: 0;   --rank-orn: 0;   --rank-ring-op: .85;
                              --rank-ring: rgba(255, 255, 255, .34);
-                             --rank-mark-size: 13px; --rank-mark-fill: rgba(238, 240, 245, .92);
+                             --rank-mark-size: 15px; --rank-mark-fill: rgba(169, 174, 185, .95);
                              --rank-mark: none;                    --rank-mark-radius: 50%;
                              /* 与 collector 同一条理由：显形前它就是收藏那一档，框色也照抄基础值 */
                              --cframe: linear-gradient(150deg, #e8eaef, #9aa0ab 26%, #f7f8fb 50%, #878d99 74%, #d5d8de); }
@@ -1452,9 +1485,10 @@ a.home-deck-dialog-credit:hover {
   --rank-frame: 5px; --rank-mat: 0px; --rank-band: 11px; --rank-band-a: .66; --rank-craft: 1.2;
   --rank-foil: .9; --rank-orn: 1; --rank-ring-op: 0;
   --rank-ring: rgba(255, 245, 220, .6);
-  --rank-mark-size: 22px; --rank-mark-fill: #fff0c8;
-  /* 八芒星（专属标）：与五角星、盾、皇冠都不是一个轮廓 */
-  --rank-mark: polygon(50% 0%, 60% 32%, 100% 50%, 60% 68%, 50% 100%, 40% 68%, 0% 50%, 40% 32%);
+  --rank-mark-size: 26px; --rank-mark-fill: #fff0c8;
+  /* 蝴蝶曲线（Fay）：r = e^{sin t} − 2cos(4t) + sin⁵((2t−π)/24)，t ∈ [0, 24π]。
+     「显形」与「蜕变」是同一件事，所以奇迹用蝶 —— 这也是六档里唯一需要 240 个点的形状。 */
+  --rank-mark: var(--mark-butterfly);
   --rank-mark-radius: 0;
   /* 虹彩金属：金 → 紫 → 亮 → 暗 → 蓝 → 米 → 金（原来的金框加两段异色停，读作「镭射底」） */
   --cframe: linear-gradient(150deg, #ffe9b0, #9c6ba8 18%, #fff6db 36%, #4a3710 54%, #5f86c0 72%, #f2dcb2 86%, #d8b76a);
@@ -1467,6 +1501,7 @@ a.home-deck-dialog-credit:hover {
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  corner-shape: inherit;
   pointer-events: none;
   opacity: var(--rank-foil, 0);
   z-index: 3;              /* 覆膜与四角宝石要压在雕花框之上，见 .home-card-fret 那条注释 */
@@ -1666,6 +1701,7 @@ a.home-deck-dialog-credit:hover {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
   border-radius: var(--cradius);
+  corner-shape: var(--cshape);   /* 焦点环要跟着卡的形状走，否则方环套着一颗超椭圆 */
 }
 
 .deck-tile-cap {
@@ -1908,8 +1944,9 @@ a.home-deck-dialog-credit:hover {
 
 .deck-chip-mark {
   flex: none;
-  width: 9px;
-  height: 9px;
+  width: 11px;      /* 9px 那一版在曲线徽记下糊成一团（星形线还看得出，玫瑰线就是一个点）；
+                       11px 仍在 chip（约 26px 高）的预算里，而形状读得出来 */
+  height: 11px;
   /* 收藏与奇迹那两档没有 --cframe（它们的框是素色）→ 退回徽章自己的填充色 */
   background: var(--cframe, var(--rank-mark-fill, currentColor));
   clip-path: var(--rank-mark, none);

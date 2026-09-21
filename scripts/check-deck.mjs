@@ -105,6 +105,30 @@ if (!entries.length) {
 
 /* ---------- 清单里的 style 必须真有对应的 CSS 类 ---------- */
 const css = readFileSync(CSS, 'utf8');
+
+/* ---------- ⓪ 声明有没有丢掉分号（手改 CSS 最容易犯、且**完全静默**的错）----------
+   真事：用脚本往 `.home-card-rank--epic` 尾部插 `--fret-corner` 时，插入点落在「最后一个
+   声明」与 `; }` 之间，于是 `--cframe: linear-gradient(...)` 丢了分号、下一个声明被并进它的
+   值 —— **括号色成了非法值、卡框失去金属**，而浏览器、hugo、其它 11 个校验脚本一个字都不报
+   （是在浏览器里读计算值才看出来的）。
+   判据：一行以 `)` 收尾且没有分号，下一行又是声明。合法的换行续写只会以 `,` 或未闭合的
+   括号收尾，所以这一条不误报。 */
+{
+  const lines = css.split(/\r?\n/);
+  const bad = [];
+  for (let i = 0; i < lines.length - 1; i++) {
+    const a = lines[i].trim(), b = lines[i + 1].trim();
+    if (a.startsWith('--') && a.endsWith(')') && !a.endsWith(';') && b.startsWith('--')) {
+      bad.push(`第 ${i + 1} 行 ${a.slice(0, 44)}… 紧跟 ${b.slice(0, 26)}…`);
+    }
+  }
+  if (bad.length) {
+    console.log('✗ 有声明没写分号（值会被并进上一行）');
+    bad.slice(0, 4).forEach((x) => console.log('   · ' + x));
+    process.exit(1);
+  }
+  console.log('· 声明分号：逐行查过，没有「值以 ) 收尾却没分号」的行');
+}
 const knownStyles = new Set([...css.matchAll(/\.home-card--([a-z0-9-]+)/g)].map((m) => m[1]));
 // foil 是个特例：它**没有** .home-card--foil 这条规则 —— .home-card 的基础声明（彩虹 conic +
 // color-dodge）本身就是全息的观感，`style: foil` 出来的类名没规则可命中，正好落在基础样式上。
@@ -452,7 +476,12 @@ for (const r of cssRanks) {
     // 生成物里的令牌**统一用 --tex- 前缀**（雕花框那四件也是 --tex-fret-*），所以按前缀收窄即可 ——
     // 手写在 21-card-deck.css 里的长度类令牌（--fret-off / --fret-corner-off）不带这个前缀，
     // 不会被误判成「引用了不存在的图」（第一版就是这么误报的）。
-    const used = new Set([...css.matchAll(/var\((--tex-[\w-]+)/g)].map((m) => m[1]));
+    //
+    // 2026-09-21 起再加 `--mark-` 一组（数学曲线徽记，值是 `polygon(...)` 而不是 `url(...)`，
+    // 它走 clip-path 不走 mask）—— 这一组的失效方式比 mask 那种更阴：令牌名写错时
+    // `clip-path: var(--rank-mark)` 在计算值阶段变成非法 → 退回初始值 `none` →
+    // **徽记渲染成一个方块**，而构建、控制台照样全绿。
+    const used = new Set([...css.matchAll(/var\((--(?:tex|mark)-[\w-]+)/g)].map((m) => m[1]));
     const missing = [...used].filter((t) => !gen.has(t)).sort();
     if (missing.length) {
       failures.push(
@@ -633,7 +662,10 @@ if (!existsSync(CARD3D)) {
   // 后四项是 2026-09-21 第二轮加的（透明盖 + 「好像要脱离卡面」）：
   //   lid 盖子（**唯一多一遍混合绘制**的通道）  wall 侧壁取色  cast 卡面接触投影  drift 主体/背景微视差
   const FX_NEW = ['steps', 'sparkle', 'holo', 'halo', 'cliff', 'glint', 'bgZoom', 'bgPar',
-    'wall', 'cast', 'lid', 'cone', 'drift'];
+    'wall', 'cast', 'lid', 'cone', 'drift',
+    // 第三轮（2026-09-21）：两个**曲线场**的权重 —— 光锥上的玫瑰线花瓣（coneC）与
+    // 全息流光走的对数螺线（holoC）。收藏/珍稀为 0，也就是「与加这批之前逐像素一致」。
+    'coneC', 'holoC'];
   const FX_ALL = FX_LEGACY.concat(FX_NEW);
   // 单调不减的通道（back 是序号、glint 只在拖动时有值，都参与；metal/emis/diff 本来就是阶梯）
   const MONO = FX_ALL.filter((f) => f !== 'glint');
