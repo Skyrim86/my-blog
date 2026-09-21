@@ -51,20 +51,33 @@
 
   // 卡体的**模型空间**尺寸：宽 1，高 1.4（5:7，与卡面一致），厚 0.016。
   // 厚度取 1.6% 是量出来的：真卡 63×88mm、约 0.3mm 厚 ≈ 0.5%，那样转到 90° 只有 2px 的边，
-  // 看不出「有厚度」；1.6% 在 430px 的显示宽度上约 7px，既像卡又不像砖。
+  // 看不出「有厚度」；1.6% 在 430px 的显示宽度上约 7px，既像卡又不像砖
+  // （台面 2026-09-21 放大到 600px 之后，同一句话在这里是约 9.6px）。
   var CARD_W = 1.0, CARD_H = 1.4, CARD_T = 0.016, CARD_R = 0.06;
-  // 主体凸起的高度（模型空间单位，卡宽的比例）。
-  // **2.2% 是看出来的，不是猜的**：第一版取 5%，结果整张卡像一块立起来的纸板剪影 ——
-  // 因为高度图在人物轮廓处是从 0 直接跳到 0.5 的断崖，5% 的断崖就是一道 9px 高的墙，
-  // 侧壁还是拉伸的纹理，于是一眼看上去像贴上去的纸片。真卡压凸大约 0.3mm/63mm ≈ 0.5%，
-  // 肉眼能看出「凸」其实是靠**光的走向**（法线），不是靠高度。
-  // 2.2% 在 430px 的显示宽度上约 9px 的位移，配上下面的法线光照足够了。
+  // 主体凸起的高度**基准**（模型空间单位，卡宽的比例）；每一档再乘 RANK_3D.relief。
+  //
+  // 历史（两句话都得留着，否则会有人把它调回 0.032 再踩一遍）：
+  //   · 第一版取 5%，结果整张卡像一块立起来的纸板剪影 —— 因为高度图在人物轮廓处是从 0 直接
+  //     跳到 0.5 的**断崖**，5% 的断崖就是一道 9px 高的墙，侧壁还是拉伸的纹理。
+  //   · 于是退到 2.2%，靠法线光照去表达「凸」。
+  // 2026-09-21 把根因修掉了：深度图先**倒角**（断崖变成 16px 的 sin 坡，见 make-depth.py），
+  // 着色器再给陡坡一层**切边**（压暗 + 一道窄光，替掉拉伸的纹理）。坡不陡了、侧壁也有了材质，
+  // 位移才敢往上加 —— 现在收藏档 3.2%、奇迹档 7.4%（3.2% × 2.3）。
+  // **别把这两个前提拆开用**：只加位移不倒角+切边，就回到「纸板剪影」。
   var RELIEF = 0.032;
   var POM_STRENGTH = 0.35;
   // 网格密度与 POM 步数：按设备能力降级（见 pickQuality）。必须在建网格**之前**定。
   var GRID = { nx: 40, ny: 56, corner: 10 };
-  var POM_STEPS = 12;
+  // POM 步数的**编译期上限**（GLSL ES 要求循环边界是常量）；每档实际走几步由 RANK_3D.steps 给、
+  // 运行期经 uSteps 早退。原来固定 12，现在 8（收藏/弱设备）→ 24（奇迹）。
+  // 位移加大之后掠射角下的步进误差会显出来（条纹状的自遮挡），所以高档需要更多步。
+  var POM_STEPS_MAX = 24;
+  // 松手后的**余韵**：时间驱动的效果（星屑闪、彩虹流光）只在这段时间里继续演，之后连循环一起停。
+  // 为什么不是「一直动」：这个弹层挂在博客首页上，「静止时零帧」是这个文件的一条铁律（文件头第 3 条）。
+  // 2.5s 是「看着它回弹、星光还在流」的长度；验收读数从「空闲 900ms 内 0 帧」改成「松开 3s 后 0 帧」。
+  var FX_TAIL_MS = 2500;
   var qualityPicked = false;
+  var fxScale = 1;               // 弱设备的新效果整体打折（见 pickQuality）
 
   // 每种卡面风格在 3D 里的一组着色器参数。**这张表是 YAML 里 style 字段的第二处消费点**：
   // 首页那张卡用 CSS 类（home-card--<style>），弹层里的 3D 卡用这里的参数。
@@ -72,46 +85,65 @@
   // 守卫专门核这两边的键是否一一对应。
   //   foil 箔膜强度（虹彩可见度）  scale 虹彩带密度   tint 箔膜色相
   //   spec 镜面高光强度           relief 浮雕倍率    edge 卡边材质色（纸白/烫金/黑卡）
+  //   sparkle 星屑闪点的加成（星点本来就是这两种工艺的纹样，所以它归工艺、不归等级）
   //
-  // **八种**（2026-09-20 从 16 精简）：这张表与 YAML 的 style 字段必须一一对应，
-  // 少一种就会静默套用兜底参数（首页看着是它、转起来不是它），check-deck.mjs 有守卫核这个。
+  // **十二种**（2026-09-20 从 16 精简、2026-09-21 补到 12）：这张表与 YAML 的 style 字段必须
+  // 一一对应，少一种就会静默套用兜底参数（首页看着是它、转起来不是它），check-deck.mjs 有守卫。
   var STYLE_3D = {
-    foil:         { foil: 0.50, scale: 2.2, tint: [1.00, 1.00, 1.00], spec: 0.55, relief: 1.00, edge: [0.95, 0.93, 0.88] },
-    'holo-prism': { foil: 0.72, scale: 4.6, tint: [1.00, 0.97, 1.00], spec: 0.50, relief: 1.00, edge: [0.95, 0.93, 0.88] },
-    gold:         { foil: 0.34, scale: 1.5, tint: [1.00, 0.84, 0.45], spec: 0.90, relief: 0.90, edge: [0.90, 0.75, 0.40] },
-    glass:        { foil: 0.12, scale: 1.1, tint: [0.80, 0.90, 1.00], spec: 1.20, relief: 1.10, edge: [0.88, 0.93, 0.98] },
-    ink:          { foil: 0.18, scale: 1.9, tint: [0.70, 0.70, 0.82], spec: 0.35, relief: 1.00, edge: [0.28, 0.28, 0.34] },
-    washi:        { foil: 0.14, scale: 1.3, tint: [1.00, 0.96, 0.86], spec: 0.25, relief: 0.85, edge: [0.94, 0.91, 0.83] },
-    kintsugi:     { foil: 0.62, scale: 2.7, tint: [1.00, 0.82, 0.40], spec: 0.70, relief: 1.00, edge: [0.22, 0.20, 0.20] },
-    yukika:       { foil: 0.44, scale: 3.1, tint: [0.85, 0.95, 1.00], spec: 0.55, relief: 1.00, edge: [0.91, 0.95, 1.00] },
+    foil:         { foil: 0.50, scale: 2.2, tint: [1.00, 1.00, 1.00], spec: 0.55, relief: 1.00, sparkle: 1.00, edge: [0.95, 0.93, 0.88] },
+    'holo-prism': { foil: 0.72, scale: 4.6, tint: [1.00, 0.97, 1.00], spec: 0.50, relief: 1.00, sparkle: 1.30, edge: [0.95, 0.93, 0.88] },
+    gold:         { foil: 0.34, scale: 1.5, tint: [1.00, 0.84, 0.45], spec: 0.90, relief: 0.90, sparkle: 1.00, edge: [0.90, 0.75, 0.40] },
+    glass:        { foil: 0.12, scale: 1.1, tint: [0.80, 0.90, 1.00], spec: 1.20, relief: 1.10, sparkle: 1.00, edge: [0.88, 0.93, 0.98] },
+    ink:          { foil: 0.18, scale: 1.9, tint: [0.70, 0.70, 0.82], spec: 0.35, relief: 1.00, sparkle: 1.00, edge: [0.28, 0.28, 0.34] },
+    washi:        { foil: 0.14, scale: 1.3, tint: [1.00, 0.96, 0.86], spec: 0.25, relief: 0.85, sparkle: 1.00, edge: [0.94, 0.91, 0.83] },
+    kintsugi:     { foil: 0.62, scale: 2.7, tint: [1.00, 0.82, 0.40], spec: 0.70, relief: 1.00, sparkle: 1.00, edge: [0.22, 0.20, 0.20] },
+    yukika:       { foil: 0.44, scale: 3.1, tint: [0.85, 0.95, 1.00], spec: 0.55, relief: 1.00, sparkle: 1.05, edge: [0.91, 0.95, 1.00] },
     // 2026-09-21 新加的四种。**少写一种不会报错、只会静默套用兜底（foil）** —— 表现是
     // 「首页看着是雕花金、转起来是普通全息」，而这两种视图永远不会同时出现在一屏里。
     // check-deck.mjs 有一条守卫核这张表与清单里用到的风格一一对应（就是它拦下这一处的）。
-    filigree:     { foil: 0.40, scale: 2.0, tint: [1.00, 0.86, 0.58], spec: 0.85, relief: 1.05, edge: [0.86, 0.70, 0.36] },
-    enamel:       { foil: 0.30, scale: 2.6, tint: [0.96, 0.92, 1.00], spec: 0.95, relief: 1.10, edge: [0.80, 0.74, 0.44] },
-    starnight:    { foil: 0.26, scale: 3.4, tint: [0.78, 0.84, 1.00], spec: 0.45, relief: 1.00, edge: [0.30, 0.34, 0.66] },
-    frostcrack:   { foil: 0.22, scale: 3.0, tint: [0.90, 0.96, 1.00], spec: 0.60, relief: 1.05, edge: [0.86, 0.92, 0.98] }
+    filigree:     { foil: 0.40, scale: 2.0, tint: [1.00, 0.86, 0.58], spec: 0.85, relief: 1.05, sparkle: 1.00, edge: [0.86, 0.70, 0.36] },
+    enamel:       { foil: 0.30, scale: 2.6, tint: [0.96, 0.92, 1.00], spec: 0.95, relief: 1.10, sparkle: 1.00, edge: [0.80, 0.74, 0.44] },
+    starnight:    { foil: 0.26, scale: 3.4, tint: [0.78, 0.84, 1.00], spec: 0.45, relief: 1.00, sparkle: 1.45, edge: [0.30, 0.34, 0.66] },
+    frostcrack:   { foil: 0.22, scale: 3.0, tint: [0.90, 0.96, 1.00], spec: 0.60, relief: 1.05, sparkle: 1.00, edge: [0.86, 0.92, 0.98] }
   };
   var STYLE_FALLBACK = 'foil';
 
-  // 等级（rank）在 3D 里的参数。与 STYLE_3D 正交：**风格管纹样、等级管材质**。
+  // 等级（rank）在 3D 里的参数。与 STYLE_3D 正交：**风格管纹样、等级管材质与立体强度**。
   //   metal 卡边金属度（0 纸白 / 1 烫金）—— 它同时抬高高光强度并给高光上色
   //   emis  卡边自发光（光刃）
   //   diff  卡边衍射（镭射：随视角变化的色相）
   //   back  卡背的档位序号 0~5（素背 → 单细环 → 单环 → 加粗 → 双环 + 等级带 → 再加背光），
   //         由 drawBack 按序号取值，见下面 BACK_RING_* 两张表
   //   relief 浮雕倍率（越高主体抬得越明显）  shadow 投影强度  sweep 转动时那道亮带的强度
+  //
+  // 后面七项是 2026-09-21 照 holo3D-card 那套加进来的**立体通道**，全部**单调不减**、
+  // 收藏档一律为 0（于是低档卡与加这些之前一模一样，往上才逐级长出来）：
+  //   steps   POM 步数（掠射角下的步进精度；上限是编译期的 POM_STEPS_MAX）
+  //   sparkle 星屑闪点强度（再乘工艺的 sparkle）
+  //   holo    随时间平移的彩虹流光强度
+  //   halo    深度背光晕（光只出现在凸起处）
+  //   cliff   陡坡切边（压暗侧壁 + 一道窄光，替掉拉伸的纹理）
+  //   glint   拖拽时跟手的高光斑（不拖时为 0，由 draw 现算）
+  //   bgZoom  画面放大倍率（背景视差的前提：不放大会采到画面外）
+  //   bgPar   背景视差的最大位移（UV 单位；必须 ≤ 0.5 − 0.5/(1+bgZoom)，否则会采出边界 ——
+  //           JS 里夹了一道，表也不能写超）
   // **六档**（2026-09-21 从四档扩到六档：加了 rare 珍稀 / arcane 秘藏）。这张表与 CSS 的
   // `.home-card-rank--*` 必须一一对应 —— 少一档会静默套用兜底（首页看着是它、转起来不是它），
-  // check-deck.mjs 里有守卫核这个（原来只守了 STYLE_3D，本次补上了 RANK_3D）。
+  // check-deck.mjs 里有守卫核这个，另有一条核「每档每个通道都得写、且六档单调不减」。
   // **奇迹在显形前拿的是收藏那一套**：隐藏等级的定义就是看不出来（见 selectRank / rankOf）。
   var RANK_3D = {
-    collector: { metal: 0.05, emis: 0.00, diff: 0.00, relief: 1.00, back: 0, shadow: 0.35, sweep: 0.25 },
-    rare:      { metal: 0.30, emis: 0.01, diff: 0.05, relief: 1.05, back: 1, shadow: 0.48, sweep: 0.38 },
-    epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.10, back: 2, shadow: 0.62, sweep: 0.50 },
-    arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.20, back: 3, shadow: 0.82, sweep: 0.68 },
-    legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 1.28, back: 4, shadow: 1.00, sweep: 0.85 },
-    miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 1.38, back: 5, shadow: 1.15, sweep: 1.00 }
+    collector: { metal: 0.05, emis: 0.00, diff: 0.00, relief: 1.00, back: 0, shadow: 0.35, sweep: 0.25,
+                 steps: 8,  sparkle: 0.00, holo: 0.00, halo: 0.00, cliff: 0.00, glint: 0.00, bgZoom: 0.000, bgPar: 0.000 },
+    rare:      { metal: 0.30, emis: 0.01, diff: 0.05, relief: 1.15, back: 1, shadow: 0.48, sweep: 0.38,
+                 steps: 10, sparkle: 0.10, holo: 0.08, halo: 0.05, cliff: 0.15, glint: 0.10, bgZoom: 0.008, bgPar: 0.003 },
+    epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.30, back: 2, shadow: 0.62, sweep: 0.50,
+                 steps: 12, sparkle: 0.28, holo: 0.22, halo: 0.16, cliff: 0.32, glint: 0.25, bgZoom: 0.015, bgPar: 0.006 },
+    arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.50, back: 3, shadow: 0.82, sweep: 0.68,
+                 steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.028, bgPar: 0.012 },
+    legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 2.40, back: 4, shadow: 1.00, sweep: 0.85,
+                 steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022 },
+    miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 2.90, back: 5, shadow: 1.15, sweep: 1.00,
+                 steps: 24, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030 }
   };
   // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。这两张表是卡背
   // 那套「由素到华丽」的全部依据 —— 以前是一串 `rk === 'epic' / 'legend' / 'miracle'` 的
@@ -284,7 +316,7 @@
     'attribute vec4 aPos;',                     // xyz = 模型空间位置，w = 面（0 正 / 1 背 / 2 侧）
     'uniform mat4 uProj, uView, uModel;',
     'uniform sampler2D uDepth;',
-    'uniform float uRelief;',
+    'uniform float uRelief, uBgZoom;',
     'uniform vec2 uTexel;',
     'varying vec3 vModel;',
     'varying float vFace;',
@@ -316,8 +348,12 @@
     '    // （物理上浮雕确实在卡面之前，但观感上就是错的）。这也是真压凸卡的边界条件：',
     '    // 模具在离卡边太近的地方压不出高度。',
     '    float edge = -cardSdfV(p.xy);',
-    '    p.z += hAt(uv) * uRelief * smoothstep(0.0, 0.055, edge);',
-    '    n = reliefNormal(uv);',
+    '    // 画面的放大倍率（RANK_3D.bgZoom）：卡内背景视差要把画面先放大一点才敢平移，否则会采到',
+    '    // 画面外。**顶点位移必须用同一个放大后的 uv**，不然抬起来的那一块与画上的人会错位 ——',
+    '    // 那是「浮雕跑到人旁边去了」，一眼就看得出来。片元那边同式，两处要一起改。',
+    '    vec2 zuv = (uv - 0.5) / (1.0 + uBgZoom) + 0.5;',
+    '    p.z += hAt(zuv) * uRelief * smoothstep(0.0, 0.055, edge);',
+    '    n = reliefNormal(zuv);',
     '  } else if (aPos.w < 1.5) {',                // 背面：平的（信息面不需要浮雕）
     '    n = vec3(0.0, 0.0, -1.0);',
     '  }',
@@ -335,6 +371,7 @@
     'uniform sampler2D uBack;',
     'uniform vec3 uEye;',               // 模型空间里的相机位置
     'uniform vec3 uL1, uL2;',           // 模型空间里的两盏灯
+    'uniform vec3 uLp;',                // 第三盏「指针灯」：拖拽时跟手的高光斑（不拖时与 V 同向、贡献≈0）
     'uniform vec3 uFoilAxis;',
     'uniform vec2 uTexel;',
     'uniform float uRelief, uPom;',
@@ -343,6 +380,10 @@
 'uniform float uShadow, uSweepPos, uSweepK;',
     'uniform vec3 uTint, uEdge;',
     'uniform float uDark;',
+    // 2026-09-21 新增的立体通道（全部由 RANK_3D 给，收藏档为 0）：
+    'uniform float uTime, uSteps, uSparkle, uHolo, uHalo, uCliff, uGlint;',
+    'uniform float uBgZoom;',
+    'uniform vec2 uBgPar;',
     'float hAt(vec2 uv) { return texture2D(uDepth, clamp(uv, 0.002, 0.998)).r; }',
     // 高度场自阴影：沿光的方向在高度场里采样，只要有比当前点高的就说明这一点被挡住了。
 // **这才是「主体浮起来」的关键**：位移本身只是把画面抬高，而「它把光挡住了、卡面上留下
@@ -376,9 +417,15 @@
     '  if (vFace > 0.5 && vFace < 1.5) u = 1.0 - u;',
     '  return vec2(u, 0.5 - p.y / CARD_H);',
     '}',
-    'vec3 reliefNormalF(vec2 uv) {',
+    'vec3 reliefNormalF(vec2 uv, out float slope) {',
+    // 单尺度（±1 texel）梯度 —— 曾经为了防止深度图补丁网格的台阶而做过「窄窗 + 宽窗平均」，
+    // 那条路的代价是整幅画面变软（细节与台阶一起被压）。**台阶最终在数据侧治掉了**
+    // （生成器加了一道 3×3 中值，见 make-depth.py 的注释），所以这里保持单尺度、画面最锐。
     '  float gu = (hAt(uv + vec2(uTexel.x, 0.0)) - hAt(uv - vec2(uTexel.x, 0.0))) / (2.0 * uTexel.x);',
     '  float gv = (hAt(uv + vec2(0.0, uTexel.y)) - hAt(uv - vec2(0.0, uTexel.y))) / (2.0 * uTexel.y);',
+    // 陡度 = 同一批梯度的长度（与法线倾斜同一量纲，但不带符号）—— 陡坡切边用它。
+    // 复用这两个差分、不额外采样：片元着色器里每多一次纹理采样都是实打实的成本。
+    '  slope = length(vec2(gu, gv)) * uRelief / CARD_W;',
     '  return normalize(vec3(-gu * uRelief / CARD_W, gv * uRelief / CARD_H, 1.0));',
     '}',
     // POM：沿视线在高度场里步进，找第一个「高度超过当前层」的位置。
@@ -386,11 +433,15 @@
     'vec2 parallax(vec2 uv, vec3 V) {',
     '  if (uPom < 0.01) return uv;',
     '  vec2 dir = -V.xy / max(0.25, abs(V.z)) * uPom;',
-    '  float stepH = 1.0 / float(POM_STEPS);',
+    // 步数是**运行期**的（等级阶梯给）：GLSL ES 要求循环边界是常量，所以边界写编译期上限、
+    // 到步数就 break —— 与「把 POM_STEPS 写死成 24 再让低档白跑」是同一个结果、更省。
+    '  float steps = max(2.0, uSteps);',
+    '  float stepH = 1.0 / steps;',
     '  vec2 d = dir * stepH * uRelief;',
     '  float h = 1.0;',
     '  vec2 p = uv;',
-    '  for (int i = 0; i < POM_STEPS; i++) {',
+    '  for (int i = 0; i < POM_STEPS_MAX; i++) {',
+    '    if (float(i) >= steps) break;',
     '    if (hAt(p) >= h) break;',
     '    h -= stepH;',
     '    p += d;',
@@ -405,17 +456,30 @@
     '  return clamp(p, 0.002, 0.998);',
     '}',
     'void main() {',
-    '  vec2 uv = uvOf(vModel);',
+    '  vec2 uv0 = uvOf(vModel);',
+    '  // 画面的放大倍率（与顶点着色器同式，见那边的注释）：放大后 uv 才在 [0,1] 内有平移余量',
+    '  vec2 uv = (uv0 - 0.5) / (1.0 + uBgZoom) + 0.5;',
     '  vec3 V = normalize(uEye - vModel);',
     '  vec3 N;',
     '  vec3 albedo;',
     '  float ao = 0.92;',
     '  float hv = 0.5;',                 // 这个点在高度场上的高度（0 背景 / 1 最凸）
+    '  float slope = 0.0;',              // 高度场陡度（陡坡切边用；只有正面才算）
     '  float foilMask = 1.0;',
+    // 采样点：正面会先经 POM、再经背景视差挪动。**声明在这里而不是下面那个 if 里** ——
+    // 等级效果那一段还要用它（星屑的哈希网格扎在采样点上），写在块里就出了作用域。
+    '  vec2 puv = uv;',
     '  if (vFace < 1.5) {',
-    '    vec2 puv = (vFace < 0.5) ? parallax(uv, V) : uv;',
+    '    puv = (vFace < 0.5) ? parallax(uv, V) : uv;',
+    '    if (vFace < 0.5) {',
+    '      // 卡内 3D 视差：**只有远处（低高度）的像素跟着角度平移**，主体立着不动 —— 于是',
+    '      // 「人是从背景里立起来的」这条线索成立。位移量由 JS 按当前转角每帧算（uBgPar），',
+    '      // 方向与转动相反，读作背景在卡面之后。放大倍率已经在上面统一吃掉了。',
+    '      float bgW = 1.0 - smoothstep(0.10, 0.34, hAt(puv));',
+    '      puv = clamp(puv + uBgPar * bgW, 0.002, 0.998);',
+    '    }',
     '    albedo = (vFace < 0.5) ? texture2D(uFace, puv).rgb : texture2D(uBack, puv).rgb;',
-    '    N = (vFace < 0.5) ? reliefNormalF(puv) : vec3(0.0, 0.0, -1.0);',
+    '    N = (vFace < 0.5) ? reliefNormalF(puv, slope) : vec3(0.0, 0.0, -1.0);',
     '    if (vFace < 0.5) {',
     '      hv = hAt(puv);',
     '      // 高度当环境光遮蔽：低处（背景、衣褶里）压暗、抬起来的地方亮。',
@@ -456,7 +520,52 @@
   "  col += irid2 * uTint * uFoil * foilMask * 0.45 * fres;",
   '  float sweep = exp(-pow((uvOf(vModel).x * 1.7 - uSweepPos) * 3.0, 2.0));',
   '  col += mix(vec3(1.0), uTint, 0.35) * sweep * uSweepK * foilMask * 0.55;',
-'  // 卡边的等级材质：自发光（光刃）与视角驱动的衍射（镭射）',
+  // ---------- 等级驱动的立体通道（2026-09-21，照 holo3D-card 那套搬过来）----------
+  // 全部只在正面、且乘在「抬起来的地方才亮」上（foilMask / hv）；收藏档这些通道全是 0，
+  // 所以低档卡与加这批之前**逐像素一致**，华丽是从珍稀开始一级级长出来的。
+  '  if (vFace < 0.5) {',
+  '    // ① 彩虹流光：在**静态**虹彩（上面那两条）之上再叠一层随 uTime 平移的波。',
+  '    //    停止渲染时 uTime 不动，它就退化成又一层静态虹彩 —— 所以「静止即零帧」那条铁律',
+  '    //    不会在这里破掉，静止的卡也不会自己花起来。',
+  // 坐标**以画面上平滑的 diag 与时间为主**：`f`（反射向量）是逐片元随法线变的量，
+  // 它的系数一大就把高度场的每一处起伏都翻成一条彩虹线 —— 看着是一片细网格/经纬线
+  // （放大 3 倍才看清，静图上像「渲染坏了」）。所以 f 只留很小的系数（0.10 / 0.8）。
+  '    float diag = uv.x * 1.5 + uv.y * 1.2 + hv * 0.35;',
+  '    float wave = sin(diag * 8.0 - uTime * 0.8 + f * 0.8);',
+  '    float hc = fract(diag * 0.35 + f * 0.10 + wave * 0.12 + uTime * 0.04);',
+  '    vec3 holo = 0.5 + 0.5 * cos(6.28318 * (hc + vec3(0.0, 0.33, 0.67)));',
+  // 权重压到 0.20 而且**只在掠射角**（fres）才明显：卡面是一张浅色插画，权重一高就把它洗成
+  // 一层脏紫雾（第一版 0.35 就是这样，对比图上一眼可见）。要的是「转起来掠过一道彩」，
+  // 不是「换了个色调」。
+  '    col += holo * uTint * uHolo * foilMask * (0.10 + 0.90 * fres) * 0.20;',
+  '    // ② 星屑闪点：哈希网格 + pow(n,110) 取稀疏点 + 闪烁门。**稀疏是关键**（见下一条注释）：',
+  '    //    偶尔闪一下才像箔膜里的晶体，只长在**抬起来的地方**（hv 门），背景不撒点。',
+  '    vec2 cell = floor(puv * 280.0);',
+  '    float n = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);',
+  '    float tw = sin(uTime * 3.0 + n * 6.28318) * 0.5 + 0.5;',
+  // 密度是量出来的：280×280 个格子里 n^110 > 1/2.5 的约 0.6%（≈470 颗），摊在 600×840 上
+  // 约等于每 32×32 一颗 —— 那是「闪」的密度。pow 从 32 一路提到 110 全是因为对比图上
+  // 浅色插画被撒成了沙地：**亮点要稀疏且亮**，密了就只剩「脏」。
+  '    float sp = pow(n, 110.0) * 2.5 * uSparkle * (0.15 + 0.85 * tw) * smoothstep(0.15, 0.60, hv);',
+  '    col += mix(vec3(1.0), uTint, 0.25) * min(sp, 1.5) * foilMask;',
+  '    // ③ 深度背光晕：光**只出现在凸起处**（乘 hv）——「这是浮起来的一层」最直接的线索，',
+  '    //    也是最便宜的一条（没有额外采样）。',
+  '    float rimD = pow(1.0 - max(dot(N, V), 0.0), 2.5) * (0.25 + 0.75 * hv);',
+  '    col += mix(vec3(0.74, 0.90, 1.0), uTint, 0.45) * rimD * uHalo * 0.55;',
+  '    // ④ 陡坡切边：高度陡的地方（主体轮廓的侧壁）压暗 + 一道窄光。它替掉的是**拉伸的纹理**',
+  '    //    —— 没有这一层，位移一加大就看到一圈糊掉的画，读作「贴上去的纸板剪影」。',
+  '    //    陡度取自高度场梯度（reliefNormalF 顺手给），不引入 dFdx/dFdy 那条扩展依赖。',
+  '    float cliffW = smoothstep(0.40, 1.30, slope) * uCliff;',
+  '    col *= mix(1.0, 0.54, cliffW);',
+  '    col += mix(vec3(1.0), uTint, 0.30) * pow(max(dot(N, H1), 0.0), 30.0) * cliffW * 0.75;',
+  '    // ⑤ 拖拽高光跟手：按住拖动时指针当第三盏灯，一个窄高光斑跟着手走（uGlint 由 JS 给 0',
+  '    //    或等级值）。这条正好卡在「鼠标划过卡片不会让它动」那条要求的边界上：',
+  '    //    **光可以跟手，卡不能跟手**。',
+  '    vec3 Hp = normalize(uLp + V);',
+  '    col += mix(vec3(1.0, 0.99, 0.94), uTint, 0.35) * pow(max(dot(N, Hp), 0.0), 60.0)',
+  '           * uGlint * 1.4 * (0.25 + 0.75 * hv);',
+  '  }',
+  '  // 卡边的等级材质：自发光（光刃）与视角驱动的衍射（镭射）',
 '  if (vFace > 1.5) {',
 '    col += uEdge * uEdgeEmis * (0.6 + 0.4 * fres);',
 '    vec3 dcol = 0.5 + 0.5 * cos(6.28318 * (dot(N, V) * 1.6 + vec3(0.0, 0.33, 0.67)));',
@@ -469,7 +578,7 @@
     '    if (rim > 0.002) {',
     '      vec2 g = cardSdfGrad(vModel.xy);',
     '      vec2 o = -g * (0.010 + 0.018 * rim);',
-    '      vec2 base = uvOf(vModel);',
+    '      vec2 base = uv;',                 // 画面已按 uBgZoom 放大，这层折射取样要跟它一致
     '      vec3 refr;',
     '      refr.r = texture2D(uFace, clamp(base + o * 1.08, 0.002, 0.998)).r;',
     '      refr.g = texture2D(uFace, clamp(base + o, 0.002, 0.998)).g;',
@@ -488,7 +597,7 @@
     var defs = ['#define CARD_W ' + CARD_W.toFixed(4),
       '#define CARD_H ' + CARD_H.toFixed(4),
       '#define CARD_R ' + CARD_R.toFixed(4),
-      '#define POM_STEPS ' + POM_STEPS];
+      '#define POM_STEPS_MAX ' + POM_STEPS_MAX];
     return { vert: defs.concat(VERT).join('\n'), frag: defs.concat(FRAG_HEAD, FRAG_BODY).join('\n') };
   }
 
@@ -682,18 +791,28 @@
   var revealTimer = 0;         // 「在背面停留」的定时器
   var sweepPos = -0.5;         // 亮带当前位置（uv 空间，负值 = 还在卡外）
   var sweepK = 0;              // 亮带强度：只在转动时升起，停下衰减到 0
+  var fxTime = 0;              // 时间相位（秒）：只在动画循环活着时推进，所以静止的卡上是冻结的
+  var lastInput = 0;           // 最后一次交互的时刻（松手后的余韵以它为起点，见 FX_TAIL_MS）
+  var ptrX = 0, ptrY = 0;      // 指针在台面里的位置（-1~1 的视图空间坐标，用于跟手高光）
+  // 送进着色器的**生效值**（draw 每帧填）。stats().fx 直接回它 —— 让 lab 读「真正生效的数」
+  // 而不是回读参数表：表到着色器之间还夹着 fxScale 与编译期上限两道，回读表会假绿。
+  var fxEff = { relief: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0, bgZoom: 0, bgParMax: 0 };
+  var fxOverride = null;       // lab 拍对比图时的临时覆盖（api.setFx），产品路径上恒为 null
 
   function pickQuality() {
     if (qualityPicked) return;
     qualityPicked = true;
     // 没有可靠的「GPU 强弱」查询，所以只看两个粗信号，宁可保守：
-    // 降级的代价只是极细的皱褶变少，而选错的代价是低端机上掉帧。
+    // 降级的代价只是极细的皱褶变少、新效果淡一些，而选错的代价是低端机上掉帧。
     var cores = navigator.hardwareConcurrency || 4;
     var smallViewport = Math.min(window.innerWidth, window.innerHeight) < 620;
     if (cores <= 4 || smallViewport) {
       GRID.nx = 28; GRID.ny = 40; GRID.corner = 7;
-      POM_STEPS = 8;
+      POM_STEPS_MAX = 8;      // 编译期上限：低档机少走一半步数（档位阶梯再经 uSteps 夹一次）
       POM_STRENGTH = 0;
+      // 新通道在弱设备上一律打折：切边与流光减半、背景视差整个关掉（它要动的是**采样 uv**，
+      // 一旦降级就得同时改顶点位移那边，不值得在低端机上冒这个险）。
+      fxScale = 0.5;
     }
   }
 
@@ -746,10 +865,16 @@
     var aniso = gl.getExtension('EXT_texture_filter_anisotropic')
       || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
     var U = {};
+    // 这份名单必须与 draw() 里**实际设置过的** uniform 一字不差 —— 名字拼错时 getUniformLocation
+    // 返回 null，而 gl.uniform1f(null, x) 只是静默无效（不报错、不崩，那个效果就是不会出现）。
+    // 所以 check-deck.mjs 有一条守卫把这两边对起来核（名单里的都要被 set 过，set 过的都要在名单里）。
     ['uProj', 'uView', 'uModel', 'uDepth', 'uFace', 'uBack', 'uRelief', 'uPom', 'uFoil',
-      'uFoilScale', 'uSpec', 'uTint', 'uEdge', 'uEye', 'uL1', 'uL2', 'uFoilAxis',
+      'uFoilScale', 'uSpec', 'uTint', 'uEdge', 'uEye', 'uL1', 'uL2', 'uLp', 'uFoilAxis',
       'uEdgeMetal', 'uEdgeEmis', 'uEdgeDiff', 'uShadow', 'uSweepPos', 'uSweepK',
-      'uTexel', 'uDark'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+      'uTime', 'uSteps', 'uSparkle', 'uHolo', 'uHalo', 'uCliff', 'uGlint',
+      'uBgZoom', 'uBgPar', 'uTexel', 'uDark'].forEach(function (n) {
+      U[n] = gl.getUniformLocation(prog, n);
+    });
 
     return {
       ok: true, gl: gl, prog: prog, U: U, count: mesh.idx.length, dist: 3,
@@ -789,12 +914,20 @@
      6. 渲染
      ============================================================ */
 
+  // 画布分辨率的**总像素上限**。开销的大头是逐片元成本（POM 最多 24 步 + 5 次自阴影采样），
+  // 而台面 2026-09-21 从 430px 放大到 600px 之后面积是原来的 1.95 倍。所以除了把 dpr 夹到 2，
+  // 再加这一条：超过就按比例降 dpr（600px 台面在 2x 屏上落到约 1.67x）。
+  // 只夹 dpr 不夹面积是不行的 —— 那条线是按「小画布」定的，画布一大就失效了。
+  var MAX_PIXELS = 1400 * 1000;
+
   function resize() {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var w = Math.max(1, Math.round(canvas.clientWidth * dpr));
-    var h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    var cw = Math.max(1, canvas.clientWidth), ch = Math.max(1, canvas.clientHeight);
+    if (cw * ch * dpr * dpr > MAX_PIXELS) dpr = Math.max(1, Math.sqrt(MAX_PIXELS / (cw * ch)));
+    var w = Math.max(1, Math.round(cw * dpr));
+    var h = Math.max(1, Math.round(ch * dpr));
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-    var aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
+    var aspect = cw / ch;
     var fov = 30 * Math.PI / 180, tf = Math.tan(fov / 2);
     var need = Math.max(CARD_H / tf, CARD_W / (tf * aspect));
     var dist = need * 0.5 * 1.16;      // 16% 的呼吸：转动时卡角不会顶到边
@@ -832,6 +965,12 @@
 
     var S = (item && STYLE_3D[item.style]) || STYLE_3D[STYLE_FALLBACK];
     var R = selectRank();
+    if (fxOverride) {                 // lab 拍对比图用的临时覆盖（见 api.setFx）：浅合并，不动原表
+      var merged = {};
+      for (var mk in R) if (Object.prototype.hasOwnProperty.call(R, mk)) merged[mk] = R[mk];
+      for (var ok in fxOverride) if (Object.prototype.hasOwnProperty.call(fxOverride, ok)) merged[ok] = fxOverride[ok];
+      R = merged;
+    }
     gl.uniform1f(U.uRelief, RELIEF * S.relief * R.relief);
     gl.uniform1f(U.uPom, texDepth ? GL.pom : 0);
     gl.uniform1f(U.uFoil, S.foil);
@@ -841,6 +980,51 @@
     gl.uniform1f(U.uEdgeEmis, R.emis);
     gl.uniform1f(U.uEdgeDiff, R.diff);
     gl.uniform1f(U.uShadow, R.shadow * (texDepth ? 1 : 0));
+
+    // ---------- 立体通道（2026-09-21）----------
+    // 全部过一遍 fxScale（弱设备打折，见 pickQuality）。两个夹取是必须的：
+    //   uSteps  等级表可能给出比**编译期上限**更大的步数（弱设备上限是 8），夹住就不会白跑；
+    //   uBgPar  位移不能超过放大余量，否则采样跑出画面外 —— 表里写超了也只挪到安全线。
+    var bgZoom = R.bgZoom * fxScale;
+    var bgMax = R.bgPar * fxScale;
+    // 生效值留档（stats().fx 读它；见 fxEff 的声明）
+    fxEff.relief = RELIEF * S.relief * R.relief;
+    fxEff.steps = Math.min(R.steps, POM_STEPS_MAX);
+    fxEff.sparkle = R.sparkle * S.sparkle * fxScale;
+    fxEff.holo = R.holo * fxScale;
+    fxEff.halo = R.halo * fxScale;
+    fxEff.cliff = R.cliff * fxScale;
+    fxEff.bgZoom = bgZoom;
+    gl.uniform1f(U.uSteps, fxEff.steps);
+    gl.uniform1f(U.uSparkle, fxEff.sparkle);
+    gl.uniform1f(U.uHolo, fxEff.holo);
+    gl.uniform1f(U.uHalo, fxEff.halo);
+    gl.uniform1f(U.uCliff, fxEff.cliff);
+    gl.uniform1f(U.uBgZoom, bgZoom);
+    // 跟手高光只在**按住拖动**时给。这条正好卡在「鼠标划过卡片不会让它动」那条要求的边界上：
+    // 光可以跟手，卡不能跟手。
+    fxEff.glint = dragging ? R.glint * fxScale : 0;
+    gl.uniform1f(U.uGlint, fxEff.glint);
+    // 指针灯：把指针在台面里的位置换算成视图空间的一盏灯，再与两盏主灯一样转到模型空间。
+    // 不拖时把它摆在视线方向上（N·H≈1），但那时 uGlint 是 0，所以不会有任何贡献。
+    gl.uniform3fv(U.uLp, toModel(ptrX * 1.1, ptrY * 1.1, 0.8));
+    // 卡内背景视差：位移量由**当前转角**给（不是速度），所以停稳时它自然回到 0；
+    // 方向取负 —— 背景要读作「在卡面之后」，卡往一边转，背景往另一边挪。
+    // 这里**自己折算角度、不调 wrapAngle()**：那个函数是就地改 yaw/baseYaw 的（无返回值），
+    // 在 draw 里调它等于每帧改一次状态。（第一版就是 `wrapAngle(yaw-baseYaw)` 拿返回值，
+    // 结果 dyaw 是 undefined、整条视差静默变成 NaN。）
+    var dyaw = yaw - baseYaw;
+    dyaw -= Math.round(dyaw / (Math.PI * 2)) * Math.PI * 2;
+    var bx = dyaw / 0.6 * bgMax;
+    var by = -pitch / 0.6 * bgMax;
+    var bl = Math.sqrt(bx * bx + by * by);
+    var lim = (0.5 - 0.5 / (1.0 + bgZoom)) * 0.9;    // 放大多少就只能挪多少
+    if (bl > lim && bl > 0) { bx *= lim / bl; by *= lim / bl; }
+    // 留档的是**这一档能给到的最大位移**（不是这一帧的位移）：后者静止时必然是 0，
+    // 拿它当读数会让「背景视差到底有没有生效」这件事永远读成没有（第一版就这么假绿过）。
+    fxEff.bgParMax = Math.min(bgMax, lim);
+    gl.uniform2f(U.uBgPar, bx, by);
+    gl.uniform1f(U.uTime, fxTime);
     // 亮带的强度与位置都由**当前角速度**决定：转得快就亮、停下就淡掉。
     // vy/vp 是「每帧的弧度」，这里只用来驱动视觉，不参与物理。
     var vel = Math.abs(vy) + Math.abs(vp);
@@ -966,6 +1150,10 @@
     }
   }
 
+  // 时间相位的推进与「余韵」的计时都靠这两个小工具：
+  // noteInput() 记下最后一次交互（触摸/拖动/键盘/翻面/换卡），update() 用它判断余韵是否走完。
+  function noteInput() { lastInput = performance.now(); }
+
   function update(dt) {
     if (!pinned && backSince && performance.now() - backSince > REVEAL_DWELL_MS) maybeReveal('在背面停留');
     if (pinned) return false;
@@ -974,6 +1162,12 @@
     if (Math.abs(baseYaw - yaw) < 0.0008 && Math.abs(pitch) < 0.0008
         && Math.abs(vy) < 0.0015 && Math.abs(vp) < 0.0015) {
       yaw = baseYaw; pitch = 0; vy = 0; vp = 0;
+      // 卡已经停稳了，但**时间驱动的效果还有一段余韵**（星屑闪、彩虹流光）：距离最后一次交互
+      // 不满 FX_TAIL_MS 就继续跑循环，让那点星光流完再停。
+      // 原来这里是「静止立即停」（验收读数「空闲 900ms 内 0 帧」），2026-09-21 与用户确认后
+      // 放宽成 2.5 秒余韵，读数相应改成「松开 3s 后 0 帧」——**这条改动只影响余韵，不影响
+      // 「没人动时不烧 GPU」那条铁律**（余韵最多 2.5 秒，之后一定停）。
+      if (performance.now() - lastInput < FX_TAIL_MS) return true;
       return false;                  // ← 这一条就是「静止就停掉动画循环」
     }
     integrate(dt);
@@ -985,6 +1179,9 @@
     if (!open || !GL) return;
     var dt = Math.min(0.05, Math.max(0.001, (t - lastFrame) / 1000));
     lastFrame = t;
+    // 时间相位只在**循环活着**的时候走（而且 reduced-motion 下冻结）：新效果里那两条时间驱动的
+    // 因此退化成静态的，静止的卡不会自己亮起来，也没有「一直在闪」的动效。
+    if (!reduced()) fxTime += dt;
     var more = update(dt);
     draw();
     // **静止就停**：没有这一条，弹层开着（哪怕没人碰）就一直占着一个 GPU 帧循环。
@@ -999,12 +1196,23 @@
      7. 交互
      ============================================================ */
 
+  // 指针在**台面里的位置** → 视图空间坐标（-1~1，y 向上）。只用于「跟手高光」那一条：
+  // 它是一个**光源位置**，不是倾角 —— 卡本身仍然只认按住拖动（文件头第 7 条）。
+  function setPtr(e) {
+    var r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    ptrX = ((e.clientX - r.left) / r.width) * 2 - 1;
+    ptrY = 1 - ((e.clientY - r.top) / r.height) * 2;
+  }
+
   function bindPointer() {
     canvas.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       dragging = true; pinned = false; inertia = false;
       vy = 0; vp = 0;
+      setPtr(e);
       lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
+      noteInput();
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 某些环境不支持 */ }
       canvas.classList.add('is-dragging');
       e.preventDefault();
@@ -1015,6 +1223,7 @@
         var now = performance.now();
         var dx = e.clientX - lastX, dy = e.clientY - lastY;
         var dtms = Math.max(8, now - lastT);
+        setPtr(e);
         yaw += dx * YAW_GAIN;
         pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, pitch + dy * PITCH_GAIN));
         // 速度折算成「每帧(16.7ms)的位移」，供松手后的惯性使用
@@ -1022,6 +1231,7 @@
         vp = dy * PITCH_GAIN * (16.7 / dtms) * 0.85;
         turned += Math.abs(dx * YAW_GAIN);
         lastX = e.clientX; lastY = e.clientY; lastT = now;
+        noteInput();
         kick();
         return;
       }
@@ -1030,6 +1240,7 @@
       if (!dragging) return;
       dragging = false;
       canvas.classList.remove('is-dragging');
+      noteInput();
       try { canvas.releasePointerCapture(e.pointerId); } catch (err) { /* 已释放 */ }
       // 松手速度先限幅（见 INERTIA_MAX 的注释），再决定「滑一段」还是「直接吸附」
       vy = Math.max(-INERTIA_MAX, Math.min(INERTIA_MAX, vy));
@@ -1061,6 +1272,7 @@
       // 键盘转动是离散的：不走惯性，直接落到最近的一面并让弹簧收尾
       vy = 0; vp = 0; inertia = false;
       settleTarget();
+      noteInput();
       kick();
     });
   }
@@ -1109,7 +1321,11 @@
       api.reset();
       if (!GL) return;
       var jobs = [];
-      jobs.push(loadImage(next.l || next.s).then(function (im) {
+      // 面贴图优先用 **xl 那一档（760px）**：台面 2026-09-21 放大到 600px 之后，卡面要占到
+      // 517px 宽、2x 屏上就是 1034 个物理像素，而 544px 那档是给页内 272px 的卡用的 ——
+      // 拿它撑 600px 台面会被放大到近两倍，糊得看得见。xl 只在这条路上加载（不生进 srcset），
+      // 所以收藏库那一页的访客不会因此多下一个字节，只有真打开弹层的人下这一张。
+      jobs.push(loadImage(next.xl || next.l || next.s).then(function (im) {
         if (texFace) GL.gl.deleteTexture(texFace);
         texFace = makeTex(im);
       }).catch(function (err) {
@@ -1135,6 +1351,7 @@
       if (open) {
         baseYaw = Math.round(yaw / Math.PI) * Math.PI;
         yaw = baseYaw; pitch = 0; vy = 0; vp = 0; pinned = false; inertia = false;
+        noteInput();                       // 打开的一刻算一次交互，余韵从这时开始算
         resize(); kick();
       } else {
         halt(); dragging = false; pinned = false; inertia = false;
@@ -1158,11 +1375,12 @@
       vy = 0; vp = 0; inertia = false; pinned = false;
       if (deckEl) deckEl.setAttribute('data-face', faceOf(baseYaw));
       noteFace(wantBack);          // 翻面按钮到背面也算「停在背面」，停留判据同样生效
+      noteInput();
       kick();
       return wantBack;
     },
     isBack: function () { return faceOf(baseYaw) === 'back'; },
-    // 给 lab/shots/shots.py 的读数：断言「转到位了 / 画面非空 / 空闲时真的停了」
+    // 给 lab/shots/shots.py 的读数：断言「转到位了 / 画面非空 / 空闲时真的停了 / 各档效果真的不同」
     stats: function () {
       return {
         supported: api.supported, running: !!raf, frames: frames,
@@ -1170,8 +1388,25 @@
         face: faceOf(baseYaw),
         pom: GL ? GL.pom : 0, relief: !!texDepth, pinned: pinned,
         rank: (item && item.rank) || '', rankEff: rankOf(), revealed: revealed, turned: +turned.toFixed(2),
-        canvas: canvas ? canvas.width + 'x' + canvas.height : ''
+        canvas: canvas ? canvas.width + 'x' + canvas.height : '',
+        // 立体通道的**生效值**（不是表里的值：已过 fxScale、已夹进编译期上限），由 draw() 现填 ——
+        // 断言「六档单调递增」「奇迹显形前 = 收藏」读的就是它。写成读数而不是让 lab 自己算，
+        // 是因为「表里的值」与「真正送进着色器的值」中间还夹着打折与上限两道，读表会假绿。
+        fx: {
+          relief: +fxEff.relief.toFixed(4), steps: fxEff.steps,
+          sparkle: +fxEff.sparkle.toFixed(4), holo: +fxEff.holo.toFixed(4),
+          halo: +fxEff.halo.toFixed(4), cliff: +fxEff.cliff.toFixed(4),
+          glint: +fxEff.glint.toFixed(4),
+          bgZoom: +fxEff.bgZoom.toFixed(4), bgParMax: +fxEff.bgParMax.toFixed(4)
+        }
       };
+    },
+    // 把当前这一档的立体通道**临时**改掉（**只给 lab 拍对比图用**，与 setAngle 同一个来源）。
+    // 为什么需要它：高度、切边、星屑这些数值只有摆在一起比才定得下来，而它们全在 RANK_3D 里
+    // （闭包内、外面改不到）。浅合并：只覆盖传进来的那几项，其余仍按档位表走；传 null 恢复。
+    setFx: function (over) {
+      fxOverride = over || null;
+      if (pinned && canvas && canvas.clientWidth) { resize(); draw(); } else kick();
     },
     // 把卡钉在指定角度（lab 拍照用；pin=true 时不起弹簧，不会被拉回正面）。
     // pin 时**同步画一帧**而不是排进 rAF：lab 里紧接着就要把画布 drawImage 到合成图上，

@@ -590,6 +590,78 @@ if (!existsSync(CARD3D)) {
         `超出的档位取到 undefined，卡背那圈徽记环会**静默画不出来**`
     );
   }
+
+  /* ⑧ 立体通道的**完整性**与**单调性**（2026-09-21 加，与用户那条「不同级别的立体效果要有
+     差异体现」一一对应）。两条都是静默失败：
+       · 某一档漏写一个通道 → 那一档的那一项沿用 undefined → gl.uniform1f(undefined) 静默无效
+         （效果就是没有），页面上看不出来；
+       · 某一档的数值比下一档还小 → 阶梯反了，而只有把两档摆在一起才看得出来。
+     再核一条**名称对齐**：initGL 里的 uniform 名单与 draw() 里实际设置的必须一一对应 ——
+     名字拼错时 getUniformLocation 返回 null，而 uniform1f(null, x) 只是静默无效。 */
+  const FX_LEGACY = ['metal', 'emis', 'diff', 'relief', 'back', 'shadow', 'sweep'];
+  const FX_NEW = ['steps', 'sparkle', 'holo', 'halo', 'cliff', 'glint', 'bgZoom', 'bgPar'];
+  const FX_ALL = FX_LEGACY.concat(FX_NEW);
+  // 单调不减的通道（back 是序号、glint 只在拖动时有值，都参与；metal/emis/diff 本来就是阶梯）
+  const MONO = FX_ALL.filter((f) => f !== 'glint');
+  const objs = [...block.matchAll(/([a-z]+)\s*:\s*\{([^}]*)\}/g)];
+  if (!objs.length) {
+    failures.push(`✗ ${CARD3D} 里没能解析出 RANK_3D 每档的字段 —— 解析正则与代码结构脱节了，请同步`);
+  }
+  const perRank = new Map();
+  for (const m of objs) {
+    const fields = new Map();
+    for (const f of m[2].matchAll(/([a-zA-Z][a-zA-Z0-9]*)\s*:\s*(-?[\d.]+)/g)) {
+      fields.set(f[1], Number(f[2]));
+    }
+    perRank.set(m[1], fields);
+  }
+  for (const [rank, fields] of perRank) {
+    const miss = FX_ALL.filter((f) => !fields.has(f));
+    if (miss.length) {
+      failures.push(
+        `✗ ${CARD3D} 的 RANK_3D.${rank} 缺字段：${miss.join(' / ')} —— ` +
+          `缺的那一项会被当成 undefined，gl.uniform1f 静默无效（那一档就是没有这个效果）`
+      );
+    }
+  }
+  // 单调性：按 RANKS 的顺序（Set 的插入顺序就是阶梯顺序）逐通道比
+  const order = [...RANKS].filter((r) => perRank.has(r));
+  for (const f of MONO) {
+    for (let i = 1; i < order.length; i++) {
+      const prev = perRank.get(order[i - 1]).get(f), cur = perRank.get(order[i]).get(f);
+      if (prev === undefined || cur === undefined) continue;
+      if (cur < prev) {
+        failures.push(
+          `✗ ${CARD3D} 的 RANK_3D 通道「${f}」不单调：${order[i]} = ${cur} < ${order[i - 1]} = ${prev} —— ` +
+            `这是「等级越高立体效果越强」的骨架，反了就只有把两档摆在一起才看得出来`
+        );
+      }
+    }
+  }
+  // uniform 名单 vs draw() 里真正设置的。draw() 的函数体**按两个函数头切片**取，不用花括号
+  // 配平的正则：这个仓库的工作区是 CRLF，`\n  }\n` 那样的正则匹配不到（第一版就这么假绿过 ——
+  // 它报的是「解析不出」，而不是「对不上」）。
+  const listM = js.match(/\[([^\]]*uProj[^\]]*)\]\s*\.forEach\(\s*function\s*\(n\)/);
+  const listed = listM ? [...listM[1].matchAll(/'(\w+)'/g)].map((m) => m[1]) : [];
+  const di = js.indexOf('function draw()');
+  const dj = js.indexOf('function rankOf()', di);
+  const drawBody = di >= 0 && dj > di ? js.slice(di, dj) : '';
+  const used = [...new Set([...drawBody.matchAll(/\bU\.(\w+)/g)].map((m) => m[1]))];
+  if (!listed.length || !used.length) {
+    failures.push(`✗ ${CARD3D} 里没能解析出 uniform 名单或 draw() 的用法 —— 解析正则与代码结构脱节了，请同步`);
+  } else {
+    const notSet = listed.filter((n) => !used.includes(n));
+    const notListed = used.filter((n) => !listed.includes(n));
+    if (notSet.length || notListed.length) {
+      failures.push(
+        `✗ ${CARD3D} 的 uniform 名单与 draw() 对不上：` +
+          (notSet.length ? `名单里有但从未设置：${notSet.join(' / ')}；` : '') +
+          (notListed.length ? `draw() 设了但不在名单里：${notListed.join(' / ')}` : '') +
+          ` —— 后者的名字查不到 location，uniform1f(null, x) **静默无效**`
+      );
+    }
+    notes.push(`· 立体通道 ${FX_NEW.length} 项 × ${perRank.size} 档，uniform 名单 ${listed.length} 个（与 draw() 对齐）`);
+  }
 }
 
 /* ---------- ⑦ 工艺的两档（收藏库筛选条的分组） ----------

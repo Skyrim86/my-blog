@@ -27,13 +27,21 @@
      **收藏库复用这两档、不另出小图**：同一个规格命中同一份产物（public/images/cards/ 里那
      126 个文件），所以卡片墙**不会给整站加一个字节的图**。另出一档 160px 缩略图的话，
      63 张约 300KB，而整站 gzip 余量只有 229KB —— 与「今日一卡」当初的判断同一条口径
-     （见 docs/features.md ㊾）：宁可让网格用 272px 那张向下缩，也不多出一档产物。 */ -}}
+     （见 docs/features.md ㊾）：宁可让网格用 272px 那张向下缩，也不多出一档产物。
+
+     2026-09-21 多出第三档 `xl`（760px q72）：3D 查看器的台面从 430px 放大到 600px 之后，
+     卡面要占 517px 宽、2x 屏上 1034 个物理像素，544px 那档会被拉到近两倍（糊得看得见）。
+     **它不进 srcset**，只有两处用它：card-3d.js 的面贴图、弹层里那张平面大图 —— 于是
+     列表页的访客一个字节都不多下，只有真打开弹层的人下这一张（约 30KB）。 */ -}}
 {{- $items := slice }}
 {{- range index hugo.Data "home-cards" }}
 {{- $img := resources.Get .image }}
 {{- if $img }}
 {{- $small := $img.Resize "272x webp q78" }}
 {{- $large := $img.Resize "544x webp q70" }}
+{{- /* xl 只给 3D 查看器与弹层大图用（不进 srcset，见文件头）。q72：760px 已经比 544 大一档，
+       而它的用途是「放大看」，质量收到 q70 会在渐变处露出块 —— 实测这一档约 30KB/张。 */ -}}
+{{- $xl := $img.Resize "760x webp q72" }}
 {{- /* 浮雕高度图（3D 查看器用）：灰阶、与卡面同尺寸，路径**由 image 推导**（不是 YAML 字段，
        见 tools/cards/make-depth.py 头部）。指纹一下是为了缓存失效：重出深度图后 URL 会变。
        缺失时只是这一张卡转起来是平的 —— 所以这里 warnf，check-deck.mjs 里还会在构建前阻断。 */ -}}
@@ -67,7 +75,7 @@
     "kintsugi" "advanced" "filigree" "advanced" "enamel" "advanced" }}
 {{- $rank := .rank | default "collector" }}
 {{- $items = $items | append (dict
-    "s" $small.RelPermalink "l" $large.RelPermalink
+    "s" $small.RelPermalink "l" $large.RelPermalink "xl" $xl.RelPermalink
     "w" $small.Width "h" $small.Height
     "d" $durl
     "label" (.name | default .series) "series" .series "style" $style

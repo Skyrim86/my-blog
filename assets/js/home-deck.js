@@ -327,10 +327,13 @@
 
   function fillDialog(item) {
     if (!item) return;
-    bigImg.src = item.l || item.s;
-    // 2x 产物的真实尺寸 = 模板给的 1x 尺寸 ×2（srcset 里就是这么配对的）
-    bigImg.width = (item.w || 0) * 2;
-    bigImg.height = (item.h || 0) * 2;
+    // 平面大图用 xl（760px）那一档：台面 2026-09-21 放大到 600px 之后，544px 的 2x 会被拉到
+    // 1.9 倍（2x 屏上更糊），而这张图是「没有 WebGL 时」访客唯一能看到的东西。
+    // 它不进 srcset，所以列表页不会因为这一档变重（账见 docs/features.md ㊳）。
+    bigImg.src = item.xl || item.l || item.s;
+    // xl 的真实宽度 = 760（1x 那张 272 的 2.79 倍）；拿不到就退回按 2x 估
+    bigImg.width = Math.round((item.w || 0) * 2.79) || 760;
+    bigImg.height = Math.round((item.h || 0) * 2.79) || 1064;
     metaName.textContent = item.label || '';
     metaSeries.textContent = item.series || '';
     metaIndex.textContent = pad(i + 1) + ' / ' + pad(items.length);

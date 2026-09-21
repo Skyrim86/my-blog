@@ -22,6 +22,14 @@
 #    先做一次小半径高斯（sigma 2px），够平掉噪点又不糊掉五官。
 # 3. **必须只吃「已取景的卡面」，不吃源图**：深度图要跟链接着色器的纹理逐像素对齐，而那张纹理
 #    是 make-cards.py 裁过的。所以本脚本读 assets/images/cards/*.webp，**必须后跑**。
+# 4. **轮廓处要倒角**（`--fillet`，2026-09-21 加）。高度场在「主体 ↔ 背景」之间是从 0 直接跳到
+#    0.5 的**断崖**，着色器把它当位移用时，那道崖壁就是一堵竖直的墙 —— 位移一小还看不出来
+#    （旧口径 2.2% 卡宽），一旦加高（现在传世/奇迹到 ~5%）就露馅，读作「贴上去的纸片」。
+#    这就是项目里「5% 像纸板」那条结论的根因。做法照 holo3D-card 那套：找崖边 → 算到崖边的
+#    距离 → 用 sin(π/2·u) 把高度沿距离压成圆坡（真卡压凸、铜章浮雕在边缘都是这么起的）。
+#    **只对贴着背景的那一圈起坡**：发丝、褶皱这些画面内部的落差是细节，不是崖壁。这一步只改
+#    灰阶、不动几何，所以不会引入对齐问题。判据用「离背景多远」而不是「崖边多陡」——后者会被
+#    上一步的高斯摊平而**静默失效**（第一版 63 张里 58 张没倒上），细节见 fillet 的注释。
 #
 # 模型：Depth Anything V2 Small。huggingface.co 在本机不通，走 **hf-mirror.com**（HF_ENDPOINT）；
 # 首次运行下载约 100 MB 到 HF 缓存，之后离线可用。本机 CUDA 可用（实测一张约 1~2 秒）。
@@ -36,7 +44,7 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 import yaml  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
-from scipy.ndimage import gaussian_filter  # noqa: E402
+from scipy.ndimage import gaussian_filter, median_filter  # noqa: E402
 from transformers import AutoImageProcessor, AutoModelForDepthEstimation  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -48,6 +56,13 @@ MODEL = "depth-anything/Depth-Anything-V2-Small-hf"
 QUALITY = 75          # 灰阶图没有细节纹理，q75 实测 600×840 约 6 KB（卡面画作本身 44 KB）
 BLUR = 2.0
 EDGE = 0.06           # 边缘带的宽度比例：取四周 6% 的深度中位数当「背景基准」
+BG_EPS = 0.05         # 算作「背景」的高度上限：倒角只从贴着背景的那一圈起坡（见 fillet 的注释）
+FILLET = 0.027        # 圆角半径 = 卡面宽度 × 这个比例（600px 上约 16px；0 = 不倒角，用于前后对比）
+# 取值口径：它决定轮廓那道坡有多缓，也决定「浮雕轮廓比画面轮廓向内缩多少」（同一个数）。
+# 参考站默认 14px / 1536 宽 ≈ 0.9%；我们取 2.7%（600px 上 16px），因为它的位移是卡高的
+# 两成、我们是百分之几 —— 坡不够宽，位移一加大就还是「一堵墙」。代价是轮廓向内缩同样多，
+# 所以「损失」那个体检数要盯着；真要改，一键重出 63 张只要 13 秒，别怕试。
+LOSS_WARN = 1.5       # 倒角把多少比例的画面「压掉」算异常（%，超过就在接触表上盯着看）
 
 
 def label_font(size=13):
@@ -99,7 +114,9 @@ def background_level(dn):
 
 
 def to_height(d, bg=None, toe=0.14):
-    """相对深度 → 高度场：把背景钳平成 0，同时**完整保留主体内部的高低层次**。
+    """相对深度 → 高度场（float 0~1，**还没量化**：倒角要在浮点上做，之后才乘 255）。
+
+    把背景钳平成 0，同时**完整保留主体内部的高低层次**。
 
     那个 toe（软脚）必须是**乘法**而不是单调坡：`t * smoothstep(0, toe, t)` ——
     大值几乎原样留下、只有背景附近的小值被连续压到 0。
@@ -110,8 +127,51 @@ def to_height(d, bg=None, toe=0.14):
         bg = background_level(dn)
     t = np.clip((dn - bg) / max(1e-3, 1.0 - bg), 0.0, 1.0)
     s = np.clip(t / toe, 0.0, 1.0)
-    t = t * (s * s * (3.0 - 2.0 * s))
-    return (t * 255.0).round().astype(np.uint8), bg
+    return t * (s * s * (3.0 - 2.0 * s)), bg
+
+
+def _shift(a, dy, dx):
+    """取 a 的邻域（越界用边缘值补）。
+
+    **不能用 np.roll**：它把对边卷过来，在画面边界处凭空造出崖边 —— 而那正是倒角要动手的地方，
+    结果是边框一圈被凭空压平。这个坑与着色器那边「位移必须在边缘收敛到 0」是同一条道理。"""
+    p = np.pad(a, 1, mode="edge")
+    h, w = a.shape
+    return p[1 + dy:1 + dy + h, 1 + dx:1 + dx + w]
+
+
+NEIGH = ((1, 0, 1.0), (-1, 0, 1.0), (0, 1, 1.0), (0, -1, 1.0),
+         (1, 1, 1.4142), (1, -1, 1.4142), (-1, 1, 1.4142), (-1, -1, 1.4142))
+
+
+def fillet(t, radius):
+    """轮廓倒角：让主体的边缘**从背景（0）平滑地长起来**，于是断崖变成 sin 圆坡。
+
+    口径是「**离背景多远**」，不是「崖边有多陡」：`h_new = h · sin(π/2 · d/radius)`，
+    d = 到最近背景像素的距离（限到 radius 就够，再远权重已饱和成 1）。贴着背景处高度为 0，
+    向内 radius 像素完全恢复原高 —— 就是真卡压凸 / 铜章浮雕在边缘的起坡。
+
+    **为什么不判崖边（踩过，别改回去）**：第一版照参考站的做法按「单像素落差 ≥ 0.15」找崖边，
+    而本脚本上一步刚做过 sigma 2 的高斯 —— 一个 0.8 的台阶被摊到 6~8 像素，每像素只走约 0.16，
+    阈值正好卡在边缘上：**63 张里 58 张一个崖边都没找到，静默没倒角**（字节与改前一模一样，
+    页面上也看不出来）。而参考站那份深度图是双边滤波（保边）出来的，崖是真的垂直，所以同样的
+    阈值在那边有效。合成测试图用的是硬台阶，因此当时是假绿 —— 判据本身对「已经平滑过」的输入
+    不成立，换个阈值也只是把失败边界挪个位置。改成距离场之后，无论上一步平滑多狠都成立。
+
+    只对**贴着背景**的部分起坡，画面内部的落差（发丝、衣褶）不动 —— 那些是细节不是崖壁。
+    代价要认清：**离背景 radius 以内的细线一定会被压低**（3px 宽的发丝整体落在 radius 内），
+    所以 radius 不能贪大，而且要拿 `损失` 那个体检数盯着（main 里算、超阈值打 ⚠）。"""
+    if radius < 1:
+        return t
+    bg = t <= BG_EPS
+    if not bg.any():
+        return t
+    dist = np.where(bg, 0.0, np.inf).astype(np.float32)
+    for _ in range(int(radius)):
+        for dy, dx, w in NEIGH:
+            dist = np.minimum(dist, _shift(dist, dy, dx) + w)
+    u = np.clip(dist / float(radius), 0.0, 1.0)
+    return t * np.sin(u * (np.pi / 2.0))
 
 
 def main():
@@ -121,6 +181,8 @@ def main():
     ap.add_argument("--clamp", type=float, default=None,
                     help="强制用这个绝对背景阈值（0~1），不给就按四边带自动估")
     ap.add_argument("--quality", type=int, default=QUALITY)
+    ap.add_argument("--fillet", type=float, default=FILLET,
+                    help="轮廓倒角半径（卡面宽度的比例，默认 0.02；给 0 就是不倒角）")
     args = ap.parse_args()
 
     with open(MANIFEST, encoding="utf-8") as f:
@@ -156,22 +218,49 @@ def main():
 
         im = Image.open(face_path).convert("RGB")
         d = infer(proc, model, dev, im)
+        hf, bg = to_height(d, args.clamp)
+        radius = max(0, int(round(im.width * args.fillet)))
+        lost = 0.0
+        if radius:
+            f = fillet(hf, radius)
+            # 「倒角铲掉了多少」——倒角**会**压低轮廓与细线，这是它的代价，所以量出来而不是感觉：
+            # 统计「原本有明显高度（>0.3）、倒角后掉了两成以上」的像素占比。它一异常（比如某张卡
+            # 满画都是细线）就能在接触表上一眼看出来，而不是悄悄把一张卡的细节磨平。
+            lost = float(((f < hf - 0.2) & (hf > 0.3)).mean()) * 100.0
+            hf = f
         if BLUR:
-            # 在 float 上模糊再量化：先在 uint8 上模糊会把 0 与 1 的交界抹出一圈台阶。
+            # **顺序是「先倒角、再高斯」**（2026-09-21 与第一版相反，实测定的）：
+            # 倒角的公式 `h · sin(π/2 · d/R)` 只压「贴着背景的那一段」。若先高斯再倒角，
+            # 落差早被高斯摊进 6~8 像素，乘法项就只剩「砍坡脚」——实测坡宽仍 6px、最大每像素
+            # 落差仍 0.160，与完全不倒角一模一样，等于白做（第一版 63 张里 58 张如此）。
+            # 先倒角（在**锐场**上按 R 起一道坡）再高斯，坡度才真的随 R 变缓：
+            # R=7 → 坡宽 7px / 落差 0.120；R=16 → 11px / 0.070；R=25 → 15px / 0.047。
+            # 高斯在这里的职责也因此多了一条：把 sin 坡的拐点抹圆。
+            # 代价：背景贴轮廓的一圈被抬起约 0.05（按现在的位移约 1px），可忽略。
             # 用 scipy 而不是 ImageFilter：PIL 的 GaussianBlur 不支持 "F"（32 位浮点）模式，
             # 实测直接 ValueError: image has wrong mode。
-            d = gaussian_filter(d.astype(np.float32), BLUR, mode="nearest")
-        h8, bg = to_height(d, args.clamp)
+            # 中值 3×3 在**高斯之前**：深度模型（ViT）的补丁网格在高度场上留下一道
+            # 16 像素周期、约 1 个灰度级的台阶，而着色器的法线是 ±1 像素的梯度 —— 那道台阶
+            # 被放大成一道道等距直线（在「所有立体通道全关」的基线上也看得见，所以一度被
+            # 误当成新效果的锅）。实测（8 张卡的平均）：16 取模的梯度峰/谷 1.61 → 中值 3×3
+            # 后 1.20 → 再叠高斯 1.09。**它比「把高斯加大」对症**：高斯 4.0 也能压到 1.04，
+            # 但那把 6 像素级的真细节（发丝、花瓣边）一起糊了。中值是保边的，专治 1 像素台阶。
+            hf = median_filter(hf.astype(np.float32), 3, mode="nearest")
+            hf = gaussian_filter(hf, BLUR, mode="nearest")
+        h8 = (hf * 255.0).round().astype(np.uint8)
         Image.fromarray(h8, "L").save(dest, "WEBP", quality=args.quality, method=6)
         kb = os.path.getsize(dest) // 1024
         total += kb
         # 背景占比是个有用的体检数：钳平过头（>95%）说明阈值吃掉了主体，几乎没钳到（<20%）
         # 说明这张卡几乎没有背景可钳 —— 两种情况都该在接触表上多看一眼，而不是等渲染出来才发现。
         flat = float((h8 == 0).mean()) * 100
-        pairs.append((im, Image.fromarray(h8, "L"),
-                      f"{base}  {c.get('name') or c['series']}  bg={bg:.2f}  背景 {flat:.0f}%"))
+        flag = '  ⚠ 细节损失偏多' if lost >= LOSS_WARN else ''
+        pairs.append((
+            im, Image.fromarray(h8, "L"),
+            f"{base}  {c.get('name') or c['series']}  bg={bg:.2f}  背景 {flat:.0f}%  损失 {lost:.1f}%{flag}"))
         print(f"  {base:22s} {im.size[0]}x{im.size[1]}  {kb:3d} KB  背景基准 {bg:.2f}  "
-              f"背景占比 {flat:3.0f}%  {c.get('name') or c['series']}")
+              f"背景占比 {flat:3.0f}%  倒角 {radius}px 损失 {lost:.1f}%  "
+              f"{c.get('name') or c['series']}{flag}")
 
     if skipped:
         print(f"（跳过 {skipped} 张：深度图比卡面新，--force 可强制重出）")
