@@ -5,7 +5,7 @@
    —— 前三个分别落在 <head> 内与 </body> 之前，够不到这两个位置；404 那种「原件极短所以覆盖」
    的理由在这里不成立，真正的理由是位置本身就不可达。
 
-   与 themes/PaperMod/layouts/baseof.html 的差异只有三处，其余逐字保留（便于升级时逐行对拍）：
+   与 themes/PaperMod/layouts/baseof.html 的差异只有四处，其余逐字保留（便于升级时逐行对拍）：
      1. lang：site.Language（输出语言键 zh）→ site.Language.Locale（输出 hugo.toml 里
         [languages.zh] 的 locale = 'zh-CN'）。实测 og:locale 早就是 zh_CN、RSS 是 zh-CN，
         只有这里没跟上；改它不会连带改动别处的输出。
@@ -42,6 +42,7 @@
 {{- else }}
 <body id="top">
 {{- end }}
+    {{- if .IsHome }}{{ partial "deck-splash.html" . }}{{ end }}
     <a class="skip-link" href="#main-content">{{ i18n "skipToContent" }}</a>
     {{ partialCached "header.html" . .Page -}}
     <main class="main" id="main-content" tabindex="-1">

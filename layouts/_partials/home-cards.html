@@ -49,8 +49,12 @@
      data-flip="{{ i18n "deckFlip" }}" data-flip-back="{{ i18n "deckFlipBack" }}"
      data-rotate="{{ i18n "deckRotate" }}" data-gl-fail="{{ i18n "deckGlFail" }}">
     <div class="home-card home-card--{{ $first.style }} home-card-rank--{{ $first.rank }}" style="--art: url('{{ $first.l }}')">
+        {{- /* fetchpriority=high 是给它一个「先下」的提示：这是首屏唯一的卡面，也是 LCP 候选。
+               JS 首帧会换到「今天的第一张」，属性留在元素上，换过去那张照样吃这个优先级。
+               decoding=async 让解码别占住主线程 —— 它正好是视口内最大的一块画。 */}}
         <img draggable="false" src="{{ $first.s }}"
             srcset="{{ $first.s }} 1x, {{ $first.l }} 2x"
+            fetchpriority="high" decoding="async"
             width="{{ $first.w }}" height="{{ $first.h }}" alt="">
         {{- /* 换卡时的「上一张残影」：交叉淡入要两张同时在（只有一张 <img> 的话，换 src 的那一瞬间
               卡片几乎是空的）。它不下载新东西 —— 装的是刚显示过的那张，URL 已在缓存里；

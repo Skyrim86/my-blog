@@ -1,0 +1,21 @@
+{{- /* 入站揭幕（只在首页，调用点在 layouts/baseof.html 的 <body> 开头）。
+
+   它是一层盖住全屏的底衬，在**首屏就绪**（window load + 首张卡面 decode）后淡出。
+   三条设计边界，都是刻意的：
+
+     1. **退场不依赖 JS**。23-splash.css 里那条 `animation: … 3.2s forwards` 是兜底：JS 没跑、
+         抛错、或网络卡住时遮罩自己退场 —— 揭幕动画不能反过来变成「把访客挡在门外」。
+         JS 正常时由 home-deck.js 提前给 .is-done，走同一条 keyframes。
+     2. **prefers-reduced-motion: reduce 下整块不显示**（23-splash.css 里 display: none）——
+         与 reveal.js / theme-fade.js 同一条口径：减少动效的用户不该被加一层动画。
+     3. 纯装饰：aria-hidden，不播报、不进焦点序、pointer-events: none。
+
+   内容只有站名、一枚呼吸的菱形和一条跑光细线。**不写进度百分比**：那不是真实进度，
+   写死一个数字就是骗人。 */ -}}
+<div class="deck-splash" id="deck-splash" aria-hidden="true">
+  <div class="deck-splash-inner">
+    <span class="deck-splash-mark"></span>
+    <p class="deck-splash-name">{{ site.Title }}</p>
+    <div class="deck-splash-bar"><i></i></div>
+  </div>
+</div>

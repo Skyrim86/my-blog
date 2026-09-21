@@ -1,0 +1,116 @@
+/* 入站揭幕（结构在 layouts/_partials/deck-splash.html，退场时机在 assets/js/home-deck.js）。
+   编号排在最后是刻意的：它要在合并后的主包尾部，晚于 00-theme.css 里那批变量的定义。
+
+   三条边界见 partial 的文件头注释（CSS 兜底退场 / reduced-motion 不显示 / 纯装饰）。
+   这里只重复最要紧的一条：`.deck-splash` 自己带一条 3.2s 后自动退场的 animation，
+   `.is-done` 那条会覆盖它 —— 同一个 animation 属性，后者优先。**两条都不能删**：
+   只有 `.is-done` 的话，JS 一挂遮罩就永远盖着页面。
+
+   尺度是照着实拍调过的：第一版菱形 9px、站名 13px，截出来读作「像没加载出来的空白页」
+   （元素太小、留白过散）。现在这组（描边菱形 15px / 站名 15px 主色 / 细线 168px / 间距 18px）
+   整组约 80px 高，是「克制」和「有东西」之间的那一档；再放大就俗了。 */
+
+.deck-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 40;                 /* 高于正文与顶栏；主题的 .top-link 在 10/20 那一档 */
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  background: var(--theme);
+  color: var(--primary);
+  pointer-events: none;        /* 退场万一失败也不挡任何点击 */
+  animation: deck-splash-retreat 0.5s ease 3.2s forwards;
+}
+
+.deck-splash.is-done {
+  animation: deck-splash-retreat 0.45s ease forwards;
+}
+
+@keyframes deck-splash-retreat {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.deck-splash-inner {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  animation: deck-splash-in 0.55s cubic-bezier(0.22, 0.8, 0.24, 1) both;
+}
+
+@keyframes deck-splash-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* 一枚呼吸的描边菱形（正方形转 45°）。描边而不是实心：实心块在浅色主题下读起来像错位的小方块 */
+.deck-splash-mark {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--primary);
+  transform: rotate(45deg);
+  animation: deck-splash-pulse 1.7s ease-in-out infinite;
+}
+
+@keyframes deck-splash-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: rotate(45deg) scale(0.86);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: rotate(45deg) scale(1);
+  }
+}
+
+/* 中文在小字号 + 大字号距下笔画会被稀释（实拍里读作浅灰虚字，其实颜色是主色）——
+   字号提一档、字距收一档、加半档字重把笔画压住，比改颜色管用。 */
+.deck-splash-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;          /* 抵消末字后面多出来的那一个字距，整体才真的居中 */
+  color: var(--primary);
+}
+
+.deck-splash-bar {
+  position: relative;
+  width: 168px;
+  height: 1px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.deck-splash-bar i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 52px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: deck-splash-sweep 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes deck-splash-sweep {
+  from {
+    transform: translateX(-52px);
+  }
+
+  to {
+    transform: translateX(168px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-splash {
+    display: none;
+  }
+}

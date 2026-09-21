@@ -56,6 +56,7 @@ my-blog/
 │   │   ├── 20-theme-fade.css  #     明暗切换的过渡（施加时机在 assets/js/theme-fade.js）
 │   │   ├── 21-card-deck.css   #     首页卡片组 + 收藏库卡片墙 + 3D 弹层（21 之后的编号见下）
 │   │   ├── 22-reveal.css      #     滚动出现动画（配对脚本：assets/js/reveal.js）
+│   │   ├── 23-splash.css      #     入站揭幕遮罩（结构在 _partials/deck-splash.html，退场在 home-deck.js）
 │   │   ├── 26-lightbox.css    #     正文图片灯箱（配对脚本：assets/js/lightbox.js）
 │   │   └── 27-bento.css       #     关于页的拼贴 Bento（模板 _shortcodes/bento.html，数据 data/about-bento.yaml）
 │   ├── css/view-transition.css  # 切页转场（原生 View Transitions）。**不压缩、单独外链**，刻意不放进 extended/
@@ -165,6 +166,7 @@ my-blog/
 │       ├── home-clock.html    #   首页「时间与时钟」面板（数字由 assets/js/home-clock.js 填）
 │       ├── home-cards.html    #   首页 hero 底部的卡片组（一次一张 + 3D 弹层入口）
 │       ├── home-chara.html    #   首页 hero 里的角色立绘（备选形态，**当前不调用**）
+│       ├── deck-splash.html   #   首页入站揭幕遮罩（只在 .IsHome 时由 baseof.html 挂载；退场不依赖 JS）
 │       ├── deck-manifest.html #   卡片清单 → 条目切片（渲染与 JS 共用的那一份数据）
 │       ├── deck-filters.html  #   卡片的手绘感滤镜（**必须内联**：data-URI filter 在 WebKit 上不可靠）
 │       ├── deck-wall.html     #   收藏库的卡片墙（63 张一次铺开，见 ㊿）
@@ -467,7 +469,7 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与 assets/ima
 | HTML 合计 | 17783 KB | — | 占整站 72%；已删掉 JSON-LD 里的正文副本（见下） |
 | 图片合计 | 6529 KB | — | 占整站 26%：63 张卡的 3 档派生图 5.9 MB + 深度图 0.6 MB + 背景/看板娘/封面（见下） |
 | JS 合计 | 112 KB | — | 18 个脚本，已经很小 |
-| CSS 合计 | 198 KB | — | 主包（26 个 extended 文件 Concat + minify）约 168.5 KB + 自托管 KaTeX 22.8 KB，其余是零星小包。2026-09-21 加了四种工艺之后 21-card-deck.css 从 117.1 → 120.0 KB（+2.9 KB） |
+| CSS 合计 | 199 KB | — | 主包（26 个 extended 文件 Concat + minify）约 168.5 KB + 自托管 KaTeX 22.8 KB，其余是零星小包。2026-09-21 加四种工艺后 21-card-deck.css 117.1 → 120.0 KB、加入站揭幕后 23-splash.css 约 3.1 KB |
 | 搜索索引 | 48 KB | — | 预算 56 KB，余量 14% |
 
 **2026-09-18 做过一次真实瘦身**：删掉 JSON-LD 里 BlogPosting 的 `articleBody`（把整篇正文复制进 `<head>`，见 features.md ㉟）与左侧看板娘。整站 gzip 3260 → 2934 KB，最重一页 gzip 108 → 75 KB。这是本章唯一一次「测出问题并动手」的例子——其余都是测量后确认无需改动。

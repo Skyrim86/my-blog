@@ -689,4 +689,32 @@
     prefetch();
     start();
   }
+
+  /* 入站揭幕的退场（结构与样式在 layouts/_partials/deck-splash.html 与 23-splash.css）。
+     就绪判据取「window load 且首张卡面 decode 完成」—— 缺一个都会露出半成品：只等 load
+     的话首卡图可能还在解码（视口内的图不阻塞 load 事件），只等图的话字体与布局还没到位。
+     三条边界：最短 MIN_MS（页面太快时遮罩闪一下就没了，比不加还难看）、最长 MAX_MS
+     （网络慢也先放人进门）、以及 CSS 里那条 3.2s 的兜底 animation —— 最后这条负责
+     JS 整个没跑起来的情况，这里一个字都不用做。 */
+  (function initSplash() {
+    var el = document.getElementById('deck-splash');
+    if (!el) return;                                     // 非首页没有这个节点
+    var MIN_MS = 420, MAX_MS = 2600;
+    var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+    var img = document.querySelector('.home-card img');
+    function retreat() {
+      var now = (window.performance && performance.now) ? performance.now() : Date.now();
+      window.setTimeout(function () { el.classList.add('is-done'); },
+                        Math.max(0, MIN_MS - (now - t0)));
+    }
+    var loadDone = new Promise(function (r) {
+      if (document.readyState === 'complete') r();
+      else window.addEventListener('load', r, { once: true });
+    });
+    var imgDone = (img && img.decode) ? img.decode().catch(function () {}) : Promise.resolve();
+    Promise.race([
+      Promise.all([loadDone, imgDone]),
+      new Promise(function (r) { window.setTimeout(r, MAX_MS); })
+    ]).then(retreat);
+  })();
 })();
