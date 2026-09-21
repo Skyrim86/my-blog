@@ -138,6 +138,17 @@
 - **两个页面 title 完全相同**：列表页与搜索结果里分不出谁是谁（`check-frontmatter.sh` 会警告）。2026-09-18 之前这条还意味着**评论串页**——当时 giscus 用 `mapping='title'`，数值分析两章的「学习笔记」「作业」会共用同一条 discussion；现在 `mapping='pathname'`（URL 唯一），评论不再串页
 - **`\textcircled{1}` 在这套环境下渲染是**对的**，别因为 CSS 里搜不到 `.textcircled` 就以为它坏了**：`static/katex/katex.min.css` 里确实没有 `circled`/`enclose` 规则，但圈的定位是 KaTeX 生成的 vlist **内联**布局，不依赖那条 CSS。实测（`content/projects/CMC2026/problem-01/solution.md` 里那 5 处）：圈 20×23px、数字 10×23px，**中心偏移 (0, 0)**，数字正好在圈里。教训是**不要用「CSS 里搜不到类名」推断渲染坏掉**；真要量就量**同一构造内**配对的元素——第一次量出「圈浮在数字上方 27px」是因为把相邻构造的数字和圈配到了一起
 
+### 设计好的动效一直不跑：CSS 写全了、类名却没人加
+
+首页卡片组的换卡动效（方向位移 + 画面交叉 + 扫光）整套写在 `21-card-deck.css` 的 `.home-card.is-in` 下，而 `home-deck.js` 里只有 `card.classList.remove('is-in')`（回收的那一半），**`add` 从来没人写** —— 于是动画一次都没跑过，换卡实际是「新图瞬切 → 旧图盖住 → 340ms 后啪一下消失」。2026-09-21 用户报「卡片切换太生硬」，才把它翻出来。
+
+**为什么静默**：类名缺失不是错误 —— CSS 规则齐全、构建全绿、控制台干净、链接与体积校验也都绿，`prefers-reduced-motion` 更管不着它。**判据**：动效「有 CSS 却看不出在跑」时，先查那个触发类有没有被加上 ——
+`document.querySelector('.home-card').getAnimations().map(a => a.animationName)` 返回空数组就是它。
+
+**同一类还有第二种形态**：类加了，但元素不在渲染树里（弹层的 `.home-deck-stage` 在 `hidden` 的弹层下）——`getAnimations()` 对**不在渲染树**的元素返回空，会让人误判成「没绑上」。要量弹层里的动效就先打开弹层。
+
+**验证办法**（`lab/shots/deckcheck.py`）：点一次换卡后**同一 tick** 读四点 —— ① 触发类在不在；② `getAnimations()` 里三条动画的名字与时长；③ 主图与残影的 computed opacity 起点是不是 `0 / 1`（互补）；④ 整卡的 opacity 是不是恒 1。截图看不出这些，而且 headless 里 `Page.captureScreenshot` 一次要几百 ms，等它回来 340ms 的动画早跑完了（实测每个采样点都落在结束态）—— 采样只能用纯 `evaluate` 快采。
+
 ### 点卡片跳到 `/null`：`null` 会被 URL 解析器变成一个「能用」的坏地址
 
 `assets/js/toolbox.js` 的 `targetOf()` 曾经这么取地址：

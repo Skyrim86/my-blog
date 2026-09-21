@@ -563,10 +563,15 @@
   font-size: .72rem;
 }
 
-/* 换卡：**交叉淡入 + 方向感**。
+/* 换卡：**画面交叉淡入 + 方向位移**。
    上一版是「先淡出到 10% → 200ms 后换 src → 再淡入」，中间那一瞬卡上几乎没有东西（只有 10% 的影子）。
-   现在用一张 `.home-card-ghost` 装住**刚显示过的那一张**（URL 已在缓存里，不多下任何东西），
-   主图立刻换成新的：两张在 320ms 里交叉 —— 中间没有空白帧。
+   现在用一张 `.home-card-ghost` 装住**刚显示过的那一张**（URL 已在缓存里，不多下任何东西）：
+   主图从 0 淡入、残影从 1 淡出，两张在 0.34s 里真正交叉 —— 中间没有空白帧。
+   **整卡不参与 opacity，只走位移**：卡框（雕花框 / 等级层 / 信息带）在换卡期间保持稳定，
+   淡入淡出只发生在画面那一层。整卡若一起淡入，子元素（含残影）会被一起乘算 ——
+   中段新旧两张都只剩半透明、底色透出来，看着像「卡被擦掉又重画一遍」。
+   2026-09-21 用户报的「切换生硬」查出是两件事叠加：**`.is-in` 这个类 JS 从没加上过**
+   （整套动画一次都没触发，静默、不报错，见 traps.md），以及上面那条整卡 opacity 的乘算。两处一起改。
    方向感来自 `.is-next` / `.is-prev`：新卡从来的那一侧滑进来、旧卡往反方向退，
    「上一张 / 下一张」在视觉上分得出来（原来两个方向都是同一套淡入，看不出往哪边翻）。
    `backwards` 而不是 `both`：动画结束后不能继续把 transform 钉住，否则卡片的悬停上浮会失效。 */
@@ -580,8 +585,8 @@
   pointer-events: none;
 }
 
-.home-card.is-next { --deck-from: 26px; }
-.home-card.is-prev { --deck-from: -26px; }
+.home-card.is-next { --deck-from: 34px; }
+.home-card.is-prev { --deck-from: -34px; }
 
 .home-card-ghost.is-on {
   visibility: visible;
@@ -589,28 +594,44 @@
 }
 
 .home-card.is-in {
-  animation: deck-in .32s cubic-bezier(.2, .7, .3, 1) backwards;
+  animation: deck-in .34s cubic-bezier(.22, .8, .24, 1) backwards;
 }
 
+/* 画面层自己交叉：主图从 0 淡入，与残影的淡出互补 —— 这两条才是真正的 crossfade。
+   整卡不进 opacity（见上面那段说明）：否则中段新旧两张都被乘成半透明。 */
+.home-card.is-in > img:not(.home-card-ghost) {
+  animation: deck-art-in .34s cubic-bezier(.22, .8, .24, 1) backwards;
+}
+
+/* 玻璃的厚度层（`--art`）在换卡时是瞬换的，单独给它一次淡入 */
+.home-card.is-in .home-card-lens {
+  animation: deck-art-in .34s ease backwards;
+}
+
+/* 扫光：时长与位移**同步**结束。它原来写 0.65s，而 is-in 在 340ms 就被摘掉 ——
+   扫到一半的高光会被直接抽走（看着像闪断）。 */
 .home-card.is-in::after {
-  animation: deck-sweep .65s ease;
+  animation: deck-sweep .34s ease;
 }
 
 .home-card.is-in .home-card-ghost.is-on {
-  animation: deck-ghost-out .32s cubic-bezier(.2, .7, .3, 1) forwards;
+  animation: deck-ghost-out .34s cubic-bezier(.22, .8, .24, 1) forwards;
 }
 
 @keyframes deck-in {
   from {
-    opacity: 0;
-    transform: translateX(var(--deck-from, 0)) scale(.975);
+    transform: translateX(var(--deck-from, 0)) scale(.96);
   }
+}
+
+@keyframes deck-art-in {
+  from { opacity: 0; }
 }
 
 @keyframes deck-ghost-out {
   to {
     opacity: 0;
-    transform: translateX(calc(var(--deck-from, 0px) * -1)) scale(.975);
+    transform: translateX(calc(var(--deck-from, 0px) * -1)) scale(.96);
   }
 }
 
@@ -822,6 +843,27 @@ html.is-deck-dialog #bottom-link {
   bottom: -.1rem;
   color: var(--secondary);
   font-size: .72rem;
+}
+
+/* 弹层里换卡（卡片墙 / 弹层内左右键）的那一下：**台面与文字做一次短交叉**。
+   3D 台面换的是 GL 纹理、平面大图那一支换的是 img.src，两者都换不了透明度交叉
+   （纹理要两张同时在场 = 两份 GL 上下文，不值），所以这里换的是「整块的一次呼吸」。
+   台面是 `position: relative` 而大图/画布是 `inset: 0` 的绝对定位子元素，缩放不会打乱布局；
+   动画结束 transform 回 none，台面的包含块语义也复原。
+   时长 340ms 与换卡一致（JS 到点摘类）；reduced-motion 下 JS 直接不触发。 */
+.home-deck-stage.is-swapping {
+  animation: deck-stage-swap .34s cubic-bezier(.22, .8, .24, 1);
+}
+
+@keyframes deck-stage-swap {
+  from {
+    opacity: .55;
+    transform: scale(.985);
+  }
+}
+
+.home-deck-dialog.is-swapping .home-deck-dialog-meta > * {
+  animation: deck-art-in .3s ease backwards;
 }
 
 /* 翻面按钮那一排：只有 3D 卡可用时才存在（脚本控制 hidden） */
@@ -1610,7 +1652,11 @@ a.home-deck-dialog-credit:hover {
 
   .home-card:hover { transform: none; }
   .home-card.is-in,
-  .home-card.is-in::after { animation: none; }
+  .home-card.is-in::after,
+  .home-card.is-in > img:not(.home-card-ghost),
+  .home-card.is-in .home-card-lens,
+  .home-deck-stage.is-swapping,
+  .home-deck-dialog.is-swapping .home-deck-dialog-meta > * { animation: none; }
 }
 
 /* 窄屏：卡再小一点，别把它挤成主角（14rem 随宽屏那档等比收：17 × 208/240 ≈ 14.7） */

@@ -467,7 +467,7 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与 assets/ima
 | HTML 合计 | 17783 KB | — | 占整站 72%；已删掉 JSON-LD 里的正文副本（见下） |
 | 图片合计 | 6222 KB | — | 占整站 25%：63 张卡的 3 档派生图 5.9 MB + 背景/看板娘/封面（见下） |
 | JS 合计 | 112 KB | — | 18 个脚本，已经很小 |
-| CSS 合计 | 193 KB | — | 主包（26 个 extended 文件 Concat + minify）约 165 KB + 自托管 KaTeX 23 KB，其余是零星小包 |
+| CSS 合计 | 194 KB | — | 主包（26 个 extended 文件 Concat + minify）约 165.6 KB + 自托管 KaTeX 22.8 KB，其余是零星小包 |
 | 搜索索引 | 48 KB | — | 预算 56 KB，余量 14% |
 
 **2026-09-18 做过一次真实瘦身**：删掉 JSON-LD 里 BlogPosting 的 `articleBody`（把整篇正文复制进 `<head>`，见 features.md ㉟）与左侧看板娘。整站 gzip 3260 → 2934 KB，最重一页 gzip 108 → 75 KB。这是本章唯一一次「测出问题并动手」的例子——其余都是测量后确认无需改动。

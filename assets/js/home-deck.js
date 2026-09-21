@@ -19,9 +19,11 @@
 //      重新计时。系统要求减少动态（prefers-reduced-motion: reduce）时**完全不自动轮播** —— 那也是一种
 //      动效，而且这类偏好的人往往就是被自动动的东西干扰的人。
 //   3. **预取后两张**：换过去时图已经在缓存里，不会先看到空白再出图。只预取两张，不是整副牌。
-//   4. **换卡是交叉淡入**：`.home-card-ghost` 装住刚显示过的那一张（URL 已在缓存里），主图立刻换成
-//      新的，两张在 320ms 里交叉 —— 中间没有空白帧（旧做法是先淡出到 10%、换 src、再淡入，
-//      那一瞬卡上几乎没东西）。同时按方向给位移：新卡从来的那一侧滑进来、旧卡往反方向退。
+//   4. **换卡是画面交叉淡入 + 方向位移**：`.home-card-ghost` 装住刚显示过的那一张（URL 已在缓存里），
+//      主图从 0 淡入、残影从 1 淡出，两张在 340ms 里交叉 —— 中间没有空白帧（旧做法是先淡出到 10%、
+//      换 src、再淡入，那一瞬卡上几乎没东西）。**整卡不进 opacity**（只走位移）：卡框要在换卡期间
+//      保持稳定，整卡一起淡入会把残影一起乘算、中段两张都只剩半透明。动的开关是
+//      `card.classList.add('is-in')` —— 这一行 2026-09-21 之前漏了，整套动画其实一次都没跑过。
 //      不用 3D 翻转：跨浏览器的 backface 与层次问题不值得为一副牌去啃。
 //   5. **按钮由脚本注入**：没有 JS 时只显示第一张卡（模板渲染的那张），不留下点不动的控件。
 //   6. **弹层用 `hidden` 属性开关**，不是只改类名：`hidden` 会让对比度脚本（只遍历可见元素）
@@ -120,7 +122,7 @@
   var creditLabel = deck.dataset.credit || 'credit';
   var dialogTpl = deck.dataset.dialog || '{label}';
   var AUTO_MS = 6000;
-  var FADE_MS = 320;     // 与 CSS 里 deck-in / deck-ghost-out 的时长一致
+  var FADE_MS = 340;     // 与 CSS 里 deck-in / deck-art-in / deck-ghost-out 的时长一致（0.34s）
   var i = 0;
   var timer = null;
   var busy = false;
@@ -509,10 +511,31 @@
     restartProgress();                 // 新的一张开始计时，进度条从头走
   }
 
+  /* 弹层里换卡（收藏库的卡片墙、以及弹层内按左右键）：**台面与文字做一次短交叉**。
+     3D 台面换的是 GL 纹理、无 WebGL 那一支换的是 img.src，两者都做不了透明度交叉
+     （纹理要两张同时在场，得两份 GL 上下文，不值）。所以这里给的是「整块的一次呼吸」：
+     台面短暂压暗回亮 + meta 文字淡入 —— 比硬切柔和，且完全不碰渲染管线。
+     2026-09-21 之前这里是硬切（原注释就写着「不做淡入淡出」）。 */
+  var swapTimer = null;
+  function swapDialog() {
+    if (reduced() || dlg.hidden) return;
+    stage.classList.remove('is-swapping');
+    void stage.offsetWidth;          // 去掉再加不会重播动画，中间要强制一次回流
+    stage.classList.add('is-swapping');
+    dlg.classList.add('is-swapping');
+    if (swapTimer) window.clearTimeout(swapTimer);
+    swapTimer = window.setTimeout(function () {
+      stage.classList.remove('is-swapping');
+      dlg.classList.remove('is-swapping');
+      swapTimer = null;
+    }, FADE_MS);
+  }
+
   function go(dir, manual) {
     // 卡片墙：页内没有卡可翻，切的就是弹层里那一张（左右键 / 弹层里的 ‹ › 都走这里）。
-    // 不做淡入淡出、不碰 busy —— 变化的只有弹层里的大图与 3D 卡。
+    // 不碰 busy —— 变化的只有弹层里的大图与 3D 卡，那一下由 swapDialog 柔化。
     if (!carousel) {
+      swapDialog();
       apply((i + dir + items.length) % items.length);
       prefetch();          // 弹层里连着往下翻时，下一张已经在缓存（见 prefetch 的注释）
       return;
@@ -531,6 +554,11 @@
     // 方向感：新卡从来的那一侧滑进来、旧卡往反方向退（两个方向原来长得一样，看不出往哪边翻）
     card.classList.toggle('is-next', dir > 0);
     card.classList.toggle('is-prev', dir < 0);
+    // **动画的开关**：CSS 里整套换卡动效（位移 + 画面交叉 + 扫光）全挂在 .is-in 下面。
+    // 2026-09-21 之前这里只有下面的 remove('is-in')、没有这一行 add —— 动画一次都没跑过，
+    // 换卡实际退化成「新图瞬切 → 旧图盖着 → 340ms 后啪一下消失」（用户报「切换生硬」）。
+    // 类名缺失不报错、CSS 规则又齐全，所以它一直静默着（见 docs/traps.md）。
+    card.classList.add('is-in');
     // 把**当前这一张**交给残影，主图立刻换成新的 —— 两张交叉，没有空白帧
     if (ghost) {
       ghost.src = img.src;
