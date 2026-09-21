@@ -390,7 +390,26 @@
     if (viewer) viewer.setOpen(true);
     stop();                        // 弹层开着时不要在背后换卡
     progress.classList.add('is-paused');
+    syncHash(true);                // 收藏库：把「打开的是哪一张」写进地址（首页那支不写，见那个函数）
     closeBtn.focus();
+  }
+
+  /* ---------- 深链（`#deck-07`）----------
+     **只有收藏库那支写**：63 张卡的下标是稳定的（与清单同序），所以 `#deck-07` 是一个能分享的
+     地址 —— 此前 63 张收藏卡一张地址都没有（知识卡每张都有 URL）。首页那支不能写：它的清单是
+     「今天的 12 张」（按日期种子抽的），同一个下标换一天就是另一张卡，分享出去会指错。
+     用 `replaceState` 而不是改 `location.hash`：后者会附赠一次「滚到锚点」的行为，而锚点在页面上
+     根本不存在（不存在的锚点不滚，但依赖这一点不如根本别触发）。 */
+  function syncHash(set) {
+    if (carousel || !window.history || !history.replaceState) return;
+    var id = '#deck-' + pad(i + 1);
+    try {
+      if (set) {
+        if (location.hash !== id) history.replaceState(null, '', id);
+      } else if (location.hash.indexOf('#deck-') === 0) {
+        history.replaceState(null, '', location.pathname + location.search);
+      }
+    } catch (e) { /* file:// 之类改不了地址：不影响弹层本身 */ }
   }
 
   function closeDialog() {
@@ -399,6 +418,7 @@
     dlg.hidden = true;
     document.documentElement.classList.remove('is-deck-dialog');
     deck.classList.remove('is-dialog');
+    syncHash(false);                     // 关掉就把深链收掉，别让刷新又开一次弹层
     // 焦点**还给打开它的那个控件**，而不是「记下打开前谁有焦点」：程序化触发的点击不会移动焦点，
     // 于是「打开前的焦点」往往在别处（实测回到 .list 上，键盘用户按 Esc 之后按 Tab 会从页面开头重来）。
     // lastOpener 默认是放大按钮；「今日一卡」从时间卡那边开的时候传的是它自己那颗按钮，

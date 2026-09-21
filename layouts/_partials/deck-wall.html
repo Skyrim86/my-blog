@@ -29,7 +29,16 @@
           形状 + 尺寸 + 颜色三样都由等级给）—— 它们是这小格子上**看**得出的等级，
           而格子下方那行文字（`系列 · 等级中文名`）是**读**得出的等级，两者不重复：一个是气氛、一个是信息。
           徽章在卡片墙上贴画面右下角（这一页没有名牌），在首页那张卡上进名牌条 —— 见
-          21-card-deck.css 里 `.home-card-plate .home-card-mark` 那条的对比度说明。 */ -}}
+          21-card-deck.css 里 `.home-card-plate .home-card-mark` 那条的对比度说明。
+
+     第三轮（2026-09-21 晚）又加了四样，都写在这一页里、不改卡面：
+       6. **序号 `#NN`** 印在名字前（i18n `deckTileNo`，`{{ .n }}` 是 Go 模板参数）：与首页名牌、
+          弹层里的 `07 / 63` 同一个口径 —— 63 张是一副**有序**的牌，这一页此前只有名字。
+       7. **等级显示用 `rankWallLabel`**：隐藏档在显形前显示「收藏」（`rankWall` / `rankWallLabel`
+          两个新字段在 deck-manifest.html 里，清单里的 `rank` 保持真值给 3D 用）。
+       8. **`--tile-base`（这张画的主色）** 当格子的垫底色：图是 lazy 的，此前解码前那一块是空底。
+       9. **页尾的出处清单**（`.deck-credits`）：服务端渲染的 `<details>`，按系列分组 —— 63 张的
+          credit 此前只有逐张打开弹层才看得到。 */}}
 {{- $items := partial "deck-manifest.html" . }}
 {{- with $items }}
 <div class="deck-wall" data-deck="{{ . | jsonify }}"
@@ -44,6 +53,16 @@
      data-empty="{{ i18n "deckFilterEmpty" }}"
      data-open="{{ i18n "deckOpenCard" }}"
      data-filter-label="{{ i18n "deckFilterLabel" }}"
+     {{- /* 2026-09-21 晚加的四条：分组视图的开关与组标题、角落那枚像素小人（随机翻一张）、
+            以及奇迹显形时的播报。少一条的表现与上面那批一样 —— 那一处退回英文兜底，不报错。 */}}
+     data-group-on="{{ i18n "deckGroupOn" }}" data-group-off="{{ i18n "deckGroupOff" }}"
+     data-group-head="{{ i18n "deckGroupHead" }}"
+     data-draw="{{ i18n "deckDraw" }}"
+     data-reveal="{{ i18n "deckRevealAnnounce" }}"
+     {{- /* 抽卡按钮上那枚像素小人：用**导航栏同一套图标**（assets/images/nav/*.png，32px 像素画），
+            取「收藏库」那一枚 —— 它是这一页自己的图标，不必另做一张。
+            路径经资源管线（换图/换文件名时 URL 跟着变）；取不到时按钮只显示文字，不报错。 */}}
+     {{- with resources.Get "images/nav/collection.png" }} data-draw-icon="{{ .RelPermalink }}"{{ end }}
      {{- /* 下面这几条是**弹层**要的（弹层与 3D 查看器共用 home-deck.js，它从根节点的 data-* 取文案）：
             少一条不会报错，只是那一处退回英文兜底（'close' / 'credit' / 'flip'）。
             轮播那几条（deckNext/Prev/Announce/Zoom）这里不给 —— 卡片墙上没有那些按钮。 */}}
@@ -55,7 +74,11 @@
         {{- range $n, $it := . }}
         {{- /* data-i = 这一格在清单里的下标：弹层与三维查看器都按它取卡（与 data-deck 的顺序一致） */}}
         <div class="deck-tile" data-i="{{ $n }}">
-            <span class="home-card home-card--{{ $it.style }} home-card-rank--{{ $it.rank }}" style="--art: url('{{ $it.l }}')">
+            {{- /* `--tile-base` 是这张画的主色（模板从调色板取的，见 deck-manifest.html 的 $tint）：
+                   格子的垫底色 —— 图是 lazy 的，滚到附近才开始下，没有它那一块在解码前是空底。
+                   `--art` 同首页（玻璃/金继的厚度层靠它再铺一遍同一张画作，不多一次请求）。 */}}
+            <span class="home-card home-card--{{ $it.style }} home-card-rank--{{ $it.rank }}"
+                  style="--art: url('{{ $it.l }}'){{ with $it.tint }}; --tile-base: {{ . }}{{ end }}">
                 <img draggable="false" src="{{ $it.s }}"
                     srcset="{{ $it.s }} 1x, {{ $it.l }} 2x"
                     width="{{ $it.w }}" height="{{ $it.h }}" alt=""
@@ -74,12 +97,46 @@
                 <span class="home-card-mark" aria-hidden="true"></span>
             </span>
             <span class="deck-tile-cap">
-                <span class="deck-tile-name">{{ $it.label }}</span>
-                <span class="deck-tile-meta">{{ $it.series }} · {{ $it.rankLabel }}</span>
+                {{- /* 序号（`#07`）+ 名字 + 「系列 · 等级」。斗大的序号是这一格的身份证：与首页名牌、
+                       弹层里的 `07 / 63` 同一个口径（清单顺序，1 起）。**等级那里用 rankWallLabel
+                       而不是 rankLabel** —— 隐藏档在显形前显示的是「收藏」这个名字，见 deck-manifest.html。 */}}
+                <span class="deck-tile-name"><span class="deck-tile-no">{{ i18n "deckTileNo" (dict "n" (printf "%02d" (add $n 1))) }}</span>{{ $it.label }}</span>
+                <span class="deck-tile-meta" data-series="{{ $it.series }}" data-rank="{{ $it.rank }}"
+                      data-rank-label="{{ $it.rankLabel }}" data-rank-wall="{{ $it.rankWallLabel }}">{{ $it.series }} · {{ $it.rankWallLabel }}</span>
             </span>
         </div>
         {{- end }}
     </div>
+
+    {{- /* 出处清单（2026-09-21 晚加）：63 张卡的 credit 一直只在**逐张打开弹层**时才看得到 ——
+          这一页是全站唯一「一次摆出所有卡」的地方，出处也应当一次摆全。
+          按系列分组、默认折叠（63 行摊开会把卡片墙推到很远）；`<details>` 是原生折叠，
+          禁 JS 也照样能用，所以它服务端渲染、不进 deck-wall.js。
+          带链接的写链接，没链接的（官方立绘、本站看板娘）只写文字 —— 不编一个指错地方的主页链接。
+          序号用与格子同一个口径（清单顺序，1 起）。 */}}
+    <details class="deck-credits">
+        <summary class="deck-credits-sum">{{ i18n "deckCredits" (dict "n" (len .)) }}</summary>
+        <p class="deck-credits-note">{{ i18n "deckCreditsNote" }}</p>
+        <div class="deck-credits-body">
+            {{- $series := slice }}
+            {{- range . }}{{ if not (in $series .series) }}{{ $series = $series | append .series }}{{ end }}{{ end }}
+            {{- range $s := $series }}
+            <section class="deck-credits-group">
+                <h3 class="deck-credits-series">{{ $s }}</h3>
+                <ul class="deck-credits-list">
+                    {{- range $n, $it := $items }}{{ if eq $it.series $s }}
+                    <li>
+                        <span class="deck-credits-no">{{ i18n "deckTileNo" (dict "n" (printf "%02d" (add $n 1))) }}</span>
+                        <span class="deck-credits-name">{{ $it.label }}</span>
+                        {{- with $it.url }}<a href="{{ . }}" target="_blank" rel="noopener noreferrer">{{ $it.credit }}</a>
+                        {{- else }}<span class="deck-credits-plain">{{ $it.credit }}</span>{{ end }}
+                    </li>
+                    {{- end }}{{ end }}
+                </ul>
+            </section>
+            {{- end }}
+        </div>
+    </details>
 </div>
 {{- partial "deck-filters.html" . }}
 {{- end }}

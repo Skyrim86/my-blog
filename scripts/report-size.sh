@@ -133,6 +133,13 @@ echo "▸ 压缩后体积（gzip -6，访客实际下载量的近似）"
 # 用 node 算 gzip 而不是调 gzip 命令：node 是本仓库的硬依赖（校验脚本全是 .mjs），而 gzip
 # 命令在 Windows/MSYS 上不一定在 PATH 里 —— 依赖一个可能不存在的工具，会让这一段**静默失效**，
 # 正是 traps.md 反复强调要避免的那类问题。node 跑不起来就明确报错退出，不静默跳过。
+# node 也是**原生 Windows 程序**，同样不认 MSYS 的 /tmp —— 与上面 hugo 那一段是同一个坑。
+# 2026-09-21 实测：--fresh 下这一段一直以「找不到 <tmp>/site」非零退出（目录其实刚建好、
+# 里面全是产物），因为 node 把 /tmp/... 当成了「当前盘符根下的 tmp」。量体积的输入单独
+# 转一次路径，MSYS 侧的 find / awk 那几段继续用 $DIR，不影响别的读数。
+NODE_ROOT="$DIR"
+if command -v cygpath >/dev/null 2>&1; then NODE_ROOT="$(cygpath -m "$DIR")"; fi
+
 comp_report="$(node -e '
 const { gzipSync } = require("zlib");
 const fs = require("fs");
@@ -158,7 +165,7 @@ console.log("TOTAL " + Math.round(totalGz / 1024) + " " + Math.round(totalRaw / 
 for (const [gz, raw, p] of html.slice(0, 5)) {
   console.log("PAGE " + Math.round(gz / 1024) + " " + Math.round(raw / 1024) + " " + p.replace(/\\/g, "/"));
 }
-' "$DIR")" || { echo "✗ 压缩体积测量失败（node 不可用？）—— 这一段不能静默跳过" >&2; exit 1; }
+' "$NODE_ROOT")" || { echo "✗ 压缩体积测量失败（node 不可用？）—— 这一段不能静默跳过" >&2; exit 1; }
 
 comp_total=0
 comp_page=0

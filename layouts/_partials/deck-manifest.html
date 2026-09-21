@@ -74,6 +74,23 @@
     "holo-prism" "advanced" "glass" "advanced" "gold" "advanced"
     "kintsugi" "advanced" "filigree" "advanced" "enamel" "advanced" }}
 {{- $rank := .rank | default "collector" }}
+{{- /* 卡片墙用的两样东西在这里一次算好 —— **注释不能写进下面那个 dict 的括号里**
+       （Go 模板的注释是独立动作，出现在表达式中间会报 `unexpected "{" in operand`，
+       这个仓库踩过一次，见 docs/traps.md）：
+
+       ① **垫底色**：`images.Color` 的 %v 就是 `#rrggbb`（v0.165 实测）。`img` 是 lazy 的，
+          滚到附近才开始下，此前那一格是空底（白闪）；有了它，解码前那里已经是这张画的主色。
+          **不下载任何新图**，63 个字段加起来约 0.9 KB 的 HTML。取不到调色板时留空，
+          CSS 侧对空值有兜底。
+       ② **显示等级**（rankWall / rankWallLabel）：奇迹在显形前借「收藏」这个名字与那套观感
+          —— 与卡面令牌同一条口径（card-3d.js 的 rankOf() 在显形前根本不给它华丽的那一套）。
+          为什么不直接把 rank 改成 collector：清单里的真值要留给 3D 查看器（它靠
+          `item.rank === 'miracle'` 决定要不要显形）与卡背文字，改掉它显形就永远不会发生。
+          卡片墙按这一对字段筛与显示，显形之后 deck-wall.js 收 deck:reveal 把那一格换回真名
+          —— 于是「63 张里那一张是隐藏档」不再被这一页的**文字**泄底。 */}}
+{{- $tint := "" }}
+{{- with $img.Colors }}{{ $tint = printf "%v" (index . 0) }}{{ end }}
+{{- $rankWall := cond (eq $rank "miracle") "collector" $rank }}
 {{- $items = $items | append (dict
     "s" $small.RelPermalink "l" $large.RelPermalink "xl" $xl.RelPermalink
     "w" $small.Width "h" $small.Height
@@ -88,11 +105,17 @@
         "starnight" (i18n "deckStyleStarnight") "frostcrack" (i18n "deckStyleFrostcrack")) $style)
     "styleTier" (index $styleTier $style)
     "rank" $rank
+    "rankWall" $rankWall
+    "rankWallLabel" (index (dict
+        "collector" (i18n "deckRankCollector") "rare" (i18n "deckRankRare")
+        "epic" (i18n "deckRankEpic") "arcane" (i18n "deckRankArcane")
+        "legend" (i18n "deckRankLegend") "miracle" (i18n "deckRankMiracle")) $rankWall)
     "rankLabel" (index (dict
         "collector" (i18n "deckRankCollector") "rare" (i18n "deckRankRare")
         "epic" (i18n "deckRankEpic") "arcane" (i18n "deckRankArcane")
         "legend" (i18n "deckRankLegend") "miracle" (i18n "deckRankMiracle")) $rank)
-    "credit" (.credit | default "") "url" (.credit_url | default "")) }}
+    "tint" $tint
+    "credit" (.credit | default "") "url" (.credit_url | default "") ) }}
 {{- else }}
 {{- warnf "data/home-cards.yaml 里的 %q 在 assets/ 下找不到（先跑 tools/cards/make-cards.py），这一张跳过" .image }}
 {{- end }}

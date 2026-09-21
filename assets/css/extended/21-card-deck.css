@@ -1399,7 +1399,13 @@ a.home-deck-dialog-credit:hover {
                              --rank-ring: rgba(255, 255, 255, .34);
                              --rank-mark-size: 13px; --rank-mark-fill: rgba(238, 240, 245, .92);
                              /* 圆点：clip-path: none + 半径 50% */
-                             --rank-mark: none;                    --rank-mark-radius: 50%; }
+                             --rank-mark: none;                    --rank-mark-radius: 50%;
+                             /* 框色显式写一遍（值 = `.home-card` 的基础默认值）：卡片墙上「等级那一排的
+                                色标」（.deck-chip-mark / .deck-rank-bar i）读的就是这个令牌，而它不在
+                                `.home-card` 里、继承不到基础值 —— 少了这一条，最低档的色标会退回
+                                `--rank-mark-fill`（近白），浅色主题下读成「没有颜色」。与上面那两条
+                                重复的令牌同一个理由：六档要是一张**完整的**表。 */
+                             --cframe: linear-gradient(150deg, #e8eaef, #9aa0ab 26%, #f7f8fb 50%, #878d99 74%, #d5d8de); }
 .home-card-rank--rare      { --rank-frame: 3px;   --rank-mat: 9px;  --rank-band: 1px; --rank-band-a: .3; --rank-line: rgba(30, 54, 42, .5); --rank-craft: .55;
                              --rank-foil: .12; --rank-orn: 0;   --rank-ring-op: .7;
                              --rank-ring: rgba(214, 246, 224, .40);
@@ -1436,7 +1442,9 @@ a.home-deck-dialog-credit:hover {
                              --rank-foil: 0;   --rank-orn: 0;   --rank-ring-op: .85;
                              --rank-ring: rgba(255, 255, 255, .34);
                              --rank-mark-size: 13px; --rank-mark-fill: rgba(238, 240, 245, .92);
-                             --rank-mark: none;                    --rank-mark-radius: 50%; }
+                             --rank-mark: none;                    --rank-mark-radius: 50%;
+                             /* 与 collector 同一条理由：显形前它就是收藏那一档，框色也照抄基础值 */
+                             --cframe: linear-gradient(150deg, #e8eaef, #9aa0ab 26%, #f7f8fb 50%, #878d99 74%, #d5d8de); }
 .home-card-rank--miracle.is-revealed {
   /* 显形后只换**角饰**（棱角碎星 = 专属徽章那一路），边框的结构仍是顶档那一套 ——
      这正是「所有卡共用一套边框语言、靠收放表达档位」的意思。 */
@@ -1850,5 +1858,278 @@ a.home-deck-dialog-credit:hover {
   .deck-wall-grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 12px 10px;
+  }
+}
+
+/* ============================================
+   卡片墙第二轮（2026-09-21 晚）：序号 / 垫底色 / 等级 chip 与比例条 / 分组视图 /
+   抽卡 / 出处清单 / hover 扫光。见 docs/features.md ㊿。
+
+   与上面那一段同属**版式**，所以同样写在这个文件「卡面风格」那一段之外
+   （check-deck.mjs 会扫风格段里的 1px 硬停渐变，这里没有那种东西）。
+
+   两条纪律：
+     · **凡是用了 [hidden] 的元素（分组标题 / 分组开关）都不要写 display** ——
+       [hidden] 的 display:none 会被作者样式压过（网格上的 .deck-tile 已经踩过一次，
+       见 docs/traps.md）。这里只有 `.deck-draw` 显式写 display，因为它从不 hidden、只 disabled。
+     · **等级的形状与颜色复用卡面那六条 `.home-card-rank--*` 令牌**，不另抄一套配色：
+       筛选条上那颗徽章与卡面右下角那枚是同一份定义（改等级只改那一处）。
+   ============================================ */
+
+/* 序号（`#07`）：等宽数字 —— 63 个两位数各占一行，不等宽时那一列会左右跳 */
+.deck-tile-no {
+  margin-right: .32rem;
+  font-size: .74rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--secondary);
+  opacity: .85;
+}
+
+/* 垫底色：`--tile-base` 是这张画的主色（模板从调色板取的，见 deck-manifest.html）。
+   图是 lazy 的、滚到附近才开始下，此前那一块是**空底**（深色主题下尤其明显）。
+   它是 `<span class="home-card">` 自己的背景色，图片盖在上面 —— 加载完成后看不见它。 */
+.deck-wall .home-card {
+  background-color: var(--tile-base, transparent);
+}
+
+/* 显形之后那一格的名字行换成主色：这是「你转出来了什么」在墙上的回执 */
+.deck-tile.is-revealed .deck-tile-meta {
+  color: var(--accent);
+}
+
+/* ---------- 等级 chip：带徽章 ----------
+   形状（--rank-mark）、大小（--rank-mark-size 不直接用，见下）、材质色（--cframe）全部来自
+   卡面那六条等级规则。**尺寸这里自己定 9px**：卡面上那枚是 13~22px 贴在 205px 的画上，
+   而 chip 里这一颗只有一行字那么高，用原尺寸会把 chip 顶起来。 */
+
+.deck-chip--rank {
+  gap: 6px;
+}
+
+.deck-chip-mark {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  /* 收藏与奇迹那两档没有 --cframe（它们的框是素色）→ 退回徽章自己的填充色 */
+  background: var(--cframe, var(--rank-mark-fill, currentColor));
+  clip-path: var(--rank-mark, none);
+  border-radius: var(--rank-mark-radius, 0);
+}
+
+/* ---------- 等级比例条 ----------
+   六档各占多宽 = 当前筛出来那批里各档的张数。它是这一页唯一把「稀有度到底多稀有」画出来的东西 ——
+   文字那行只说得出档名，说不出「传世 6 张、奇迹 1 张」这个量级。
+   **纯装饰、不可点**（aria-hidden）：同一件事不做第二个入口，点击仍然只认 chip。
+   宽度靠 flex-grow（basis 0），所以哪一档当前 0 张就自己消失，不会留下一条 0 宽的缝。 */
+
+.deck-rank-bar {
+  display: flex;
+  flex: 1 1 100%;          /* 自己占一整行（.deck-filter-row 是 flex-wrap） */
+  gap: 2px;
+  /* 5px：3px 那一版实测「容易被忽略」（截图上看不出它是六档的分布）；
+     再粗就开始像一条分隔线，所以停在这里。 */
+  height: 5px;
+  margin-top: 3px;
+  border-radius: 999px;
+  overflow: hidden;
+  /* 轨道用 `--edge`：这是全站唯一一个**两个主题都保证看得见**的边色令牌（浅色下 20% 黑、
+     深色下 18% 白）。它在这儿干两件事 —— 一是让最浅的那一档（收藏是银灰渐变）在浅色主题的
+     近白底上不「消失」（放大截图实拍确认过：铺在 --entry 上时那一整段读成留白），
+     二是让 2px 的 gap 变成五段之间的分隔线。 */
+  background: var(--edge);
+}
+
+.deck-rank-bar i {
+  background: var(--cframe, var(--rank-mark-fill, var(--secondary)));
+  border-radius: 999px;
+  transition: flex-grow .25s ease;
+}
+
+.deck-rank-bar i.is-zero {
+  opacity: 0;
+}
+
+/* ---------- 分组视图的标题 ----------
+   网格里的**整行项**（grid-column: 1/-1），由 deck-wall.js 按系列顺序插进网格。
+   `order` 用来排在它那一组前面 —— 所以 DOM 顺序（= tab 顺序）没有变，视觉顺序变了。 */
+
+.deck-group-head {
+  grid-column: 1 / -1;
+  margin: 1rem 0 .1rem;
+  font-size: .86rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--secondary);
+}
+
+.deck-group-head:first-child {
+  margin-top: 0;
+}
+
+/* 分组开关：与站上其它 chip 同族（--entry 底 + 1px --edge 环 + 选中 --accent） */
+.deck-group-toggle {
+  padding: 0 .6rem;
+  font: inherit;
+  font-size: .78rem;
+  line-height: 1.75;
+  color: var(--secondary);
+  background: var(--entry);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background-color .18s ease;
+}
+
+.deck-group-toggle:hover {
+  border-color: var(--accent);
+}
+
+.deck-group-toggle[aria-pressed="true"] {
+  color: var(--primary);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------- 抽卡（角落那枚像素小人）----------
+   图是**导航栏同一套 32px 像素画**里「收藏库」那一枚（assets/images/nav/collection.png），
+   显示放大到 26px ── pixelated 让它保持像素块，不被插值糊掉。
+   它只从**当前筛出来的**那些里抽（见 deck-wall.js 第 11 条），筛到 0 张时自己置灰。 */
+
+.deck-draw {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  margin-left: auto;              /* 结果行右端：张数在左、抽卡在右 */
+  padding: .1rem .6rem .1rem .25rem;
+  font: inherit;
+  font-size: .78rem;
+  color: var(--secondary);
+  background: var(--entry);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease;
+}
+
+.deck-draw img {
+  display: block;
+  width: 26px;
+  height: 26px;
+  image-rendering: pixelated;
+}
+
+.deck-draw:hover:not(:disabled) {
+  color: var(--primary);
+  border-color: var(--accent);
+}
+
+.deck-draw:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+/* ---------- 出处清单 ----------
+   63 张卡的 credit 此前只有逐张打开弹层才看得到。默认折叠（63 行摊开会把卡片墙推到很远），
+   `<details>` 是原生折叠、禁 JS 也能用。带链接的写链接（下划线 + 主色，不只靠颜色区分），
+   没链接的（官方立绘、本站看板娘）只写文字。 */
+
+.deck-credits {
+  margin-top: 1.6rem;
+  padding-top: .9rem;
+  border-top: 1px solid var(--edge);
+}
+
+.deck-credits-sum {
+  font-size: .84rem;
+  color: var(--secondary);
+  cursor: pointer;
+}
+
+.deck-credits-note {
+  margin: .55rem 0 0;
+  font-size: .76rem;
+  line-height: 1.6;
+  color: var(--secondary);
+}
+
+.deck-credits-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: .9rem 1.2rem;
+  margin-top: .7rem;
+}
+
+.deck-credits-series {
+  margin: 0 0 .3rem;
+  font-size: .78rem;
+  color: var(--primary);
+}
+
+.deck-credits-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deck-credits-list li {
+  display: flex;
+  gap: .4rem;
+  align-items: baseline;
+  font-size: .74rem;
+  line-height: 1.7;
+  color: var(--secondary);
+}
+
+.deck-credits-no {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  opacity: .7;
+}
+
+.deck-credits-list a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- hover 扫光：**只扫一次** ----------
+   首页那条「光在框上走一趟」是常驻动画（7s 无限），而它只挂在首页那一张卡上 ——
+   63 张一起常驻会是 63 个每帧重绘的渐变图层。这一页的取法是**能量守恒的版本**：
+   只在指针 / 键盘焦点落在某一格时扫一遍（600ms，动画本身只跑一次），稳态成本是 0。
+   门控**继承等级令牌**：`.home-card-fret` 的 opacity 是 --rank-orn（秘藏 .65 / 传世 1，
+   收藏/珍稀/史诗是 0），所以这一条规则不必再写「哪几档才有光」—— 低档自然没有。
+   （与首页那条口径相同：光属于高档。） */
+
+@keyframes deck-glint {
+  from { transform: translateX(-170%); }
+  to   { transform: translateX(170%); }
+}
+
+.has-deck-wall .deck-tile:hover .home-card-fret::after,
+.has-deck-wall .deck-tile:focus-visible .home-card-fret::after {
+  background: linear-gradient(100deg,
+    rgba(255, 255, 255, 0) 34%, rgba(255, 255, 255, .8) 50%, rgba(255, 255, 255, 0) 66%);
+  animation: deck-glint .6s cubic-bezier(.35, 0, .2, 1) 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .has-deck-wall .deck-tile:hover .home-card-fret::after,
+  .has-deck-wall .deck-tile:focus-visible .home-card-fret::after {
+    animation: none;
+  }
+}
+
+/* 窄屏：出处清单收成一列；比例条与那两枚按钮跟着字号缩一点 */
+@media (max-width: 640px) {
+  .deck-credits-body {
+    grid-template-columns: 1fr;
+  }
+
+  .deck-draw span {
+    display: none;               /* 只留那枚小人（320px 上「随机翻一张」会把结果行挤成两行） */
+  }
+
+  .deck-draw {
+    padding: .1rem .3rem;
   }
 }

@@ -1195,6 +1195,14 @@
     rebuildBack();
     if (deckEl) deckEl.classList.add('is-rank-revealed');
     console.info('[card3d] 奇迹显形（' + why + '）');
+    // 显形只发生在这个闭包里，外面拿不到它 —— 而收藏库的卡片墙要把那一格的名字行
+    // 从「收藏」改成「奇迹」（见 deck-wall.js 的 deck:reveal 监听）。所以广播一次，
+    // 谁在听谁更新；没人听也什么都不坏。
+    try {
+      document.dispatchEvent(new CustomEvent('deck:reveal', {
+        detail: { label: item.label || '', series: item.series || '', rank: item.rank || '' }
+      }));
+    } catch (e) { /* 没有 CustomEvent 构造器的老浏览器：墙上那行字不更新，其它照旧 */ }
     kick();
   }
 

@@ -44,7 +44,10 @@ const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClos
   'deckStyleFiligree', 'deckStyleEnamel', 'deckStyleStarnight', 'deckStyleFrostcrack',
   'deckFilterLabel', 'deckFilterSeries', 'deckFilterStyle', 'deckFilterRank',
   'deckFilterTierBasic', 'deckFilterTierAdvanced', 'deckFilterTierHint',
-  'deckFilterCount', 'deckFilterClear', 'deckFilterEmpty', 'deckOpenCard'];
+  'deckFilterCount', 'deckFilterClear', 'deckFilterEmpty', 'deckOpenCard',
+  // 卡片墙第二轮（2026-09-21 晚）：序号 / 分组 / 抽卡 / 显形播报 / 出处清单
+  'deckTileNo', 'deckGroupOn', 'deckGroupOff', 'deckGroupHead', 'deckDraw',
+  'deckRevealAnnounce', 'deckCredits', 'deckCreditsNote'];
 // 出处里能推出可点链接的几种写法（弹层里 credit_url 就用它核）；官方立绘 / 站点看板娘没有链接，留空是对的
 const CREDIT_URLS = [
   [/^pixiv (\d+)/, (m) => `https://www.pixiv.net/artworks/${m[1]}`],
@@ -520,6 +523,34 @@ for (const key of I18N_KEYS) {
   }
 }
 
+/* ---------- 卡片墙的 data-* 契约（deck-wall.js ↔ deck-wall.html）----------
+
+   2026-09-21 晚加。JS 侧一律用 `attr('bySeries')` 这种键名读文案，而模板那侧写成
+   `data-by-series` —— **中间那层 camelCase ↔ kebab-case 的对应是隐式的**：模板里漏写一条，
+   表现不是报错而是「那一处退回兜底英文（或空串）」，页面上只少一句提示语。
+   第二轮又往这个契约里加了四条（分组、抽卡、显形播报、抽卡图标），所以把它核起来。 */
+{
+  const WALL_JS = join('assets', 'js', 'deck-wall.js');
+  const WALL_TMPL = join('layouts', '_partials', 'deck-wall.html');
+  if (!existsSync(WALL_JS) || !existsSync(WALL_TMPL)) {
+    failures.push(`✗ 找不到 ${WALL_JS} 或 ${WALL_TMPL} —— data-* 契约这条守卫失效`);
+  } else {
+    const js = readFileSync(WALL_JS, 'utf8');
+    const tmpl = readFileSync(WALL_TMPL, 'utf8');
+    const kebab = (s) => s.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
+    const keys = new Set([...js.matchAll(/attr\('([A-Za-z]+)'/g)].map((m) => m[1]));
+    for (const k of [...keys].sort()) {
+      if (!tmpl.includes(`data-${kebab(k)}`)) {
+        failures.push(
+          `✗ ${WALL_TMPL} 缺 data-${kebab(k)}（deck-wall.js 用 attr('${k}') 读它）—— ` +
+            `那一处会静默退回兜底文案`
+        );
+      }
+    }
+    // 反方向只提示：模板里多给一条 data-* 不一定是错（弹层那几条 home-deck.js 也在读）
+  }
+}
+
 /* ---------- 3D 查看器的风格参数表 ----------
 
    YAML 里的 style 字段有**两处**消费点：首页那张卡走 CSS 类（home-card--<style>），
@@ -766,6 +797,20 @@ notes.push(
   `· 清单 ${entries.length} 张卡，用到 ${usedStyles.size} 种风格` +
     (unused.length ? `；CSS 里还有没用上的：${unused.join(' / ')}` : '')
 );
+
+// 工艺分布：2026-09-21 做过一次重排（金边 14 / 和纸 13 → 墨 1 / 星芒全息 1 的偏态），
+// 目标写成可核的数：**每种至少 3 张**。它不阻断（内容口径、不是错），但要看得见 ——
+// 卡片墙存在的一条理由就是「一眼看出这些不是同一种卡」，分布塌回两三种时那条理由就没了。
+{
+  const perStyle = new Map();
+  for (const c of entries) perStyle.set(String(c.style), (perStyle.get(String(c.style)) || 0) + 1);
+  const thin = [...perStyle.entries()].filter(([, n]) => n < 3).sort((a, b) => a[1] - b[1]);
+  const max = Math.max(...perStyle.values());
+  notes.push(
+    `· 工艺分布：最多 ${max} 张，最少 ${Math.min(...perStyle.values())} 张` +
+      (thin.length ? ` —— **${thin.map(([s, n]) => s + ' ' + n).join(' / ')} 少于 3 张**` : '（每种都 ≥ 3 张）')
+  );
+}
 
 for (const line of notes) console.log(line);
 
