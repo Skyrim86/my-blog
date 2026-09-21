@@ -25,7 +25,9 @@
   display: none;
   width: 16px;
   height: 16px;
-  margin-right: .34em;
+  /* 2026-09-21：.34em → .2em。导航加到第 9 项后行宽不够了，三处一起回收（账见 10-nav.css
+     文件头）—— 这里一项省约 2.2px、9 项约 20px，图标与文字之间仍留 3.1px 呼吸。 */
+  margin-right: .2em;
   vertical-align: -.2em;
   background-repeat: no-repeat;
   background-position: center;

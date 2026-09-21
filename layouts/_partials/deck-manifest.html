@@ -1,0 +1,64 @@
+{{- /* 卡片清单 → 条目切片：**渲染与 JS 共用的那一份数据**。
+
+     data/home-cards.yaml 是单一事实源（生成脚本 tools/cards/make-cards.py 读它出图，
+     tools/cards/make-depth.py 出浮雕高度图，scripts/check-deck.mjs 校验它）。
+     两个消费点现在都从这里取同一份形状：
+       · layouts/_partials/home-cards.html —— 首页那一张轮播卡
+       · layouts/_partials/deck-wall.html  —— 收藏库（/collection/）的 63 格卡片墙
+     2026-09-21 抽出来：卡片墙要把整份清单以 JSON 交给 JS（弹层按索引取卡），
+     而 JS 侧要的字段比卡面多（3D 浮雕用的 d、弹层里的 rankLabel/credit/url）——
+     两处各写一份的话，漏一个字段的表现是「弹层里那张卡转起来是平的」或「出处少一行」，
+     页面上不会报任何错。所以字段表只留这一份。
+
+     每条的键（JS 侧 assets/js/home-deck.js 与 card-3d.js 都在读）：
+       s/l 1x(272px)/2x(544px) 图 URL；w/h 尺寸；d 浮雕高度图 URL（**由 image 推导**）
+       label 名牌文字；series/style/rank 分类；styleLabel 工艺的**中文名**、rankLabel 等级的**中文名**（i18n）
+       credit/url 出处文字与可点链接
+
+     为什么把两个中文名也放进条目：卡片墙的筛选项（收藏库）是按系列/工艺/等级现算的，
+     而工艺**至今只有代码名没有中文名**（foil 全息 / washi 和纸 / kintsugi 金继…）——
+     这层映射放这里，消费点就不必各自维护一张表（check-deck.mjs 里核风格只用代码名）。 */ -}}
+
+     两档图**显式给质量**（2026-09-20）：Hugo 的 Resize 默认 q75，而这两档用途不同 ——
+     1x 那张是首屏真下的、要看清细节（保 q78）；2x 只在高分屏用，铺满一屏也就 272 逻辑像素，
+     收到 q70（webp 的 q70 约等于 jpeg 的 q85，画面是插画不是文字，看不出差别）。
+     一张卡两档合计约 38 KB，是首页体积的大头，加卡前先看 scripts/report-size.sh 的账。
+
+     **收藏库复用这两档、不另出小图**：同一个规格命中同一份产物（public/images/cards/ 里那
+     126 个文件），所以卡片墙**不会给整站加一个字节的图**。另出一档 160px 缩略图的话，
+     63 张约 300KB，而整站 gzip 余量只有 229KB —— 与「今日一卡」当初的判断同一条口径
+     （见 docs/features.md ㊾）：宁可让网格用 272px 那张向下缩，也不多出一档产物。 */ -}}
+{{- $items := slice }}
+{{- range index hugo.Data "home-cards" }}
+{{- $img := resources.Get .image }}
+{{- if $img }}
+{{- $small := $img.Resize "272x webp q78" }}
+{{- $large := $img.Resize "544x webp q70" }}
+{{- /* 浮雕高度图（3D 查看器用）：灰阶、与卡面同尺寸，路径**由 image 推导**（不是 YAML 字段，
+       见 tools/cards/make-depth.py 头部）。指纹一下是为了缓存失效：重出深度图后 URL 会变。
+       缺失时只是这一张卡转起来是平的 —— 所以这里 warnf，check-deck.mjs 里还会在构建前阻断。 */ -}}
+{{- $dpath := printf "images/cards/depth/%s" (path.Base .image) }}
+{{- $depth := resources.Get $dpath }}
+{{- $durl := "" }}
+{{- with $depth }}{{ $durl = (. | fingerprint).RelPermalink }}
+{{- else }}{{ warnf "深度图 %q 不在（跑 tools/cards/make-depth.py）——这张卡在 3D 查看器里会是平的" $dpath }}{{ end }}
+{{- $style := .style | default "foil" }}
+{{- $rank := .rank | default "collector" }}
+{{- $items = $items | append (dict
+    "s" $small.RelPermalink "l" $large.RelPermalink
+    "w" $small.Width "h" $small.Height
+    "d" $durl
+    "label" (.name | default .series) "series" .series "style" $style
+    "styleLabel" (index (dict
+        "foil" (i18n "deckStyleFoil") "holo-prism" (i18n "deckStyleHoloPrism")
+        "gold" (i18n "deckStyleGold") "glass" (i18n "deckStyleGlass")
+        "ink" (i18n "deckStyleInk") "washi" (i18n "deckStyleWashi")
+        "yukika" (i18n "deckStyleYukika") "kintsugi" (i18n "deckStyleKintsugi")) $style)
+    "rank" $rank
+    "rankLabel" (index (dict "collector" (i18n "deckRankCollector") "epic" (i18n "deckRankEpic") "legend" (i18n "deckRankLegend") "miracle" (i18n "deckRankMiracle")) $rank)
+    "credit" (.credit | default "") "url" (.credit_url | default "")) }}
+{{- else }}
+{{- warnf "data/home-cards.yaml 里的 %q 在 assets/ 下找不到（先跑 tools/cards/make-cards.py），这一张跳过" .image }}
+{{- end }}
+{{- end }}
+{{- return $items }}

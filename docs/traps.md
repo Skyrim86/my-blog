@@ -117,6 +117,10 @@
 | 往时间卡头部加一个元素，**下面月历的行高莫名变矮**（或整卡高度变了） | 头部那一行的高度由最高的子项决定；新元素只要高过时间那一行（实测 50px），头行就被顶高，而卡的总高被 `.home-clock` 的 `flex: 1 1 auto` 钉在 436 —— 差额只能从下面那块填充区里扣（实测头行每涨 10px，月历六行各矮 1.7px）。同时 `align-items: baseline` 会让新元素**按自己的基线**参与对齐，比 `align-self: center` 更容易把行顶高 | 新元素定高 ≤ 头行高并 `align-self: center`（本站微卡定 36×50）。**改完必须回头量头行高**，别只看那块新东西好不好看 |
 | `data-*` 文案填好了、脚本里取到的却是空串（不报错） | `read()` 这类助手取的是**某个固定元素**的 `dataset`（本站全部取 `.home-clock` 这个 section），而属性写在了它的子元素上 —— `el.dataset[key]` 返回 `undefined`，`.replace` 之类通常又把它变成 `""`，于是 aria-label 静默为空。这一族坑在本仓库是**第三次**：卡片组那次是写在 `<script>` 上、导航那次是拼错了属性名 | 文案属性**一律挂在 read() 的那个元素上**（状态属性如 `data-pending` 才跟子元素走）。自查：`grep -n "dataset\[" assets/js/*.js` 对一遍「从哪个元素取的」，再在页面上 `el.getAttribute(...)` 抽查一条真正的值 |
 
+| 卡片墙里的卡被**拉高**（5:7 变成细长条）、上下行贴在一起、卡下的名字被挤没 | `.home-card` 的基类**没写 `display`**，而它在首页那处是 `<div>`（块级，所以一直没暴露）。收藏库把它放进 `<button>` 里 —— button 的内容模型只允许 phrasing content，塞 div 是非法 HTML，只能写成 `<span>`，而 **inline 盒子会忽略 `width` 与 `aspect-ratio`**：壳子按行盒排，`::before`/`::after` 那两层覆盖画到比画作大得多的框上 | 基类显式补 `display: block`（一处生效，首页是 div、本来就是块级，无副作用）。自查：组件被搬进新容器时，量一次 `getBoundingClientRect` 的宽高比是不是它该有的（本站卡是 5:7），别只看截图 —— 拉伸后的卡「也像一张卡」 |
+| 点一格卡片墙**开出的却是下一张**（点「白鹭」显示「星夜」），而且首屏每 6 秒有一格自己在换 | 复用首页那支脚本时，轮播判据写成「容器里有没有 `.home-card`」——而卡片墙的**每一格里就有一个** `.home-card`（卡面本身），于是 63 格全被判成「有轮播卡」：墙根节点上的点击监听同时触发了 `go(1)`，自动轮播也起来了（在第一格上换图） | 判据两层：轮播卡只认**直接子元素**（`:scope > .home-card`），并且由模板显式声明（首页容器带 `data-deck-carousel`），不靠 DOM 形状去猜。自查：一段「有没有 X 元素」的判据被复用到新容器时，先数一下那个选择器在新容器里会命中**几个** |
+| 把一段「按 id 被 CSS 引用」的模板片段抽成 partial 之后，某一页**悄悄少了那个效果**（不报错） | `filter: url(#deck-rough)` 是按 id 找的（同前面那条手抖滤镜）：定义被搬进 `deck-filters.html` 之后，没 include 它的那一页照样渲染，只是那张卡没有手抖/颗粒感 | 谁用谁 include，并且让守卫盯住这件事：`check-deck.mjs` 现在除了核 id 在不在，还会核 `home-cards.html` 与 `deck-wall.html` **都 include 了** `deck-filters.html` |
+
 ## 2. 会「静默」出错的那一类
 
 这些问题的共同点：**构建是绿的，但页面其实是坏的**。`hugo --minify --gc` 不会报错，所以靠 `check-frontmatter.sh` 等脚本拦——它们也因此被设计成**阻断**（见 [`architecture.md` 第 4 节](architecture.md#4-构建与部署)）。

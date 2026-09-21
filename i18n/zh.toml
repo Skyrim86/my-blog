@@ -232,6 +232,64 @@ other = "传世"
 [deckRankMiracle]
 other = "奇迹"
 
+# 收藏库（/collection/，见 docs/features.md ㊿）—— 八种工艺的**中文名**。
+# 这是全站第一次给「工艺」起对外名字：此前 style 只有代码名（foil / washi / kintsugi…），
+# 中文叫法只出现在 21-card-deck.css 的注释与文档里，卡片墙的筛选项需要真名字。
+# 取的就是 CSS 注释里那套叫法（全息 / 星芒全息 / 金边 / 玻璃 / 墨 / 和纸 / 雪华 / 金继）。
+[deckStyleFoil]
+other = "全息"
+
+[deckStyleHoloPrism]
+other = "星芒全息"
+
+[deckStyleGold]
+other = "金边"
+
+[deckStyleGlass]
+other = "玻璃"
+
+[deckStyleInk]
+other = "墨"
+
+[deckStyleWashi]
+other = "和纸"
+
+[deckStyleYukika]
+other = "雪华"
+
+[deckStyleKintsugi]
+other = "金继"
+
+# 卡片墙的筛选条（三排 pill 由 assets/js/deck-wall.js 注入，文案经 data-* 传）。
+# {n} 与 deckNext 那套一样是**由 JS 填**的占位符，不是 Hugo 模板变量。
+[deckFilterLabel]
+other = "按系列、工艺、等级筛选"
+
+[deckFilterAll]
+other = "全部"
+
+[deckFilterSeries]
+other = "系列"
+
+# 「工艺」而不是「风格」：代码与文档里一直叫 style/风格，但对外说 foil/washi/kintsugi 时
+# 「工艺」才是那个意思（全息膜、和纸、金继都是做卡的工艺），读者不用先学一套内部词汇。
+[deckFilterStyle]
+other = "工艺"
+
+[deckFilterRank]
+other = "等级"
+
+[deckFilterCount]
+other = "共 {n} 张"
+
+[deckFilterEmpty]
+other = "没有同时符合这三条的卡，换一个筛选试试"
+
+# 卡片墙每一格的按钮名（deck-wall.js 把它升级成 <button> 时写进 aria-label）——
+# 读屏用户听到的是「看《木刀》的三维卡」，而不是一串没有主语的「按钮」。
+[deckOpenCard]
+other = "看《{label}》的三维卡"
+
 [homeBrowse]
 other = "按类浏览"
 

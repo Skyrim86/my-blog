@@ -1,0 +1,23 @@
+{{- /* 收藏库总览页（layout: "collection"），URL = /collection/ —— 63 张收藏卡铺成一页，见 ㊿。
+
+     两件事刻意这么做：
+       1. **页面本身很薄**：内容页只有一句简介 + 一片网格，网格与清单全在 partial 里
+          （_partials/deck-wall.html）。这样「卡片长什么样」只有一处定义 —— 首页与本页共用
+          同一套 `.home-card--<风格>` 类与同一份 deck-manifest.html。
+       2. **不覆盖主题的任何模板**：`layout` 只要与 section 同名，Hugo 会先在 layouts/collection/
+          找、再落到 layouts/_default/ —— 与数学库/CS 库同一个约定（理由见 docs/traps.md：
+          布局放 layouts/<section>/ 时只有那一个 section 能用，两个库共用一份就得放 _default）。 */ -}}
+{{- define "main" }}
+<article class="post-single collection-page">
+  {{- partial "page-head.html" (dict "page" .) }}
+
+  {{- if .Content }}
+  <div class="post-content md-content">
+    {{- partial "anchored_headings.html" .Content }}
+  </div>
+  {{- end }}
+
+  {{- /* 卡片墙：清单、卡面、筛选条、三维弹层都在这里接上 */ -}}
+  {{- partial "deck-wall.html" . }}
+</article>
+{{- end }}{{/* end main */}}

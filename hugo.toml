@@ -264,8 +264,10 @@ pagerSize = 10
 # 与 2026-09-15 删除归档页同一口径（见上面 mainSections 的注释）。
 # section 本身保留（content/posts/_index.md 还在，URL 不会 404，写文章不受影响），
 # 写第一篇后按 weight = 40 把 posts 那一项加回来即可 —— 50 是留给归档页的，别占。
-# 摘掉后导航一度回到 7 项；后来又添了「CS 库」（现在 weight = 16），所以当前是 8 项 ——
-# assets/css/extended/10-nav.css 的窄屏折叠与 19-nav-px.css 的图标位都是按 8 项调的。
+# 摘掉后导航一度回到 7 项；后来又添了「CS 库」（weight = 16），2026-09-21 又添了「收藏库」
+# （weight = 12，落在首页与数学库之间），所以当前是 **9 项** ——
+# assets/css/extended/10-nav.css 的窄屏折叠与 19-nav-px.css 的图标位都是按项数调的，
+# 而那套「行宽逐像素不变」的配平等式在 9 项下已不成立（改动与实测见 10-nav.css 文件头）。
 [[menu.main]]
   identifier = 'home'
   name = '首页'
@@ -275,6 +277,18 @@ pagerSize = 10
   pre = '<span class="nav-px np-home" aria-hidden="true"></span>'
   url = '/'
   weight = 10
+
+[[menu.main]]
+  identifier = 'collection'
+  name = '收藏库'
+  # 图标位：像素小人（见 tools/icons/make-icons.py 与 assets/css/extended/19-nav-px.css）。
+  # 这里只放一个空 span，图片由 extend_head.html 按 identifier 生成到 css/nav-icons.css ——
+  # 不能在这里写 <img src>：src 得带 /my-blog/ 子路径，写死会在换域名/子路径时断掉。
+  pre = '<span class="nav-px np-collection" aria-hidden="true"></span>'
+  # 63 张收藏卡的总览页（首页那副卡片组的全量版），见 docs/features.md ㊿。
+  # weight 12 = 首页(10) 与数学库(15) 之间 —— 用户要求这一项排在「数学库」左边。
+  url = '/collection/'
+  weight = 12
 
 [[menu.main]]
   identifier = 'library'

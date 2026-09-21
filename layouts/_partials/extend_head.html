@@ -305,8 +305,8 @@
 <script defer src="{{ $themeFade.RelPermalink }}" integrity="{{ $themeFade.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
-{{- /* 首页卡片组（切换 + 自动轮播）：只在首页加载，脚本不大约 3KB。
-       卡片清单经模板的 data-deck 传入（见 home-cards.html），文案走 data-* 传。 */ -}}
+{{- /* 首页那一支：时钟的数字字体与时钟脚本。收藏库（/collection/）**不在这里面** —— 它没有时钟，
+       不该为两个请求付账（1.5 KB 字体 + 一个 preload）。 */ -}}
 {{- if .IsHome }}
 {{- /* 首页时钟的数字字体（Playfair Display 的数字子集，1.5 KB 自托管）。
        两件事一起做：**preload** 让它在 JS 要它之前就到（时钟等字体就绪才填第一帧），
@@ -326,14 +326,32 @@
 {{- /* 首页右栏的时钟：只在首页加载。文案经 data-* 传（见 home-clock.html）。 */ -}}
 {{- $clock := resources.Get "js/home-clock.js" | minify | fingerprint }}
 <script defer src="{{ $clock.RelPermalink }}" integrity="{{ $clock.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}
 
-{{- /* 3D 卡片查看器：弹层里那张能转的真卡。**必须排在 home-deck.js 前面** —— 后者在第一次
-       打开弹层时会去调 window.card3d.attach。两者都是 defer，按文档顺序执行。
-       这也是全站唯一一处 WebGL：它自己约 14KB，代价换来的东西见该文件头部。 */ -}}
+{{- /* 卡片组的两个脚本：**首页与收藏库（/collection/）共用**。
+       2026-09-21 之前这一块整个包在 `{{ if .IsHome }}` 里 —— 拆开的理由是收藏库也要那个
+       三维弹层（点一格看那张卡），而它与首页用的是同一份实现：home-deck.js 在
+       「根节点里没有轮播卡」时只提供弹层（判据见该文件头部的 `carousel`）。
+
+       **顺序是硬要求**（三者都是 defer，按文档顺序执行）：
+         card-3d.js → home-deck.js → deck-wall.js
+       · card-3d.js 必须在 home-deck.js 前面：后者第一次打开弹层时会调 window.card3d.attach；
+       · deck-wall.js 必须在 home-deck.js 后面：它要把格子升级成按钮并调 window.homeDeck.openAt，
+         拿不到 window.homeDeck 时它**只插筛选条**（不留点不动的按钮）。
+
+       这也是全站唯一一处 WebGL：card-3d.js 自己约 14KB，它只为「弹层里那张能转的真卡」存在。
+       加到收藏库头上的是同一个成本，换来的是「63 张都能转」—— 量过的账见 docs/features.md ㊿。 */ -}}
+{{- if or .IsHome (eq .Section "collection") }}
 {{- $c3d := resources.Get "js/card-3d.js" | minify | fingerprint }}
 <script defer src="{{ $c3d.RelPermalink }}" integrity="{{ $c3d.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- $deck := resources.Get "js/home-deck.js" | minify | fingerprint }}
 <script defer src="{{ $deck.RelPermalink }}" integrity="{{ $deck.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}
+
+{{- /* 收藏库的筛选条与格子升级：只在这一页加载（别处没有 .deck-wall）。 */ -}}
+{{- if eq .Section "collection" }}
+{{- $wall := resources.Get "js/deck-wall.js" | minify | fingerprint }}
+<script defer src="{{ $wall.RelPermalink }}" integrity="{{ $wall.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
 {{- /* 搜索快捷键（Ctrl/⌘+K，或不在输入框时按 "/"）：全站加载，脚本本身很小。

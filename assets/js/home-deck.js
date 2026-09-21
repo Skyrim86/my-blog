@@ -1,11 +1,17 @@
 // 首页卡片组：一次一张，可手动切（点卡面 / ‹ › 按钮 / 键盘左右 / 触屏滑动），也会自己轮播；
 // 卡下的 ⤢ 按钮打开弹层看大图，弹层里带名字、系列、序号与出处（可点外链）。
 //
+// **两支模式（2026-09-21）**：根节点是「带 data-deck 的容器」而不是写死的 .home-deck ——
+//   · 首页（.home-deck）：有页内轮播卡 → 全套行为都在；
+//   · 收藏库 /collection/（.deck-wall）：**没有**页内轮播卡（63 张各自是一个格子、点哪张看哪张）
+//     → 只提供「弹层 + 3D 查看器」，轮播相关的初始化全部跳过。判据是 `carousel`。
+//   弹层与 3D 查看器只有这一份实现：卡片墙上的格子点一下，走的就是 openAt（与「今日一卡」同一条路）。
+//
 // 与 extend_head.html 的接线方式同其它脚本：清单（每张卡的 1x/2x URL、名牌文字、风格、出处）由模板经
 // `data-deck` 以 JSON 传进来 —— 脚本不自己拼资源 URL（指纹在构建期算），文案走 data-* 传
 // （JS 调不到 i18n）。
 //
-// 六条刻意的取舍：
+// 六条刻意的取舍（都是首页那支的；卡片墙上不适用的一条见上面）：
 //   1. **只有当前一张在 DOM 里**：换卡是改同一个 <img> 的 src/srcset，不是切换一堆 <img> 的显隐。
 //      三十多张卡全渲染的话它们叠在同一位置、全在视口内，lazy 也拦不住，首屏会白下三十多张。
 //   2. **轮播的停与走**：鼠标悬停、键盘焦点进入、标签页切到后台、弹层打开时都暂停；手动切过之后
@@ -23,7 +29,10 @@
   'use strict';
 
   var script = document.currentScript;
-  var deck = document.querySelector('.home-deck');
+  // 根节点 = 「带着清单的那个容器」。2026-09-21 从写死的 `.home-deck` 放宽到任何 [data-deck]：
+  // 收藏库（/collection/）的卡片墙（.deck-wall）也把同一份清单挂在 data-deck 上，它没有轮播卡，
+  // 但要**同一个弹层与同一个 3D 查看器**（见 docs/features.md ㊿）。
+  var deck = document.querySelector('.home-deck[data-deck]') || document.querySelector('[data-deck]');
   if (!script || !deck) return;
 
   var items;
@@ -34,12 +43,21 @@
   }
   if (!items || items.length < 2) return;
 
-  var card = deck.querySelector('.home-card');
+  // 轮播卡只可能是**容器的直接子元素**（首页那处：.home-deck > .home-card）。
+  // 用 :scope > 而不是后代选择器：收藏库的卡片墙里，每一格的卡面**自己就是** .home-card
+  // （63 个），后代选择器会取到第一格那张，把「这一页有没有轮播卡」判成真。
+  var card = deck.querySelector(':scope > .home-card');
   var img = card && card.querySelector('img');
   var ghost = card && card.querySelector('.home-card-ghost');
   var label = card && card.querySelector('.home-card-label');
   var indexEl = card && card.querySelector('.home-card-index');
-  if (!card || !img) return;
+  // **有没有页内轮播卡**：由模板显式声明（首页那个容器带 data-deck-carousel），而不是靠
+  // 「容器里有没有 .home-card」去猜 —— 卡片墙的每一格里就有一个 .home-card，那种判据会让它
+  // 误入轮播分支，表现是**点一格开弹层的同时，墙根节点上的点击监听又把卡翻到下一张**
+  // （弹层里显示的比点的那张晚一张），而且首屏就开始 6 秒自动轮播、反复改写第一格。实测踩到过。
+  // 没有轮播卡时这个脚本只提供「弹层 + 3D 查看器」：轮播的按钮、进度条、自动播放、键盘与触屏
+  // 滑动一律不初始化。下面的分支都挂在这个判据上，首页那一路全为真。
+  var carousel = deck.hasAttribute('data-deck-carousel') && !!(card && img);
 
   // 文案挂在**卡组容器**上（模板里 data-next / data-prev / data-announce 都在 .home-deck 上），
   // 不是挂在 <script> 上 —— 一开始写成 script.dataset，结果全取到 undefined、播报只剩兜底模板。
@@ -69,7 +87,7 @@
   live.className = 'sr-only';
   live.setAttribute('role', 'status');
   live.setAttribute('aria-live', 'polite');
-  deck.appendChild(live);
+  if (carousel) deck.appendChild(live);
 
   function announce(item) {
     live.textContent = announceTpl
@@ -85,7 +103,7 @@
   progress.className = 'home-deck-progress';
   progress.setAttribute('aria-hidden', 'true');
   progress.appendChild(document.createElement('span'));
-  deck.appendChild(progress);
+  if (carousel) deck.appendChild(progress);
 
   function restartProgress() {
     if (reduced()) return;
@@ -130,7 +148,7 @@
     openDialog();
   });
   nav.appendChild(zoomBtn);
-  deck.appendChild(nav);
+  if (carousel) deck.appendChild(nav);
 
   /* ---------- 弹层（看大图 + 名字 / 系列 / 序号 / 出处） ----------
      大图用**已有的 2x 产物**（544px 宽，卡在页内只有 272）—— 页内 272 → 弹层 430 已经是 1.6 倍，
@@ -329,9 +347,12 @@
     deck.classList.remove('is-dialog');
     // 焦点**还给打开它的那个控件**，而不是「记下打开前谁有焦点」：程序化触发的点击不会移动焦点，
     // 于是「打开前的焦点」往往在别处（实测回到 .list 上，键盘用户按 Esc 之后按 Tab 会从页面开头重来）。
-    // lastOpener 默认是放大按钮；「今日一卡」从时间卡那边开的时候传的是它自己那颗按钮。
+    // lastOpener 默认是放大按钮；「今日一卡」从时间卡那边开的时候传的是它自己那颗按钮，
+    // 收藏库的卡片墙传的是被点的那一格。
     var backTo = (lastOpener && document.contains(lastOpener)) ? lastOpener : zoomBtn;
-    backTo.focus({ preventScroll: true });
+    // zoomBtn 在卡片墙上不存在（那颗 ⤢ 是轮播 UI 的一部分、没有注入），所以这里要判一次 ——
+    // 否则 backTo 是个游离的节点，调用 focus() 什么也不会发生（不报错，但焦点丢在 body 上）。
+    if (backTo && document.contains(backTo)) backTo.focus({ preventScroll: true });
     start();                       // 关掉之后接着轮播，进度条跟着重来
   }
 
@@ -364,7 +385,9 @@
     }
   });
 
-  /* ---------- 预取后两张：换过去时图已在缓存 ---------- */
+  /* ---------- 预取后两张：换过去时图已在缓存 ----------
+     卡片墙也走这条路：在弹层里按 → 时下一张已经在缓存里（一次最多两张、按 URL 记账，不会
+     把 63 张全抓下来）。 */
   var prefetched = {};
   function prefetch() {
     for (var k = 1; k <= 2; k++) {
@@ -379,6 +402,13 @@
   function apply(j) {
     var it = items[j];
     var other = items[i];
+    // 卡片墙（没有页内卡）：只挪索引，弹层开着就把弹层里的内容换掉 —— 弹层里的左右键走
+    // go → apply 这条路，所以「在弹层里按 →」在收藏库上一样能翻到下一张。
+    if (!carousel) {
+      i = j;
+      if (!dlg.hidden) fillDialog(it);
+      return;
+    }
     img.src = it.s;
     img.srcset = it.s + ' 1x, ' + (it.l || it.s) + ' 2x';
     img.width = it.w;
@@ -406,6 +436,13 @@
   }
 
   function go(dir, manual) {
+    // 卡片墙：页内没有卡可翻，切的就是弹层里那一张（左右键 / 弹层里的 ‹ › 都走这里）。
+    // 不做淡入淡出、不碰 busy —— 变化的只有弹层里的大图与 3D 卡。
+    if (!carousel) {
+      apply((i + dir + items.length) % items.length);
+      prefetch();          // 弹层里连着往下翻时，下一张已经在缓存（见 prefetch 的注释）
+      return;
+    }
     if (busy) return;
     busy = true;
     var j = (i + dir + items.length) % items.length;
@@ -448,6 +485,8 @@
   }
 
   function start() {
+    // 卡片墙不自动轮播：没有「当前这一张」可轮（页内 63 张全摆着），起点也只能是 openAt 指定的一张。
+    if (!carousel) return;
     if (reduced() || timer || !dlg.hidden) return;
     timer = window.setInterval(function () {
       if (document.visibilityState === 'hidden') return;   // 后台不切（切回来会一次跳好几张）
@@ -461,43 +500,49 @@
     start();
   }
 
-  deck.addEventListener('pointerenter', stop);
-  deck.addEventListener('pointerleave', function () { if (dlg.hidden) start(); });
-  deck.addEventListener('focusin', stop);
-  deck.addEventListener('focusout', function () { if (dlg.hidden) start(); });
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') {
-      start();
-    } else {
-      stop();
-      progress.classList.add('is-paused');
-    }
-  });
-  deck.addEventListener('click', function () { go(1, true); });
+  /* 下面这一整段都是「页内那一张卡」的交互：悬停/焦点暂停、后台暂停、点卡翻下一张、
+     键盘左右、触屏滑动。卡片墙上一个都不适用 —— 尤其**不能**给 .deck-wall 加 tabindex 与
+     role="group"（那会让整面墙变成一个可聚焦的整体、还吞掉格子上的方向键）。 */
+  if (carousel) {
+    deck.addEventListener('pointerenter', stop);
+    deck.addEventListener('pointerleave', function () { if (dlg.hidden) start(); });
+    deck.addEventListener('focusin', stop);
+    deck.addEventListener('focusout', function () { if (dlg.hidden) start(); });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        start();
+      } else {
+        stop();
+        progress.classList.add('is-paused');
+      }
+    });
+    deck.addEventListener('click', function () { go(1, true); });
 
-  // 键盘：焦点在卡组里时 ← → 翻卡（弹层开着时由上面那个监听接管）
-  deck.setAttribute('tabindex', '0');
-  deck.setAttribute('role', 'group');
-  deck.addEventListener('keydown', function (e) {
-    if (!dlg.hidden) return;
-    if (e.key === 'ArrowRight') { e.preventDefault(); go(1, true); }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1, true); }
-  });
+    // 键盘：焦点在卡组里时 ← → 翻卡（弹层开着时由上面那个监听接管）
+    deck.setAttribute('tabindex', '0');
+    deck.setAttribute('role', 'group');
+    deck.addEventListener('keydown', function (e) {
+      if (!dlg.hidden) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(1, true); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1, true); }
+    });
 
-  // 触屏滑动：横向位移超过 30px 才算翻卡
-  var x0 = null;
-  deck.addEventListener('touchstart', function (e) {
-    x0 = e.touches[0].clientX;
-  }, { passive: true });
-  deck.addEventListener('touchend', function (e) {
-    if (x0 === null) return;
-    var dx = e.changedTouches[0].clientX - x0;
-    x0 = null;
-    if (Math.abs(dx) > 30) go(dx < 0 ? 1 : -1, true);
-  });
+    // 触屏滑动：横向位移超过 30px 才算翻卡
+    var x0 = null;
+    deck.addEventListener('touchstart', function (e) {
+      x0 = e.touches[0].clientX;
+    }, { passive: true });
+    deck.addEventListener('touchend', function (e) {
+      if (x0 === null) return;
+      var dx = e.changedTouches[0].clientX - x0;
+      x0 = null;
+      if (Math.abs(dx) > 30) go(dx < 0 ? 1 : -1, true);
+    });
+  }
 
   /* ---------- 对外入口（2026-09-21 加）----------
-     只有一个用处：首页时间卡里的「今日一卡」微卡点一下，要开**那张卡**的三维弹层。
+     两个用处：首页时间卡里的「今日一卡」微卡点一下要开**那张卡**的三维弹层；收藏库的卡片墙
+     的每一格点一下也是同一个意思（那里传的 opener 是被点的那一格，关弹层时焦点回到它）。
      弹层、当前索引、apply/openDialog 全在这个闭包里，不开个口子外面拿不到；也不值得为这一处
      把整个模块改成导出式（那要动这 500 行里的十几处引用）。
 
@@ -518,7 +563,12 @@
     }
   };
 
-  announce(items[0]);
-  prefetch();
-  start();
+  // 首页：先把第一张的序号播报出去、再预取后两张、然后开轮播。
+  // 卡片墙三件都不做（没有「第一张」可播报、没有轮播；预取等第一次打开弹层时再开始，
+  // 否则每个访客一进这一页就先多下两张 2x 图，而他可能一张都不点开）。
+  if (carousel) {
+    announce(items[0]);
+    prefetch();
+    start();
+  }
 })();

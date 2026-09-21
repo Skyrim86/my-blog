@@ -85,6 +85,11 @@
   --cradius: 12px;
   --cplate-font: inherit;
 
+  /* display 必须显式写（2026-09-21）：首页那处它是 <div>（本来就是块级），而收藏库的卡片墙里
+     它只能是 <span> —— 格子在升级成 <button> 之后，button 的内容模型是 phrasing content，
+     塞 div 是非法 HTML。而 inline 盒子会**忽略 width 与 aspect-ratio**：实测 4 列网格里每张卡
+     被拉成 ~290px 高、壳子按行盒算，伪元素那一层覆盖画到比画作大得多的框上，卡下的名字被挤没。 */
+  display: block;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -956,5 +961,187 @@ a.home-deck-dialog-credit:hover {
 @media (max-width: 640px) {
   .home-deck {
     max-width: 14.5rem;
+  }
+}
+
+/* ============================================
+   收藏库（/collection/）的卡片墙 + 筛选条（2026-09-21 加，见 docs/features.md ㊿）
+
+   这一块**刻意写在「卡面风格」那一段之外**（文件里 `/* ---------- 减少动态` 之后的末尾）：
+   check-deck.mjs 会扫「卡面风格」段里有没有 1px 硬停的 repeating 渐变，而这一段属于版式、
+   不是卡面配方 —— 放进去会让那条纪律的扫描范围里混进与它无关的规则。
+
+   一、卡片墙：复用的是同一种卡（`.home-card--<风格>` / `.home-card-rank--<等级>`），
+   只改「一格多大、名字放哪」。这里**不用** `.home-card-plate`（首页那个压在卡底的浮层）：
+   它自带 `backdrop-filter: blur(6px)`，一页 63 个就是 63 层背景模糊；而且卡片墙上格子只有
+   ~155px 宽，那个浮层会盖掉小半张画。名字改写在卡下面（`.deck-tile-cap`），
+   没有模糊层、画作完整、名字也不必和画抢对比度。
+
+   二、可点性：模板渲染的格子是 <div>（禁 JS 时就是一张静态卡册），由 deck-wall.js 升级成
+   <button> 并给 <html> 加 `.has-deck-wall`。**指针与悬停的暗示全挂在这个类下面** ——
+   `.home-card` 自带的 `cursor: pointer` 在这里被改回继承，否则没有 JS 时每张卡都像能点、
+   点了没反应（与「按钮由脚本注入」同一条口径，见 10-nav.css 里 has-nav-toggle 的做法）。
+
+   三、筛选条与站上其它 chip 同族（`.tb-chip` / `.lt-chip` / `.home-chip`）：--surface/--entry 底
+   + 1px --edge 环 + 悬停 --accent + 选中 --accent-soft。三排的排头给固定宽度，
+   三排的 chip 才能起头对齐成一列。
+
+   四、`--cradius` 在网格里稍收一点：同一个圆角在 272px 的卡上是 12px，缩到 155px 就显得太圆。
+   ============================================ */
+
+.deck-wall {
+  --cradius: 10px;
+  margin-top: 1.5rem;
+}
+
+.deck-wall-grid {
+  display: grid;
+  /* 190px：正文列宽约 640px 时刚好 3 列（每张 ~205px）。为什么不要 4 列（150px/张）：
+     实测把两版摆在一起对比过（lab/shots/cmp-3col.png 与 cmp-4col.png），155px 下八种工艺
+     糊成一片 —— 和纸的纤维、金继的裂缝、金边的拉丝全看不见，而「一眼看出这八张不是同一种卡」
+     正是这一页存在的理由。205px 也更接近首页那张 272px（工艺就是按那个尺寸调的）。
+     代价认清：63 张 ÷ 3 列 = 21 行，页面比 4 列方案长约 2/3（往下滚更久）。 */
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px 12px;
+  margin-top: 1.2rem;
+}
+
+/* 一格 = 卡 + 卡下的名字。div（模板）与 button（升级后）共用这一套：把按钮的原生外观清掉，
+   两者的盒模型才一致 —— 否则升级的那一瞬间整面墙会跳一下。 */
+.deck-tile {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  appearance: none;
+}
+
+/* 没有升级成按钮时，卡不该看着像能点（`.home-card` 自带 cursor: pointer） */
+.deck-wall .home-card {
+  cursor: inherit;
+}
+
+.deck-wall .home-card:hover {
+  transform: none;
+  box-shadow: var(--shadow-card);
+}
+
+.has-deck-wall .deck-tile {
+  cursor: pointer;
+}
+
+.has-deck-wall .deck-tile:hover .home-card {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* 键盘焦点：焦点环画在格子上（卡自己是 span，不可聚焦） */
+.deck-tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--cradius);
+}
+
+.deck-tile-cap {
+  display: flex;
+  flex-direction: column;
+  gap: .08rem;
+  margin-top: .42rem;
+}
+
+.deck-tile-name {
+  font-size: .84rem;
+  line-height: 1.35;
+  color: var(--primary);
+}
+
+.deck-tile-meta {
+  font-size: .74rem;
+  line-height: 1.3;
+  color: var(--secondary);
+}
+
+/* 筛选掉的格子用**类**不用 [hidden]：网格容器的 display:grid 会压过 [hidden] 的
+   display:none（站上踩过两次，见 docs/traps.md）。 */
+.deck-tile.is-filtered {
+  display: none;
+}
+
+/* ---------- 筛选条 ---------- */
+.deck-filters {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  margin-top: 1.4rem;
+}
+
+.deck-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.deck-filter-name {
+  flex: none;
+  width: 2.5rem;
+  font-size: .8rem;
+  color: var(--secondary);
+}
+
+.deck-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 .6rem;
+  font: inherit;
+  font-size: .82rem;
+  line-height: 1.8;
+  color: var(--secondary);
+  background: var(--entry);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background-color .18s ease;
+}
+
+.deck-chip:hover {
+  border-color: var(--accent);
+}
+
+.deck-chip.is-active {
+  color: var(--primary);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.deck-chip-count {
+  font-size: .72rem;
+  opacity: .7;
+}
+
+.deck-result,
+.deck-empty {
+  margin: .7rem 0 0;
+  font-size: .88rem;
+  color: var(--secondary);
+}
+
+/* 窄屏：一排排头占的那 2.5rem 在 320px 上太贵，让 chip 自己换行排满；
+   网格下限必须单独给一档 —— 宽屏那档是 190px，而 390px 视口下正文只有 ~320px，
+   按 190 算就只剩 1 列（一张卡占满一屏，完全没有「库」的样子）。130px 在 320px 上是 2 列。 */
+@media (max-width: 640px) {
+  .deck-filter-name {
+    width: 100%;
+  }
+
+  .deck-wall-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px 10px;
   }
 }

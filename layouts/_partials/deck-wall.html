@@ -1,0 +1,70 @@
+{{- /* 收藏库（/collection/）的卡片墙 —— 63 张收藏卡一次铺开，见 docs/features.md ㊿。
+
+     与首页那副卡片组（home-cards.html）的关系：**同一个数据源、同一套卡面 CSS、同一个三维弹层**，
+     区别只在排布与交互动线 —— 首页一次一张自动轮播，这里是一次铺开、自己挑。
+     所以这里连图片规格都不另定：清单与两档图 URL 全来自 deck-manifest.html，卡片墙不为整站
+     多出一个字节的图（见那支 partial 的注释）。
+
+     五件事刻意这么做：
+
+       1. **图片 lazy**：63 张全渲染成 <img>，全部叠在同一页里。首页靠「DOM 里只有一张」来省流量，
+          这里省不掉（要的就是一次看全），所以用 `loading="lazy" decoding="async"` 把下载压到
+          「滚到附近才下」。首屏实际下的张数取决于列数（宽屏 6~7 列，约两屏内 14 张，约 130 KB）。
+          量过的账见 docs/features.md ㊿。
+
+       2. **名字写在卡下面，不压在卡上**。首页那套 `.home-card-plate` 是绝对定位在卡底的浮层，
+          它自带 `backdrop-filter: blur(6px)` —— 一页 63 个那样的浮层就是 63 层背景模糊，
+          而卡片墙的卡只有 ~180px 宽，浮层会盖掉小半张画。改成卡下说明文字后：没有模糊层、
+          画作完整、名字也不必和画抢对比度（复用 `.home-card-rank` 那层做等级观感）。
+
+       3. **格子先渲染成 <div>，由 deck-wall.js 升级成 <button>**：没有 JS 时这一页就是一张静态卡册
+          （卡全都在、名字都在，只是点不开三维图），不留一个点不动的控件 —— 与首页「按钮由脚本注入」
+          同一条口径（见 home-cards.html 第 2 条）。
+
+       4. **滤镜必须 include**：卡面纹样靠 `filter: url(#deck-rough)`，页面里没有那份 <svg> 定义时
+          静默失效（只是没有手抖感）。check-deck.mjs 会核这件事。
+
+       5. **等级的那一层照留**：`.home-card-rank` 是等级覆膜 + 四角纹章（26 张非「收藏」级有），
+          它是这小格子上唯一的等级**观感**（文字那行也会写等级名，两者不重复：一个是气氛、一个是信息）。 */ -}}
+{{- $items := partial "deck-manifest.html" . }}
+{{- with $items }}
+<div class="deck-wall" data-deck="{{ . | jsonify }}"
+     data-all="{{ i18n "deckFilterAll" }}"
+     data-by-series="{{ i18n "deckFilterSeries" }}"
+     data-by-style="{{ i18n "deckFilterStyle" }}"
+     data-by-rank="{{ i18n "deckFilterRank" }}"
+     data-count="{{ i18n "deckFilterCount" }}"
+     data-empty="{{ i18n "deckFilterEmpty" }}"
+     data-open="{{ i18n "deckOpenCard" }}"
+     data-filter-label="{{ i18n "deckFilterLabel" }}"
+     {{- /* 下面这几条是**弹层**要的（弹层与 3D 查看器共用 home-deck.js，它从根节点的 data-* 取文案）：
+            少一条不会报错，只是那一处退回英文兜底（'close' / 'credit' / 'flip'）。
+            轮播那几条（deckNext/Prev/Announce/Zoom）这里不给 —— 卡片墙上没有那些按钮。 */}}
+     data-close="{{ i18n "deckClose" }}" data-credit="{{ i18n "deckCredit" }}"
+     data-dialog="{{ i18n "deckDialogLabel" }}"
+     data-flip="{{ i18n "deckFlip" }}" data-flip-back="{{ i18n "deckFlipBack" }}"
+     data-rotate="{{ i18n "deckRotate" }}" data-gl-fail="{{ i18n "deckGlFail" }}">
+    <div class="deck-wall-grid" id="deck-wall-grid">
+        {{- range $n, $it := . }}
+        {{- /* data-i = 这一格在清单里的下标：弹层与三维查看器都按它取卡（与 data-deck 的顺序一致） */}}
+        <div class="deck-tile" data-i="{{ $n }}">
+            <span class="home-card home-card--{{ $it.style }} home-card-rank--{{ $it.rank }}" style="--art: url('{{ $it.l }}')">
+                <img draggable="false" src="{{ $it.s }}"
+                    srcset="{{ $it.s }} 1x, {{ $it.l }} 2x"
+                    width="{{ $it.w }}" height="{{ $it.h }}" alt=""
+                    loading="lazy" decoding="async">
+                {{- /* 玻璃的厚度层 / 金继的釉面反光：与首页同一支 span，CSS 里只给那两种风格显形
+                       （玻璃那一支会把画作再铺两遍，一页 7 张玻璃 = 多 14 次全卡绘制，见 ㊿ 的账） */}}
+                <span class="home-card-lens" aria-hidden="true"></span>
+                <span class="home-card-rank" aria-hidden="true"></span>
+            </span>
+            <span class="deck-tile-cap">
+                <span class="deck-tile-name">{{ $it.label }}</span>
+                <span class="deck-tile-meta">{{ $it.series }} · {{ $it.rankLabel }}</span>
+            </span>
+        </div>
+        {{- end }}
+    </div>
+</div>
+{{- partial "deck-filters.html" . }}
+{{- end }}

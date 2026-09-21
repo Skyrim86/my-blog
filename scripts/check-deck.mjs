@@ -33,10 +33,15 @@ const FACES_DIR = join('assets', 'images', 'cards');
 const DEPTH_DIR = join(FACES_DIR, 'depth');
 const depthOf = (image) => join(DEPTH_DIR, basename(image));
 
-// 卡片组要用的词条：文案走 data-* 从模板传给 JS（JS 调不到 i18n），少一条就只剩兜底模板
+// 卡片组要用的词条：文案走 data-* 从模板传给 JS（JS 调不到 i18n），少一条就只剩兜底模板。
+// 后 16 条是收藏库（/collection/）的卡片墙要用的：八种工艺的中文名 + 筛选条与格子按钮名。
 const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClose', 'deckCredit',
   'deckDialogLabel', 'deckFlip', 'deckFlipBack', 'deckRotate', 'deckGlFail',
-  'deckRankCollector', 'deckRankEpic', 'deckRankLegend', 'deckRankMiracle'];
+  'deckRankCollector', 'deckRankEpic', 'deckRankLegend', 'deckRankMiracle',
+  'deckStyleFoil', 'deckStyleHoloPrism', 'deckStyleGold', 'deckStyleGlass',
+  'deckStyleInk', 'deckStyleWashi', 'deckStyleYukika', 'deckStyleKintsugi',
+  'deckFilterLabel', 'deckFilterAll', 'deckFilterSeries', 'deckFilterStyle', 'deckFilterRank',
+  'deckFilterCount', 'deckFilterEmpty', 'deckOpenCard'];
 // 出处里能推出可点链接的几种写法（弹层里 credit_url 就用它核）；官方立绘 / 站点看板娘没有链接，留空是对的
 const CREDIT_URLS = [
   [/^pixiv (\d+)/, (m) => `https://www.pixiv.net/artworks/${m[1]}`],
@@ -274,17 +279,33 @@ if (stylesOpen < 0 || stylesClose < 0 || stylesClose <= stylesOpen) {
     );
   }
 
-  // 滤镜 id：CSS 里 url(#x) 的每个 x，模板里都要有对应的 id
+  // 滤镜 id：CSS 里 url(#x) 的每个 x，**定义处**都要有对应的 id。
+  // 2026-09-21：这两个滤镜原先是内联在 home-cards.html 里的（收藏库的卡片墙要用同一套，
+  // 于是抽成了 deck-filters.html），所以「定义处」换成了那个文件；同时**用它的人必须都 include**
+  // 它 —— 少 include 的那一页不会报错，只是那一页的卡悄悄没有手抖/颗粒感（就是下面这条纪律
+  // 要防的静默失效）。所以这里两件事一起核：id 在不在、用它的模板有没有引到。
   const ids = new Set();
   for (const m of css.matchAll(/url\(#([\w-]+)\)/g)) ids.add(m[1]);
   if (ids.size) {
-    const tpl = readFileSync(join('layouts', '_partials', 'home-cards.html'), 'utf8');
-    const have = new Set([...tpl.matchAll(/id="([\w-]+)"/g)].map((m) => m[1]));
+    const FILTERS = join('layouts', '_partials', 'deck-filters.html');
+    const have = new Set(
+      [...readFileSync(FILTERS, 'utf8').matchAll(/id="([\w-]+)"/g)].map((m) => m[1])
+    );
     for (const id of ids) {
       if (!have.has(id)) {
         failures.push(
-          `✗ ${CSS} 引用了 url(#${id})，但 layouts/_partials/home-cards.html 里没有 id="${id}" —— ` +
+          `✗ ${CSS} 引用了 url(#${id})，但 ${FILTERS} 里没有 id="${id}" —— ` +
             `滤镜找不到就是**静默失效**（页面照常渲染，只是没有手抖/颗粒效果）`
+        );
+      }
+    }
+    // 用到这套滤镜的模板：首页卡片组与收藏库的卡片墙
+    for (const user of ['home-cards.html', 'deck-wall.html']) {
+      const path = join('layouts', '_partials', user);
+      if (!existsSync(path)) continue;
+      if (!/partial\s+"deck-filters\.html"/.test(readFileSync(path, 'utf8'))) {
+        failures.push(
+          `✗ ${path} 没有 include deck-filters.html —— 那一页的 filter: url(#…) 会静默失效`
         );
       }
     }
