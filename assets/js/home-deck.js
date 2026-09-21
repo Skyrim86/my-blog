@@ -359,7 +359,11 @@
     dlg.setAttribute('aria-label', dialogTpl.replace('{label}', item.label || ''));
     if (viewer) {
       viewer.setItem({
-        s: item.s, l: item.l, d: item.d || '',
+        // `xl` 这一档**只给 3D 查看器用**（760×1064，不生进 srcset）。2026-09-21 之前这里
+        // 漏了它 —— 于是 card-3d.js 里 `next.xl || next.l || next.s` 每次都回退到 544 宽
+        // 的 l 档，760 档那 63 张 2.4 MB 从头到尾没有任何页面加载过：既是「卡面糊」的
+        // 头号根因，也让那份产物白白占着体积（见 docs/traps.md 的「静默回退」一节）。
+        s: item.s, l: item.l, xl: item.xl || '', d: item.d || '',
         label: item.label || '', series: item.series || '', style: item.style || 'foil',
         rank: item.rank || 'collector', rankLabel: item.rankLabel || '',
         indexText: pad(i + 1) + ' / ' + pad(items.length),

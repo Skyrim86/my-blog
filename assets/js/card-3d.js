@@ -69,10 +69,10 @@
   // 着色器再给陡坡一层**切边**（压暗 + 一道窄光，替掉拉伸的纹理）。坡不陡了、侧壁也有了材质，
   // 位移才敢往上加 —— 现在收藏档 3.2%、奇迹档 7.4%（3.2% × 2.3）。
   // **别把这两个前提拆开用**：只加位移不倒角+切边，就回到「纸板剪影」。
-  var RELIEF = 0.032;
-  var POM_STRENGTH = 0.35;
+  var RELIEF = 0.040;
+  var POM_STRENGTH = 0.45;
   // 网格密度与 POM 步数：按设备能力降级（见 pickQuality）。必须在建网格**之前**定。
-  var GRID = { nx: 40, ny: 56, corner: 10 };
+  var GRID = { nx: 56, ny: 78, corner: 14 };
   // POM 步数的**编译期上限**（GLSL ES 要求循环边界是常量）；每档实际走几步由 RANK_3D.steps 给、
   // 运行期经 uSteps 早退，**再按视角乘一个 0.60~1.15 的系数**（见片元里那段：掠射角才需要多步）。
   // 所以上限要装得下 max(档位步数) × 1.15 —— 24 × 1.15 = 27.6，取 32 留余量。
@@ -161,22 +161,22 @@
   var RANK_3D = {
     collector: { metal: 0.05, emis: 0.00, diff: 0.00, relief: 1.00, back: 0, shadow: 0.35, sweep: 0.25,
                  steps: 8,  sparkle: 0.00, holo: 0.00, halo: 0.00, cliff: 0.00, glint: 0.00, bgZoom: 0.000, bgPar: 0.000,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.00, holoC: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.00, holoC: 0.00, disp: 0.00, sharp: 0.00 },
     rare:      { metal: 0.30, emis: 0.01, diff: 0.05, relief: 1.15, back: 1, shadow: 0.48, sweep: 0.38,
                  steps: 10, sparkle: 0.10, holo: 0.08, halo: 0.05, cliff: 0.15, glint: 0.10, bgZoom: 0.008, bgPar: 0.003,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.00, holoC: 0.20 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.00, holoC: 0.20, disp: 0.00, sharp: 0.00 },
     epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.30, back: 2, shadow: 0.62, sweep: 0.50,
                  steps: 12, sparkle: 0.28, holo: 0.22, halo: 0.16, cliff: 0.32, glint: 0.25, bgZoom: 0.015, bgPar: 0.006,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.20, holoC: 0.40 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.20, holoC: 0.40, disp: 0.00, sharp: 0.12 },
     arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.50, back: 3, shadow: 0.82, sweep: 0.68,
                  steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.028, bgPar: 0.012,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.45, holoC: 0.60 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.45, holoC: 0.60, disp: 0.12, sharp: 0.18 },
     legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 2.40, back: 4, shadow: 1.00, sweep: 0.85,
                  steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
-                 wall: 0.70, cast: 0.65, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82 },
+                 wall: 0.70, cast: 0.65, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82, disp: 0.26, sharp: 0.24 },
     miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 2.90, back: 5, shadow: 1.15, sweep: 1.00,
                  steps: 24, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030,
-                 wall: 1.00, cast: 1.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00 },
+                 wall: 1.00, cast: 1.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00, disp: 0.35, sharp: 0.30 },
   };
   // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。这两张表是卡背
   // 那套「由素到华丽」的全部依据 —— 以前是一串 `rk === 'epic' / 'legend' / 'miracle'` 的
@@ -425,7 +425,9 @@
     'uniform vec3 uLp;',                // 第三盏「指针灯」：拖拽时跟手的高光斑（不拖时与 V 同向、贡献≈0）
     'uniform vec3 uFoilAxis;',
     'uniform vec2 uTexel;',
+    'uniform vec2 uFaceTexel;',      // 卡面纹理的 texel（锐化的邻域步长）
     'uniform float uRelief, uPom;',
+    'uniform float uDisp, uSharp;', // 主体色散 / 卡面锐化（都由 RANK_3D 给，低档为 0）
     'uniform float uFoil, uFoilScale, uSpec;',
 'uniform float uEdgeMetal, uEdgeEmis, uEdgeDiff;',
 'uniform float uShadow, uSweepPos, uSweepK;',
@@ -582,7 +584,30 @@
     '                 - uDrift * 0.30 * smoothstep(0.40, 0.95, hs);',
     '      puv = clamp(puv + uBgPar * bgW, 0.002, 0.998);',
     '    }',
-    '    albedo = (vFace < 0.5) ? texture2D(uFace, puv).rgb : texture2D(uBack, puv).rgb;',
+    '    if (vFace < 0.5) {',
+    '      vec3 alb = texture2D(uFace, puv).rgb;',
+    // 色散：**按这一像素被挪了多远**把 RGB 分开采样 —— `puv - uv` 正好是 POM 与卡内视差
+    // 的合位移。参考站 holo3D-card 把这道叫次表面色散：隆起物的边缘会析出极窄的彩边，
+    // 而卡的边缘本来就是凸起信息最密的地方，所以彩边长在正确的位置上。
+    '      if (uDisp > 0.01) {',
+    '        vec2 dsp = clamp((puv - uv) * uDisp * 0.5, vec2(-0.004), vec2(0.004));',
+    '        alb.r = texture2D(uFace, clamp(puv + dsp, 0.002, 0.998)).r;',
+    '        alb.b = texture2D(uFace, clamp(puv - dsp, 0.002, 0.998)).b;',
+    '      }',
+    // 锐化：纹理源头只有 700px 高（被放大到 840、xl 档 1064），放大的软用一层邻域找回来。
+    // 一次额外采样，且只在 uSharp > 0 的档开 —— 低三档是 0，逐像素与加它之前一致。
+    '      if (uSharp > 0.01) {',
+    '        vec3 nb = texture2D(uFace, clamp(puv + uFaceTexel * vec2(1.0, 1.0), 0.002, 0.998)).rgb;',
+    // 高光保护：锐化会把「本来就接近白」的地方推过 1.0 再被 clamp 成死白，
+    // 白发 / 白衣 / 掠射角高光上那一大片纯白是这么来的（A/B 截图里看得到）。
+    // 亮度越高锐化越弱，0.72 起线性收到 0.98 归零 —— 只在中间调与暗部找细节。
+    '        float ksh = uSharp * (1.0 - smoothstep(0.72, 0.98, dot(alb, vec3(0.3333))));',
+    '        alb = clamp(alb + (alb - nb) * ksh, 0.0, 1.0);',
+    '      }',
+    '      albedo = alb;',
+    '    } else {',
+    '      albedo = texture2D(uBack, puv).rgb;',
+    '    }',
     '    N = (vFace < 0.5) ? reliefNormalF(puv, slope, grad) : vec3(0.0, 0.0, -1.0);',
     '    if (vFace < 0.5) {',
     '      hv = hAt(puv);',
@@ -926,7 +951,8 @@
   var GL = null;                 // { gl, U, count, dist, aniso, maxAniso, pom }
   var canvas = null, host = null, deckEl = null;
   var item = null;
-  var texFace = null, texBack = null, texDepth = null;   // texDepth = { tex, w, h }
+  var texFace = null, texBack = null, texDepth = null;
+  var texFaceW = 0, texFaceH = 0;    // 卡面纹理的像素尺寸（锐化的邻域步长要用它）   // texDepth = { tex, w, h }
   var backCanvas = null, backKey = '';
   var proj = mat4(), view = mat4(), model = mat4(), rot = mat4(), rot2 = mat4();
   var yaw = 0, pitch = 0, vy = 0, vp = 0, baseYaw = 0;
@@ -944,7 +970,7 @@
   var ptrX = 0, ptrY = 0;      // 指针在台面里的位置（-1~1 的视图空间坐标，用于跟手高光）
   // 送进着色器的**生效值**（draw 每帧填）。stats().fx 直接回它 —— 让 lab 读「真正生效的数」
   // 而不是回读参数表：表到着色器之间还夹着调速器档位与编译期上限两道，回读表会假绿。
-  var fxEff = { relief: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0,
+  var fxEff = { relief: 0, disp: 0, sharp: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0,
               bgZoom: 0, bgParMax: 0, wall: 0, cast: 0, lid: 0, cone: 0, drift: 0,
              coneC: 0, holoC: 0 };
   var fxOverride = null;       // lab 拍对比图时的临时覆盖（api.setFx），产品路径上恒为 null
@@ -957,7 +983,7 @@
     var cores = navigator.hardwareConcurrency || 4;
     var smallViewport = Math.min(window.innerWidth, window.innerHeight) < 620;
     if (cores <= 4 || smallViewport) {
-      GRID.nx = 28; GRID.ny = 40; GRID.corner = 7;
+      GRID.nx = 40; GRID.ny = 56; GRID.corner = 10;
       POM_STEPS_MAX = 8;      // 编译期上限：低档机少走一半步数（档位阶梯再经 uSteps 夹一次）
       POM_STRENGTH = 0;
       // 弱设备直接从「第 1 档」起步（新效果打折、步数上限 20），而且**最多也只能回到第 1 档** ——
@@ -1024,7 +1050,7 @@
       'uTime', 'uSteps', 'uSparkle', 'uHolo', 'uHalo', 'uCliff', 'uGlint',
       'uBgZoom', 'uBgPar', 'uLid', 'uWall', 'uCast', 'uDrift', 'uCone',
       'uConeC', 'uHoloC',
-      'uTexel', 'uDark'].forEach(function (n) {
+      'uTexel', 'uDark', 'uDisp', 'uSharp', 'uFaceTexel'].forEach(function (n) {
       U[n] = gl.getUniformLocation(prog, n);
     });
 
@@ -1070,10 +1096,16 @@
   // 而台面 2026-09-21 从 430px 放大到 600px 之后面积是原来的 1.95 倍。所以除了把 dpr 夹到 2，
   // 再加这一条：超过就按比例降 dpr（600px 台面在 2x 屏上落到约 1.67x）。
   // 只夹 dpr 不夹面积是不行的 —— 那条线是按「小画布」定的，画布一大就失效了。
-  var MAX_PIXELS = 1400 * 1000;
+  var MAX_PIXELS = 2600 * 1000;
 
   function resize() {
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // 画布分辨率**跟着卡面纹理走**（2026-09-21）。卡面 xl 档是 1064px 高，而 CSS 台面高
+    // 840px：在 2x 屏上「画满 2.0」等于把那张纹理再放大 1.58 倍 —— 这部分放大不带来任何
+    // 信息，只把画面拉软，是「糊」最直接的来源（源头又只有 700px 高的素材，见 features.md ㊿）。
+    // 这里按「纹理高 / CSS 高」再乘 1.25 作为 dpr 上限：纹理最多被上采样 1.25 倍。
+    // 代价认下：卡框与几何边缘在 2x 屏上按 ~1.6x 画，比 2.0 略糙 —— 但主体是图，宁可图锐。
+    var texDpr = texFaceH ? (texFaceH / Math.max(1, canvas.clientHeight)) * 1.1 : 2;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2, texDpr);
     var cw = Math.max(1, canvas.clientWidth), ch = Math.max(1, canvas.clientHeight);
     var cap = MAX_PIXELS * GOV[govTier].pix;
     if (cw * ch * dpr * dpr > cap) dpr = Math.max(1, Math.sqrt(cap / (cw * ch)));
@@ -1143,6 +1175,8 @@
     // 生效值留档（stats().fx 读它；见 fxEff 的声明）
     fxEff.relief = RELIEF * S.relief * R.relief;
     var G = GOV[govTier];
+    fxEff.disp = R.disp * G.fx;
+    fxEff.sharp = R.sharp * G.fx;
     fxEff.steps = Math.min(R.steps, G.stepsCap);
     fxEff.sparkle = R.sparkle * S.sparkle * G.fx;
     fxEff.holo = R.holo * G.fx;
@@ -1212,6 +1246,10 @@
     gl.uniform3fv(U.uEdge, S.edge);
     gl.uniform1f(U.uDark, document.documentElement.getAttribute('data-theme') === 'dark' ? 1 : 0);
     gl.uniform2f(U.uTexel, texDepth ? 1 / texDepth.w : 1 / 600, texDepth ? 1 / texDepth.h : 1 / 840);
+    gl.uniform2f(U.uFaceTexel, texFaceW ? 1 / texFaceW : 1 / 760,
+                 texFaceH ? 1 / texFaceH : 1 / 1064);
+    gl.uniform1f(U.uDisp, fxEff.disp);
+    gl.uniform1f(U.uSharp, fxEff.sharp);
 
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFace); gl.uniform1i(U.uFace, 0);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texDepth ? texDepth.tex : null); gl.uniform1i(U.uDepth, 1);
@@ -1545,6 +1583,7 @@
       jobs.push(loadImage(next.xl || next.l || next.s).then(function (im) {
         if (texFace) GL.gl.deleteTexture(texFace);
         texFace = makeTex(im);
+        texFaceW = im.naturalWidth; texFaceH = im.naturalHeight;
       }).catch(function (err) {
         console.error('[card3d] 卡面图读取失败：' + (err && err.message));
       }));
@@ -1604,6 +1643,7 @@
         yaw: +yaw.toFixed(3), pitch: +pitch.toFixed(3), base: +baseYaw.toFixed(3),
         face: faceOf(baseYaw),
         pom: GL ? GL.pom : 0, relief: !!texDepth, pinned: pinned,
+        disp: fxEff.disp, sharp: fxEff.sharp, facePx: texFaceW,
         rank: (item && item.rank) || '', rankEff: rankOf(), revealed: revealed, turned: +turned.toFixed(2),
         canvas: canvas ? canvas.width + 'x' + canvas.height : '',
         // 调速器的状态（lab 断言读它：限速/超大台面下档位必须升、正常时不许误判）

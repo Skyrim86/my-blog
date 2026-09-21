@@ -665,7 +665,11 @@ if (!existsSync(CARD3D)) {
     'wall', 'cast', 'lid', 'cone', 'drift',
     // 第三轮（2026-09-21）：两个**曲线场**的权重 —— 光锥上的玫瑰线花瓣（coneC）与
     // 全息流光走的对数螺线（holoC）。收藏/珍稀为 0，也就是「与加这批之前逐像素一致」。
-    'coneC', 'holoC'];
+    'coneC', 'holoC',
+    // 第四轮（2026-09-21）：**画质**两项。disp = 主体色散（按 POM 位移把 RGB 分开采样）、
+    // sharp = 卡面锐化（纹理源头只有 700px 高，放大到 840、xl 档 1064）。低三档同样是 0 ——
+    // 「低档不许被顺手美化」这条纪律对它们一样成立。
+    'disp', 'sharp'];
   const FX_ALL = FX_LEGACY.concat(FX_NEW);
   // 单调不减的通道（back 是序号、glint 只在拖动时有值，都参与；metal/emis/diff 本来就是阶梯）
   const MONO = FX_ALL.filter((f) => f !== 'glint');
