@@ -114,7 +114,7 @@
   //   spec 镜面高光强度           relief 浮雕倍率    edge 卡边材质色（纸白/烫金/黑卡）
   //   sparkle 星屑闪点的加成（星点本来就是这两种工艺的纹样，所以它归工艺、不归等级）
   //
-  // **十二种**（2026-09-20 从 16 精简、2026-09-21 补到 12）：这张表与 YAML 的 style 字段必须
+  // **十六种**（2026-09-20 从 16 精简到 8、2026-09-21 先补到 12、当天又补四种到 16）：这张表与 YAML 的 style 字段必须
   // 一一对应，少一种就会静默套用兜底参数（首页看着是它、转起来不是它），check-deck.mjs 有守卫。
   var STYLE_3D = {
     foil:         { foil: 0.50, scale: 2.2, tint: [1.00, 1.00, 1.00], spec: 0.55, relief: 1.00, sparkle: 1.00, edge: [0.95, 0.93, 0.88] },
@@ -131,7 +131,15 @@
     filigree:     { foil: 0.40, scale: 2.0, tint: [1.00, 0.86, 0.58], spec: 0.85, relief: 1.05, sparkle: 1.00, edge: [0.86, 0.70, 0.36] },
     enamel:       { foil: 0.30, scale: 2.6, tint: [0.96, 0.92, 1.00], spec: 0.95, relief: 1.10, sparkle: 1.00, edge: [0.80, 0.74, 0.44] },
     starnight:    { foil: 0.26, scale: 3.4, tint: [0.78, 0.84, 1.00], spec: 0.45, relief: 1.00, sparkle: 1.45, edge: [0.30, 0.34, 0.66] },
-    frostcrack:   { foil: 0.22, scale: 3.0, tint: [0.90, 0.96, 1.00], spec: 0.60, relief: 1.05, sparkle: 1.00, edge: [0.86, 0.92, 0.98] }
+    frostcrack:   { foil: 0.22, scale: 3.0, tint: [0.90, 0.96, 1.00], spec: 0.60, relief: 1.05, sparkle: 1.00, edge: [0.86, 0.92, 0.98] },
+    // 2026-09-21 第二批四种（十二 → 十六种）。口径与上一批相同：**每种换一个物理机制**，不是换色 ——
+    // 珠母是薄膜干涉（大块缓变、只在掠角出彩，与全息的周期性衍射区分开）；烫银是冷色相金属
+    // （照 gold 那套双高光，只是色温冷、压深浅）；绸缎是经向丝光（scale 取小值，让流光沿竖向
+    // 缓缓滑过而不是横着扫）；极光是高层大气发光（screen 混合、绿紫双色，sparkle 拉高当星屑）。
+    nacre:        { foil: 0.22, scale: 1.9, tint: [0.94, 0.98, 1.00], spec: 0.72, relief: 1.00, sparkle: 1.15, edge: [0.90, 0.94, 0.97] },
+    silver:       { foil: 0.38, scale: 1.6, tint: [0.94, 0.96, 1.00], spec: 0.95, relief: 0.95, sparkle: 0.90, edge: [0.88, 0.91, 0.95] },
+    silk:         { foil: 0.20, scale: 1.2, tint: [1.00, 0.96, 0.94], spec: 0.62, relief: 0.90, sparkle: 0.85, edge: [0.93, 0.89, 0.86] },
+    aurora:       { foil: 0.58, scale: 3.8, tint: [0.82, 1.00, 0.94], spec: 0.55, relief: 1.05, sparkle: 1.28, edge: [0.72, 0.90, 0.84] }
   };
   var STYLE_FALLBACK = 'foil';
 

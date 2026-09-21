@@ -283,6 +283,18 @@ other = "星屑"
 [deckStyleFrostcrack]
 other = "冰裂"
 
+[deckStyleNacre]
+other = "珍珠母贝"
+
+[deckStyleSilver]
+other = "烫银"
+
+[deckStyleSilk]
+other = "绸缎"
+
+[deckStyleAurora]
+other = "极光"
+
 # 卡片墙的筛选条（三排 pill 由 assets/js/deck-wall.js 注入，文案经 data-* 传）。
 # 三排都可以多选（同排 OR、排与排 AND），所以**没有「全部」这一颗**：把选中的 chip 再点一次
 # 就是取消，整排清空由结果行末尾的「清空筛选」负责（2026-09-21 那一轮）。

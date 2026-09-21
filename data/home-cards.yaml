@@ -11,12 +11,19 @@
 #   flat    垫底渐变（[上, 下] 两个 RGB）：给透明源图，或 figure 取景装不下时手定底色；
 #           不写则用源图四角的实测底色
 #   series  系列名；name = 这张卡自己的名字（名牌显示 name + 系列副标）
-#   style   卡面风格（**现役十二种**，全是 CSS 画的，不烘进图里）。写的是代码名，分两档：
-#             · 普通工艺（纸面 + 单层印纹，6 种）：
-#               foil 全息 / washi 和纸 / ink 墨 / yukika 雪华 / starnight 星屑 / frostcrack 冰裂
-#             · 进阶工艺（多层材料，6 种）：
+#   style   卡面风格（**现役十六种**，全是 CSS 画的，不烘进图里）。写的是代码名，分两档：
+#             · 普通工艺（纸面 + 单层印纹，8 种）：
+#               foil 全息 / washi 和纸 / ink 墨 / yukika 雪华 / starnight 星屑 / frostcrack 冰裂 /
+#               nacre 珍珠母贝 / silk 绸缎
+#             · 进阶工艺（多层材料，8 种）：
 #               holo-prism 星芒全息 / glass 玻璃 / gold 金边 / kintsugi 金继 /
-#               filigree 雕花金 / enamel 珐琅彩
+#               filigree 雕花金 / enamel 珐琅彩 / silver 烫银 / aurora 极光
+#           2026-09-21 加了后四种（珍珠母贝 / 绸缎 / 烫银 / 极光），十二 → 十六种。
+#           加一种工艺要同时动五处：这个清单、assets/css/extended/21-card-deck.css 的
+#           `.home-card--<名>` 块、assets/js/card-3d.js 的 STYLE_3D、i18n 的 deckStyle<名>、
+#           以及 deck-manifest.html 里的 styleLabel 与 $styleTier 两张表 —— check-deck.mjs
+#           的守卫会逐条核，漏一处就报（漏 STYLE_3D 的那种最阴：首页看着是雕花金、
+#           转起来是普通全息，两种视图永远不同屏）。
 #           分档口径取「能从代码里数出来」的那个（普通只有一层、进阶要多层叠加）。
 #           **两档是纯分类口径**：它不管边框（边框归等级 —— 带宽 / 角饰 / 淡入都由
 #           .home-card-rank--* 给），也不管那副「雕花框」显不显形（那也看等级，秘藏及以上才显）。
@@ -118,7 +125,7 @@
   crop: figure
   series: 绫华
   name: 白鹭
-  style: yukika
+  style: nacre
   rank: collector
   credit: safebooru 5815913
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5815913
@@ -145,7 +152,7 @@
   crop: figure
   series: 绫华
   name: 樱堤
-  style: washi
+  style: silk
   rank: collector
   credit: safebooru 4843454
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4843454
@@ -241,7 +248,7 @@
   crop: figure
   series: 绫华
   name: 学园
-  style: washi
+  style: silk
   rank: rare
   credit: safebooru 3993400
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3993400
@@ -349,7 +356,7 @@
   crop: figure
   series: 卡夫卡
   name: 回响
-  style: glass
+  style: aurora
   rank: epic
   credit: safebooru 4018682
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4018682
@@ -358,7 +365,7 @@
   crop: figure
   series: 卡夫卡
   name: 雨幕
-  style: starnight
+  style: aurora
   rank: rare
   credit: safebooru 4092477
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4092477
@@ -412,7 +419,7 @@
   src: tools/cards/sources/emilia-05.webp
   series: 艾米莉亚
   name: 月影
-  style: starnight
+  style: aurora
   rank: arcane
   credit: safebooru 3285846
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3285846
@@ -460,7 +467,7 @@
   src: tools/cards/sources/emilia-11.webp
   series: 艾米莉亚
   name: 静水
-  style: glass
+  style: nacre
   rank: collector
   credit: safebooru 3629666
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3629666
@@ -468,7 +475,7 @@
   src: tools/cards/sources/emilia-12.webp
   series: 艾米莉亚
   name: 银绢
-  style: foil
+  style: silver
   rank: collector
   credit: safebooru 4195947
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4195947
@@ -500,7 +507,7 @@
   src: tools/cards/sources/emilia-16.webp
   series: 艾米莉亚
   name: 初霜
-  style: gold
+  style: silver
   rank: collector
   credit: safebooru 3849608
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3849608
@@ -540,7 +547,7 @@
   src: tools/cards/sources/emilia-21.webp
   series: 艾米莉亚
   name: 银月
-  style: foil
+  style: silver
   rank: collector
   credit: safebooru 3367232
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3367232
@@ -548,7 +555,7 @@
   src: tools/cards/sources/emilia-22.webp
   series: 艾米莉亚
   name: 冰凌
-  style: glass
+  style: nacre
   rank: collector
   credit: safebooru 3176237
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3176237
@@ -556,7 +563,7 @@
   src: tools/cards/sources/emilia-23.webp
   series: 艾米莉亚
   name: 白露
-  style: washi
+  style: silk
   rank: collector
   credit: safebooru 2881553
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2881553

@@ -34,7 +34,7 @@ const DEPTH_DIR = join(FACES_DIR, 'depth');
 const depthOf = (image) => join(DEPTH_DIR, basename(image));
 
 // 卡片组要用的词条：文案走 data-* 从模板传给 JS（JS 调不到 i18n），少一条就只剩兜底模板。
-// 后半批是收藏库（/collection/）的卡片墙要用的：十二种工艺的中文名 + 筛选条与格子按钮名。
+// 后半批是收藏库（/collection/）的卡片墙要用的：十六种工艺的中文名 + 筛选条与格子按钮名。
 // 筛选条那几条里**没有「全部」**：三排都能多选，取消靠再点一次，整排清空走 deckFilterClear。
 const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClose', 'deckCredit',
   'deckDialogLabel', 'deckFlip', 'deckFlipBack', 'deckRotate', 'deckGlFail',
@@ -533,7 +533,7 @@ for (const r of cssRanks) {
       );
     }
     // ② 但装饰线的**颜色**必须由工艺给（它是材质）—— 用户 2026-09-21 选的口径：
-    //    「不喜欢全部都是金色」，于是十二种工艺各有一条自己的线色。漏写的表现是
+    //    「不喜欢全部都是金色」，于是十六种工艺各有一条自己的线色。漏写的表现是
     //    「这颗卡沿用默认的珠白」，页面上只是颜色不太对，看不出是漏了。
     if (!blk.includes('--fret-line')) {
       failures.push(
