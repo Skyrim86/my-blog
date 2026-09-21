@@ -218,13 +218,22 @@ other = "{label}，第 {n} 张，共 {total} 张。拖动可转动卡片，翻�
 [deckGlFail]
 other = "这台设备/浏览器没有可用的 WebGL，卡片只能看平面大图"
 
-# 卡片等级（2026-09-20 加）。**只有 3D 卡背与角标会用到这些词** —— 卡面本身不写等级字，
-# 隐藏等级「奇迹」在显形前更不会出现，所以这几个词条的用途是「显形之后把话说全」。
+# 卡片等级（2026-09-20 加，2026-09-21 从四档扩到六档）。**只有 3D 卡背与角标会用到这些词** ——
+# 卡面本身不写等级字（名字旁印的是**形状**徽章，色盲也能分，见 21-card-deck.css 的「等级」一节），
+# 隐藏等级「奇迹」在显形前更不会出现，所以这几个词条的用途是「显形之后把话说全」+ 卡片墙的筛选条。
+# 顺序按阶梯从低到高写（收藏 → 珍稀 → 史诗 → 秘藏 → 传世 → 奇迹），与 deck-wall.js 的 RANK_ORDER、
+# card-3d.js 的 RANK_3D、以及 check-deck.mjs 里的 RANKS 一致。
 [deckRankCollector]
 other = "收藏"
 
+[deckRankRare]
+other = "珍稀"
+
 [deckRankEpic]
 other = "史诗"
+
+[deckRankArcane]
+other = "秘藏"
 
 [deckRankLegend]
 other = "传世"

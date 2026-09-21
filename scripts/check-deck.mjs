@@ -37,7 +37,7 @@ const depthOf = (image) => join(DEPTH_DIR, basename(image));
 // 后 16 条是收藏库（/collection/）的卡片墙要用的：八种工艺的中文名 + 筛选条与格子按钮名。
 const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClose', 'deckCredit',
   'deckDialogLabel', 'deckFlip', 'deckFlipBack', 'deckRotate', 'deckGlFail',
-  'deckRankCollector', 'deckRankEpic', 'deckRankLegend', 'deckRankMiracle',
+  'deckRankCollector', 'deckRankRare', 'deckRankEpic', 'deckRankArcane', 'deckRankLegend', 'deckRankMiracle',
   'deckStyleFoil', 'deckStyleHoloPrism', 'deckStyleGold', 'deckStyleGlass',
   'deckStyleInk', 'deckStyleWashi', 'deckStyleYukika', 'deckStyleKintsugi',
   'deckFilterLabel', 'deckFilterAll', 'deckFilterSeries', 'deckFilterStyle', 'deckFilterRank',
@@ -218,8 +218,12 @@ for (const [idx, c] of entries.entries()) {
 
    为什么把 rank 做成**必填**：漏写它不会报错、只会按「收藏」渲染 —— 一张本该是传世的卡
    静默降级，而那种错在页面上完全看不出来（只有把三档摆在一起才发现某张的框不对）。
-   这正是这个仓库反复强调要拦的那类静默失败。 */
-const RANKS = new Set(['collector', 'epic', 'legend', 'miracle']);
+   这正是这个仓库反复强调要拦的那类静默失败。
+
+   2026-09-21 从四档扩到六档（加了 rare 珍稀 / arcane 秘藏）。**「每一处消费点都要真的实现」
+   那几条守卫在下面「等级与风格的消费点」一节里** —— 它们要用到 stylesOpen/stylesClose，
+   而那两处切分在更靠后的「卡面风格的两条纪律」里才定义，所以不能放在这里。 */
+const RANKS = new Set(['collector', 'rare', 'epic', 'arcane', 'legend', 'miracle']);
 for (let i = 0; i < entries.length; i++) {
   const c = entries[i];
   const where = `${MANIFEST} 第 ${i + 1} 条（${c.name || c.series || c.image}）`;
@@ -234,7 +238,7 @@ for (let i = 0; i < entries.length; i++) {
 {
   const cnt = {};
   for (const c of entries) cnt[c.rank] = (cnt[c.rank] || 0) + 1;
-  notes.push('· 等级分布：' + Object.entries(cnt).map(([k, v]) => `${k} ${v}`).join('，'));
+  notes.push('· 等级分布：' + [...RANKS].map((r) => `${r} ${cnt[r] || 0}`).join('，'));
 }
 
 /* ---------- 孤儿产物：目录里有、清单里没有 ---------- */
@@ -312,6 +316,117 @@ if (stylesOpen < 0 || stylesClose < 0 || stylesClose <= stylesOpen) {
   }
 }
 
+/* ---------- 等级与风格的消费点：**每一处都要真的实现** ----------
+
+   这一节守的是同一件事：「清单里/样式里有一个档或一种风格，而某个消费点没有它」——
+   每一处的表现都是**静默降级**，页面上不报错，只能靠人肉摆在一起看才发现：
+     · CSS 里没有 .home-card-rank--<档>     → 那张卡按**收藏**的观感渲染（框细一档、没有内衬线、
+                                              徽章是圆点），看不出是漏了还是设计如此
+     · 某一档少了某个令牌                  → 那一个通道静默沿用上一层（三重编码退化成只靠颜色）
+     · 风格写了 --cframe 而不是 --cframe-finish → 等级的材质底色被整片盖掉
+     · deck-manifest.html 的两张中文名表里没有 → 卡片墙上那格显示「系列 · 」后面空一截
+   还有两处守不到的（顺序表在 JS 里，正则核不动，只能在代码里写对照注释）：
+     · deck-wall.js 的 RANK_ORDER —— 少一档 = 那一档在筛选条里排到最后
+     · home-clock.js 的 RANK_WEIGHT —— 少一档 = 那一档的卡**永远抽不到** */
+
+/* 按 `}` 粗切规则，取出选择器里含某个类的**全部**规则并接起来。
+   为什么不能只取第一条：一个风格/等级可以有多条规则，而第一条未必是声明令牌的那条 ——
+   星芒全息的第一条恰好是 `:hover::before` 的过渡规则（它排在令牌块前面），只取第一条会
+   误报「没有 --cframe-finish」。粗切 `}` 在这里是安全的：这份 CSS 没有嵌套规则，
+   data-URI 里的 SVG 也全是百分号转义（不含花括号）。 */
+function rulesWith(sec, cls) {
+  return sec.split('}').filter((chunk) => chunk.includes(cls)).join('}');
+}
+
+/* ① CSS 里的档位类 */
+const cssRanks = new Set([...css.matchAll(/\.home-card-rank--([a-z0-9-]+)/g)].map((m) => m[1]));
+for (const r of RANKS) {
+  if (!cssRanks.has(r)) {
+    failures.push(
+      `✗ ${CSS} 里没有 .home-card-rank--${r} —— 这一档的卡会**静默按收藏渲染**` +
+        `（框细一档、没有内衬线、徽章是圆点），页面上看不出是漏了还是设计如此`
+    );
+  }
+}
+for (const r of cssRanks) {
+  if (!RANKS.has(r)) notes.push(`· ${CSS} 里有清单用不到的档位类：${r}`);
+}
+
+/* ② 每档的令牌是否齐 */
+{
+  const rankOpen = css.indexOf('---------- 等级');
+  const rankClose = css.indexOf('/* ---------- 深色主题');
+  if (rankOpen < 0 || rankClose <= rankOpen) {
+    failures.push(
+      `✗ ${CSS} 里找不到「等级」段（分隔注释被改过？）—— 每档令牌完整性那一条就失效了，请同步 check-deck.mjs`
+    );
+  } else {
+    const sec = css.slice(rankOpen, rankClose);
+    for (const r of RANKS) {
+      if (!cssRanks.has(r)) continue;              // ① 已经报过
+      const blk = rulesWith(sec, `.home-card-rank--${r}`);
+      // --cframe 是六档色阶（颜色通道）、--rank-mark 是徽章形状、--rank-craft 是工艺强度、
+      // --rank-mat 是画框收窄 —— 四者构成三重编码，缺一条就是「只靠颜色」。
+      const toks = ['--rank-mark', '--rank-craft', '--rank-mat'];
+      // 收藏档特例（与 foil 之于风格同一个道理）：它的材质底色就是 .home-card 的基础声明那份
+      // —— 那一份同时也是「漏挂等级类」的兜底值，两处都写就是两处都要改，故只留基础声明那一处。
+      if (r !== 'collector') toks.push('--cframe');
+      for (const tok of toks) {
+        if (!blk.includes(tok)) {
+          failures.push(
+            `✗ ${CSS} 的等级「${r}」的规则里没有 ${tok} —— 那一档的这个通道会静默沿用上一层的值` +
+              `（三重编码要求颜色 / 形状 / 材质同时区分，缺一条就退化成只靠颜色）`
+          );
+        }
+      }
+    }
+  }
+}
+
+/* ③ 风格的框值必须走 --cframe-finish、不许写 --cframe */
+{
+  const sec = css.slice(stylesOpen, stylesClose);
+  for (const s of knownStyles) {
+    if (s === 'foil') continue;   // 特例：foil 的质感层就是 .home-card 的基础声明
+    const blk = rulesWith(sec, `.home-card--${s}`);
+    if (!blk) continue;
+    if (!blk.includes('--cframe-finish')) {
+      failures.push(
+        `✗ ${CSS} 的风格「${s}」没有 --cframe-finish —— 要么没写框的质感层，要么写了 --cframe：` +
+          `后者会把**等级的材质底色**整片盖掉（14 张金边卡会一起变金，与它们是不是传世无关）`
+      );
+    }
+    if (/^\s*--cframe:/m.test(blk)) {
+      failures.push(`✗ ${CSS} 的风格「${s}」写了 --cframe —— 那是等级拥有的材质底色，见该文件第 7 条规矩`);
+    }
+  }
+}
+
+/* ④ deck-manifest.html 的两张中文名表 */
+{
+  const MANIFEST_HTML = join('layouts', '_partials', 'deck-manifest.html');
+  const mh = readFileSync(MANIFEST_HTML, 'utf8');
+  const grab = (prefix) =>
+    new Set([...mh.matchAll(new RegExp(`"([a-z0-9-]+)"\\s*\\(i18n\\s*"${prefix}`, 'g'))].map((m) => m[1]));
+  const dRanks = grab('deckRank');
+  const dStyles = grab('deckStyle');
+  if (!dRanks.size || !dStyles.size) {
+    failures.push(
+      `✗ ${MANIFEST_HTML} 里没解析出 rankLabel / styleLabel 的键 —— 那条正则与模板结构脱节了，请同步`
+    );
+  }
+  for (const r of RANKS) {
+    if (!dRanks.has(r)) {
+      failures.push(`✗ ${MANIFEST_HTML} 的 rankLabel 表里没有「${r}」—— 卡片墙那格会显示「系列 · 」后空一截`);
+    }
+  }
+  for (const s of knownStyles) {
+    if (!dStyles.has(s)) {
+      failures.push(`✗ ${MANIFEST_HTML} 的 styleLabel 表里没有「${s}」—— 卡片墙的工艺副标题会缺中文名`);
+    }
+  }
+}
+
 /* ---------- 词条 ---------- */
 const i18n = readFileSync(I18N, 'utf8');
 for (const key of I18N_KEYS) {
@@ -347,6 +462,48 @@ if (!existsSync(CARD3D)) {
   const extra = [...table].filter((s) => !knownStyles.has(s)).sort();
   if (extra.length) {
     notes.push(`· ${CARD3D} 的 STYLE_3D 里有 CSS 中不存在的风格：${extra.join(' / ')}`);
+  }
+}
+
+/* ---------- 3D 查看器的**等级**参数表（2026-09-21 补上，与上面 STYLE_3D 那条同一个道理） ----------
+
+   原先只守了风格那一张表，等级那张没人核 —— 六档之后「少一档」的代价更大：新增的珍稀/秘藏
+   如果在 RANK_3D 里没有条目，3D 里会静默套用兜底（collector），表现是「首页看着是珍稀的框、
+   转起来是纸白切口」，而这两种视图永远不会同时出现在一屏里，所以只有摆在一起才发现。 */
+{
+  const js = readFileSync(CARD3D, 'utf8');
+  const a = js.indexOf('var RANK_3D');
+  const b = js.indexOf('var BACK_RING_A');
+  const block = a >= 0 && b > a ? js.slice(a, b) : '';
+  const table = new Set();
+  for (const m of block.matchAll(/^\s{4}'?([a-z][a-z0-9-]*)'?\s*:\s*\{/gm)) table.add(m[1]);
+  if (!table.size) {
+    failures.push(
+      `✗ ${CARD3D} 里没能解析出 RANK_3D 的键 —— 那条正则与代码结构脱节了（RANK_3D 到 BACK_RING_A 之间），请同步`
+    );
+  }
+  const usedRanks = new Set(entries.map((c) => String(c.rank || 'collector')));
+  const missing = [...usedRanks].filter((r) => !table.has(r)).sort();
+  if (missing.length) {
+    failures.push(
+      `✗ 这些等级在清单里用到了，但 ${CARD3D} 的 RANK_3D 里没有条目：${missing.join(' / ')} —— ` +
+        `3D 卡会静默套用兜底的 collector 参数（首页看着是这一档、转起来不是）`
+    );
+  }
+  const extra = [...table].filter((r) => !RANKS.has(r)).sort();
+  if (extra.length) {
+    notes.push(`· ${CARD3D} 的 RANK_3D 里有清单用不到的等级：${extra.join(' / ')}`);
+  }
+  // 卡背的分级靠 back 序号取 BACK_RING_A/BACK_RING_W 两张表的值 —— 序号超出表长会取到 undefined，
+  // canvas 那边会静默画不出那圈环。所以顺便核一下两表的长度盖得住所有档位。
+  const lens = [...js.matchAll(/var BACK_RING_[AW]\s*=\s*\[([^\]]*)\]/g)]
+    .map((m) => m[1].split(',').length);
+  const maxBack = Math.max(0, ...[...block.matchAll(/back:\s*(\d+)/g)].map((m) => Number(m[1])));
+  if (lens.length !== 2 || Math.min(...lens) <= maxBack) {
+    failures.push(
+      `✗ ${CARD3D} 的 BACK_RING_A / BACK_RING_W 长度（${lens.join('/')}）盖不住最大档位序号 back: ${maxBack} —— ` +
+        `超出的档位取到 undefined，卡背那圈徽记环会**静默画不出来**`
+    );
   }
 }
 

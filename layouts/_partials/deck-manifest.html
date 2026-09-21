@@ -42,6 +42,12 @@
 {{- $durl := "" }}
 {{- with $depth }}{{ $durl = (. | fingerprint).RelPermalink }}
 {{- else }}{{ warnf "深度图 %q 不在（跑 tools/cards/make-depth.py）——这张卡在 3D 查看器里会是平的" $dpath }}{{ end }}
+{{- /* 等级的中文名那张表（rankLabel）与等级一样是六档：与 i18n 的 deckRank*、CSS 的
+      .home-card-rank--*、card-3d.js 的 RANK_3D、check-deck.mjs 的 RANKS 是同一份清单 ——
+      这里少一条的表现是卡片墙那格显示「系列 · 」后面空一截（不报错），所以 check-deck.mjs
+      里有一条守卫核这张表的键。
+      **注释不能写进下面那个 dict 的括号里面**：Go 模板不允许注释动作出现在表达式中间
+      （`unexpected "{" in operand`），实测踩到过一次。 */}}
 {{- $style := .style | default "foil" }}
 {{- $rank := .rank | default "collector" }}
 {{- $items = $items | append (dict
@@ -55,7 +61,10 @@
         "ink" (i18n "deckStyleInk") "washi" (i18n "deckStyleWashi")
         "yukika" (i18n "deckStyleYukika") "kintsugi" (i18n "deckStyleKintsugi")) $style)
     "rank" $rank
-    "rankLabel" (index (dict "collector" (i18n "deckRankCollector") "epic" (i18n "deckRankEpic") "legend" (i18n "deckRankLegend") "miracle" (i18n "deckRankMiracle")) $rank)
+    "rankLabel" (index (dict
+        "collector" (i18n "deckRankCollector") "rare" (i18n "deckRankRare")
+        "epic" (i18n "deckRankEpic") "arcane" (i18n "deckRankArcane")
+        "legend" (i18n "deckRankLegend") "miracle" (i18n "deckRankMiracle")) $rank)
     "credit" (.credit | default "") "url" (.credit_url | default "")) }}
 {{- else }}
 {{- warnf "data/home-cards.yaml 里的 %q 在 assets/ 下找不到（先跑 tools/cards/make-cards.py），这一张跳过" .image }}

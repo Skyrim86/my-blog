@@ -24,8 +24,12 @@
        4. **滤镜必须 include**：卡面纹样靠 `filter: url(#deck-rough)`，页面里没有那份 <svg> 定义时
           静默失效（只是没有手抖感）。check-deck.mjs 会核这件事。
 
-       5. **等级的那一层照留**：`.home-card-rank` 是等级覆膜 + 四角纹章（26 张非「收藏」级有），
-          它是这小格子上唯一的等级**观感**（文字那行也会写等级名，两者不重复：一个是气氛、一个是信息）。 */ -}}
+       5. **等级的那几层照留**：`.home-card-rank`（等级覆膜 + 四角纹章，秘藏及以上有）与
+          `.home-card-mat`（画面内衬线，低档清楚、高档归零）、`.home-card-mark`（稀有度徽章：
+          形状 + 尺寸 + 颜色三样都由等级给）—— 它们是这小格子上**看**得出的等级，
+          而格子下方那行文字（`系列 · 等级中文名`）是**读**得出的等级，两者不重复：一个是气氛、一个是信息。
+          徽章在卡片墙上贴画面右下角（这一页没有名牌），在首页那张卡上进名牌条 —— 见
+          21-card-deck.css 里 `.home-card-plate .home-card-mark` 那条的对比度说明。 */ -}}
 {{- $items := partial "deck-manifest.html" . }}
 {{- with $items }}
 <div class="deck-wall" data-deck="{{ . | jsonify }}"
@@ -56,7 +60,13 @@
                 {{- /* 玻璃的厚度层 / 金继的釉面反光：与首页同一支 span，CSS 里只给那两种风格显形
                        （玻璃那一支会把画作再铺两遍，一页 7 张玻璃 = 多 14 次全卡绘制，见 ㊿ 的账） */}}
                 <span class="home-card-lens" aria-hidden="true"></span>
+                {{- /* 画面的内衬线（低档清楚、高档归零）—— 与首页同一支 span */}}
+                <span class="home-card-mat" aria-hidden="true"></span>
                 <span class="home-card-rank" aria-hidden="true"></span>
+                {{- /* 稀有度徽章：卡片墙**没有名牌**（名字在格子下方那条 cap 里，见上面第 3 条），
+                       所以徽章贴画面右下角（.home-card-mark 的默认位置）。等级的形状与颜色由
+                       CSS 的 rank 类给，这里只放一个空 span —— 与首页那支是同一个组件。 */}}
+                <span class="home-card-mark" aria-hidden="true"></span>
             </span>
             <span class="deck-tile-cap">
                 <span class="deck-tile-name">{{ $it.label }}</span>

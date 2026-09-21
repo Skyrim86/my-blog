@@ -91,15 +91,26 @@
   //   metal 卡边金属度（0 纸白 / 1 烫金）—— 它同时抬高高光强度并给高光上色
   //   emis  卡边自发光（光刃）
   //   diff  卡边衍射（镭射：随视角变化的色相）
-  //   back  卡背的档位（0 现状 / 1 徽记烫金 + 等级环 / 2 等级专属 / 3 显形）
+  //   back  卡背的档位序号 0~5（素背 → 单细环 → 单环 → 加粗 → 双环 + 等级带 → 再加背光），
+  //         由 drawBack 按序号取值，见下面 BACK_RING_* 两张表
   //   relief 浮雕倍率（越高主体抬得越明显）  shadow 投影强度  sweep 转动时那道亮带的强度
-  // **奇迹在显形前拿的是收藏那一套**：隐藏等级的定义就是看不出来（见 selectRank）。
+  // **六档**（2026-09-21 从四档扩到六档：加了 rare 珍稀 / arcane 秘藏）。这张表与 CSS 的
+  // `.home-card-rank--*` 必须一一对应 —— 少一档会静默套用兜底（首页看着是它、转起来不是它），
+  // check-deck.mjs 里有守卫核这个（原来只守了 STYLE_3D，本次补上了 RANK_3D）。
+  // **奇迹在显形前拿的是收藏那一套**：隐藏等级的定义就是看不出来（见 selectRank / rankOf）。
   var RANK_3D = {
     collector: { metal: 0.05, emis: 0.00, diff: 0.00, relief: 1.00, back: 0, shadow: 0.35, sweep: 0.25 },
-    epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.10, back: 1, shadow: 0.62, sweep: 0.5 },
-    legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 1.28, back: 2, shadow: 1.00, sweep: 0.85 },
-    miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 1.38, back: 3, shadow: 1.15, sweep: 1.00 }
+    rare:      { metal: 0.30, emis: 0.01, diff: 0.05, relief: 1.05, back: 1, shadow: 0.48, sweep: 0.38 },
+    epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.10, back: 2, shadow: 0.62, sweep: 0.50 },
+    arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.20, back: 3, shadow: 0.82, sweep: 0.68 },
+    legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 1.28, back: 4, shadow: 1.00, sweep: 0.85 },
+    miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 1.38, back: 5, shadow: 1.15, sweep: 1.00 }
   };
+  // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。这两张表是卡背
+  // 那套「由素到华丽」的全部依据 —— 以前是一串 `rk === 'epic' / 'legend' / 'miracle'` 的
+  // 字符串比较，四档时勉强能读，六档就是十三条分支，所以改成序号取值。
+  var BACK_RING_A = [0, 0.45, 0.58, 0.72, 0.85, 0.95];
+  var BACK_RING_W = [0, 2.5, 3, 3.5, 5, 6];
   // 奇迹触发显形的两个入口：转满一圈、或在背面停留。360° 是「你真的把它翻过一遍」，
   // 停留是给不想转的人一条路（也照顾了触屏上不便连续划圈的情况）。
   var REVEAL_TURN = Math.PI * 2;
@@ -593,22 +604,25 @@
     g.globalAlpha = 1;
 
     emblem(g, data.series, BW / 2, BH * 0.36, BW * 0.17, C.accent);
-    // 等级：徽记加环、传世及以上加等级带；奇迹显形后再给它一层背光。
+    // 等级：徽记加环、传世及以上加双环与等级带；奇迹再加一层背光。
     // 卡背是 canvas 现画的，所以「分级」在这里只是多几条绘制路径，不引入任何新素材。
+    // **这里读的是清单里的原档（data.rank），不是 rankOf()**：奇迹的「看不出来」只管**正面**
+    // 与卡边，卡背本来就是它的信息面 —— 点开卡背能看到它的等级，这是设计，不是泄漏。
     var rk = data.rank || 'collector';
-    if (rk !== 'collector') {
+    var tier = (RANK_3D[rk] || RANK_3D.collector).back;
+    if (tier >= 1) {
       g.save();
       g.strokeStyle = C.accent;
-      g.globalAlpha = rk === 'epic' ? 0.5 : 0.85;
-      g.lineWidth = rk === 'epic' ? 3 : 5;
+      g.globalAlpha = BACK_RING_A[tier];
+      g.lineWidth = BACK_RING_W[tier];
       g.beginPath(); g.arc(BW / 2, BH * 0.36, BW * 0.215, 0, Math.PI * 2); g.stroke();
-      if (rk === 'legend' || rk === 'miracle') {
+      if (tier >= 4) {
         g.globalAlpha = 0.42; g.lineWidth = 2;
         g.beginPath(); g.arc(BW / 2, BH * 0.36, BW * 0.248, 0, Math.PI * 2); g.stroke();
       }
       g.restore();
     }
-    if (rk === 'miracle') {
+    if (tier >= 5) {
       var rg = g.createRadialGradient(BW / 2, BH * 0.36, 8, BW / 2, BH * 0.36, BW * 0.44);
       rg.addColorStop(0, 'rgba(255,233,172,.62)');
       rg.addColorStop(1, 'rgba(255,233,172,0)');
@@ -625,8 +639,8 @@
     g.globalAlpha = 0.5; g.strokeStyle = C.line; g.lineWidth = 2;
     g.beginPath(); g.moveTo(BW * 0.30, BH * 0.72); g.lineTo(BW * 0.70, BH * 0.72); g.stroke();
     g.restore();
-    if (data.rankLabel && (rk === 'legend' || rk === 'miracle')) {
-      g.font = '600 30px ' + fam; g.fillStyle = C.accent; g.globalAlpha = rk === 'miracle' ? 1 : 0.9;
+    if (data.rankLabel && tier >= 4) {
+      g.font = '600 30px ' + fam; g.fillStyle = C.accent; g.globalAlpha = tier >= 5 ? 1 : 0.9;
       g.fillText(data.rankLabel, BW / 2, BH * 0.845);
       g.globalAlpha = 1;
     }

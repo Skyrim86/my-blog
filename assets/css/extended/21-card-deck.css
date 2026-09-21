@@ -1,15 +1,22 @@
 /* ============================================
-   首页卡片组（一次一张，可手动切 + 自动轮播）
-   行为在 assets/js/home-deck.js，清单在 data/home-cards.yaml，卡面由 tools/cards/make-cards.py 生成。
+   首页卡片组（一次一张，可手动切 + 自动轮播）+ 收藏库的卡片墙（/collection/）
+   行为在 assets/js/home-deck.js 与 deck-wall.js，清单在 data/home-cards.yaml，
+   卡面由 tools/cards/make-cards.py 生成，等级由 scripts/rank-deck.py 定。
 
-   **「全息 / 金边 / 和纸 / 霜蓝 / 墨 / 像素」六种风格全部是 CSS**，不烘进图里 —— 换风格只改 YAML 里的
-   style 字段，不用重出图。做法：风格只改一组自定义属性（框边、名牌底、叠层图案、混合模式、角度弧），
-   卡片本体的结构与两层叠加（::before 图案 / ::after 扫光）在所有风格间共用。
+   **卡面是两个正交的轴，各有各的一组自定义属性**（2026-09-21 六档阶梯时立的口径）：
+     · 等级 rank（收藏/珍稀/史诗/秘藏/传世/奇迹）—— 管**材料与档位**：框宽、框的材质底色（色阶）、
+       画面内缩（出框程度）、工艺强度倍率、徽章形状、覆膜与纹章。见下面「等级」那一节。
+     · 风格 style（全息/金边/和纸/玻璃/墨/雪华/金继/星芒全息）—— 管**纹样与质感**：卡面上的图案、
+       框的质感叠层、名牌质感。见下面「卡面风格」那一节。
+   两轴都只改自己的令牌，所以是 8 × 6 = 48 种组合却**只有 14 条规则**，卡片本体的结构与三层叠加
+   （::before 图案 / ::after 扫光 / .home-card-rank 等级层）在所有组合间共用。
+
+   全 CSS、不烘进图里：换材质或纹样只改 YAML 里的 style / rank 字段，不用重出图（**0 字节新图**）。
 
    三条硬约束：
    1. **混合模式必须关在卡内**（`isolation: isolate`）：`color-dodge` / `screen` 会去混合身后的壁纸，
       卡边会糊成一团光。
-   2. **两层叠加都要 `pointer-events: none`**：它们盖在图上，否则点卡面翻页会被它们拦掉。
+   2. **所有叠加层都要 `pointer-events: none`**：它们盖在图上，否则点卡面翻页会被它们拦掉。
    3. **叠加层的强度按主题分**：深色主题下 color-dodge / screen 在深底上提亮很猛，统一压一档；
       不然卡片在夜里会白成一片。
    ============================================ */
@@ -35,7 +42,18 @@
 
 /* ---------- 卡片本体 ---------- */
 .home-card {
-  --cframe: linear-gradient(140deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .10) 42%, rgba(255, 255, 255, .45));
+  /* 框的**质感叠层**（**风格拥有**）：这一层是「用什么材料做这个框的质感」—— 玻璃的通透、
+     和纸的奶白、金边的拉丝。基础声明这一份就是全息（foil）的那一层，而 .home-card 的基础声明
+     **本身就是** foil 的观感（所以没有 .home-card--foil 这条规则，见文件尾的说明）。
+     它压在下面那条材质底色之上，所以**必须半透明**：不透明的话整张卡就是这一个风格的颜色，
+     六档色阶在它身上全部失效（14 张金边卡会一起变金，与它们是不是传世无关）。 */
+  --cframe-finish: linear-gradient(140deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .10) 42%, rgba(255, 255, 255, .45));
+  /* 框的**材质底色**（**等级拥有**）：六档色阶的主通道（灰白 → 绿 → 蓝 → 紫 → 金 → 虹彩）。
+     这里给的是最低档「收藏」那一套，与 --rank-* 那几个默认值是同一份 —— 漏挂等级类时
+     按收藏渲染（与 JS 侧 `it.rank || 'collector'` 一条口径），而不是没有边框。
+     **这个令牌名不能改**：09-home.css 的「今日一卡」微卡与 home-clock.html 都读 var(--cframe)，
+     它俩不是 .home-card 的后代、拿不到下面的基础声明，改了名它们会**静默**丢掉框色。 */
+  --cframe: linear-gradient(150deg, #e8eaef, #9aa0ab 26%, #f7f8fb 50%, #878d99 74%, #d5d8de);
   /* 名牌底：**必须够厚**。它压在任何一张画上，而卡面里浅色的很多（白裙、书桌那张整个是浅色），
      .58 的半透明底在浅画出会被抬到 129 左右的灰，白字压上去只有 ~2.6:1（实测截图取样）。
      改成从上到下加深的渐变（上 .62 → 下 .92），底边那一行一定站得住。 */
@@ -85,6 +103,41 @@
   --cradius: 12px;
   --cplate-font: inherit;
 
+  /* ---------- 画面几何：框有多宽、画面从哪儿开始 ----------
+
+     「框」现在是**两段**，分开命名是因为它们承担两件不同的事：
+       --rank-frame  金属那条**亮棱**的宽度（金属高光的可见带）—— 越高档越宽
+       --rank-mat    素色**衬边**的宽度（画面与亮棱之间那段平的金属）—— 越高档越窄，到传世归零
+     两者一起决定画面内缩多少（--cart-inset），而**内缩越小画面越大** —— 这就是「插画逐级出框」：
+     收藏档读作「裱在边框里的画」（外圈 14px），传世档读作「画面一直铺到亮棱边上」（外圈 5px）。
+     与文档里那条「低档像标准模板、高档逐级突破模板」是同一件事的两种说法。
+
+     为什么给这两个令牌而不是把 padding 写死：卡面上**与画面齐平的每一层**都得跟着走 ——
+     ::before/::after（纹样与扫光）、.home-card-ghost（换卡交叉淡入的上一张）、.home-card-lens
+     （玻璃厚度/釉面）、.home-card-plate（名牌）与 .home-card-mat（内衬线）。以前它们各自硬编码
+     inset: 2px —— 而那正好等于**旧的**默认框宽，所以框一加粗（史诗 4px、传世 5px）纹样就比画面
+     多铺出 2px，只是没人会去比这个。现在全从这两个令牌算，只有一处定义。 */
+  --cart-inset: calc(var(--rank-frame, 2px) + var(--rank-mat, 0px));
+  --cart-r: max(0px, calc(var(--cradius) - var(--cart-inset)));
+
+  /* ---------- 等级令牌的默认值 = 最低档「收藏」那一套 ----------
+
+     与 --cframe 上面那条同一个道理：等级类（.home-card-rank--*）会整组覆写它们，漏挂时按收藏渲染。
+     令牌表与六档取值见下面「等级」那一节，这里只是兜底。 */
+  --rank-frame: 2px;
+  --rank-mat: 12px;
+  --rank-craft: .35;
+  --rank-foil: 0;
+  --rank-orn: 0;
+  --rank-ring-op: .85;
+  --rank-ring: rgba(255, 255, 255, .34);
+  --rank-mark-size: 13px;
+  --rank-mark-fill: rgba(238, 240, 245, .92);
+  /* 徽章形状：**圆点用 border-radius 画**（clip-path: none + 半径 50%），其余五档用 polygon()。
+     形状清单见「等级」那一节 —— 它是三重编码里的**形状**那一通道，六档两两不同。 */
+  --rank-mark: none;
+  --rank-mark-radius: 50%;
+
   /* display 必须显式写（2026-09-21）：首页那处它是 <div>（本来就是块级），而收藏库的卡片墙里
      它只能是 <span> —— 格子在升级成 <button> 之后，button 的内容模型是 phrasing content，
      塞 div 是非法 HTML。而 inline 盒子会**忽略 width 与 aspect-ratio**：实测 4 列网格里每张卡
@@ -94,9 +147,11 @@
   isolation: isolate;
   overflow: hidden;
   aspect-ratio: 5 / 7;
-  padding: var(--rank-frame, 2px);
+  padding: var(--cart-inset);
   border-radius: var(--cradius);
-  background-image: var(--cframe);
+  /* 两层：**先质感后底色**。底色那一层是不透明的金属渐变，质感层压在上面 —— 上面那层写的是
+     半透明，所以从下面透上来的仍是本档的颜色（等级管材料、风格管质感，两条轴在这里各出一层）。 */
+  background-image: var(--cframe-finish, none), var(--cframe);
   background-color: rgba(20, 18, 25, .35);
   box-shadow: var(--shadow-card);
   cursor: pointer;
@@ -107,7 +162,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: calc(var(--cradius) - 2px);
+  border-radius: var(--cart-r);
   object-fit: cover;
 }
 
@@ -115,16 +170,59 @@
 .home-card::after {
   content: "";
   position: absolute;
-  inset: 2px;
-  border-radius: calc(var(--cradius) - 2px);
+  inset: var(--cart-inset);
+  border-radius: var(--cart-r);
   pointer-events: none;
+}
+
+/* 画面的**内衬线**：一条贴着画面边缘的细线 + 一圈内阴影（画面像是陷进框里那一点暗）。
+   只在低档存在 —— 高档把画面放到满幅（--rank-mat 归零）时这条线一起收掉（--rank-ring-op: 0），
+   于是「框里有画」与「画面铺满」在缩略图上也能一眼分开。 */
+.home-card-mat {
+  position: absolute;
+  inset: var(--cart-inset);
+  border-radius: var(--cart-r);
+  pointer-events: none;
+  opacity: var(--rank-ring-op, 0);
+  box-shadow:
+    inset 0 0 0 1px var(--rank-ring, rgba(255, 255, 255, .34)),
+    inset 0 2px 6px -3px rgba(8, 6, 12, .5),
+    inset 0 -1px 3px -2px rgba(255, 255, 255, .3);
+}
+
+/* 稀有度徽章：卡面右下角**固定位置**，形状、大小、颜色全部由等级给（三重编码里形状那一条）。
+   为什么用 clip-path 而不是 <svg><use>：首页那张卡是**同一段 DOM 换类名**（JS 换 rank 类），
+   形状要跟着换就得改 DOM 属性；clip-path 是纯 CSS，换类名形状自己就变了。
+   drop-shadow 挂在**父级**而不是 ::before 上：clip-path 的绘制顺序在 filter 之后，
+   挂在被裁的那个元素上会被一起裁掉（阴影整条消失，且不报错）。 */
+.home-card-mark {
+  position: absolute;
+  right: calc(var(--cart-inset) + 7px);
+  bottom: calc(var(--cart-inset) + 7px);
+  width: var(--rank-mark-size, 13px);
+  height: var(--rank-mark-size, 13px);
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1.5px rgba(6, 5, 9, .6));
+}
+
+.home-card-mark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--rank-mark-fill, rgba(238, 240, 245, .92));
+  clip-path: var(--rank-mark);
+  border-radius: var(--rank-mark-radius, 0);
 }
 
 .home-card::before {
   background-image: var(--coverlay);
   background-size: var(--coverlay-size);
   mix-blend-mode: var(--cblend);
-  opacity: var(--coverlay-op);
+  /* **工艺强度 = 风格自己的浓度 × 等级的倍率**：这是「低档像标准模板、高档逐级突破」的执行点。
+     纹样画的是什么由风格定（金继的缝、雪华的雪），而**印多浓**由等级定 —— 于是同一张金继卡，
+     收藏档只剩一道很淡的印痕、传世档才是满工。深色主题那几条逐风格覆写照旧生效（它们是同一个
+     令牌的另一半），乘法合成，不冲突。 */
+  opacity: calc(var(--coverlay-op) * var(--rank-craft, 1));
   filter: var(--cfilter);
   /* 纹样在主体处挖空（`--coverlay-mask`，各风格自己给；默认 none 不挖）。加 mask 的分支要写
      `-webkit-`：`mask-image` 前缀版在 Chromium 上仍然更早被支持，少了它 Edge/旧 Chrome
@@ -155,21 +253,22 @@
   box-shadow: var(--shadow-lift);
 }
 
-.home-card:hover::before { opacity: calc(var(--coverlay-op) * 1.7); }
+.home-card:hover::before { opacity: calc(var(--coverlay-op) * var(--rank-craft, 1) * 1.7); }
 .home-card:hover::after { background-position: -60% 0, 0 0; opacity: .6; }
 
-/* 名牌：卡面底部的条 —— 左边名字、右边序号（等宽数字，翻卡时不跳） */
+/* 名牌：卡面底部的条 —— 底部**信息带**（名字、系列、卡号按层级排，见下面的注释）。
+   位置与圆角都从画面几何算，所以它始终贴着画面底边。 */
 .home-card-plate {
   position: absolute;
-  left: 2px;
-  right: 2px;
-  bottom: 2px;
+  left: var(--cart-inset);
+  right: var(--cart-inset);
+  bottom: var(--cart-inset);
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: .5rem;
   padding: .3rem .55rem;
-  border-radius: 0 0 calc(var(--cradius) - 2px) calc(var(--cradius) - 2px);
+  border-radius: 0 0 var(--cart-r) var(--cart-r);
   background-color: var(--cplate-solid);   /* 对比度模型看这份 */
   background-image: var(--cplate);          /* 肉眼看到的是这份 */
   color: var(--cplate-text);
@@ -178,6 +277,35 @@
   line-height: 1.5;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+}
+
+/* 信息带的右半：系列（次之）→ 卡号（最小）→ 徽章。名字在左、这一组在右，
+   四级层级用三种字号排出来：名称 .78rem、系列 .68rem、卡号 .72rem（等宽数字）。 */
+.home-card-foot {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex: none;
+  min-width: 0;
+}
+
+.home-card-series {
+  font-size: .68rem;
+  color: var(--cplate-accent);
+  opacity: .85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 首页那张卡有名牌条，徽章就**进名牌里**（跟着信息带走，位置仍在卡面右下角）：
+   直接压在画上时对比度站不住 —— 徽章是浅色的，而卡面里浅色的很多，实测白裙那几张只有 1.5:1；
+   名牌底是 rgba(13,11,17,.92)，压上去怎么都够。卡片墙没有名牌，徽章就贴画面右下角（默认那条）。 */
+.home-card-plate .home-card-mark {
+  position: static;
+  flex: none;
+  align-self: center;
+  margin-left: .3rem;
 }
 
 .home-card-index {
@@ -196,8 +324,8 @@
    `backwards` 而不是 `both`：动画结束后不能继续把 transform 钉住，否则卡片的悬停上浮会失效。 */
 .home-card-ghost {
   position: absolute;
-  inset: 2px;
-  border-radius: calc(var(--cradius) - 2px);
+  inset: var(--cart-inset);
+  border-radius: var(--cart-r);
   object-fit: cover;
   visibility: hidden;
   opacity: 0;
@@ -574,7 +702,7 @@ a.home-deck-dialog-credit:hover {
 .home-deck-dialog-step.home-deck-btn--next { right: .3rem; }
 
 /* ============================================
-   ---------- 卡面风格：十六种，只改一组自定义属性 ----------
+   ---------- 卡面风格：八种，只改一组自定义属性 ----------
    两三版都在这儿：第一版（十种 + 新增四种）→ 第二版「把尺子画的直线换成手绘笔触」→
    第三版「玻璃要立体、雪不要平铺、金缝要有厚度、全息要多种」。
    **同一批风格要同时看浅色画与深色画**（对比图 `../lab/shots/deck2/styles-final-*.png`）：混合模式
@@ -583,7 +711,7 @@ a.home-deck-dialog-credit:hover {
    麻叶纹 ≈97、和纸 ≈89、全息 ≈89 条 4px 硬边彩虹条；金继是三根笔直的金线；
    玻璃只有「一道斜渐变 + 1px 内环 + 半张磨砂」，零立体线索。
 
-   六条规矩（改风格前必读）：
+   七条规矩（改风格前必读）：
    1. **纹样不许盖住主体**：`--coverlay-mask` 在中心偏上挖空；弯曲形状的 mask 自己避开中央。
    2. **不许 1px 硬停的直线**：写 `rgba(…,.3) 0 1px, transparent 1px 11px` 就是「尺子画的」。
       线的写法是「亮芯偏在一侧 + 一圈淡晕」的软渐变停，周期取互质数、每层各自错开 background-position。
@@ -598,6 +726,11 @@ a.home-deck-dialog-credit:hover {
       background-color，看不见渐变），渐变换观感。见 traps 第 69 条。
    6. **边一律 inset box-shadow，不用 border**（border 占盒尺寸）；深色主题逐条给 `--coverlay-op`，
       **新增风格必须补一条**，否则它在深色下要么白掉、要么整层消失。
+   7. **风格只写 `--cframe-finish`，不写 `--cframe`**（2026-09-21 六档阶梯加的）：`--cframe` 是
+      **等级**的材质底色（六档色阶的主通道），风格写它就会把色阶整片盖掉 —— 而锅不在风格，
+      在于「材料」本来就该归等级管。风格的框值必须**半透明**：原来那几条不透明的金属渐变
+      是压死色阶的元凶（实测 14 张金边卡会一起变金，与它们是不是传世无关）。
+      框的两层怎么叠、为什么这个令牌名不能动，见 `.home-card` 基础声明里那两条注释。
    ============================================ */
 
 /* 全息（基础规则默认值）：软边虹彩带 + 扫光 + 细光栅。
@@ -620,7 +753,7 @@ a.home-deck-dialog-credit:hover {
    与全息（foil）的分工：foil 是**条纹型**衍射（一条条彩虹带随角度移），星芒是**放射型**
    （一圈圈色环从中心推出去，像宝可梦卡的「宇宙闪」）。悬停时整层转一点，读作「把卡在光里转了个角度」。 */
 .home-card--holo-prism {
-  --cframe: linear-gradient(140deg, rgba(255, 255, 255, .92), rgba(226, 236, 255, .55) 42%, rgba(255, 255, 255, .88));
+  --cframe-finish: linear-gradient(140deg, rgba(255, 255, 255, .46), rgba(226, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
   --cplate: linear-gradient(to top, rgba(16, 14, 26, .92), rgba(16, 14, 26, .6));
   --cplate-solid: rgba(16, 14, 26, .88);
   --cplate-text: #f4f2ff;
@@ -643,7 +776,7 @@ a.home-deck-dialog-credit:hover {
 
 /* 金边：拉丝金属框 + 斜向柔光 + 描金角（**没有菱格了**：45°/−45° 等距十字是「纱窗」） */
 .home-card--gold {
-  --cframe: linear-gradient(140deg, #fff6d5, #e7cd7e 16%, #c9a227 32%, #fff8dd 50%, #b8991f 66%, #a8791a 84%, #ffeeb8);
+  --cframe-finish: linear-gradient(140deg, rgba(255, 246, 213, .52), rgba(231, 205, 126, .26) 16%, rgba(201, 162, 39, .30) 32%, rgba(255, 248, 221, .46) 50%, rgba(184, 153, 31, .28) 66%, rgba(168, 121, 26, .30) 84%, rgba(255, 238, 184, .42));
   --cplate: linear-gradient(to top, rgba(30, 21, 6, .93), rgba(30, 21, 6, .62));
   --cplate-solid: rgba(30, 21, 6, .88);
   --cplate-text: #fbeecb;
@@ -661,7 +794,7 @@ a.home-deck-dialog-credit:hover {
 /* 和纸：**各向异性**纤维（横向的长丝）+ 两团纸浆的云斑。
    上一版是 90°/0° 等距十字 —— 那是织布，不是纸：纸的纤维只朝一个方向，而且有长有短。 */
 .home-card--washi {
-  --cframe: linear-gradient(140deg, #f4ecdc, #d8c9b2 52%, #faf4e8);
+  --cframe-finish: linear-gradient(140deg, rgba(244, 236, 220, .46), rgba(216, 201, 178, .26) 52%, rgba(250, 244, 232, .40));
   --cplate: linear-gradient(to top, rgba(48, 35, 25, .92), rgba(48, 35, 25, .6));
   --cplate-solid: rgba(48, 35, 25, .87);
   --cplate-text: #fdf7ec;
@@ -679,7 +812,7 @@ a.home-deck-dialog-credit:hover {
 
 /* 墨：底部压深 + 一道飞白 + 纸颗粒（原来那 2px/6px 的横向细纹在 272px 下只是瑕疵，去掉了） */
 .home-card--ink {
-  --cframe: linear-gradient(140deg, #3b3543, #141119 55%, #4b4452);
+  --cframe-finish: linear-gradient(140deg, rgba(59, 53, 67, .42), rgba(20, 17, 25, .50) 55%, rgba(75, 68, 82, .38));
   --cplate: linear-gradient(to top, rgba(8, 7, 11, .94), rgba(8, 7, 11, .68));
   --cplate-solid: rgba(8, 7, 11, .9);
   --cplate-text: #efe8f0;
@@ -700,7 +833,7 @@ a.home-deck-dialog-credit:hover {
    子元素 `.home-card-lens` 把画作（`--art`）再铺一遍、放大错位模糊后**只在边缘露出**，模拟厚玻璃
    把画面折过去的那一圈。磨砂仍然只做下半张（上半张通透，脸才看得清）。 */
 .home-card--glass {
-  --cframe: linear-gradient(150deg, rgba(255, 255, 255, .84), rgba(214, 236, 255, .34) 42%, rgba(255, 255, 255, .68));
+  --cframe-finish: linear-gradient(150deg, rgba(255, 255, 255, .50), rgba(214, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
   --cplate: linear-gradient(to top, rgba(14, 22, 32, .9), rgba(14, 22, 32, .55));
   --cplate-solid: rgba(14, 22, 32, .86);
   --cplate-text: #f2f8ff;
@@ -738,7 +871,9 @@ a.home-deck-dialog-credit:hover {
   background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
   background-position: 0 0, 0 0, 0 0, 0 0;
   mix-blend-mode: screen;
-  opacity: 1;
+  /* 玻璃的工艺就是这几层（倒角、高光、折射、厚度），所以它们也吃等级倍率：
+     收藏档只剩一层很淡的光，传世档才是那块厚玻璃。 */
+  opacity: var(--rank-craft, 1);
 }
 
 /* 玻璃的厚度层：默认不显示（只有玻璃这一种卡用它），所以关掉 JS 的首屏也是对的 */
@@ -749,8 +884,8 @@ a.home-deck-dialog-credit:hover {
 .home-card--glass .home-card-lens {
   display: block;
   position: absolute;
-  inset: 2px;
-  border-radius: calc(var(--cradius) - 2px);
+  inset: var(--cart-inset);
+  border-radius: var(--cart-r);
   background-image: var(--art);
   background-size: cover;
   background-position: center;
@@ -760,7 +895,7 @@ a.home-deck-dialog-credit:hover {
   /* 只在边缘露出：中间整块挖掉（那部分是真正的画面，由 <img> 负责） */
   mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 54%, #000 92%);
   -webkit-mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 54%, #000 92%);
-  opacity: .42;
+  opacity: calc(.42 * var(--rank-craft, 1));
   pointer-events: none;
 }
 
@@ -777,7 +912,7 @@ a.home-deck-dialog-credit:hover {
   filter: blur(4.5px) saturate(1.1);
   mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 80%, #000 100%);
   -webkit-mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 80%, #000 100%);
-  opacity: .45;
+  opacity: calc(.45 * var(--rank-craft, 1));
 }
 
 .home-card--glass .home-card-lens::after {
@@ -789,7 +924,7 @@ a.home-deck-dialog-credit:hover {
     inset 0 0 8px 1px rgba(130, 205, 255, .3),
     inset 0 0 3px 0 rgba(255, 150, 205, .26);
   mix-blend-mode: screen;
-  opacity: .9;
+  opacity: calc(.9 * var(--rank-craft, 1));
 }
 
 /* 雪华：**散落**的九朵真雪花（主枝 + 60° 分枝 + 棱面核心，形状在 mask 里）。
@@ -799,7 +934,7 @@ a.home-deck-dialog-credit:hover {
    （近处的雪大而清楚、远处的雪小而淡），中央偏上那一竖条留空给人物。
    颜色用冷蓝而不是纯白：纯白的图案压在浅色画上等于没有（浅画的背景本身就接近白）。 */
 .home-card--yukika {
-  --cframe: linear-gradient(140deg, #f4fcff, #a8d4ee 46%, #ffffff);
+  --cframe-finish: linear-gradient(140deg, rgba(244, 252, 255, .46), rgba(168, 212, 238, .24) 46%, rgba(255, 255, 255, .40));
   --cplate: linear-gradient(to top, rgba(12, 28, 44, .93), rgba(12, 28, 44, .68));
   --cplate-solid: rgba(12, 28, 44, .9);
   --cplate-text: #eef8ff;
@@ -819,7 +954,7 @@ a.home-deck-dialog-credit:hover {
    画两遍（宽的 34% 当漆面的晕、窄的 100% 当金属亮芯），收尖靠「递减线宽的路径链」。
    **混合模式用 normal 而不是 screen**：金色裂缝在浅色画上（木刀那张）用 screen 会完全消失（实测）。 */
 .home-card--kintsugi {
-  --cframe: linear-gradient(140deg, #4a4048, #16131a 52%, #3d3640);
+  --cframe-finish: linear-gradient(140deg, rgba(74, 64, 72, .40), rgba(22, 19, 26, .48) 52%, rgba(61, 54, 64, .36));
   --cplate: linear-gradient(to top, rgba(10, 8, 12, .94), rgba(10, 8, 12, .7));
   --cplate-solid: rgba(10, 8, 12, .9);
   --cplate-text: #f6efe4;
@@ -843,7 +978,7 @@ a.home-deck-dialog-credit:hover {
   background-size: 100% 100%, 100% 100%;
   background-position: 0 0, 0 0;
   mix-blend-mode: multiply;
-  opacity: .85;
+  opacity: calc(.85 * var(--rank-craft, 1));
 }
 
 /* 釉面反光：借装饰层 `.home-card-lens`（玻璃用它做厚度折射）。陶瓷是上过釉的，一道宽而柔的斜光
@@ -851,42 +986,100 @@ a.home-deck-dialog-credit:hover {
 .home-card--kintsugi .home-card-lens {
   display: block;
   position: absolute;
-  inset: 2px;
-  border-radius: calc(var(--cradius) - 2px);
+  inset: var(--cart-inset);
+  border-radius: var(--cart-r);
   background-image: linear-gradient(116deg, rgba(255, 246, 226, 0) 18%, rgba(255, 246, 226, .16) 38%, rgba(255, 246, 226, 0) 56%);
   mask-image: none;
   -webkit-mask-image: none;
   transform: none;
   filter: none;
   mix-blend-mode: screen;
-  opacity: .9;
+  opacity: calc(.9 * var(--rank-craft, 1));
   pointer-events: none;
 }
 
 
-/* ---------- 等级：只改一组令牌，不动版式 ----------
+/* ---------- 等级：六档阶梯，只改一组令牌，不动版式 ----------
 
-   等级（rank）与纹样（style）是**正交**的两件事：等级管材质与边框，纹样管卡面上的图案。
-   所以这里只声明一组 `--rank-*` 令牌、由四个 rank 类各自赋值，**不写「8 风格 × 4 等级」
-   那 32 种组合** —— 组合爆炸正是这个文件当初膨胀的原因。
+   等级（rank）与纹样（style）是**正交**的两件事：等级管材料与档位，纹样管卡面上的图案。
+   所以这里只声明一组 `--rank-*` 令牌、由六个 rank 类各自赋值，**不写「8 风格 × 6 等级」
+   那 48 种组合** —— 组合爆炸正是这个文件当初膨胀的原因。
 
-   令牌：
-     --rank-frame  外框粗细（那条露出 --cframe 的边）
-     --rank-foil   整卡覆膜的强度（一层虹彩，压在纹样之上；0 = 没有）
-     --rank-orn    四角纹章与压印边的显隐（0/1）
+   六档：收藏 → 珍稀 → 史诗 → 秘藏 → 传世 → 奇迹（隐藏）。两个新档（珍稀/秘藏）是
+   2026-09-21 加的，成员由 scripts/rank-deck.py 按客观分位切（见那个脚本的头部）。
+
+   令牌（左列是观感，右列是它落在哪个通道 —— 三重编码说的就是右边这几种**同时**变）：
+     --cframe        框的材质底色      **颜色**：灰白 → 绿 → 蓝 → 紫 → 金 → 虹彩
+     --rank-mark      徽章形状与大小    **形状**：圆点 → 菱形 → 星形 → 徽章 → 皇冠 → 专属标
+     --rank-frame     金属亮棱的宽度    **材质**：2 → 5px
+     --rank-mat       素色衬边的宽度    画面内缩，12px → 0（**越低档画面越小** = 逐级出框）
+     --rank-craft     工艺强度倍率      × 风格的 --coverlay-op，.35 → 1.2（低档只剩淡纹）
+     --rank-foil      整卡虹彩覆膜的强度 0 → .9
+     --rank-orn       四角纹章与压印边的显隐 0 → 1
+     --rank-ring-op   画面内衬线的显隐  越低档越清楚（它是「画框里有画」的那条线索）
+
+   **只靠颜色是不够的**（色盲玩家分不出金与绿）：所以上面每一档在形状、框宽、画面内缩、
+   工艺强度上也同时不同 —— 把整站截图灰度化之后仍然能把这六档分开，这是本次验收的一条硬判据
+   （量法见 lab/shots 下的对照脚本）。
 
    **奇迹的正面与收藏完全一样**，这不是漏写：隐藏等级的定义就是「看不出来」。
    它的令牌值照抄收藏那一套，只有 3D 里转满一圈触发显形之后，JS 才会给它加
-   `.is-revealed`，那时才切到另一组值。 */
-.home-card-rank--collector { --rank-frame: 2px; --rank-foil: 0;   --rank-orn: 0; }
-.home-card-rank--epic      { --rank-frame: 4px; --rank-foil: .40; --rank-orn: .35;
-                             --cframe: linear-gradient(150deg, #d3dae6, #8b94a6 26%, #f2f6fc 50%, #767e8e 74%, #c6cdd9); }
-.home-card-rank--legend    { --rank-frame: 5px; --rank-foil: .60; --rank-orn: 1;
+   `.is-revealed`，那时才切到另一组值。下面 collector 与 miracle 那两条**故意**与
+   `.home-card` 的基础默认值重复：默认值是给「漏挂等级类」兜底的（缺类时按收藏渲染，
+   与 JS 侧 `it.rank || 'collector'` 一条口径），而这两条是给读者看的六档全表 —— 改令牌时两处都要改。 */
+.home-card-rank--collector { --rank-frame: 2px;   --rank-mat: 12px; --rank-craft: .35;
+                             --rank-foil: 0;   --rank-orn: 0;   --rank-ring-op: .85;
+                             --rank-ring: rgba(255, 255, 255, .34);
+                             --rank-mark-size: 13px; --rank-mark-fill: rgba(238, 240, 245, .92);
+                             /* 圆点：clip-path: none + 半径 50% */
+                             --rank-mark: none;                    --rank-mark-radius: 50%; }
+.home-card-rank--rare      { --rank-frame: 3px;   --rank-mat: 9px;  --rank-craft: .55;
+                             --rank-foil: .12; --rank-orn: 0;   --rank-ring-op: .7;
+                             --rank-ring: rgba(214, 246, 224, .40);
+                             --rank-mark-size: 14px; --rank-mark-fill: #a6dcb6;
+                             /* 菱形 */
+                             --rank-mark: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+                             --rank-mark-radius: 0;
+                             --cframe: linear-gradient(150deg, #dff2e4, #5f9c74 26%, #f2fbf4 50%, #3f7554 74%, #a8ceb5); }
+.home-card-rank--epic      { --rank-frame: 4px;   --rank-mat: 6px;  --rank-craft: .75;
+                             --rank-foil: .30; --rank-orn: .30; --rank-ring-op: .55;
+                             --rank-ring: rgba(214, 232, 255, .42);
+                             --rank-mark-size: 15px; --rank-mark-fill: #a8caf2;
+                             /* 五角星 */
+                             --rank-mark: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+                             --rank-mark-radius: 0;
+                             --cframe: linear-gradient(150deg, #d9e7f8, #6386b8 26%, #eff7ff 50%, #3f6191 74%, #aec6e2); }
+.home-card-rank--arcane    { --rank-frame: 4.5px; --rank-mat: 3px;  --rank-craft: .90;
+                             --rank-foil: .50; --rank-orn: .65; --rank-ring-op: .35;
+                             --rank-ring: rgba(232, 220, 255, .45);
+                             --rank-mark-size: 17px; --rank-mark-fill: #cbb4ef;
+                             /* 盾形徽章 */
+                             --rank-mark: polygon(50% 0%, 100% 16%, 100% 54%, 50% 100%, 0% 54%, 0% 16%);
+                             --rank-mark-radius: 0;
+                             --cframe: linear-gradient(150deg, #e4dbf4, #7558a8 26%, #f4eeff 50%, #503578 74%, #bca5db); }
+.home-card-rank--legend    { --rank-frame: 5px;   --rank-mat: 0px;  --rank-craft: 1;
+                             --rank-foil: .65; --rank-orn: 1;   --rank-ring-op: 0;
+                             --rank-ring: rgba(255, 240, 205, .5);
+                             --rank-mark-size: 19px; --rank-mark-fill: #f4dba2;
+                             /* 皇冠 */
+                             --rank-mark: polygon(0% 76%, 6% 20%, 30% 46%, 50% 6%, 70% 46%, 94% 20%, 100% 76%);
+                             --rank-mark-radius: 0;
                              --cframe: linear-gradient(150deg, #dcb96e, #6b5120 22%, #f8e6ac 48%, #46340f 72%, #c8a258); }
-.home-card-rank--miracle   { --rank-frame: 2px; --rank-foil: 0;   --rank-orn: 0; }
+.home-card-rank--miracle   { --rank-frame: 2px;   --rank-mat: 12px; --rank-craft: .35;
+                             --rank-foil: 0;   --rank-orn: 0;   --rank-ring-op: .85;
+                             --rank-ring: rgba(255, 255, 255, .34);
+                             --rank-mark-size: 13px; --rank-mark-fill: rgba(238, 240, 245, .92);
+                             --rank-mark: none;                    --rank-mark-radius: 50%; }
 .home-card-rank--miracle.is-revealed {
-  --rank-frame: 5px; --rank-foil: .85; --rank-orn: 1;
-  --cframe: linear-gradient(150deg, #ffe9b0, #7a5c1c 20%, #fff6db 46%, #4a3710 70%, #d8b76a);
+  --rank-frame: 5px; --rank-mat: 0px; --rank-craft: 1.2;
+  --rank-foil: .9; --rank-orn: 1; --rank-ring-op: 0;
+  --rank-ring: rgba(255, 245, 220, .6);
+  --rank-mark-size: 22px; --rank-mark-fill: #fff0c8;
+  /* 八芒星（专属标）：与五角星、盾、皇冠都不是一个轮廓 */
+  --rank-mark: polygon(50% 0%, 60% 32%, 100% 50%, 60% 68%, 50% 100%, 40% 68%, 0% 50%, 40% 32%);
+  --rank-mark-radius: 0;
+  /* 虹彩金属：金 → 紫 → 亮 → 暗 → 蓝 → 米 → 金（原来的金框加两段异色停，读作「镭射底」） */
+  --cframe: linear-gradient(150deg, #ffe9b0, #9c6ba8 18%, #fff6db 36%, #4a3710 54%, #5f86c0 72%, #f2dcb2 86%, #d8b76a);
 }
 
 /* 等级层：整卡覆膜 + 四角纹章 + 压印内边。**独立一层**（模板里那个 span），
@@ -910,12 +1103,14 @@ a.home-deck-dialog-credit:hover {
   mix-blend-mode: overlay;
 }
 
-/* 四角纹章：用四块角上的径向渐变画（不引入图片），只在传世/显形后的奇迹上出现 */
+/* 四角纹章：用四块角上的径向渐变画（不引入图片），从秘藏起出现、传世满值。
+   位置跟着**画面**走（--cart-inset）而不是写死 6%：画面随档位放大时，纹章得跟着往外张，
+   否则高档的纹章会离画面边缘越来越远、看着像浮在画中间。 */
 .home-card-rank::before {
   content: '';
   position: absolute;
-  inset: 6%;
-  border-radius: calc(var(--cradius) - 4px);
+  inset: calc(var(--cart-inset) + 3px);
+  border-radius: var(--cart-r);
   opacity: var(--rank-orn, 0);
   border: 1px solid rgba(255, 238, 196, .55);
   box-shadow:

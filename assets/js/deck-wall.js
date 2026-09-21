@@ -56,9 +56,13 @@
 
   /* ---------- 三排筛选项：从清单现算 ---------- */
 
-  // 等级按**稀有度**排（收藏 → 史诗 → 传世 → 奇迹）：这是它们的本义顺序，与张数多少无关。
-  // 系列与工艺按张数从多到少 —— 找卡时的实际用法（「绫华那批里挑一张」）就是从大的开始。
-  var RANK_ORDER = ['collector', 'epic', 'legend', 'miracle'];
+  // 等级按**稀有度**排（收藏 → 珍稀 → 史诗 → 秘藏 → 传世 → 奇迹）：这是它们的本义顺序，
+  // 与张数多少无关。系列与工艺按张数从多到少 —— 找卡时的实际用法（「绫华那批里挑一张」）
+  // 就是从大的开始。
+  // 六档与 i18n 的 deckRank*、card-3d.js 的 RANK_3D、check-deck.mjs 的 RANKS 是同一份清单 ——
+  // 少写一档的表现是那一档在筛选条里**排到最后**（顺序表里查不到就按首次出现排），页面上不报
+  // 任何错，只能靠人看出顺序不对。
+  var RANK_ORDER = ['collector', 'rare', 'epic', 'arcane', 'legend', 'miracle'];
   var FACETS = [
     { key: 'series', label: attr('bySeries') },
     { key: 'style', label: attr('byStyle') },

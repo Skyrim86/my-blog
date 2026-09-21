@@ -11,24 +11,31 @@
 #   flat    垫底渐变（[上, 下] 两个 RGB）：给透明源图，或 figure 取景装不下时手定底色；
 #           不写则用源图四角的实测底色
 #   series  系列名；name = 这张卡自己的名字（名牌显示 name + 系列副标）
-#   style   卡面风格（**八种**，全是 CSS 画的；2026-09-20 从十六种精简而来）。
-#           被砍掉的与它们的去向（族内最接近的一个，脚本一次性改的）：
-#             holo-gold→foil（同构，只差色相）、frost/sakura→yukika（冷色花雪）、
-#             gothic→kintsugi（深底 + 金）、asanoha/uchiwa→washi（纸面）、
-#             seigaiha→glass（水波→冷玻璃）、nishiki→gold（织锦→金线）、pixel 直接删除
-#           精简的理由见 docs/features.md ㊴：十六种里其实只有四个原子配方，
-#           同一个配方的变体在 272px 下看不出差别，而每多一种就多一份明暗两套的维护面。
-#           foil 全息 / gold 金边 / washi 和纸 / frost 霜蓝 / ink 墨 / glass 玻璃 /
-#           gothic 哥特教堂玻璃 / sakura 樱纹 / asanoha 麻叶纹 / seigaiha 青海波 /
-#           yukika 雪华（六角结晶）/ nishiki 织锦（经纬提花）/ kintsugi 金继（黑底金缝）/
-#           uchiwa 团扇（扇形骨）/ holo-prism 星芒全息 / holo-gold 金箔全息
-#           另有 pixel（像素）当前没有卡在用，样式与生成器的 pixel 通道都还留着。
+#   style   卡面风格（**现役八种**，全是 CSS 画的，不烘进图里）。写的是代码名：
+#             foil 全息 / holo-prism 星芒全息 / gold 金边 / glass 玻璃 /
+#             ink 墨 / washi 和纸 / yukika 雪华（六角结晶）/ kintsugi 金继（黑底金缝）
+#           2026-09-20 从十六种精简而来（十六种里其实只有四个原子配方，同一配方的变体在
+#           272px 下看不出差别，而每多一种就多一份明暗两套的维护面；CSS 因此从 67 KB 降到 54 KB）。
+#           被砍的按族挪到最接近的保留项：holo-gold→foil（同构，只差色相）、frost/sakura→yukika、
+#           gothic→kintsugi、asanoha/uchiwa→washi、seigaiha→glass、nishiki→gold，pixel 直接删除。
+#           理由与被砍清单见 docs/features.md ㊵。
 #           **写错会静默退回兜底的 foil** —— scripts/check-deck.mjs 会拿 CSS 里的类名核出来。
-#   rank    等级（**必填**，漏了会静默变收藏 —— 所以 check-deck.mjs 会拦）：
-#             collector 收藏 / epic 史诗 / legend 传世 / miracle 奇迹（隐藏）
-#           2026-09-20 首版**按可量化的依据**定级：卡面细节量（文件字节 + 画面梯度）+ 源图分辨率，
-#           刻意不含「角色人气」这类主观项。分档：奇迹 1 张、传世 10%、史诗 30%、其余收藏。
-#           这一版是起点：想调就改这一行，观感由卡面材质与 3D 卡边按等级切换。（写进 docs/features.md ㉕；卡面本身不带出处文字）
+#           注意风格**只管纹样与质感**：框的材料由等级定（六档色阶），所以「金边」这个风格名
+#           在收藏档看到的是灰框 + 一层金质感的叠层，不是金框。两轴的分工见 rank 那一段。
+#   rank    等级（**必填**，漏了会静默变收藏 —— 所以 check-deck.mjs 会拦）。
+#           **六档**（2026-09-21 从四档扩到六档，加了 rare 珍稀 / arcane 秘藏），从低到高：
+#             collector 收藏 / rare 珍稀 / epic 史诗 / arcane 秘藏 / legend 传世 / miracle 奇迹（隐藏）
+#           等级管**材料与档位**（框的材质底色 = 六档色阶、框宽、画面内缩、工艺强度、徽章形状），
+#           风格管**纹样与质感**，两轴正交；观感由卡面令牌与 3D 卡边按等级切换。见
+#           assets/css/extended/21-card-deck.css 的「等级」一节与 docs/features.md 的六档阶梯那一节。
+#           当前分布（check-deck.mjs 每次会打印一遍）：收藏 24 / 珍稀 13 / 史诗 11 / 秘藏 8 /
+#           传世 6 / 奇迹 1 = 63。
+#           2026-09-20 首版四档**按可量化的依据**定级：卡面细节量（文件字节 + 画面梯度）+ 源图分辨率，
+#           刻意不含「角色人气」这类主观项。2026-09-21 加两档时沿用同一口径 —— 定级脚本是
+#           **scripts/rank-deck.py**（可复跑、幂等，`--check` 看清单与建议的差异、`--apply` 写回；
+#           分数表落在 data/rank-scores.json）。切法：只在原档内部按分数切（收藏 37 → 收藏/珍稀，
+#           史诗 19 → 史诗/秘藏），传世 6 与奇迹 1 不动。
+#           想调某一张就改它那一行 rank —— 脚本的 `--check` 会把差异列出来，不会覆盖你的手改。
 #   credit_url  出处的**可点链接**（可选）：卡片弹层（看大图）里显示成外链，没有就只显示文字。
 #           能推导的都补上了（pixiv → /artworks/<id>、safebooru → post&id=<id>、twitter/wallhaven
 #           同理）；**官方立绘与站点自己的看板娘没有可点的出处**，那两张就留空 —— 别硬编一个主页
@@ -95,7 +102,7 @@
   series: 绫华
   name: 星夜
   style: kintsugi
-  rank: epic
+  rank: arcane
   credit: safebooru 4806294
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4806294
 - image: images/cards/ayaka-09.webp
@@ -104,7 +111,7 @@
   series: 绫华
   name: 玄袖
   style: washi
-  rank: collector
+  rank: rare
   credit: safebooru 6134135
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=6134135
 - image: images/cards/ayaka-11.webp
@@ -131,7 +138,7 @@
   series: 绫华
   name: 蝶羽
   style: washi
-  rank: epic
+  rank: arcane
   credit: safebooru 5359394
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5359394
 - image: images/cards/ayaka-16.webp
@@ -150,7 +157,7 @@
   series: 绫华
   name: 午后
   style: washi
-  rank: collector
+  rank: rare
   credit: safebooru 4012375
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4012375
 - image: images/cards/ayaka-20.webp
@@ -168,7 +175,7 @@
   series: 绫华
   name: 流水
   style: glass
-  rank: collector
+  rank: rare
   credit: safebooru 5700504
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5700504
 - image: images/cards/ayaka-28.webp
@@ -177,7 +184,7 @@
   series: 绫华
   name: 夏荫
   style: foil
-  rank: epic
+  rank: arcane
   credit: safebooru 4573787
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4573787
 # ---- 绫华补的 6 张（2026-09-20）：这 6 张源图上一轮就压好放在 sources/ 里、一直没进清单 ----
@@ -200,7 +207,7 @@
   series: 绫华
   name: 樱簪
   style: yukika
-  rank: collector
+  rank: rare
   credit: safebooru 4702242
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4702242
 - image: images/cards/ayaka-19.webp
@@ -209,7 +216,7 @@
   series: 绫华
   name: 学园
   style: washi
-  rank: collector
+  rank: rare
   credit: safebooru 3993400
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3993400
 - image: images/cards/ayaka-22.webp
@@ -218,7 +225,7 @@
   series: 绫华
   name: 花礼
   style: gold
-  rank: epic
+  rank: arcane
   credit: safebooru 5672112
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5672112
 - image: images/cards/ayaka-32.webp
@@ -227,7 +234,7 @@
   series: 绫华
   name: 糖霜
   style: washi
-  rank: epic
+  rank: arcane
   credit: safebooru 4498197
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4498197
 
@@ -326,7 +333,7 @@
   series: 卡夫卡
   name: 雨幕
   style: glass
-  rank: collector
+  rank: rare
   credit: safebooru 4092477
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4092477
 - image: images/cards/kafka-08.webp
@@ -364,7 +371,7 @@
   series: 艾米莉亚
   name: 雪原
   style: washi
-  rank: collector
+  rank: rare
   credit: safebooru 3370906
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3370906
 - image: images/cards/emilia-04.webp
@@ -380,7 +387,7 @@
   series: 艾米莉亚
   name: 月影
   style: washi
-  rank: epic
+  rank: arcane
   credit: safebooru 3285846
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3285846
 - image: images/cards/emilia-06.webp
@@ -388,7 +395,7 @@
   series: 艾米莉亚
   name: 银铃
   style: gold
-  rank: collector
+  rank: rare
   credit: safebooru 3220250
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3220250
 - image: images/cards/emilia-07.webp
@@ -412,7 +419,7 @@
   series: 艾米莉亚
   name: 霜羽
   style: washi
-  rank: collector
+  rank: rare
   credit: safebooru 2757756
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2757756
 - image: images/cards/emilia-10.webp
@@ -420,7 +427,7 @@
   series: 艾米莉亚
   name: 冬芽
   style: gold
-  rank: epic
+  rank: arcane
   credit: safebooru 2349791
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2349791
 - image: images/cards/emilia-11.webp
@@ -444,7 +451,7 @@
   series: 艾米莉亚
   name: 冰纹
   style: washi
-  rank: collector
+  rank: rare
   credit: safebooru 3985983
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3985983
 - image: images/cards/emilia-14.webp
@@ -492,7 +499,7 @@
   series: 艾米莉亚
   name: 雪铃
   style: washi
-  rank: collector
+  rank: rare
   credit: safebooru 3711031
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3711031
 - image: images/cards/emilia-20.webp
@@ -548,7 +555,7 @@
   series: 艾米莉亚
   name: 银漪
   style: gold
-  rank: collector
+  rank: rare
   credit: safebooru 2825122
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2825122
 - image: images/cards/emilia-27.webp
@@ -556,7 +563,7 @@
   series: 艾米莉亚
   name: 冷香
   style: glass
-  rank: collector
+  rank: rare
   credit: safebooru 2803842
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2803842
 - image: images/cards/miku-01.webp
@@ -572,7 +579,7 @@
   series: 初音未来
   name: 旋律
   style: ink
-  rank: epic
+  rank: arcane
   credit: safebooru 1485416
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=1485416
 - image: images/cards/miku-03.webp
