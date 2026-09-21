@@ -460,32 +460,39 @@ for (const r of cssRanks) {
   }
 }
 
-/* ⑥ 每种风格都要**显式**声明它在哪一档（--craft-ornate 0/1）
-   这一档决定那张卡长不长雕花框（进阶工艺专属），所以它必须是被写出来的决定，而不是靠
-   `.home-card` 上的默认值 —— 漏写的表现是「这一档静默按普通工艺渲染」，页面上看不出是漏了
-   还是本来就该这样。foil 是特例（它没有规则块，基础声明就是它，与前面那几处同一个道理）。 */
+/* ⑥ 边框的归属：**等级管结构、工艺管材质**（2026-09-21 第二次重做后定的口径）
+   上一版把边框挂在工艺轴上（进阶工艺 = 一条 20px 深色雕花带），后果是同档的卡框一厚一薄、
+   稀有度读不出来，而且六种工艺六副框（系列不统一）。现在带宽、装饰线、角饰都由 --rank-* 给，
+   工艺只提供框的**材质**（--cframe-finish，它会自动铺到整条边上）。两条守卫盯住这件事：
+     · 每个等级必须声明 --rank-band 与 --rank-line（漏了就没有边框阶梯，或装饰线颜色不对）
+     · 风格里**不该**再出现 --fret-*（那是边框的零件，归等级）—— 防止有人照旧写法加回去 */
 {
-  const sec = css.slice(stylesOpen, stylesClose);
-  for (const s of knownStyles) {
-    if (s === 'foil') continue;
-    const blk = rulesWith(sec, `.home-card--${s}`);
-    if (blk && !blk.includes('--craft-ornate')) {
-      failures.push(
-        `✗ ${CSS} 的风格「${s}」没有声明 --craft-ornate —— 它静默算普通工艺（不长雕花框）。` +
-          `进阶工艺显式写 1，普通工艺显式写 0`
-      );
-    }
-    // 进阶工艺还要**显式**给出自己那副框的零件（--fret-line 是这套里的代表：它决定线的材料）。
-    // 漏写的表现是「这颗卡的框沿用默认的金色」—— 页面上只是金得不太对，看不出是漏了。
-    if (blk && /--craft-ornate:\s*1/.test(blk)) {
-      for (const tok of ['--fret-line', '--fret-rail-h', '--fret-corner']) {
-        if (!blk.includes(tok)) {
-          failures.push(
-            `✗ ${CSS} 的进阶工艺「${s}」没有声明 ${tok} —— 它会沿用默认那一副框（雕花金的卷草款式），` +
-              `与它自己的语气对不上。四种框的语气见「工艺的两档」那一节`
-          );
-        }
+  const rankOpen = css.indexOf('---------- 等级');
+  const rankClose = css.indexOf('/* ---------- 深色主题');
+  const sec = rankOpen >= 0 && rankClose > rankOpen ? css.slice(rankOpen, rankClose) : '';
+  const stylesSec = css.slice(stylesOpen, stylesClose);
+  for (const r of RANKS) {
+    if (!cssRanks.has(r)) continue;
+    // 收藏档特例：带宽与装饰线的值就是 `.home-card` 基础声明那一份（与 --rank-frame 的
+    // `var(..., 2px)` 兜底、--cframe 的基础色同一个道理：漏挂等级类时按收藏渲染）。
+    if (r === 'collector') continue;
+    const blk = rulesWith(sec, `.home-card-rank--${r}`);
+    for (const tok of ['--rank-band', '--rank-line']) {
+      if (!blk.includes(tok)) {
+        failures.push(
+          `✗ ${CSS} 的等级「${r}」没有声明 ${tok} —— 边框的分量（层数/宽度）与装饰线是**稀有度阶梯**` +
+            `的主要载体，漏了这一档的边框就与别的档分不开`
+        );
       }
+    }
+  }
+  for (const s of knownStyles) {
+    const blk = rulesWith(stylesSec, `.home-card--${s}`);
+    if (blk && /--fret-(rail|corner|line|band)/.test(blk)) {
+      failures.push(
+        `✗ ${CSS} 的风格「${s}」里出现了 --fret-*（边框的零件）—— 边框归**等级**管，` +
+          `工艺只提供材质（--cframe-finish）。照旧写法加回去会让「同档的卡框一厚一薄」重现`
+      );
     }
   }
 }
