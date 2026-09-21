@@ -1,26 +1,57 @@
 {{- /* 首页右栏的「时间卡」（2026-09-21 加，用户要求「添加时间与时钟」；当天又按要求
      做成「有性格、别留空」的一版：大号衬线时间 + 今天/今年两条进度 + 今年的天数）。
 
+     2026-09-21 第二轮：卡里那块**空白**（右栏被左栏撑高后剩出来的两百来像素）装上了三样东西 ——
+       · 本月打卡月历（格子）；矮档退回「本月 mini 条」（见下面 .home-clock-month）
+       · 今日那条 24 小时轴（取代了原来的「今天已过」进度条：同一条进度，轴上的游标更能读「今天走到哪」）
+       · 头部第三格的「今日一卡」（从卡片组清单里按等级加权抽一张），那一格本来就是给它预留的位
+     版式因此是「头（时间 + 今日一卡）/ 日期 / 月历 + 今日轴 / 今年 / 脚注」。
+     每块的尺寸口径、退化条件与数据来源见 docs/features.md ㊾。
+
      **与时间有关的数字都由脚本填**：静态站服务端渲染出来的时间只可能是**构建那一刻**，
      直接写上去就是错的（而且会一直错下去，直到下次构建）。所以面板带 `data-pending="1"`，
      由 assets/js/home-clock.js 填好第一帧才摘掉 —— 没有 JS 就不显示这一块
      （与 #bottom-link「一键到底」同一套做法：宁可没有，也不给一个错的）。
-     **标签文字（「今天已过」这种）反而是模板渲染的**：它们不随时间变，没必要绕一圈 data-*。
+     **标签文字（「今日」「本月打卡」这种）反而是模板渲染的**：它们不随时间变，没必要绕一圈 data-*。
+     今日一卡那一格也自带 `data-pending`（抽卡没有 JS 做不到），但它**不**依赖整块面板是否显示：
+     哪天真要摘掉月历或轴，今日一卡仍能单独出来。
 
      为什么用 `data-pending` 而不是 `hidden` 属性：作者样式里的 `display: flex` 会**压过**
      浏览器默认样式表里那条 `[hidden] { display: none }`，于是「隐藏」根本不生效 ——
      面板会先显示成空的。用一个自定义属性做选择器就没这个坑（traps 第 38 条是这条坑的完整版：
      工具库页那次表现是「筛完只剩一排空框」）。
 
-     带占位符的文案（日期、今年第几天、还剩几天）经 data-* 传给脚本，占位符是**单花括号** {n}，
-     与 searchResultCount 同一套写法。星期用下标与 JS 的 `Date.getDay()` 对齐（0 = 周日）。 */ -}}
+     带占位符的文案（日期、今年第几天、还剩几天、记录几天）经 data-* 传给脚本，占位符是**单花括号** {n}，
+     与 searchResultCount 同一套写法。星期用下标与 JS 的 `Date.getDay()` 对齐（0 = 周日）；
+     **月历表头的单字星期是另一组键**（clockCalDow0..6）：它按**周一起排**（网格第一列是周一），
+     下标习惯与 clockDow* 正好相反，不能共用。 */ -}}
 {{- $dows := slice (i18n "clockDow0") (i18n "clockDow1") (i18n "clockDow2") (i18n "clockDow3") (i18n "clockDow4") (i18n "clockDow5") (i18n "clockDow6") -}}
+{{- $calDows := slice (i18n "clockCalDow0") (i18n "clockCalDow1") (i18n "clockCalDow2") (i18n "clockCalDow3") (i18n "clockCalDow4") (i18n "clockCalDow5") (i18n "clockCalDow6") -}}
+{{- /* 打卡日：**有内容页被提交过的日子**，取 .Lastmod（enableGitInfo 已开，它就是那个文件最后一次
+       提交的 git 时间）—— 与右栏「最近更新」同一个来源，不引第二套口径。只改样式或工具的提交不算，
+       所以点数比「动过仓库的日子」少一些（9 月里大约十天，见 features.md ㊾）。
+       去重后只留「年-月-日」字符串，十几条 —— 这是本块唯一新增的数据。真正的日期网格由脚本按
+       **访问时**的当月生成：建站时不知道访客那边是哪个月。 */ -}}
+{{- $days := slice }}
+{{- range where site.RegularPages "Kind" "page" }}
+  {{- with .Lastmod }}{{ $days = $days | append (.Format "2006-01-02") }}{{ end }}
+{{- end }}
+{{- $days = $days | uniq | sort -}}
 <section class="home-clock" data-pending="1"
          aria-label="{{ i18n "clockLabel" }}"
          data-dows="{{ $dows | jsonify }}"
+         data-days="{{ $days | jsonify }}"
+         data-cal-dows="{{ $calDows | jsonify }}"
          data-date="{{ i18n "clockDate" }}"
          data-day-of-year="{{ i18n "clockDayOfYear" }}"
          data-year-left="{{ i18n "clockYearLeft" }}"
+         data-cal-month="{{ i18n "clockCalMonth" }}"
+         data-cal-records="{{ i18n "clockCalRecords" }}"
+         data-cal-streak="{{ i18n "clockCalStreak" }}"
+         data-cal-empty="{{ i18n "clockCalEmpty" }}"
+         data-axis-last="{{ i18n "clockAxisLast" }}"
+         data-daily-aria="{{ i18n "clockDailyAria" }}"
+         data-daily-reveal="{{ i18n "clockDailyReveal" }}"
          data-morning="{{ i18n "clockGreetMorning" }}"
          data-noon="{{ i18n "clockGreetNoon" }}"
          data-afternoon="{{ i18n "clockGreetAfternoon" }}"
@@ -31,20 +62,72 @@
       <span class="home-clock-hm"></span>
       <span class="home-clock-sec"></span>
     </div>
-    {{- /* 右侧那格刻意留空：三列网格的中间才是几何中心，时间才真的落在正中间
-           （2026-09-21 用户要求「把几点几分挪到中间」）。
-           问候语因此挪到下面那行、与日期并排。 */ -}}
+    {{- /* 右侧那格原来**刻意留空**：三列网格的中间才是几何中心，时间才真的落在正中间
+           （2026-09-21 用户要求「把几点几分挪到中间」）。现在它装的是「今日一卡」——
+           正是当时给右侧元素留的位置（见下面 `.home-clock-head > :not(.home-clock-time)` 那条），
+           而且它纵向不花钱：**微卡高必须 ≤ 时间那一行的高度（实测 50px）**，
+           否则会把头行顶高、把下面月历的行高偷走。卡面**复用卡片组的等级类**：
+           卡框本来就是 `padding: var(--rank-frame)` + `background-image: var(--cframe)`，
+           不另定义一套材质。
+
+           注意那颗按钮上只有 `data-pending`（状态），**文案一律挂在 .home-clock 这个 section 上** ——
+           脚本的 read() 取的是 `el.dataset`，写在按钮上会静默取到 undefined（同一个坑在
+           home-deck.js 踩过一次：写成 script.dataset，全部取到 undefined、播报只剩兜底模板）。 */ -}}
+    <button type="button" class="home-clock-daily" data-pending="1">
+      <span class="home-clock-daily-face">
+        <img class="home-clock-daily-art" alt="" width="272" height="381" draggable="false">
+        <span class="home-card-rank" aria-hidden="true"></span>
+      </span>
+      <span class="home-clock-daily-text">
+        <span class="home-clock-daily-kind">{{ i18n "clockDaily" }}</span>
+        <span class="home-clock-daily-name"></span>
+        <span class="home-clock-daily-meta"></span>
+      </span>
+    </button>
   </div>
   <p class="home-clock-date">
     <span class="home-clock-date-main"></span>
     <span class="home-clock-greet-inline"></span>
   </p>
-  <div class="home-clock-meters">
-    <div class="home-clock-meter">
-      <span class="home-clock-mlabel">{{ i18n "clockToday" }}</span>
-      <span class="home-clock-mtrack"><span class="home-clock-mfill" data-meter="day"></span></span>
-      <span class="home-clock-mval" data-val="day"></span>
+  {{- /* 中间这一块吃掉卡里空出来的高度（原来这段是裸露的玻璃）：
+         高档（≥1401px，卡被撑到 436 高、填充区约 248px）出**打卡月历**；
+         矮档（1024~1400px，卡只有 306 高、填充区约 118px）月历格子塞不下 —— 它的自然高度约 180px，
+         硬塞行高会掉到 6px、数字糊成一团（对比图里的 C′），所以退回一条「本月 mini 条」。
+         两套标记都在文档里，由 09-home.css 里那条与看板娘同款的 1024~1400px 媒体查询切换：
+         阈值是实测的，卡高在 1400→1410 之间从 306 跳到 436。 */ -}}
+  <div class="home-clock-body">
+    <div class="home-clock-cal" aria-label="{{ i18n "clockCalLabel" }}">
+      <div class="home-clock-cal-head">
+        <span class="home-clock-cal-month" data-cal-month></span>
+        <span class="home-clock-cal-stat" data-cal-stat></span>
+      </div>
+      {{- /* 网格与条都由脚本生成：当月是访问时才知道的。网格对读屏是**装饰** ——
+             同一件事（「记录 14 天」）已经由上面那行文字说了，不标 aria-hidden 的话
+             读屏要把 30 个数字念一遍。 */ -}}
+      <div class="home-clock-cal-grid" data-cal-grid aria-hidden="true"></div>
     </div>
+    <div class="home-clock-month">
+      <div class="home-clock-month-head">
+        <span>{{ i18n "clockMonth" }}</span>
+        <span class="home-clock-month-val" data-month-val></span>
+      </div>
+      <div class="home-clock-month-strip" data-month-strip aria-hidden="true"></div>
+    </div>
+    <div class="home-clock-axis">
+      <div class="home-clock-axis-head">
+        <span>{{ i18n "clockAxisToday" }}</span>
+        <span class="home-clock-axis-val" data-axis-val></span>
+      </div>
+      <div class="home-clock-axis-track">
+        <span class="home-clock-axis-fill" data-axis-fill></span>
+        <span class="home-clock-axis-cursor" data-axis-cursor aria-hidden="true"></span>
+      </div>
+      <div class="home-clock-axis-ticks" aria-hidden="true">
+        {{- range $h := seq 0 8 }}<span>{{ mul $h 3 }}</span>{{ end -}}
+      </div>
+    </div>
+  </div>
+  <div class="home-clock-meters">
     <div class="home-clock-meter">
       <span class="home-clock-mlabel">{{ i18n "clockYear" }}</span>
       <span class="home-clock-mtrack"><span class="home-clock-mfill" data-meter="year"></span></span>
@@ -52,4 +135,7 @@
     </div>
   </div>
   <p class="home-clock-foot"></p>
+  {{- /* 今日一卡抽到奇迹时的播报位（与卡片组里那个 announce 同一套做法：
+         sr-only + role=status）。零尺寸，作为 flex 子项不占位。 */ -}}
+  <span class="sr-only" role="status" data-daily-status></span>
 </section>

@@ -447,12 +447,70 @@ other = "晚上好"
 [clockGreetLate]
 other = "夜深了"
 
-# 时钟里那两条进度与脚注（数字由脚本算，标签是模板渲染的）
-[clockToday]
-other = "今天已过"
+# 时钟里的今年进度与脚注（数字由脚本算，标签是模板渲染的）
+# 原来的 [clockToday]「今天已过」在 2026-09-21 被**今日那条 24 小时轴**取代了
+# （同一条进度换了个画法：轴上的游标比一根进度条更能读「今天走到哪」），
+# 所以那个键跟着删掉了 —— 留着就是没人引用的死文案。
 [clockYear]
 other = "今年已过"
 [clockDayOfYear]
 other = "今年第 {n} 天"
 [clockYearLeft]
 other = "还剩 {n} 天"
+
+# ---------- 时间卡里的打卡月历、今日轴、今日一卡（2026-09-21 加） ----------
+# 与上面同一套：**标签**由模板渲染（不随时间变），**数字与日期**经 data-* 交给脚本填。
+# 占位符一律单花括号 {n} / {y}{m}，别写成 Go 模板的 {{ }}。
+# 打卡点的口径：那天有**内容页**被提交过（取 .Lastmod，即 git 时间，与右栏「最近更新」同源）；
+# 只改样式或工具的提交不算。见 docs/features.md ㊾。
+[clockCalLabel]
+other = "本月打卡"
+
+# 月历表头的星期缩写：**单字、且按周一起排**（网格第一列是周一，与 clockDow* 那套 0=周日 的
+# 下标习惯相反）—— 所以另起一组键，别拿 clockDow* 去截第一个字（「星期日」首字是「星」）。
+[clockCalDow0]
+other = "一"
+[clockCalDow1]
+other = "二"
+[clockCalDow2]
+other = "三"
+[clockCalDow3]
+other = "四"
+[clockCalDow4]
+other = "五"
+[clockCalDow5]
+other = "六"
+[clockCalDow6]
+other = "日"
+
+# {y} {m} 是脚本替换的年份与月份（不补零）
+[clockCalMonth]
+other = "{y} 年 {m} 月"
+
+# {n} 是没补零的天数：本月记录几天、连续几天
+[clockCalRecords]
+other = "记录 {n} 天"
+[clockCalStreak]
+other = "连续 {n} 天"
+# 本月一天都没有时用这句（月初、或刚建站），别显示「记录 0 天」
+[clockCalEmpty]
+other = "本月还空白"
+
+# 今日那条 24 小时轴：左标签固定，「已过 / 还剩」那句带三个占位符
+# （{p} 是百分比，{h} {m} 是剩余的小时与分钟）
+[clockAxisToday]
+other = "今日"
+[clockAxisLast]
+other = "已过 {p} · 还剩 {h} 小时 {m} 分"
+
+# 矮档（1024~1400px）那条「本月 mini 条」的左标签；右边的百分比由脚本填
+[clockMonth]
+other = "本月"
+
+# 今日一卡：可见的两个字由模板渲染，aria 与「抽到奇迹」的播报带占位符
+[clockDaily]
+other = "今日一卡"
+[clockDailyAria]
+other = "今日一卡：{label}，{series}，{rank}，点开看这张卡"
+[clockDailyReveal]
+other = "今日一卡抽到奇迹 · {label}"

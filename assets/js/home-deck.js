@@ -135,7 +135,12 @@
   /* ---------- 弹层（看大图 + 名字 / 系列 / 序号 / 出处） ----------
      大图用**已有的 2x 产物**（544px 宽，卡在页内只有 272）—— 页内 272 → 弹层 430 已经是 1.6 倍，
      不额外出一档「大图」产物：那要给每张卡多生成一个 ~720px 的文件，三十多张就是 1.3 MB 左右，
-     会把体积预算吃掉一大截（见 docs/features.md ㉕ 的账）。 */
+     会把体积预算吃掉一大截（见 docs/features.md ㉕ 的账）。
+
+     谁打开的弹层，关闭时焦点就还给谁（`lastOpener`）。2026-09-21 之前这个弹层只有放大按钮
+     能打开，所以 closeDialog 里写死 `zoomBtn.focus()` 是对的；那一天起「今日一卡」（时间卡里的
+     微卡）也会调 openAt 打开它，写死的焦点目标就会把键盘用户丢到左栏那个 ⤢ 上。 */
+  var lastOpener = zoomBtn;
   var dlg = document.createElement('div');
   dlg.className = 'home-deck-dialog';
   dlg.setAttribute('role', 'dialog');
@@ -298,7 +303,8 @@
     }
   }
 
-  function openDialog() {
+  function openDialog(opener) {
+    lastOpener = opener || zoomBtn;
     // 顺序要紧：viewer 必须先建好（attach 之后 setItem 才有效），而 setOpen 要在弹层**可见之后**
     // 再调 —— 画布尺寸取自 clientWidth，hidden 的时候它是 0。
     ensureViewer();
@@ -321,10 +327,11 @@
     dlg.hidden = true;
     document.documentElement.classList.remove('is-deck-dialog');
     deck.classList.remove('is-dialog');
-    // 焦点**还给放大按钮**，而不是「记下打开前谁有焦点」：这个弹层只有放大按钮能打开，而
-    // 程序化触发的点击不会移动焦点，于是「打开前的焦点」往往在别处（实测回到 .list 上，
-    // 键盘用户按 Esc 之后按 Tab 会从页面开头重来）。
-    zoomBtn.focus({ preventScroll: true });
+    // 焦点**还给打开它的那个控件**，而不是「记下打开前谁有焦点」：程序化触发的点击不会移动焦点，
+    // 于是「打开前的焦点」往往在别处（实测回到 .list 上，键盘用户按 Esc 之后按 Tab 会从页面开头重来）。
+    // lastOpener 默认是放大按钮；「今日一卡」从时间卡那边开的时候传的是它自己那颗按钮。
+    var backTo = (lastOpener && document.contains(lastOpener)) ? lastOpener : zoomBtn;
+    backTo.focus({ preventScroll: true });
     start();                       // 关掉之后接着轮播，进度条跟着重来
   }
 
@@ -488,6 +495,28 @@
     x0 = null;
     if (Math.abs(dx) > 30) go(dx < 0 ? 1 : -1, true);
   });
+
+  /* ---------- 对外入口（2026-09-21 加）----------
+     只有一个用处：首页时间卡里的「今日一卡」微卡点一下，要开**那张卡**的三维弹层。
+     弹层、当前索引、apply/openDialog 全在这个闭包里，不开个口子外面拿不到；也不值得为这一处
+     把整个模块改成导出式（那要动这 500 行里的十几处引用）。
+
+     顺序：先把 i 挪过去再 apply —— apply 里 `announce` 靠 `items[i]`（旧的）当「不是首次」的判据，
+     i 先更新会让播报念到新的一张（正确），而它要读的 it 是参数传进去的那个。apply 之后 i 就是
+     新的了，openDialog 里的 `fillDialog(items[i])` 才会填对。
+
+     不检查 busy（正在做交叉淡入）：apply 只是换 src 与类，那个等待中的 320ms 回调也只会清掉
+     ghost / is-in 并把 busy 放掉，不会把卡片换回去。 */
+  window.homeDeck = {
+    openAt: function (index, opener) {
+      if (typeof index !== 'number' || index < 0 || index >= items.length) return false;
+      i = index;
+      apply(index);
+      prefetch();
+      openDialog(opener || zoomBtn);     // 与放大按钮走同一条路（它自己会 stop() 停轮播）
+      return true;
+    }
+  };
 
   announce(items[0]);
   prefetch();

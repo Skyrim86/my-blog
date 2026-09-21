@@ -397,6 +397,371 @@
   color: var(--secondary);
 }
 
+/* ---------- 时间卡里的打卡月历、今日轴与今日一卡（2026-09-21 第二轮加） ----------
+
+   三块都长在 .home-clock 里面，吃掉的正是上面 `.home-clock { flex: 1 1 auto }` 那条注释里
+   说的「右栏被左栏撑高后剩出来的两百来像素」—— 上午那块还是裸露的玻璃，用户问「能装什么」。
+
+   纵向账（实测，1440×950）：头行 50 + 日期 25 + **填充区 248** + 今年那条 23 + 脚注 23 = 436。
+   由此定下两条硬约束：
+     · 头部第三格的微卡**高度不能超过 50px**（`align-self: center`）—— 超了就把头行顶高，
+       下面月历的行高会被偷走（实测：头行每涨 10px，月历六行各矮 1.7px）。
+     · 月历格子的行高来自「填充区剩余高度 ÷ 6 行」（`minmax(0,1fr)`）。填充区在矮档
+       （1024~1400px，卡只有 306 高）只剩约 118px，格子自然高度约 180px 塞不进去 ——
+       硬塞行高会掉到 6px 以下、数字糊成一团，所以那一档不出格子，改出「本月 mini 条」。
+       两套标记都在模板里，由文件末尾那条 1024~1400px 媒体查询二选一。 */
+
+/* 「出厂隐藏」：抽卡、算日期都要脚本，没有 JS 就整块不显示（与面板本身同一套做法）。 */
+.home-clock-daily[data-pending="1"] {
+  display: none;
+}
+
+/* 今日一卡：头部第三格（grid-column 由上面那条 `> :not(.home-clock-time)` 给）。
+   整块是一颗按钮 —— 动作是脚本（开三维弹层），没有可去的地址，所以用 button 而不是 a。 */
+.home-clock-daily {
+  grid-column: 3;
+  align-self: center;      /* 不参与头行的基线对齐：参与的话它的基线会把整行往下拽 */
+  justify-self: end;       /* 贴卡内右缘，与上面那两块面板的右缘在同一条线上 */
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+
+.home-clock-daily:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* 微卡：**复用卡片组的等级类**（.home-card-rank--*）给的令牌 —— 卡框本来就是
+   「`padding: var(--rank-frame)` + `background-image: var(--cframe)`」（见 21-card-deck.css
+   的 .home-card 那条），所以这里不另定义一套材质，只按比例把框收小：
+   传世的 5px 框放在 36px 宽的微卡上是 14%，而整卡 272 宽时只有 1.8%。
+   收藏与奇迹的正面都是「素框」（奇迹的隐藏等级就是看不出来），所以 --cframe 缺省时要有个兜底色
+   —— 用 --edge，而不是把 .home-card 那条白色渐变抄一份过来。 */
+.home-clock-daily-face {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 50px;            /* 5:7，与卡面同比例 */
+  padding: calc(var(--rank-frame, 2px) * .5);
+  border-radius: 6px;
+  background-color: var(--edge);
+  background-image: var(--cframe, none);
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: var(--shadow-card);
+}
+
+/* 四角纹章（.home-card-rank::before 那圈 inset 6% 的压印边 + 四角受光）是给 272px 宽的整卡画的：
+   在 36px 的微卡上它只剩一团噪点。微卡只取等级层的箔膜与卡框，不取纹章 ——
+   一处覆盖，不动 21-card-deck.css 里那条原规则（整卡还在用它）。 */
+.home-clock-daily-face .home-card-rank::before {
+  display: none;
+}
+
+.home-clock-daily-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.home-clock-daily-text {
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.home-clock-daily-kind {
+  font-size: .62rem;
+  letter-spacing: .06em;
+  color: var(--secondary);
+}
+
+.home-clock-daily-name {
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-clock-daily-meta {
+  font-size: .66rem;
+  color: var(--secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 填充区：吃掉卡里空出来的高度。与下面 `.home-clock-meters` 的 `margin-top: auto` 是一对
+   —— 谁有 flex-grow 谁就拿走剩余空间（两个都有时按 grow 分），这里给了 grow，那边自然就分不到。
+   `min-height: 0` 必须有：flex 项默认 `min-height: auto`，内容的最小高度会把面板撑破。 */
+.home-clock-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+/* ---------- 打卡月历（高档 ≥1401px） ---------- */
+.home-clock-cal {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  /* 内宽 633 时把月历限制在 480：格子宽约 66，两侧各留一段呼吸 ——
+     铺满整宽的话每格会有 90 宽、而高只有 20 出头，读起来是「一排扁格子」而不是月历。 */
+  width: 100%;
+  max-width: 30rem;
+  margin-inline: auto;
+}
+
+.home-clock-cal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: .7rem;
+  color: var(--secondary);
+}
+
+.home-clock-cal-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  /* **`minmax(0,1fr)` 而不是 `1fr`**：后者每行带内容最小高度（数字那一行约 20px），
+     压缩到装不下时它会溢出自己的盒子、画到下面的轴上，而且不报错（实测：矮档行高被压到
+     6px 时数字互相压在一起）。见 docs/traps.md 新增那条。 */
+  grid-auto-rows: minmax(0, 1fr);
+  gap: .18rem;
+}
+
+.home-clock-cal-grid > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.home-clock-cal-dow {
+  font-size: .64rem;
+  color: var(--secondary);
+}
+
+.home-clock-cal-day {
+  position: relative;
+  border-radius: 7px;
+  font-size: .76rem;
+  color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 打卡点：淡染底 + 下方一个小圆点。染底强度**深浅两套**（与 21-card-deck.css 里
+   `--coverlay-op` 那条同理）：同一份 12% 在深色底上几乎看不出来，深色要提到 22%。 */
+.home-clock-cal-day.is-mark {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--primary);
+}
+
+.home-clock-cal-day.is-mark::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+:root[data-theme="dark"] .home-clock-cal-day.is-mark {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* 今天：强调色渐变底。**字色要分主题** ——
+   浅色主题的 --accent 是深蔷薇红 #8c2f48，白字 8.0:1、紫端 6.1:1，够；
+   深色主题的 --accent 是浅粉 #d89aab，白字只有 2.3:1（不及格），反过来用近黑 8.1:1。
+   实色 background-color 那一份是**给对比度脚本的**：它只沿祖先链合成实色，渐变看不见
+   （21-card-deck.css 的名牌底写过同一条坑），两份写成同一个色值。 */
+.home-clock-cal-day.is-today {
+  background-color: var(--accent);
+  background-image: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  font-weight: 600;
+}
+
+:root[data-theme="dark"] .home-clock-cal-day.is-today {
+  color: #16141b;
+}
+
+.home-clock-cal-day.is-today::after {
+  background: currentColor;
+  opacity: .75;
+}
+
+/* ---------- 今日那条 24 小时轴 ---------- */
+.home-clock-axis {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+
+.home-clock-axis-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: .7rem;
+  color: var(--secondary);
+}
+
+.home-clock-axis-val {
+  font-variant-numeric: tabular-nums;
+}
+
+.home-clock-axis-track {
+  position: relative;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--tertiary);
+  /* 游标要把「进度」换算成位移，用的就是这条例：轨道自己当容器，`100cqw` 就是它的宽度。
+     不这么做就得改 `left` —— 那条每秒一次，会让浏览器每秒重排一次面板（见 home-clock.js 第 4 条）。 */
+  container-type: inline-size;
+}
+
+.home-clock-axis-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transform-origin: 0 50%;
+  transform: scaleX(var(--p, 0));
+}
+
+.home-clock-axis-cursor {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: translateX(calc(var(--p, 0) * 100cqw));
+}
+
+/* 刻度数字是**文字**，所以用 --secondary（--tertiary 是给进度条当底色的那种浅灰，
+   当字色在浅色主题下只有 1.2:1，等于看不见）。 */
+.home-clock-axis-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: .58rem;
+  color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 矮档（1024~1400px）的「本月 mini 条」 ----------
+   默认藏起来，只在下面那条媒体查询里打开。阈值与看板娘那条同档，也是实测的跳变点：
+   卡高在 1400→1410 之间从 306 跳到 436（右栏被左栏撑高的差额变了）。 */
+.home-clock-month {
+  display: none;
+}
+
+.home-clock-month-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: .7rem;
+  color: var(--secondary);
+}
+
+.home-clock-month-val {
+  font-variant-numeric: tabular-nums;
+}
+
+.home-clock-month-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  margin-top: .24rem;
+}
+
+.home-clock-month-strip i {
+  height: 14px;
+  border-radius: 2px;
+  background: var(--tertiary);
+}
+
+.home-clock-month-strip i.is-past {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* 「今天」那一格按当天已过的比例**左右两段**（硬停的渐变）：改的只是一个自定义属性，
+   不触发布局。格子里没有文字，所以它不参与对比度口径。 */
+.home-clock-month-strip i.is-today {
+  background: linear-gradient(90deg,
+    var(--accent) calc(var(--p, 0) * 100%),
+    color-mix(in srgb, var(--accent) 22%, transparent) 0);
+}
+
+.home-clock-month-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: .16rem;
+  font-size: .56rem;
+  color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 矮档：月历格子装不下（自然高约 180px，这里只有约 118px），换 mini 条。
+   阈值与上面 09-home.css 里「1024~1400px 给看板娘腾位」那条一致。 */
+@media (min-width: 1024px) and (max-width: 1400px) {
+  .home-clock-cal {
+    display: none;
+  }
+
+  .home-clock-month {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* 单列（<1024px）：卡是自然高度，没有空白要填，月历照常出；今日一卡另起一行 ——
+   那三格的侧格在手机上只有 90 来像素宽，塞不下「缩略图 + 三行字」。
+   时间仍由 `1fr auto 1fr` 居中（不去动它），微卡跨满三列后自然落到第二行。
+
+   选择器**必须写成 `.home-clock-head > .home-clock-daily`（两个类）**：上面那条
+   `> :not(.home-clock-time)` 也是两个类，只写一个类的 `.home-clock-daily` 特异性不够、
+   压不住它 —— 表现是「grid-column: 1/-1 没生效」，微卡仍占第三列（那一列被撑到 115px），
+   居中那条 `1fr auto 1fr` 两边就不等了，时间实测被挤偏 24px。 */
+@media (max-width: 1023px) {
+  .home-clock-head > .home-clock-daily {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    text-align: left;
+    margin-top: .3rem;
+  }
+}
+
 .home-browse,
 .home-recent,
 .home-clock {
