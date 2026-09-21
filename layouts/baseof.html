@@ -11,7 +11,9 @@
         只有这里没跟上；改它不会连带改动别处的输出。
         同理 dir 用 .Language.Direction。这两个 API 是主题那份用的 LanguageCode /
         LanguageDirection 的现行写法（后者在 Hugo 0.158 起报废弃告警）—— 主题自己的
-        rss.xml 与 opengraph.html 仍在用旧名，那边的告警要等主题上游改；本站这份不必跟着旧。
+        rss.xml 与 opengraph.html 也用过旧名：那两处的告警 2026-09-21 由第 10、11 处覆盖
+        一并消掉了（此前记的是「等主题上游改」，改了主意 —— 一条不带文件名的 WARN 会盖住
+        真正的告警，而两处都只是同一个 API 的替换）。
      2. <body> 的首个子元素插入跳过导航链接。
      3. <main> 加 id="main-content" 与 tabindex="-1"。tabindex 不能省：只加 id 的话锚点跳转
         只移动滚动位置、不移动焦点，键盘用户再按 Tab 仍然从页首开始。

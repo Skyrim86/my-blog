@@ -31,7 +31,7 @@ my-blog/
 │   ├── project-section.md     #   分层项目子项目（section，刻意不写 tags）
 │   └── project-doc.md         #   分层项目文档（regular page，math 默认 true）
 ├── assets/                    # 走 Hugo 资源管线（会被 minify/fingerprint/Resize）
-│   ├── css/extended/          #   自定义 CSS，主题自动 Concat + minify，按文件名排序
+│   ├── css/extended/          #   自定义 CSS，主题自动 Concat + minify，**按文件名字典序**合并
 │   │   ├── 00-theme.css       #     设计令牌（配色/圆角/阴影）+ 站点背景图层 + 压背景文字的底衬
 │   │   ├── 01-cards.css       #     文章列表卡片
 │   │   ├── 02-typography.css  #     中文排版
@@ -40,84 +40,143 @@ my-blog/
 │   │   ├── 05-project.css     #     项目元信息（技术栈 + 仓库链接）
 │   │   ├── 06-terms-filter.css#     词条筛选框
 │   │   ├── 07-related.css     #     相关内容区块
-│   │   ├── 08-reader.css      #     阅读进度条 + 目录当前项 + 正文卡片
-│   │   ├── 09-home.css        #     首页头像光环 / 快捷入口 / 最近更新
+│   │   ├── 08-reader.css      #     阅读进度条 + 目录当前项 + 正文卡片 + 代码块标题条
+│   │   ├── 09-home.css        #     首页头像光环 / 快捷入口 / 站点规模 / 时间卡 / 最近更新 / 两栏布局
 │   │   ├── 10-nav.css         #     窄屏导航折叠（配合 assets/js/nav-toggle.js）
 │   │   ├── 11-toolbox.css     #     数学工具卡片墙 + 正文引用弹窗
 │   │   ├── 12-toc-rail.css    #     单页左侧跟随目录
-│   │   ├── 13-ornament.css    #     装饰层：标题竖线 / 分隔线菱形 / 页脚渐隐线（第 3 节 ㉔）
+│   │   ├── 13-ornament.css    #     装饰层：标题竖线 / 分隔线菱形 / 页脚渐隐线 / 头像光环（第 3 节 ㉔）
 │   │   ├── 14-mascot.css      #     右下角看板娘（第 3 节 ㉕）
 │   │   ├── 15-extras.css      #     404 页 + 页脚 RSS 入口
 │   │   ├── 16-list-tools.css  #     列表排序与标签筛选条（配合 assets/js/list-tools.js）
 │   │   ├── 17-a11y.css        #     跳过导航链接 + .sr-only（见 features.md 第 4 节的第 7 处覆盖）
 │   │   ├── 18-bg-switch.css   #     顶栏背景套切换按钮（配合 assets/js/bg-switch.js，见 ⑫）
-│   │   └── 19-nav-px.css      #     导航栏像素小人的盒子（图由 tools/icons/make-icons.py 生成，见第 6 节）
+│   │   ├── 19-nav-px.css      #     导航栏像素小人的盒子（图由 tools/icons/make-icons.py 生成，见第 6 节）
+│   │   ├── 20-card-ornaments.css # **生成物**：卡面纹样令牌（data-URI SVG，由 tools/cards/make-ornaments.py 产出，不要手改）
+│   │   ├── 20-theme-fade.css  #     明暗切换的过渡（施加时机在 assets/js/theme-fade.js）
+│   │   ├── 21-card-deck.css   #     首页卡片组 + 收藏库卡片墙 + 3D 弹层（21 之后的编号见下）
+│   │   ├── 22-reveal.css      #     滚动出现动画（配对脚本：assets/js/reveal.js）
+│   │   ├── 26-lightbox.css    #     正文图片灯箱（配对脚本：assets/js/lightbox.js）
+│   │   └── 27-bento.css       #     关于页的拼贴 Bento（模板 _shortcodes/bento.html，数据 data/about-bento.yaml）
+│   ├── css/view-transition.css  # 切页转场（原生 View Transitions）。**不压缩、单独外链**，刻意不放进 extended/
+│   ├── fonts/                 #   自托管字体：rose-clock.woff2（首页时钟数字子集）+ LICENSE + 子集做法的 README
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
-│   │   ├── mascot.webp        #   看板娘半身像（从 tools/icons/ 那份素材抠出来，见 ㉕）
+│   │   ├── mascot.webp        #   右下角看板娘半身像（从 tools/backgrounds/ 那份素材抠出来，见 ㉕）
+│   │   ├── ayaka-home.webp    #   首页看板娘的备选形态（生成器 tools/backgrounds/make-ayaka-home.py，当前首页不调用）
 │   │   ├── bg-night-city.webp #   背景套「城市」的深色主题：夜景城市照片（见 docs/features.md ⑫）
 │   │   ├── bg-daylight-city.webp # 背景套「城市」的浅色主题：日间城市照片（见 ⑫）
 │   │   ├── bg-night-girl.webp    # 背景套「黑长直少女」的深色主题（默认套，见 ⑫）
 │   │   ├── bg-daylight-girl.webp # 背景套「黑长直少女」的浅色主题（见 ⑫）
 │   │   ├── bg-daylight-sky.webp  # 浅色主题备选背景（程序生成，当前未使用，见 ⑫）
 │   │   ├── bg-velvet-night.webp  # 深色主题备选背景（程序生成，当前未使用，见 ⑫）
+│   │   ├── cards/             #   卡面生成物：63 张 <角色>-<编号>.webp（tools/cards/make-cards.py）
+│   │   │   └── depth/         #   同一批卡的浮雕高度图（tools/cards/make-depth.py，3D 查看器读它）
 │   │   ├── nav/               #   导航栏像素小人 ×8（生成产物：tools/icons/make-icons.py，见第 6 节）
 │   │   └── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
 │   └── js/                    #   自定义 JS 源码，经 extend_head.html minify+fingerprint 后外链
-│       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
-│       ├── reading-progress.js   # 阅读进度条 + 目录高亮（只在单页加载）
-│       ├── search-shortcut.js    # Ctrl/⌘+K 与「/」快捷键 + 搜索页 ?q= 预填
-│       ├── nav-toggle.js         # 窄屏导航折叠（渐进增强，无 JS 时菜单照主题原样铺开）
-│       ├── bg-switch.js          # 背景套切换按钮（注入顶栏，偏好存 localStorage['pref-bg']，见 ⑫）
-│       ├── terms-filter.js       # 标签/分类/系列总览页的词条筛选框
-│       ├── list-tools.js         # section / term 页的排序与标签筛选条
-│       ├── toolbox.js            # 数学/CS 卡片的引用弹窗与卡片墙筛选
 │       ├── a11y-announce.js      # 搜索结果的读屏播报（只挂搜索页，见 features.md 第 4 节）
-│       └── a11y-controls.js      # 主题硬编码英文可访问名的本地化（全站加载，见 features.md ㉞）
+│       ├── a11y-controls.js      # 主题硬编码英文可访问名的本地化（全站加载，见 features.md ㉞）
+│       ├── bg-switch.js          # 背景套切换按钮（注入顶栏，偏好存 localStorage['pref-bg']，见 ⑫）
+│       ├── card-3d.js            # 卡片 3D 查看器：弹层里那张卡可自由转动（有厚度、带浮雕）
+│       ├── deck-wall.js          # 收藏库 /collection/ 的卡片墙：三排筛选 + 格子升级成按钮 + 开弹层
+│       ├── giscus-theme-sync.js  # Giscus 主题跟随（只在实际有评论区的页面加载）
+│       ├── header-sticky.js      # 顶栏吸顶后的状态标记（给 <html> 加 .is-scrolled）
+│       ├── home-clock.js         # 首页时间卡：时间 / 今天与今年进度 / 本月打卡 / 今日一卡
+│       ├── home-deck.js          # 首页卡片组：手动切 + 6s 自动轮播（悬停与后台暂停）
+│       ├── lightbox.js           # 正文图片灯箱：点图 → 原生 <dialog> 里放大
+│       ├── list-tools.js         # section / term 页的排序与标签筛选条
+│       ├── nav-toggle.js         # 窄屏导航折叠（渐进增强，无 JS 时菜单照主题原样铺开）
+│       ├── reading-progress.js   # 阅读进度条 + 目录高亮（只在单页加载）
+│       ├── reveal.js             # 滚动出现动画：首屏之下的列表项滚进视口时淡入一次
+│       ├── search-shortcut.js    # Ctrl/⌘+K 与「/」快捷键 + 搜索页 ?q= 预填
+│       ├── terms-filter.js       # 标签/分类/系列总览页的词条筛选框
+│       ├── theme-fade.js         # 明暗切换的过渡时机（样式在 20-theme-fade.css）
+│       └── toolbox.js            # 数学/CS 卡片的引用弹窗与卡片墙筛选
 ├── content/                   # 站点内容（详见 docs/content.md）
 │   ├── about.md  search.md                       # archives.md 已于 2026-09-15 删除（见第 3 节）
 │   ├── categories/ tags/ series/ _index.md   # 三套分类法的总览页标题
-│   ├── courses/<课程>/        # _index.md 主页 + <chapter-0N>/（notes|homework|lab 材料页）
+│   ├── collection/            # 收藏库总览页（layout: collection）—— /collection/ 一页铺 63 张收藏卡，见 ㊿
+│   ├── courses/<课程>/        # _index.md 主页 + <chapter-0N>/（notes|homework|lab 材料页）+ toolbox/（卡片页）
+│   ├── library/               # 数学库的三级目录页（**不是文件**：content/library/_content.gotmpl 按分支表现算生成）
+│   ├── cs/                    # CS 库索引的同名三级结构（页面由 scripts/gen-cards.mjs 生成）
 │   ├── posts/<slug>/index.md  # 文章用 Page Bundle（封面图放同目录）
 │   └── projects/<项目>/       # 平铺项目 index.md；CMC2026 是分层项目（section + 文档）
-├── data/taxonomy.yaml         # 标签 / 分类词表（唯一事实源，要入库）
-├── data/tag-groups.yaml       # 词条按学科分组（/tags/ 总览页分块用，见 features.md ㉛）
-├── data/libraries.yaml        # 卡片库登记表：key / label / data / path / cards / math
-├── data/math-branches.yaml    # 数学库分支表（两级：大类 → 细分，手写）
-├── data/math-toolbox.json     # 数学卡（由 tools/course-import/import_course.py 生成）
-├── data/cs-branches.yaml      # CS 库分支表（手写）
-├── data/cs-toolbox.json       # CS 卡（手写维护，页面由 scripts/gen-cards.mjs 生成）
+├── data/                      # 站点数据（模板直接读，不进 content/）
+│   ├── taxonomy.yaml          #   标签 / 分类词表（**唯一事实源，要入库**）
+│   ├── tag-groups.yaml        #   词条按学科分组（/tags/ 总览页分块用，见 features.md ㉛）
+│   ├── libraries.yaml         #   卡片库登记表：key / label / data / path / cards / math
+│   ├── math-branches.yaml     #   数学库分支表（两级：大类 → 细分，手写）
+│   ├── math-toolbox.json      #   数学卡（由 tools/course-import/import_course.py 生成）
+│   ├── cs-branches.yaml       #   CS 库分支表（手写）
+│   ├── cs-toolbox.json        #   CS 卡（手写维护，页面由 scripts/gen-cards.mjs 生成）
+│   ├── card-parents.yaml      #   卡片的主次关系：附属结论挂在哪张主卡下面
+│   ├── home-cards.yaml        #   首页卡片组清单（**单一事实源**：tools/cards/make-cards.py 按它出卡面）
+│   ├── about-bento.yaml       #   关于页拼贴的瓦片清单（_shortcodes/bento.html 读它）
+│   └── rank-scores.json       #   卡片等级评分（由 scripts/rank-deck.py 生成）
 ├── i18n/zh.toml               # 站点级 UI 文案（与主题 i18n 合并，同名覆盖）
 ├── layouts/
-│   ├── baseof.html            # 覆盖主题模板：跳过导航链接 + lang=zh-CN（第 7 处覆盖，见 features.md 第 4 节）
-│   ├── index.json             # 覆盖主题模板：搜索索引（正文截断 + tags + 页内标题）
-│   ├── 404.html               # 覆盖主题模板：404 提示 + 返回首页/搜索/各卡片库（见 features.md 第 4 节）
-│   ├── taxonomy.html          # 覆盖主题模板：词条按 data/tag-groups.yaml 分块（见第 4 节）
+│   ├── baseof.html            # 覆盖主题：跳过导航链接 + lang=zh-CN（第 7 处覆盖，见 features.md 第 4 节）
+│   ├── index.json             # 覆盖主题：搜索索引（正文截断 + tags + 页内标题）
+│   ├── rss.xml                # 覆盖主题：<language> 改用 .Language.Locale（第 11 处覆盖，见第 4 节）
+│   ├── 404.html               # 覆盖主题：404 提示 + 返回首页/搜索/各卡片库（第 5 处覆盖）
+│   ├── taxonomy.html          # 覆盖主题：词条按 data/tag-groups.yaml 分块（第 6 处覆盖）
 │   ├── _default/              # 多 section 共用的 layout（见 features.md 第 4 节末段）
 │   │   ├── library.html       #   卡片库总览（/library/ 与 /cs/ 共用，按 .Section 认库）
 │   │   ├── library-branch.html    #   大类页（细分目录）
 │   │   ├── library-section.html   #   细分页（卡片索引）
-│   │   └── toolcard.html      #   单张卡片页（数学卡与 CS 卡共用）
-│   ├── _markup/render-passthrough.html   # 公式渲染钩子（构建期 KaTeX）
-│   ├── _markup/render-image.html         # 覆盖主题文件：内容图补 width/height + PNG 转无损 WebP（第 9 处覆盖，见 features.md ㊲）
-│   ├── courses/course.html    # 课程主页模板（由 layout: course 显式命中）
-│   ├── courses/chapter.html   # 章节入口页模板（由 layout: chapter 命中）
+│   │   ├── toolcard.html      #   单张卡片页（数学卡与 CS 卡共用）
+│   │   └── collection.html    #   收藏库总览页（layout: "collection"，见 ㊿）
+│   ├── _markup/               # 渲染钩子
+│   │   ├── render-passthrough.html   # 公式渲染钩子（构建期 KaTeX）
+│   │   ├── render-image.html         # 覆盖主题：内容图补 width/height + PNG 转无损 WebP（第 9 处覆盖，见 ㊲）
+│   │   └── render-codeblock.html     # 新增的渲染 hook：```python {filename=…} 出窗口标题条（见 ㊹）
+│   ├── courses/course.html    # 课程主页模板（由 layout: course 显式命中，第 1 处覆盖）
+│   ├── courses/chapter.html   # 章节入口页模板（由 layout: chapter 命中，同上）
+│   ├── courses/tools.html     # 数学工具库页（卡片墙 + 索引卡，见第 3 节 ㉑）
 │   ├── projects/project-home.html  # 分层项目主页模板（由 layout: project-home 命中）
-│   ├── _shortcodes/course-plan.html# 课程规划与进度（课程主页正文里 {{< course-plan >}}）
+│   ├── _shortcodes/           # 正文里能用的短代码
+│   │   ├── course-plan.html   #   课程规划与进度（{{< course-plan >}}）
+│   │   ├── card.html          #   引用一张数学/CS 卡片（渲染成索引卡 + 弹窗）
+│   │   ├── tool.html          #   工具卡（正交表的行内引用）
+│   │   ├── thm.html           #   定理 / 定义等环境块
+│   │   └── bento.html         #   关于页的拼贴（读 data/about-bento.yaml）
 │   └── _partials/             # 全部自定义模板（注意是 _partials 带下划线）
 │       ├── extend_head.html   #   覆盖主题 hook：JS 接线 + KaTeX 样式 + 背景图 CSS
+│       ├── extend_footer.html #   覆盖主题 hook：右下角看板娘
+│       ├── extend_post_content.html  # 覆盖主题 hook：系列导航 + 附件 + 项目元信息 + 相关内容 + 目录栏
+│       ├── comments.html      #   覆盖主题同名 partial（Giscus）
 │       ├── google_analytics.html  #  覆盖主题缺失的 partial：**有意的空实现**（第 5 节末段）
-│       ├── templates/schema_json.html  # 覆盖主题模板：JSON-LD（删 articleBody + 零值日期/@type，见 features.md ㉟）
-│       ├── index_profile.html #   覆盖主题同名 partial：首页快捷入口 + 最近更新
-│       ├── post_meta.html     #   覆盖主题同名 partial：只在末尾追加一行卡片 chips
+│       ├── templates/         #   主题的模板 partial
+│       │   ├── schema_json.html   # 覆盖主题：JSON-LD（第 8 处覆盖，见 ㉟）
+│       │   └── opengraph.html     # 覆盖主题：og:locale（第 10 处覆盖）
+│       ├── index_profile.html #   覆盖主题同名 partial：首页 hero + 右栏（第 3 处覆盖）
+│       ├── post_meta.html     #   覆盖主题同名 partial：只在末尾追加一行卡片 chips（第 4 处覆盖）
+│       ├── page-head.html     #   面包屑 + 标题 + 描述（课程页 / 章节页 / 项目主页共用）
+│       ├── toc-rail.html      #   单页左侧跟随目录（**脚本内联在这支 partial 里**）
 │       ├── card-chips.html    #   列表卡片的计数 / 技术栈 chips
 │       ├── type-label.html    #   页面类型徽标文案（相关内容与首页共用）
-│       ├── extend_post_content.html  # 覆盖主题 hook：系列导航 + 附件 + 项目元信息 + 相关内容
-│       ├── series-posts.html  related-content.html  course-index.html
+│       ├── series-posts.html  #   系列内导航（03-widgets.css）
+│       ├── related-content.html   # 相关内容区块（07-related.css）
+│       ├── course-index.html  #   课程主页的章节目录
 │       ├── project-index.html #   分层项目主页的子页目录（各子项目文档数 + 更新时间）
-│       ├── page-head.html     #   面包屑 + 标题 + 描述（课程页 / 章节页 / 项目主页共用）
-│       ├── course-downloads.html project-meta.html
-│       └── comments.html      #   覆盖主题同名 partial（Giscus）
+│       ├── course-downloads.html  project-meta.html
+│       ├── home-scale.html    #   首页「站点规模」那行小字
+│       ├── home-clock.html    #   首页「时间与时钟」面板（数字由 assets/js/home-clock.js 填）
+│       ├── home-cards.html    #   首页 hero 底部的卡片组（一次一张 + 3D 弹层入口）
+│       ├── home-chara.html    #   首页 hero 里的角色立绘（备选形态，**当前不调用**）
+│       ├── deck-manifest.html #   卡片清单 → 条目切片（渲染与 JS 共用的那一份数据）
+│       ├── deck-filters.html  #   卡片的手绘感滤镜（**必须内联**：data-URI filter 在 WebKit 上不可靠）
+│       ├── deck-wall.html     #   收藏库的卡片墙（63 张一次铺开，见 ㊿）
+│       ├── lib-config.html    #   按 URL 第一段认出是哪个库，回表取配置 / 数据 / 分支表
+│       ├── toolbox-wall.html  #   卡片墙：主卡 + 挂在它下面的附属结论 = 一家子一个格子
+│       ├── toolbox-card.html  #   单张卡的渲染
+│       ├── toolbox-teaser.html    #   正文里的卡片索引小卡（点开弹窗）
+│       ├── toolbox-md.html    #   卡片正文里的引用改写（[名字](#card-…) → 卡片页地址）
+│       ├── card-ref.html      #   正文里引用一张卡
+│       ├── card-find.html     #   在所有库里按 id 或名字/别名找一张卡
+│       ├── card-href.html     #   卡片 id → 卡片页地址
+│       └── card-rel.html      #   卡片的主次关系（data/card-parents.yaml）
 ├── scripts/                   # 内容与 CI 工具（bash / Node，零依赖）
 │   ├── new-content.sh         # 新内容脚手架 + 删除（唯一实现）
 │   ├── check-frontmatter.sh   # 阻断：front matter 与 section/material 的 tags 规则
@@ -129,9 +188,12 @@ my-blog/
 │   ├── check-katex-pairing.sh # 阻断：KaTeX 样式与 Hugo 内嵌版本是否配对
 │   ├── check-links.mjs        # 阻断：站内链接与锚点（同站绝对链接也在内）
 │   ├── check-seo.mjs          # 只警告：sitemap / robots / 首页 meta / RSS / 页面 JSON-LD 的产物体检
-│   ├── gen-cards.mjs          # 阻断（--check）：从 data/<库>.json 生成卡片页（CS 库用）
 │   ├── check-editor-schema.mjs# 只警告：archetypes 与管理页字段表的漂移
 │   ├── check-consistency.mjs  # 阻断：三处校验清单 / 阻断口径 / 时区 / front matter 键表的漂移
+│   ├── check-cards.mjs        # 阻断：卡片数据的字段与 id 唯一性（两个库一起查）
+│   ├── check-deck.mjs         # 阻断：卡片组的清单 vs 源图 vs 产物 vs CSS 类，以及纹样令牌
+│   ├── gen-cards.mjs          # 阻断（--check）：从 data/<库>.json 生成卡片页（CS 库用）
+│   ├── rank-deck.py           # 生成 data/rank-scores.json（卡片等级评分，不参与 CI）
 │   ├── report-size.sh         # 阻断：页面体积预算（raw 与 gzip 双轨；--fresh 消除 public/ 陈旧产物影响）
 │   ├── push-blog.sh           # 一键公式转义自动修复 + 构建 + 校验 + 提交 + 推送
 │   ├── preview.sh             # 本地预览（hugo server -D，HUGO_BASEURL 指本机，见 traps.md 第 3 节）
@@ -143,36 +205,50 @@ my-blog/
 │   └── source-ayaka-chibi.png #   管理页图标素材（Q 版神里绫华，两条线互不影响）
 ├── tools/covers/              # 列表卡片封面生成（不参与 Hugo 构建）
 │   └── make-covers.py         #   渐变 + 底纹 + 标题字，写 assets/images/covers/*.webp
-├── tools/backgrounds/         # 背景图生成（不参与 Hugo 构建）
-│   ├── make-backgrounds.py    #   站点背景：日间城市照片 + 夜景城市照片 + 两张生成备选（`--frost` 时额外生成管理页霜雪备选）
+├── tools/backgrounds/         # 背景图与看板娘生成（不参与 Hugo 构建）
+│   ├── make-backgrounds.py    #   站点背景：日间城市照片 + 夜景城市照片 + 两张程序生成备选（`--frost` 时额外生成管理页霜雪备选）
 │   ├── make-admin-bg.py       #   管理页绫华插画 → 深/浅两版（见 docs/admin.md §20）
 │   ├── make-mascot.py         #   站点图标素材 → 右位看板娘透明图（白底抠图：色差切背景 + 去污染 + 预乘缩放，见 features.md ㉕）
 │   ├── make-mascot-left.py    #   左位看板娘生成器（**该看板娘已于 2026-09-18 从站点移除**，脚本与源图保留以便再生成，见 features.md ㉕）
+│   ├── make-ayaka-home.py     #   首页绫华的备选形态（生成 assets/images/ayaka-home.webp，当前不调用）
 │   ├── source-night-city.jpg  #   深色背景的底图（夜景城市，358 KB，出处见 features.md ⑫）
 │   ├── source-daylight-city.jpg # 浅色背景的底图（日间城市，2048×1365，346 KB，Unsplash，同上）
 │   ├── source-mascot-left.jpg #   左位素材来源（113 KB，当前未使用）
-│   └── source-lady-slice.webp #   城市夜景上那位提灯少女的切片（当前未使用）
+│   ├── source-girl-day.jpg    #   「黑长直少女」套的日间源图（出处见 features.md ⑫）
+│   ├── source-girl-night.jpg  #   同上，夜间源图
+│   ├── source-ayaka-*.png|jpg #   管理页绫华的素材四张（透明围裙 / 和服 / 持剑 / 头纱，见 docs/admin.md §20）
+│   └── source-lady-slice.webp #   「夜城 + 提灯少女」那版的切片（**图与生成函数 2026-09-21 已删**，切片留着：它是卡片出处清单里的一项，见 features.md ⑫）
+├── tools/cards/               # 卡面生成（不参与 Hugo 构建；依赖见 tools/requirements.txt）
+│   ├── fetch-sources.py       #   按清单把源立绘下载到 sources/（只跑一次，不参与出图）
+│   ├── make-cards.py          #   按 data/home-cards.yaml 出 63 张卡面 → assets/images/cards/*.webp
+│   ├── make-depth.py          #   同一批卡的浮雕高度图 → assets/images/cards/depth/
+│   ├── make-ornaments.py      #   卡面纹样令牌 → assets/css/extended/20-card-ornaments.css（**生成物，不要手改**）
+│   ├── sources/               #   55 张源立绘（清单里用到的那批 + 备用的）
+│   └── requirements-depth.txt #   高度图那条线的额外依赖
+├── tools/course-import/       # 课程项目 → 博客内容 + 数学卡（import_course.py，**生成产物不要手改**）
+├── tools/wiki-publish/        # 知识库（仓库外）→ 带 source: wiki 标记的卡片（publish.py，见 AGENTS 规则 16）
 ├── tools/admin/               # 本地管理页（零依赖 Node 服务 + 原生前端，不参与 Hugo 构建）
 │   ├── start.sh               #   启动器（.bat 调它）
 │   ├── server.mjs             #   HTTP 服务：静态页 + JSON API
-│   ├── lib/                   #   content / frontmatter / taxonomy / git / hugo / exec
-│   └── ui/                    #   index.html + app.js + style.css
+│   ├── lib/                   #   content / frontmatter / taxonomy / git / hugo / exec / checks
+│   └── ui/                    #   index.html + app.js + style.css + ayaka.ico
 ├── tools/requirements.txt     # Python 生成器的依赖（Pillow / numpy / opencv，只在本地用，见第 6 节）
 ├── static/                    # 原样发布（无内容指纹）
 │   ├── images/site-cover.jpg  #   默认 OG 分享图（头像不在这里，见 assets/images/）
 │   ├── favicon.ico  favicon-16x16.png  favicon-32x32.png  apple-touch-icon.png  safari-pinned-tab.svg
 │   │                          #   全部由 tools/icons/make-icons.py 生成（见第 6 节），不要手改
 │   ├── katex/                 #   自托管 KaTeX：katex.min.css + fonts/*.woff2（版本必须与 Hugo 配对）
-│   ├── BingSiteAuth.xml  googledfe2280ece06bc5c.html   # 站长验证
+│   └── BingSiteAuth.xml  googledfe2280ece06bc5c.html   # 站长验证
 ├── .github/
 │   ├── actions/validate/action.yml  # 校验+构建的**唯一定义**（checks.yml 与 deploy.yml 共用）
 │   ├── workflows/deploy.yml   # push main：校验 → 构建 → 部署（校验不过不部署）
 │   ├── workflows/checks.yml   # PR / 非 main：只校验
 │   ├── workflows/links.yml    # 每周外链检查（lychee，非阻断，查线上站点）
 │   └── dependabot.yml         # 给已固定 SHA 的 Actions 留更新通道
-├── .agents/commands/          # 斜杠命令（放 .agents/ 才入库，.zcode/ 被 gitignore）
+├── .agents/commands/          # 斜杠命令（admin / new-post / new-course / new-project / preview / push-blog）
 ├── .editorconfig  .gitattributes  .gitignore  .lychee.toml
 └── themes/PaperMod/           # vendored 主题（已剪裁，见第 5 节；不要直接修改）
+
 ```
 
 `public/`（构建产物）、`resources/`（Hugo 缓存）、`.hugo_build.lock` 均不入库。`data/taxonomy.yaml` 是标签词表，**要入库**。
@@ -236,9 +312,9 @@ hugo --minify --gc --cleanDestinationDir   # 生产构建
 
 复合动作里的顺序是「先快后慢」，且**这份顺序就是权威**：
 
-1. 校验清单一致性（阻断）→ 2. 标签词表（警告）→ 3. front matter（阻断）→ 4. 卡片页与数据一致性（阻断）→ 5. section 结构（阻断）→ 6. 公式转义（阻断：规则自测 + 内容扫描）→ 7. 公式内容预检（阻断）→ 8. 公式真检（阻断：机制自测 + 逐条渲染）→ 9. 编辑器字段表漂移（警告）→ **构建** → 10. KaTeX 配对（阻断）→ 11. 体积预算（阻断）→ 12. 站内链接与锚点（阻断）→ 13. SEO 与订阅产物（含页面 JSON-LD）体检（警告）
+1. 校验清单一致性（阻断）→ 2. 标签词表（警告）→ 3. front matter（阻断）→ 4. 卡片页与数据一致性（阻断）→ 5. 卡片数据（阻断）→ 6. 首页卡片组清单（阻断）→ 7. section 结构（阻断）→ 8. 公式转义（阻断：规则自测 + 内容扫描）→ 9. 公式内容预检（阻断）→ 10. 公式真检（阻断：机制自测 + 逐条渲染）→ 11. 编辑器字段表漂移（警告）→ **构建** → 12. KaTeX 配对（阻断）→ 13. 体积预算（阻断）→ 14. 站内链接与锚点（阻断）→ 15. SEO 与订阅产物（含页面 JSON-LD）体检（警告）
 
-第 10–13 项读 `public/`，所以必须排在构建之后；第 1 项只读文本文件，排最前是因为它挂了后面的检查结果就不必看。**改这份清单要同步另外两处**，否则第 1 项自己会报出来（见下）。
+第 12–15 项读 `public/`，所以必须排在构建之后；第 1 项只读文本文件，排最前是因为它挂了后面的检查结果就不必看。**改这份清单要同步另外两处**，否则第 1 项自己会报出来（见下）。
 
 其中 **section 结构校验**（`check-sections.sh`）断言每个 section 目录都有 `_index.md`：列表页缺了的话，该分区的入口页（`/posts/` 这类）会在最后一个子页面被删空时静默消失，导航栏与首页指向它的链接跟着 404。判据与修法见 [`content.md`](content.md)。
 
@@ -368,9 +444,9 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与 assets/ima
 | 项 | 现在 | 迁移后 |
 |---|---|---|
 | 规模 / 构建 | 150 md → 211 HTML，全量 **1.5 s 上下**（冷启动更久） | 内容管线全部重写 |
-| 输出 / JS | 19 MB 输出（gzip 后 3.3 MB）；**全部 JS 32 KB**（搜索包 19 KB + 其余 1–4 KB）；零 `node_modules`，唯一构建依赖是 `action.yml` 里钉的 hugo 二进制 | MDX 侧 JS 预算必然上涨 |
+| 输出 / JS | 25 MB 输出（gzip 后 8.9 MB —— 其中 5.9 MB 是 63 张卡的派生图）；**全部 JS 112 KB**（18 个脚本，最大的也不到 20 KB；搜索索引另计 48 KB）；零 `node_modules`，唯一构建依赖是 `action.yml` 里钉的 hugo 二进制 | MDX 侧 JS 预算必然上涨 |
 | 公式 | **构建期**渲染：`render-passthrough.html` + `transform.ToMath`（`throwOnError = true`，公式写错即构建失败）+ 三层校验 + KaTeX↔Hugo 版本配对表 | 换 rehype-katex 重写，或退回客户端 KaTeX（正是当初刻意去掉的那条） |
-| 校验 | 13 项（front matter / section 结构 / 站内链接与**锚点** / 体积预算 / 公式三层校验 …）绑在 Hugo 的 URL 结构上 | 按新框架产物重写 |
+| 校验 | 15 项（front matter / section 结构 / 站内链接与**锚点** / 体积预算 / 公式三层校验 …）绑在 Hugo 的 URL 结构上 | 按新框架产物重写 |
 | Hugo 白送 | `enableGitInfo` lastmod、tags/categories/series 三套分类与自定义视图、`data/taxonomy.yaml` 词表、图片 Resize、RSS + JSON 搜索索引、`/:year/:month/:slug/` 永久链接 | 逐项自建，且已发布的链接一条都不能断 |
 
 触发再评估的条件：真需要服务端鉴权 / 个性化 / 增量内容 API。若只是 `output: 'export'` 静态导出，那 Next 只是一个更复杂的 Hugo，无收益。
@@ -379,22 +455,26 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与 assets/ima
 
 真要「换设备写、手机写、别人投稿」，正确做法是把后端外包给 Git-based CMS（Decap / Sveltia 之类，拿 GitHub API 当后端）：仓库、CI、静态站形态都不动，只换编辑器。
 
-## 8. 性能：实测数字与三条否决（2026-09-18）
+## 8. 性能：实测数字与三条否决（2026-09-18，数字 2026-09-21 重测）
 
-**先测量再优化**，因为直觉在这里是错的：本站看起来「很胖」（18 MB 输出、单页约 1 MB），但那是**磁盘上的字节**，不是访客下载的量。公式页的 raw HTML 里绝大部分是 KaTeX 在构建期逐符号生成的 `<span>`，压缩比极高。
+**先测量再优化**，因为直觉在这里是错的：本站看起来「很胖」（25 MB 输出、单页约 1 MB），但那是**磁盘上的字节**，不是访客下载的量。公式页的 raw HTML 里绝大部分是 KaTeX 在构建期逐符号生成的 `<span>`，压缩比极高。
 
 | 指标 | raw | gzip -6 | 倍数 |
 |---|---|---|---|
-| 整站 | 18249 KB | **2934 KB** | 6.2× |
-| 最重一页（`projects/cmc2026/problem-04/问题四/`） | 1024 KB | **75 KB** | 13.7× |
-| HTML 合计 | 17133 KB | — | 占整站 94%；已删掉 JSON-LD 里的正文副本（见下） |
-| JS 合计 | 32 KB | — | 已经很小 |
-| CSS 合计（主包 48 KB + KaTeX 23 KB） | 70 KB | — | — |
-| 搜索索引 | 48 KB | — | 预算 52 KB，**余量只剩 8%，是全站最紧的一项** |
+| 整站 | 24782 KB | **8914 KB** | 2.8× |
+| 最重一页（raw 口径：`courses/regression-analysis/chapter-01/homework/`） | 1028 KB | 77 KB | 13.3× |
+| 最重一页（gzip 口径：`projects/cmc2026/problem-04/问题四/`） | 836 KB | **77 KB** | 10.9× |
+| HTML 合计 | 17783 KB | — | 占整站 72%；已删掉 JSON-LD 里的正文副本（见下） |
+| 图片合计 | 6222 KB | — | 占整站 25%：63 张卡的 3 档派生图 5.9 MB + 背景/看板娘/封面（见下） |
+| JS 合计 | 112 KB | — | 18 个脚本，已经很小 |
+| CSS 合计 | 193 KB | — | 主包（26 个 extended 文件 Concat + minify）约 165 KB + 自托管 KaTeX 23 KB，其余是零星小包 |
+| 搜索索引 | 48 KB | — | 预算 56 KB，余量 14% |
 
 **2026-09-18 做过一次真实瘦身**：删掉 JSON-LD 里 BlogPosting 的 `articleBody`（把整篇正文复制进 `<head>`，见 features.md ㉟）与左侧看板娘。整站 gzip 3260 → 2934 KB，最重一页 gzip 108 → 75 KB。这是本章唯一一次「测出问题并动手」的例子——其余都是测量后确认无需改动。
 
-**结论：当前没有需要修的性能问题。** 最重一页实际传输 75 KB，正常。真正的问题在于**度量口径**：体积预算此前只量 raw，而 raw 那 1.6 MB 的预算在描述真实传输量时是失真的（它更像「内容规模的棘轮」，比 gzip 更早察觉内容增长）。`scripts/report-size.sh` 现在**两条都量、都阻断**：raw 保留为早期警报，gzip 才是用户视角（单页 ≤ 160 KB、整站 ≤ 4608 KB）。线上由 GitHub Pages 的 gzip/brotli 兜着。
+**2026-09-21 重测**：raw 18249 → **24782 KB**、gzip 2934 → **8914 KB**，增量几乎全部来自卡片组 —— 63 张卡各出 272 / 544 / 760 三档派生图（`deck-manifest.html` 里显式给质量），输出里的图片从 0 涨到 6222 KB、占 25%，HTML 反而从 94% 降到 72%。同期 JS 32 → 112 KB（新增 8 个脚本）、CSS 70 → 193 KB。体积预算因此从 4608 抬到 9600，抬升的每一步理由都写在 `scripts/report-size.sh` 的注释里。**这一笔涨幅是产品决定（卡面是首页的主角），不是性能问题** —— 但它把 gzip 余量压到 7%，再想加卡或加档位之前先看这一条。
+
+**结论：当前没有需要修的性能问题。** 最重一页实际传输 77 KB，正常。真正的问题在于**度量口径**：体积预算此前只量 raw，而 raw 那 1.6 MB 的预算在描述真实传输量时是失真的（它更像「内容规模的棘轮」，比 gzip 更早察觉内容增长）。`scripts/report-size.sh` 现在**两条都量、都阻断**：raw 保留为早期警报，gzip 才是用户视角（单页 ≤ 160 KB、整站 ≤ 9600 KB）。线上由 GitHub Pages 的 gzip/brotli 兜着。
 
 ### 已评估否决，不要再提
 

@@ -58,7 +58,6 @@ body {
    改走系统衬线栈：Windows 落到宋体/SimSun、macOS 落到 Songti SC、
    Linux 落到 Noto Serif CJK。西文用 Palatino/Georgia，比默认无衬线更有信纸感。 */
 .post-content :is(h1, h2, h3, h4, h5, h6),
-.entry-title,
 .post-title,
 .page-header h1,
 .profile .profile_inner h1 {

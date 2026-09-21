@@ -1638,7 +1638,7 @@ a.home-deck-dialog-credit:hover {
    `.home-card` 自带的 `cursor: pointer` 在这里被改回继承，否则没有 JS 时每张卡都像能点、
    点了没反应（与「按钮由脚本注入」同一条口径，见 10-nav.css 里 has-nav-toggle 的做法）。
 
-   三、筛选条与站上其它 chip 同族（`.tb-chip` / `.lt-chip` / `.home-chip`）：--surface/--entry 底
+   三、筛选条与站上其它 chip 同族（`.tb-chip` / `.lt-chip`）：--surface/--entry 底
    + 1px --edge 环 + 悬停 --accent + 选中 --accent-soft。三排的排头给固定宽度，
    三排的 chip 才能起头对齐成一列。
 

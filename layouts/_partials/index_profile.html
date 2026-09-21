@@ -1,18 +1,20 @@
 {{- /* 覆盖主题的 index_profile.html —— 仓库第三处有意的主题模板覆盖（理由与取舍见 docs/features.md）。
 
      为什么必须覆盖：首页在 profileMode 下，主题的 list.html:4 只调用这一个 partial，
-     没有任何 hook 可挂，而首页需要「快捷入口 + 站点规模 + 按类浏览 + 最近更新」几块内容。
+     没有任何 hook 可挂，而首页需要「快捷入口 + 站点规模 + 卡片组 + 时间与时钟 + 最近更新」几块内容。
 
      与原版的差异现在有**六处**，其余（标题 / 副标题 / 社交图标 / profileMode.buttons 的内容）
      保持原样：
        1. 头像改为经资源管线 Resize（2 倍图 + srcset，高分屏不糊），要求图在 assets/ 下；
        2. 新增快捷入口：复用主导航（跳过首页项），不再单独维护一份链接清单；
-       3. 新增「站点规模 + 按类浏览」：2026-09-19 起拆成两个 partial（home-scale.html /
-          home-extras.html）—— 宽屏两栏要把两者分到左右两栏，同一个文件里的两块没法各自归位；
+       3. 新增「站点规模」：2026-09-19 从原来那一块里拆成独立 partial（home-scale.html）——
+          宽屏两栏要把它单独归位，和它同源的那块没法留在同一个文件里。
+          同日拆出的「按类浏览」（home-extras.html）**2026-09-21 已连 partial 与样式一起删掉**
+          （用户要求那一栏换成时间与时钟，见 09-home.css 的文件头）；
        4. 新增最近更新：条数取 hugo.toml 的 params.home.recentCount，0 = 关闭。
        5. 新增 .home-hero 容器（2026-09-19）：把「头像 / 标题 / 副标题 / 社交图标 / 快捷入口 /
           规模行 / buttons」包成一块，宽屏时整块落在左栏（.profile_inner 在 ≥1024px 是 grid，
-          见 09-home.css）。`buttons` 也从「按类浏览与最近更新之间」挪进了 hero —— 它本来就属于
+          见 09-home.css）。`buttons` 也从「两块面板之间」挪进了 hero —— 它本来就属于
           hero，只是原先插在中间（现在 hugo.toml 没配 buttons，视觉上无变化）。
           **连带两条**：副标题不再直接是 .profile_inner 的子项（00-theme.css 的局部玻璃底衬与
           09-home.css 的入场动画都从 `.profile_inner > span` 改成了 `.home-hero > span`）；
@@ -103,8 +105,8 @@
 
                2026-09-21 用户要求：删掉「按类浏览」那一栏、换成时间与时钟，
                并把「最近更新」压到右栏底部（与左栏卡片那一列的底边齐平）。
-               按类浏览的那支 partial（home-extras.html）**保留在仓库里没删**，
-               只摘掉这里的调用 —— 想恢复就把这一行加回来，样式也还在。
+               按类浏览那支 partial 与它的样式（09-home.css 的 .home-browse 组）同日已删；
+               要恢复只能从 git 历史里捞回来。
                右栏底对齐靠 09-home.css 里 `.profile_inner` 的 `align-items: stretch`
                + `.home-recent` 的 `margin-top: auto`。 */ -}}
         <div class="home-side">
@@ -123,8 +125,8 @@
         <section class="home-recent">
             <div class="home-recent-head">
                 <h2>{{ i18n "homeRecent" }}</h2>
-                {{- /* 「按分类浏览 →」原先挂在行尾，现在挪到上面 home-extras.html 的「按类浏览」
-                       标题行 —— 同一页不留两个通往 /categories/ 的入口。 */ -}}
+                {{- /* 原来挂在行尾的「按分类浏览 →」入口随「按类浏览」一起删了（2026-09-21）。
+                       首页现在没有通往 /categories/ 的入口 —— 要从主导航或 /tags/ 进。 */ -}}
             </div>
             {{- with $recent }}
             <ul class="home-recent-list">

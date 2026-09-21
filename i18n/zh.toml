@@ -154,7 +154,7 @@ other = "搜索"
 [searchResultsLabel]
 other = "搜索结果"
 
-# ---------- 首页（见 layouts/_partials/index_profile.html 与 home-extras.html） ----------
+# ---------- 首页（见 layouts/_partials/index_profile.html） ----------
 # 快捷入口（复用主导航，aria-label 用）
 [homeQuickLinks]
 other = "快捷入口"
@@ -177,7 +177,6 @@ other = "{{ .n }} 门课程"
 [homeProjectsCount]
 other = "{{ .n }} 个项目"
 
-# 首页「按类浏览」区块（layouts/_partials/home-extras.html）
 # 首页卡片组（layouts/_partials/home-cards.html + assets/js/home-deck.js）
 # 占位符用 {n}/{total}/{label} 而不是 Hugo 的 {{ .x }}：这三个值是**换卡时**由 JS 填的
 # （与 bgSwitchLabel 的 {name} 同一套做法）。
@@ -369,19 +368,6 @@ other = "全部出处（{{ .n }}）"
 # 出处清单里那些没有可点链接的（官方立绘 / 站点自己的看板娘）：只写文字，不编链接。
 [deckCreditsNote]
 other = "带链接的是原图出处；没有链接的那几张是官方立绘或本站看板娘。"
-
-[homeBrowse]
-other = "按类浏览"
-
-[homeBrowseCats]
-other = "分类"
-
-[homeBrowseTags]
-other = "标签"
-
-# 区块标题右侧的入口（原先挂在「最近更新」标题行上，挪到这里，同一页只留一个）
-[homeBrowseAll]
-other = "全部分类 →"
 
 # ---------- 数学工具库（见 layouts/courses/tools.html、assets/js/toolbox.js） ----------
 # 搜索框提示（工具库页）

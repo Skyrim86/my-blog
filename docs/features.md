@@ -142,7 +142,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 深色主题用的是**真图**：`assets/images/bg-night-city.webp`（1600×900，127 KB，夜景城市 + 星空）。蒙版 `.54→.84`——原来的 `.72→.92` 把真图压没了，那正是「看不出有背景」的原因。放宽是安全的：正文可读性由 `.post-single` / `.page-header` 的 `--surface`（2026-09-19 定稿：浅色与深色都是 **80%** 不透明 + `backdrop-filter: saturate(135%) blur(24px)`；为什么从 62% 提回来见下面的「玻璃质感版」）与列表卡片自己承担，不靠这层蒙版。**代价要认清**：127 KB 对一张每页都下载的资源不算小（纯质感图是 4 KB），换来的是首屏与页面边缘真的有气氛。出处：Wallhaven `wallhaven.cc/w/wy6vqx`（画师作品，个人使用），源图压到 1600 宽存 `tools/backgrounds/source-night-city.jpg`（358 KB），由 `make-backgrounds.py` 的 `city_background()` 处理。
 
-**另有一版把黑发少女叠在城市上的合成图**（Wallhaven `wallhaven.cc/w/6lwmy7`，源切片 `source-lady-slice.webp`，函数 `city_lady_background()`）——上线后撤回了：压在蒙版下她显得突兀。当时把「人物」这个位置交给了右下角的看板娘（见 ㉕）。**2026-09-19 起人物以**「黑长直少女」套**的形式回来了**（单独一套、单独一套蒙版，见下），看板娘仍然保留，于是「人是人、背景是背景」这条不再是唯一做法。合成版文件 `bg-night-city-lady.webp` 与脚本都留着，想切回去只改 `hugo.toml` 一行。
+**另有一版把黑发少女叠在城市上的合成图**（Wallhaven `wallhaven.cc/w/6lwmy7`，源切片 `source-lady-slice.webp`，函数 `city_lady_background()`，**2026-09-21 连同函数与那张产物一起删了** —— 它从未进过任何页面或配置）——上线后撤回了：压在蒙版下她显得突兀。当时把「人物」这个位置交给了右下角的看板娘（见 ㉕）。**2026-09-19 起人物以**「黑长直少女」套**的形式回来了**（单独一套、单独一套蒙版，见下），看板娘仍然保留，于是「人是人、背景是背景」这条不再是唯一做法。合成版文件 `bg-night-city-lady.webp` 与脚本都留着，想切回去只改 `hugo.toml` 一行。
 
 **（下面是已撤回那版的留档，做法本身仍有参考价值）人物是叠上去的，不是抠干净的**：抠图（GrabCut）会把人物周围一大块夜空/山体一起带下来，抠太干净又会出现一圈贴纸边。实际做法是「大羽化 + 冷调统一」（椭圆 inset 0.24、高斯 38、蓝通道 +14）——只让白裙、黑发和提灯这几个高对比部分浮出来，被带下来的那点背景在城市夜景的暗部里反而成了「她站的山坡」。调参时别只看合成图，要看**压过蒙版的页面截图**：蒙版会把中低对比的部分直接吃掉，合成图上「还行」的东西在页面上可能就是没有。
 
@@ -274,9 +274,9 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 ### ⑮ 首页：快捷入口 / 站点规模 / 时钟 / 最近更新 — `_partials/index_profile.html`（整份覆盖）+ `_partials/home-scale.html` + `_partials/home-clock.html` + `09-home.css`
 
-> 「按类浏览」（`_partials/home-extras.html`）**2026-09-21 起首页不再调用**，位置让给了时钟，见 ㊼。
+> 「按类浏览」那一栏 2026-09-21 **已删**（partial、`09-home.css` 的 `.home-browse` 组、4 个 i18n 键一起删的），位置让给了时钟，见 ㊼。
 
-首页在 profileMode 下由主题 `list.html` 直接调用 `index_profile.html`，**没有任何 hook**，所以这一处是整份覆盖（见第 4 节）。与原版的差异现在有**五处**：头像多取一张 2× 图供高分屏、快捷入口、站点规模与按类浏览（**2026-09-19 起拆成两个 partial**：`home-scale.html` 与 `home-extras.html`）、最近更新、以及 **`.home-hero` / `.home-side` 两个容器**（宽屏两栏布局用，见下）。标题/副标题/社交图标/`profileMode.buttons` 的内容保持主题原样。新块的**逻辑**整块写在各自的 partial 里，`index_profile.html` 只多两行 include —— 那个文件是要跟主题逐行对拍的，对拍面越小越好（所以两个容器里的内容刻意**不重新缩进**：为了多一层容器把几十行整体缩进一级，会让每次升级主题时的对拍多出一大片无意义的差异）。
+首页在 profileMode 下由主题 `list.html` 直接调用 `index_profile.html`，**没有任何 hook**，所以这一处是整份覆盖（见第 4 节）。与原版的差异现在有**五处**：头像多取一张 2× 图供高分屏、快捷入口、站点规模（**2026-09-19 从原来那一块里拆成 `home-scale.html`**；同日拆出的「按类浏览」`home-extras.html` 2026-09-21 已删，见下）、最近更新、以及 **`.home-hero` / `.home-side` 两个容器**（宽屏两栏布局用，见下）。标题/副标题/社交图标/`profileMode.buttons` 的内容保持主题原样。新块的**逻辑**整块写在各自的 partial 里，`index_profile.html` 只多两行 include —— 那个文件是要跟主题逐行对拍的，对拍面越小越好（所以两个容器里的内容刻意**不重新缩进**：为了多一层容器把几十行整体缩进一级，会让每次升级主题时的对拍多出一大片无意义的差异）。
 
 **页面结构（2026-09-19 改版）**：
 
@@ -284,12 +284,12 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 .profile_inner（窄屏 flex 列；≥1024px 是 grid，左 20rem + 右 1fr）
   .home-hero   头像 / 标题 / 副标题 / 社交图标 / 快捷入口 / 站点规模 / buttons
   .home-side   两栏时的右栏容器（flex 列 + gap）：
-                 section.home-browse（按类浏览，一块玻璃面板）
+                 section.home-clock（时间与时钟，一块玻璃面板）
                  section.home-recent（最近更新，一块玻璃面板）
 ```
 
-- **两块内容各自成一块玻璃面板**（`--surface` + 1px `--edge` + 14px 圆角 + `--shadow-card` + `backdrop-filter`）。改之前它们是散在壁纸上的：每个 chip、每条「最近更新」各带一小块 `--surface` 底，两个标题再各叠一层玻璃底衬，一层压一层。改成面板之后：面板内的条目**透明化**（底由面板给），chip 只留一道 `--rule` 发丝边、悬停/聚焦才亮 `--accent`；「最近更新」的条目悬停铺一层 `--code-bg`（**不用 `--accent-soft`**：那个当底会把文字对比度拉下来，⑫ 记过这个坑）。层的代价也降了：首页的 `backdrop-filter` 元素从二十来个（每 chip、每条目、每块底衬各一个）降到 2 个。
-  - **两块面板的标题因此从 `00-theme.css` 的局部玻璃底衬清单里删掉了**（`.home-recent-head h2/a`、`.home-browse-head h2/a`、`.home-browse-label`）—— 它们已经在面板里，再叠一层就是玻璃片贴玻璃片。`.home-scale` 仍直接压在壁纸上，那条保留。
+- **两块内容各自成一块玻璃面板**（`--surface` + 1px `--edge` + 14px 圆角 + `--shadow-card` + `backdrop-filter`）。改之前它们是散在壁纸上的：每条「最近更新」各带一小块 `--surface` 底，标题再叠一层玻璃底衬，一层压一层。改成面板之后：面板内的条目**透明化**（底由面板给）；「最近更新」的条目悬停铺一层 `--code-bg`（**不用 `--accent-soft`**：那个当底会把文字对比度拉下来，⑫ 记过这个坑）。层的代价也降了：首页的 `backdrop-filter` 元素从二十来个（每 chip、每条目、每块底衬各一个）降到 2 个。
+  - **两块面板的标题因此从 `00-theme.css` 的局部玻璃底衬清单里删掉了**（`.home-recent-head h2/a`；当年一并从这张表里删掉的还有「按类浏览」那组的 `.home-browse-head h2/a` 与 `.home-browse-label`）—— 它已经在面板里，再叠一层就是玻璃片贴玻璃片。`.home-scale` 仍直接压在壁纸上，那条保留。
   - **连带一条容易静默失效的**：加了 `.home-hero` 之后副标题不再是 `.profile_inner` 的直接子项，玻璃底衬清单与入场动画里那条 `.profile_inner > span` 都改成了 `.home-hero > span`（选择器失配不报错，只是保护/动效没了）。
 - **≥1024px 两栏**：`main.main:has(.home-recent)` 放宽到 `calc(var(--nav-width) + var(--gap) * 2)`（1072px，与顶栏同宽、左右边缘对齐），`.profile_inner` 变 grid：左栏 20rem 放 hero、右栏放 `.home-side`。两栏用 `:has()` 只认首页（`.main` 是全站共享的）。窄屏完全等同原来的单列。
   - 实测（1440×950，浅色少女套）：最近更新面板的顶部从 **701px 降到 316px**，整页内容在 **570px** 处结束 —— 1080p 首屏装得下整页，改版前要滚过大半屏才看到「最近更新」。
@@ -299,11 +299,9 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 - **快捷入口**复用主导航（跳过 `home`，取前 5 项），不维护第二份链接配置，导航改名自动同步。**2026-09-19 起 ≥1024px 隐藏**：宽屏下它就是主导航那五项、完整导航就在正上方一行，属纯重复；窄屏（≤640px 导航收进汉堡菜单）才保留。顺带解决了五个 pill 在 20rem 窄栏里排成 4+1、「标签」单独占一行的问题。
 - **卡片组**（2026-09-19 新增，当天换过四轮形式）：hero 最下面**一次一张**的 5:7 卡（20 张，两系：绫华 16 / 黑长直少女 4），可点、可键盘、可滑动，也会每 6s 自己切（悬停与后台暂停）。整块在 `home-cards.html` + `assets/js/home-deck.js` + `21-card-deck.css`，清单在 `data/home-cards.yaml`；十种卡面风格都是 CSS 画的（全息 / 金边 / 和纸 / 霜蓝 / 墨 / 玻璃 / 哥特教堂玻璃 / 樱纹 / 麻叶纹 / 青海波）。另有「hero 场景插画」一种备选形式（`chara`）。细节见 ㉕。
-- **站点规模**（2026-09-19 新增，同日从 `home-extras.html` 拆到 **`home-scale.html`**）：一行小字「数学库 80 张卡 · CS 库 8 张卡 · 2 门课程 · 2 个项目」。拆出来的原因是宽屏两栏要把它留在**左栏**、而「按类浏览」去右栏。数字**全部现算**（库名与张数取 `data/libraries.yaml` 与各自的卡片 JSON；课程取 `/courses/` 的 `.Sections`、项目取 `/projects/` 的 `.Pages`），空的一项不显示 —— 用 `hugo --contentDir <只放了一篇 searchHidden 页的临时目录>` 构建时，这一行自动退成「数学库 80 张卡 · CS 库 8 张卡」。
+- **站点规模**（2026-09-19 新增，同日从那块附加内容里拆出 **`home-scale.html`**（另一半是 `home-extras.html`，2026-09-21 已删））：一行小字「数学库 80 张卡 · CS 库 8 张卡 · 2 门课程 · 2 个项目」。拆出来的原因是宽屏两栏要把它留在**左栏**、而「按类浏览」去右栏。数字**全部现算**（库名与张数取 `data/libraries.yaml` 与各自的卡片 JSON；课程取 `/courses/` 的 `.Sections`、项目取 `/projects/` 的 `.Pages`），空的一项不显示 —— 用 `hugo --contentDir <只放了一篇 searchHidden 页的临时目录>` 构建时，这一行自动退成「数学库 80 张卡 · CS 库 8 张卡」。
   - **刻意不做「各库入口卡」**：快捷入口那一行已经指向同样的五个地方，再列一遍就是第二个链接清单。
-- **按类浏览**（2026-09-19 新增）：分类与标签各一行 chip（计数取 Hugo 的 taxonomy 权重 `ByCount`，与 `/tags/` 页上的数字同源），标题行右端是「全部分类 →」—— 那个链接**原先挂在「最近更新」标题行上**，这次挪过来：同一页不留两个通向 `/categories/` 的入口。
-  - **分类不带计数**：它只有「课程 / 项目」两项，而上面「站点规模」那行已经在说「几门课程、几个项目」；分类数的是**页面数**（项目 17），规模数的是**顶层目录数**（2 个项目），两个口径并排放会让人对不上。
-  - 两行用**网格**（`grid-template-columns: 2.9rem 1fr`）而不是 flex：标签名宽度不同，flex 会让两行的 chip 起点错开，标签行还会把标签名留在上一行、chip 掉到下一行看着像串行。
+- **按类浏览**（2026-09-19 新增，**2026-09-21 删除**）：分类与标签各一行 chip，标题行右端是「全部分类 →」。它是首页唯一的分类导航入口，删掉之后分类只能从主导航或 `/tags/` 进—— 这笔代价在 ㊼ 里认过。留档：分类不带计数（它只有两项，而「站点规模」那行已在说「几门课程、几个项目」，两个口径并排会让人对不上）；两行用网格（`grid-template-columns: 2.9rem 1fr`）而不是 flex（标签名宽度不同时 flex 会让两行的 chip 起点错开，标签行还会把标签名留在上一行）。
 - **最近更新**：`site.RegularPages` 按 `Lastmod` 倒序取前 `params.home.recentCount` 条（`0` 关闭），排除 `searchHidden` 与 archives/search；每行是「类型徽标 + 标题 + **完整年月日**」，类型文案由 `type-label.html` 提供——与相关内容区块共用同一份 `Type → i18n key` 映射，不再各写一份。`enableGitInfo = true` 让 `Lastmod` 有真实值。
   - **空状态**（2026-09-19 新增）：过滤后一条都不剩时渲染一句话（i18n `homeRecentEmpty`），不再输出一个空标题。
   - 日期用 `2006-01-02` 而不是 `site.Params.DateFormat` 的「2026年9月15日」：这一行是 nowrap flex、日期又 `flex: none`，CJK 日期宽近一倍，会把标题挤成多行（`09-home.css` 因此给了 `white-space: nowrap`）。
@@ -382,7 +380,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - 卡片页不参与标签体系（`toolbox/_index.md` 的 `cascade` 清空 `tags`），也不进 sitemap 与搜索索引（`sitemap.disable` + `searchHidden`）。
 - 卡内的 `[名字](#card-tool-1-1)` 会被 `toolbox-md.html` 在渲染后改写成目标卡片页地址（Hugo 会把纯 fragment 链接补成「当前页地址 + #锚点」）；卡片不引用自己。
 
-### ㉒ 数学库（跨课程卡片索引，按数学分支三级拆分）— `content/library/_content.gotmpl` + `layouts/library/*` + `data/math-branches.yaml`
+### ㉒ 数学库（跨课程卡片索引，按数学分支三级拆分）— `content/library/_content.gotmpl` + `layouts/_default/library*.html` + `data/math-branches.yaml`
 
 `/library/`（导航里排在首页之后）把各门课程的卡片按**数学分支**汇总成索引。它不新建内容，只是 ㉑ 那批卡片的第二个视图。**三级**：`/library/`（大类）→ `/library/<大类>/`（细分目录）→ `/library/<大类>/<细分>/`（卡片墙）。
 
@@ -564,20 +562,25 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - **一键到底**：与主题的「返回顶部」配成一对（`#bottom-link` 复用主题 `.top-link` 的外观，只覆写 `bottom` 与图标）。位置由 `14-mascot.css` 的 `--float-bottom` 统一控制 —— 那个值原本在四个断点里各写一遍给 `.top-link`，现在两个按钮共用一个变量；到顶在上、到底在下（到底占的是原来到顶的位置，那个位置是照着看板娘头顶调好的）。
 - **为什么用 `<button>` 而不是 `<a href="#bottom">`**：主题 `footer.html` 给全站 `a[href^="#"]` **逐个元素**挂了点击代理（`scrollIntoView` + 对非 `#top` 的锚点 `pushState`），那是**同一个元素**上的另一个监听器，`stopPropagation` 拦不住 —— 实测地址栏会留下 `#bottom`。button 不在那个选择器里，行为完全由自己的脚本掌控（语义也更准：这是动作，不是导航）。没 JS 时主题的 noscript 样式会把 `.top-link` 一起隐藏，不会留下点不动的按钮。
 
-## 4. 九处有意的主题模板覆盖
+## 4. 十一处有意的主题模板覆盖
 
-除上述 hook 之外，仓库里有九处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
+除上述 hook 之外，仓库里有十一处**有意**覆盖主题（是对「不复制主题模板」的例外）。`extend_head.html` / `extend_footer.html` / `extend_post_content.html` / `comments.html` 是主题设计好的 hook，覆盖它们不算在内。
 
 1. `layouts/courses/course.html`（`layout: "course"`）与 `layouts/courses/chapter.html`（`layout: "chapter"`）：列表页没有任何 hook，而这两页分别需要自动章节目录与入口卡片。两个模板都很小、只复用主题 partial（`breadcrumbs.html`/`anchored_headings.html`，页头共用 `course-header.html`），且只有显式写了 `layout` 的页面才命中，不影响 `/courses/` 列表页与文章页。**改外观请优先改 `04-course.css`**
 2. `layouts/index.json`：该模板无 hook 可挂，而正文截断无法从配置实现
 3. `layouts/_partials/index_profile.html`：首页在 profileMode 下由主题 `list.html` 直接调用它，没有 hook 可挂，而首页需要「快捷入口 + 最近更新」两块内容。改这一处时对照 `themes/PaperMod/layouts/_partials/index_profile.html`，确认主题侧是否有新变化需要合并
 4. `layouts/_partials/post_meta.html`：**唯一一处「复制主题 partial 再加一行」**（第 ⑱ 项）。它是列表卡片与详情页共用的元信息块，没有 hook 可挂，而卡片要一块计数/标签。与前三处不同：这里**逐字保留**主题实现，只在末尾调用 `card-chips.html`，主题升级时对照 diff 手工合并即可。若哪天主题给它加了 hook，优先换回 hook
-5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是九处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
+5. `layouts/404.html`（第 ㉙ 项）：404 页没有任何 hook 可挂，而主题那份全文只有 `<div class="not-found">404</div>` 一行 —— 线上产物的可见文字就只有「404」三个字符，访客到了这里没有任何出路。**这是十一处里覆盖成本最低的一处**（主题原件 3 行），主题升级时把 `themes/PaperMod/layouts/404.html` 再看一眼即可
 6. `layouts/taxonomy.html`（第 ㉛ 项）：`/tags/`、`/categories/` 总览页要把词条按学科分块展示（见 `data/tag-groups.yaml`），而主题那份是平铺。markup 与主题版保持一致（`ul.terms-tags` + 计数 `sup`），只把「一个 ul」改成「每组一个 ul」，`terms-filter.js` 已同步适配
 7. `layouts/baseof.html`（第 ㉞ 项）：跳过导航链接与 `lang` 属性。**这一处与前面六处的理由不同** —— 不是「原件短」或「没有 hook 可挂」，而是**位置本身不可达**：要改的一处在 `<html>` 上、一处在 `<body>` 开头，而主题的四个 hook 分别在 `<head>` 内与 `</body>` 之前，谁都够不到。主题原件 31 行，逐字保留、只差三处（详见下节 ㉞），主题升级时与 `themes/PaperMod/layouts/baseof.html` 逐行对拍即可。**注意它是全站每个页面的渲染入口**，改动后要按页型抽查（首页 / section / term / 单页 / 404 / search）
 8. `layouts/_partials/templates/schema_json.html`（第 ㉟ 项）：**逐字保留主题实现，只差三处**（主题原件 129 行 + 一段说明注释），与第 4 条 `post_meta.html` 是同一手法：删掉 `articleBody`、零值日期不输出、`@type` 随发布日期在 `BlogPosting` / `WebPage` 之间走。`articleBody` 把整篇正文 `plainify` 后复制进 `<head>` 的 JSON-LD 里；本站正文是构建期渲染的 KaTeX，plainify 之后公式文本会出现三遍（MathML 表示 + TeX annotation + katex-html 字形文本），于是这个字段既大又低质 —— 实测重页单页 25–27 KB、占该页 gzip 的 17–20%。删它安全：`articleBody` 在 schema.org 里是**可选**字段，Google 富结果不使用，仓库里也没有任何东西依赖它（`check-seo.mjs` 对它零断言，已核对）。**升级主题时与主题那份逐行对拍，确认差异仍然只有这三处。** 删改后不必再手工 `JSON.parse` 每个 `ld+json` 块 —— `check-seo.mjs` 已经常驻断言（含 `BlogPosting` 的必填字段与零值日期），见 ㉟
 
 9. `layouts/_markup/render-image.html`（第 ㊲ 项）：主题 `_markup/` 下只有 `render-image.html` 这一个文件，内容图需要补 `width`/`height`（主题原版不给尺寸）并把 PNG 转无损 WebP，而渲染钩子没有「部分覆盖」的机制，只能整份接管。手法与第 4、8 条相同：**逐字保留主题实现**（URL 解析、query/fragment 拼接、属性透传、`%q` 转义一行未改），只在拿到资源之后插入两段。**改它必须同时确认 `00-theme.css` 里 `.post-content img` 的 `height: auto` 还在** —— 主题 reset 只有 `max-width: 100%`（`core/reset.css`），只补尺寸属性会在窄屏把图纵向压扁（实测 400px 视口下 660×440 的图变成 333×440），且**构建不报错**。主题升级时与 `themes/PaperMod/layouts/_markup/render-image.html` 逐行对拍
+
+
+10. `layouts/_partials/templates/opengraph.html`（第 10 处）：与第 4、8、9 条同一手法 —— **逐字保留主题实现**，只把 `site.Language.LanguageCode` 换成 `.Language.Locale`（前者自 Hugo 0.158 起弃用）。**动机与前面九处不同：不为功能，只为构建日志干净** —— 那条弃用告警不带文件名，混在输出里会盖住真正的告警。**单独改它没有用**：同一个 API 在主题 `rss.xml` 里也出现一次，见下条。
+
+11. `layouts/rss.xml`（第 11 处）：同一条弃用告警的第二个来源，改的是 `<language>` 那一行。实测只覆盖 opengraph 时告警照旧出现，两处都改才干净（构建输出零 WARN）。改前改后逐页比对：`og:locale` 仍是 `zh_CN`、RSS `<language>` 仍是 `zh-CN`、`index.xml` 仍是 34 条 item（`check-seo.mjs` 断言后两项）。
 
 **另有一处是「移位置」而不是「覆盖」**：`layouts/_default/{library,library-branch,library-section,toolcard}.html`。它们原本在 `layouts/library/` 与 `layouts/courses/` 下，2026-09-18 加了 CS 库之后搬到 `layouts/_default/` —— Hugo 的布局查找是 `layouts/<section>/<layout>.html` 优先，`layout: library` 只在 section 恰好叫 `library` 时命中（数学库是撞上的），CS 库的 section 是 `cs`，于是**静默回落到主题列表页**。`_default/` 是任何 section 的通用回落位，front matter 里的 `layout:` 一个都不用改。教训记在 [`traps.md`](traps.md)。
 
@@ -619,7 +622,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 三个必须注意的点：
 
-- **搜索页那处没覆盖主题模板**。`#searchResults` 在 `themes/PaperMod/layouts/search.html` 里，为一条播报再加一处覆盖不划算（第 4 节已经有九处了），所以改用脚本挂观察者。若哪天要改成覆盖模板，先想清楚第 4 节那句「不要整份复制主题模板」。
+- **搜索页那处没覆盖主题模板**。`#searchResults` 在 `themes/PaperMod/layouts/search.html` 里，为一条播报再加一处覆盖不划算（第 4 节已经有十一处了），所以改用脚本挂观察者。若哪天要改成覆盖模板，先想清楚第 4 节那句「不要整份复制主题模板」。
 - **零条结果的歧义**。主题的 `fastsearch.js` 把「输入为空」与「没有匹配」都渲染成空列表（`renderResults([])` 被两条路径共用），所以零条时必须回头看输入框：为空是清空操作，**什么都不该播报**；有输入才是真的没搜到。
 - **只在文字真的变了才写** `textContent`。重复写入同样的文本会让部分读屏反复播报，所以三处都加了 `if (x !== said)` 的比较。
 
@@ -632,7 +635,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 | 搜索输入框（`search.html`） | `aria-label="search"` | `searchInputLabel` |
 | 搜索结果列表（`search.html`） | `aria-label="search results"` | `searchResultsLabel` |
 
-- **不覆盖主题模板，改为脚本补属性** —— 与上面那处播报是同一个判断：为四个属性再添一处覆盖不划算（第 4 节已经有九处了）。脚本全站加载（很小），页面上没有对应元素时静默跳过。
+- **不覆盖主题模板，改为脚本补属性** —— 与上面那处播报是同一个判断：为四个属性再添一处覆盖不划算（第 4 节已经有十一处了）。脚本全站加载（很小），页面上没有对应元素时静默跳过。
 - **不存在「无 JS 时属性缺失」的窗口**：这两个控件本来就只在有 JS 时才有意义 —— `#theme-toggle` 的点击逻辑与 `#top-link` 的显隐都在主题 `footer.html` 的内联脚本里，主题 `head.html` 的 `<noscript>` 还把 `#theme-toggle` 与 `.top-link` 一起藏掉；搜索输入框在主题模板里是 `disabled`，由 `fastsearch.js` 启用。
 - 顺带把这两个控件里的装饰 `<svg>` 标了 `aria-hidden="true"`：可访问名已经在按钮/链接上，不隐藏时部分读屏会把图标一起念出来。
 - **怎么验**：产物 HTML 里仍然能看到主题那几串英文（脚本是运行时改 DOM 的），所以 grep 产物证明不了这件事。做法是拿**构建后的压缩包**在假 DOM 上跑一遍，断言六处属性都已写入（可复跑：从产物里取出 script 标签的 `data-*` 与 `src`，用 `new Function("document", code)` 传入桩 document）。
@@ -1030,8 +1033,10 @@ frostcrack」在注释里写着是普通，两档的清单里却漏了它 ——
 在真实里本来就是两三个折点一段的**棱角**线（平滑反而不像）。
 
 **产品**：`assets/css/extended/20-card-ornaments.css`（**生成物，入库、不要手改**；文件名以 20- 开头，
-主题按数字序合并，排在 21- 之前）。10 个令牌：三朵雪花、裂缝网、星屑场、珐琅格、雕花边栏瓦片（横/竖）、
-角花、宝石。看一眼它们长什么样的工具是 `../lab/shots/ornaments/build.py`（生成一页对照，
+主题按数字序合并，排在 21- 之前）。**19 个令牌**：三朵雪花、裂缝网、星屑场、珐琅格；雕花框零件（边栏瓦片横/竖、
+角花五件 —— 圆花心 / 棱角碎星 / 凹角 / 玫瑰盘 / 齿轮环、宝石）；六条数学曲线徽记（星形线 / 双纽线 / 内摆线 / 玫瑰线 / 蝴蝶，
+走 clip-path 不走 mask）。2026-09-21 删掉两套没人消费的边栏瓦片（`--tex-fret-rule`/`-v` 与 `--tex-fret-crack`/`-v`，
+守卫⑤ 报的那条提示就是它们）。看一眼它们长什么样的工具是 `../lab/shots/ornaments/build.py`（生成一页对照，
 每个令牌 × 金/浅/深三种底色）—— 集成到卡面之前先看大图，比在 272px 的卡上猜快得多。
 
 **授权**：「去网上搜好素材」的结果是**没有能直接用的**：Kenney 的 Fantasy UI Borders 是 CC0 但那是
@@ -1151,7 +1156,7 @@ frostcrack」在注释里写着是普通，两档的清单里却漏了它 ——
 
 ### ㊹ 阅读页的四件工艺：代码块标题条、图片灯箱、页脚标签胶囊、评论区玻璃（2026-09-21）
 
-**代码块的文件名标题条** —— `layouts/_markup/render-codeblock.html`（AGENTS 规则 5 的第九处覆盖，是**渲染 hook**）。围栏写成 ` ```python {filename="q3_planner.py"} ` 时，代码块上方多一条「三个圆点 + 文件名 + 语言」的窗口条；**不写 filename 就完全不包壳**，与加 hook 之前逐像素一致。样式在 `08-reader.css`。
+**代码块的文件名标题条** —— `layouts/_markup/render-codeblock.html`（**新增的渲染 hook**，不是覆盖 —— 主题 `_markup/` 下只有 `render-image.html`，这个文件是加上去的）。围栏写成 ` ```python {filename="q3_planner.py"} ` 时，代码块上方多一条「三个圆点 + 文件名 + 语言」的窗口条；**不写 filename 就完全不包壳**，与加 hook 之前逐像素一致。样式在 `08-reader.css`。
 
 - **硬约束：`.highlight` 里面一个字节都不能动。** 主题的复制按钮脚本靠 `pre > code` 找目标、再按祖先链决定按钮挂在哪儿（第三个分支要往上数 5 层找 TABLE），中间插一层就会让它落进最后一个 else、按钮跑到别处去（不报错）。实测：改后每个代码块仍只有 1 个复制按钮，且仍挂在 TABLE 上。
 - **用 `transform.HighlightCodeBlock`，不要用 `highlight .Inner .Type .Options`。** 后者会把代码末尾的换行丢掉（实测 `cs-dark-mode-tokens` 页的 `<pre>` 从 1176 → 1174 字节），前者才与「没有 hook 时」逐字一致。全站 201 个页面、144 个 `<pre>` 块对拍过：**只有那一个换行的差别**，而 `<pre>` 末尾的单个换行在 CSS 里不渲染成空行（`.highlight` 高度改前改后都是 84/111/58，代码区像素逐点一致）。
@@ -1187,8 +1192,9 @@ frostcrack」在注释里写着是普通，两档的清单里却漏了它 ——
 
 四件事一起提的，逐条记：
 
-**一、删掉「按类浏览」**。`index_profile.html` 里摘掉了 `{{- partial "home-extras.html" . }}`，
-**partial 与它的 CSS 都留在仓库里**（文件头加了「已停用」说明）——想恢复就把那一行加回去。
+**一、删掉「按类浏览」**。`index_profile.html` 里先摘掉了 `{{- partial "home-extras.html" . }}`；
+**同一天晚些时候连 partial、`09-home.css` 的 `.home-browse` 组与 4 个 i18n 键一起删了**
+（一次仓库体检里确认不再需要这个备选）—— 要恢复得从 git 历史里捞。
 **代价要认**：它是首页**唯一的分类导航入口**，摘掉之后分类（项目/课程）只能从主导航或 `/tags/` 进，
 标签计数 chip 也不再出现在首页。
 

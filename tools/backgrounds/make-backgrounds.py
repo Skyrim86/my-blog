@@ -14,7 +14,6 @@
 #   assets/images/bg-daylight-sky.webp   浅色主题的程序生成备选（当前**未使用**）
 #   assets/images/bg-night-city.webp     深色主题（夜景城市照片，见 city_background）
 #   assets/images/bg-velvet-night.webp   深色主题的程序质感备选（当前**未使用**）
-#   assets/images/bg-night-city-lady.webp 夜城 + 提灯少女（当前**未使用**）
 #   assets/images/bg-daylight-girl.webp  「黑长直少女」套的浅色主题（见 girl_backgrounds）
 #   assets/images/bg-night-girl.webp     「黑长直少女」套的深色主题（见 girl_backgrounds）
 #   tools/admin/ui/frost-dark.webp       管理页深色主题（--frost 才生成）
@@ -31,7 +30,6 @@ import os
 import random
 import sys
 
-import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -225,35 +223,6 @@ def site_backgrounds():
     save(dark, "assets/images/bg-velvet-night.webp")
 
 
-def city_lady_background():
-    """城市夜景 + 黑发少女（提灯背影）：把 source-lady-slice.webp 大羽化叠到 bg-night-city.webp 右侧。
-
-    为什么不抠干净再叠：人物周围的夜空/山体在城市夜景的暗部里本来就看不见，
-    大羽化（inset 0.24 + 高斯 38）之后只有白裙、黑发和提灯这几个高对比部分浮出来，
-    抠图留下的那点背景反而成了「她站的山坡」。抠太干净反而会出现一圈贴纸边。
-    蒙版（CSS 里那层）不在这里压——它由 00-theme.css 负责，这样换蒙版不用重跑脚本。"""
-    night = Image.open(os.path.join(ROOT, "assets", "images", "bg-night-city.webp")).convert("RGB").resize((1600, 900), Image.LANCZOS)
-    sl = Image.open(os.path.join(ROOT, "tools", "backgrounds", "source-lady-slice.webp")).convert("RGBA")
-    h = int(900 * 0.86)
-    w = int(sl.width * h / sl.height)
-    rgb = ImageEnhance.Color(sl.convert("RGB")).enhance(0.85)
-    a = np.asarray(rgb).astype("float32")
-    a[..., 2] = np.clip(a[..., 2] + 14, 0, 255)          # 加蓝，和夜景色温统一
-    p = Image.fromarray(a.astype("uint8"), "RGB").resize((w, h), Image.LANCZOS).convert("RGBA")
-    yy, xx = np.mgrid[0:h, 0:w]
-    d = np.sqrt(((xx / (w - 1) * 2 - 1)) ** 2 + ((yy / (h - 1) * 2 - 1)) ** 2)
-    alpha = Image.fromarray(((np.clip((1 - d) / 0.76, 0, 1) ** 1.9) * 255).astype("uint8"), "L").filter(ImageFilter.GaussianBlur(38))
-    p.putalpha(alpha)
-    inner = alpha.filter(ImageFilter.MinFilter(11))
-    edge = ImageChops.subtract(alpha, inner).filter(ImageFilter.GaussianBlur(3))
-    glow = Image.new("RGBA", p.size, (150, 205, 255, 0))
-    glow.putalpha(edge.point(lambda v: int(v * 0.35)))
-    p = Image.alpha_composite(p, glow)
-    canvas = night.convert("RGBA")
-    canvas.alpha_composite(p, (1600 - w - 40, 900 - h + 30))
-    save(canvas.convert("RGB"), os.path.join("assets", "images", "bg-night-city-lady.webp"), quality=78)
-
-
 def girl_backgrounds():
     """「黑长直少女」那套：source-girl-day.jpg / source-girl-night.jpg →
     assets/images/bg-daylight-girl.webp（浅色主题）/ bg-night-girl.webp（深色主题）。
@@ -355,7 +324,6 @@ if __name__ == "__main__":
     site_backgrounds()
     daylight_city_background()
     city_background()
-    city_lady_background()
     girl_backgrounds()
     # 管理页的「霜雪质感」两张是备选：管理页当前用的是绫华壁纸（见 docs/admin.md §20），
     # 只有想换回纯质感时才生成，所以要显式加 --frost。

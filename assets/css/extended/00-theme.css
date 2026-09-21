@@ -343,9 +343,9 @@ body::after {
        会**静默多命中**（不只是静默失配），而这张表是承载对比度的，多命中就是多一层不该有的面。
        所以容器里的元素一律用类名，别用结构选择器。改首页版式后仍必须重跑对比度脚本；
      - `.home-scale`（「站点规模」那行）：在 `.home-hero` 里、仍然直接压在壁纸上，照旧要底衬；
-     - `.home-recent-head h2` / `a`、`.home-browse-head h2` / `a` / `.home-browse-label`：
-       **2026-09-19 从这张表里删掉了** —— 那两块现在各自是一块不透明的 `--surface` 面板，
-       标题已经在面板里，再叠一层玻璃底衬就是「玻璃片上贴玻璃片」；
+     - `.home-recent-head h2` / `a`：**2026-09-19 从这张表里删掉了** —— 那块现在是不透明的
+       `--surface` 面板，标题已经在面板里，再叠一层玻璃底衬就是「玻璃片上贴玻璃片」；
+       （同时删掉的还有「按类浏览」那组 `.home-browse-*`，那一块 2026-09-21 连 partial 一起删了）；
      - `.course-group-heading` / `.course-*.heading` / `.terms-*.title` / `.not-found-hint` /
        `.footer-rss`：本来就是块级元素；
      - `.footer > span` 是行内，所以**页脚走整条 footer**（上面那条规则），不再给 span 单独加底衬；

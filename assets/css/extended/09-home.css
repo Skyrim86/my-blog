@@ -1,7 +1,7 @@
 /* ============================================
-   首页（Profile Mode）：头像、快捷入口、站点规模、按类浏览、最近更新
+   首页（Profile Mode）：头像、快捷入口、站点规模、时间与时钟、最近更新
    模板见 layouts/_partials/index_profile.html（覆盖主题同名 partial）
-   与 layouts/_partials/home-scale.html、home-extras.html
+   与 layouts/_partials/home-scale.html、home-clock.html
 
    结构（2026-09-21 起）：
      .profile_inner
@@ -10,7 +10,6 @@
    2026-09-21 用户要求：删掉「按类浏览」那一栏、换成时钟，并把「最近更新」压到右栏底部
    （与左栏那列的底边齐平）。所以这一档的 `align-items` 从 `start` 改成了 `stretch`
    —— **「两栏高度互不牵扯」那条旧结论被有意推翻了**，见下面那条注释。
-   `.home-browse` 的那组样式仍留着（partial 也留着），恢复时把调用加回去即可。
    两块内容各自是一块**玻璃面板**（--surface + 1px --edge + 14px 圆角 + 投影）。之前它们是散在
    壁纸上的：每个 chip、每条「最近更新」各自带一小块 --surface 底、各自的标题再各叠一层玻璃底衬，
    一层压一层 —— 观感像散落的小盒子，代价是首页有二十来个 backdrop-filter 元素。改成两块面板
@@ -159,8 +158,7 @@
 
 /* 触屏上把 pill 顶到 44px（苹果与 WCAG 的推荐最小点击区）：鼠标端维持原来的紧凑观感 */
 @media (pointer: coarse) {
-  .profile .profile-link,
-  .home-chip {
+  .profile .profile-link {
     min-height: 2.75rem;
   }
 }
@@ -221,7 +219,7 @@
 
 /* ---------- 首页时间卡（layouts/_partials/home-clock.html + assets/js/home-clock.js） ----------
 
-   面板的玻璃底、圆角、投影来自上面那条与 .home-browse / .home-recent 共用的规则；
+   面板的玻璃底、圆角、投影来自上面那条与 .home-recent 共用的规则；
    这里只管它内部的排版。
 
    **出厂隐藏**：脚本填好第一帧内容才摘掉 data-pending。用自定义属性而不是 `hidden`
@@ -316,14 +314,6 @@
   width: max-content;
   font-size: 1rem;
   color: var(--secondary);
-}
-
-.home-clock-greet {
-  flex: none;
-  padding-bottom: .18rem;
-  font-size: .88rem;
-  letter-spacing: .04em;
-  color: var(--accent);
 }
 
 /* 日期行：与居中的时间对齐，居中排；问候语跟它并排（中间隔一个 · 的空隙） */
@@ -762,7 +752,6 @@
   }
 }
 
-.home-browse,
 .home-recent,
 .home-clock {
   width: 100%;
@@ -778,7 +767,6 @@
   -webkit-backdrop-filter: saturate(135%) blur(16px);
 }
 
-.home-browse-head,
 .home-recent-head {
   display: flex;
   justify-content: space-between;
@@ -787,7 +775,6 @@
   margin-bottom: .6rem;
 }
 
-.home-browse-head h2,
 .home-recent-head h2 {
   font-size: 1rem;
   font-weight: 600;
@@ -796,74 +783,13 @@
   margin: 0;
 }
 
-.home-browse-head a,
 .home-recent-head a {
   font-size: .85rem;
   color: var(--secondary);
 }
 
-.home-browse-head a:hover,
 .home-recent-head a:hover {
   color: var(--accent);
-}
-
-/* ---------- 按类浏览：分类 / 标签各一行 chip ----------
-
-   两行用**网格**而不是 flex：标签名（2~3 个字）与「分类」「标签」的宽度不同，
-   flex 排下来两行的 chip 起点会错开，标签行还会把标签名留在上一行、chip 掉到下一行看着像串行。
-   固定一个标签列，chip 列自然对齐。 */
-.home-browse-row {
-  display: grid;
-  grid-template-columns: 2.9rem 1fr;
-  gap: .4rem .7rem;
-  align-items: baseline;
-}
-
-.home-browse-row + .home-browse-row {
-  margin-top: .45rem;
-}
-
-.home-browse-label {
-  flex: none;
-  font-size: .78rem;
-  color: var(--secondary);
-  letter-spacing: .06em;
-}
-
-.home-browse-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .4rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* chip 在面板里：底交给面板，自己只留一道极淡的发丝边（--rule，比 --edge 更淡）——
-   悬停/聚焦才亮出蔷薇边。底不再单独铺 --surface：面板已经是那个面，再铺一层就是叠玻璃。 */
-.home-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  padding: .2rem .6rem;
-  border-radius: 999px;
-  border: 1px solid var(--rule);
-  font-size: .82rem;
-  color: var(--secondary);
-  transition: color .2s ease, border-color .2s ease, transform .2s ease;
-}
-
-.home-chip:hover,
-.home-chip:focus-visible {
-  color: var(--accent);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.home-chip-n {
-  font-size: .72rem;
-  font-variant-numeric: tabular-nums;
-  opacity: .8;
 }
 
 /* ---------- 最近更新 ---------- */
@@ -992,7 +918,6 @@
     grid-column: 2;
   }
 
-  .home-browse,
   .home-recent {
     max-width: none;
   }
@@ -1038,7 +963,6 @@
   .profile-links,
   .home-scale,
   .home-clock,
-  .home-browse,
   .home-recent {
     animation: home-in .38s cubic-bezier(.2, .7, .3, 1) backwards;
   }
@@ -1049,8 +973,6 @@
   .profile-links { animation-delay: .12s; }
   .home-scale { animation-delay: .16s; }
   .home-clock { animation-delay: .18s; }
-  /* .home-browse 的档位留着：那块 partial 还在仓库里，恢复调用时不用再改这里 */
-  .home-browse { animation-delay: .2s; }
   .home-recent { animation-delay: .24s; }
 
   .home-recent-item {
@@ -1082,7 +1004,6 @@
 
   /* 窄屏把模糊减半：观感几乎不变（本来就看不清底下是什么），但光栅化开销明显更低。
      与 .post-single 那条同款处理（08-reader.css）。 */
-  .home-browse,
   .home-recent {
     padding: .85rem .95rem .9rem;
     backdrop-filter: saturate(135%) blur(10px);
