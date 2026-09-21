@@ -38,8 +38,11 @@
 
     const hm = el.querySelector('.home-clock-hm');
     const sec = el.querySelector('.home-clock-sec');
-    const dateEl = el.querySelector('.home-clock-date');
-    const greetEl = el.querySelector('.home-clock-greet');
+    /* 注意：要写进 `.home-clock-date-main` 这个**子 span**，不能写 `.home-clock-date` ——
+       后者里面还装着问候语那个 span，往父节点写 textContent 会把兄弟节点一起抹掉
+       （实测：问候语从此再也不显示，而 DOM 里那个 span 也消失了）。 */
+    const dateEl = el.querySelector('.home-clock-date-main');
+    const greetEl = el.querySelector('.home-clock-greet-inline');
     const footEl = el.querySelector('.home-clock-foot');
     const barDay = el.querySelector('[data-meter="day"]');
     const barYear = el.querySelector('[data-meter="year"]');
@@ -96,13 +99,28 @@
         ].join(' · ');
     };
 
-    tick();
-    el.removeAttribute('data-pending');
-    /* 先对齐到下一个整秒边界，再按秒走 */
-    window.setTimeout(() => {
+    /* **等字体就绪再填第一帧**：数字用的是自托管的艺术字体（font-display: block），
+       字体没到就先填内容的话，会先按系统字体画一遍、字体到了再跳一下。
+       面板本来就是隐藏的，等多这一下不花额外代价；给 1.2s 上限是为了万一字体加载失败
+       也让时钟照常出现（退回系统字体总比空着强）。 */
+    const fontReady = (document.fonts && document.fonts.load)
+        ? Promise.race([
+            document.fonts.load('600 3.1rem RoseClock').catch(() => {}),
+            new Promise((r) => window.setTimeout(r, 1200))
+        ])
+        : Promise.resolve();
+
+    const boot = () => {
         tick();
-        window.setInterval(tick, 1000);
-    }, 1000 - (Date.now() % 1000));
+        el.removeAttribute('data-pending');
+        /* 先对齐到下一个整秒边界，再按秒走 */
+        window.setTimeout(() => {
+            tick();
+            window.setInterval(tick, 1000);
+        }, 1000 - (Date.now() % 1000));
+    };
+
+    fontReady.then(boot);
 
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {

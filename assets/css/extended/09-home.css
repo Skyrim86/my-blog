@@ -237,6 +237,17 @@
    x-height，2、3 是等高），`10:30` 摆在一起高低不齐；而这些字体没有 lining 变体可切
    （`font-variant-numeric` 只在字体带该特性时才生效）。所以时间留在无衬线栈上，
    靠字号、字重与两条进度做出「这块是别处没有的」。 */
+/* **时钟数字用的艺术字体**：Playfair Display（didone 高对比衬线）的**数字子集**。
+   为什么这一步能破「站上零 webfont」那条规矩：那条规矩针对的是**中文正文字体**（5 MB 起），
+   而这里只有 12 个字形（0-9 与冒号），子集后 **1.5 KB** —— 比一张卡片封面小两个数量级。
+   字体文件在 assets/fonts/rose-clock.woff2，用
+   `pyftsubset <full.woff2> --text=0123456789: --flavor=woff2 --output-file=…` 生成
+   （来源、做法与体积账写在 docs/features.md ㊽）。
+
+   **`@font-face` 不在这里**：CSS 里写 `url(../fonts/…)` 只是文本，Hugo **不会**因此把字体
+   发布到 public/ —— 字体必须走资源管线（`resources.Get | fingerprint`）才有产物与内容指纹。
+   所以那一段由 layouts/_partials/extend_head.html 生成到 css/clock-font.css，**只在首页输出**
+   （时钟只长在首页），并在同处加一条 preload。这里只声明字体族名与它该用在哪。 */
 .home-clock[data-pending="1"] {
   display: none;
 }
@@ -254,29 +265,55 @@
   flex: 1 1 auto;
 }
 
+/* 时间居中（用户要求「把几点几分挪到中间」）。
+   用 grid 的三列而不是 flex + space-between：两侧各留一个 1fr 的占位，
+   中间那列才是**几何中心**；问候语因此挪到时间下面那行，和日期并排。 */
 .home-clock-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: .5rem;
+}
+
+.home-clock-head > .home-clock-time {
+  grid-column: 2;
+}
+
+.home-clock-head > :not(.home-clock-time) {
+  grid-column: 3;   /* 目前 head 里只有时间一项，这条是给以后要加的右侧元素留位 */
 }
 
 .home-clock-time {
+  /* position: relative 是给秒数做定位基准的：见下面那条 —— 秒数**不参与宽度**，
+     否则居中的是「10:39 08」这一整块，而用户要的是「10:39」本体落在正中（实测偏了 11px）。 */
+  position: relative;
   display: flex;
   align-items: baseline;
-  gap: .3rem;
   line-height: 1;
   /* 秒数每秒都在变：等宽数字让整块不会随数字宽度左右抖（.home-recent-date 同样处理） */
   font-variant-numeric: tabular-nums;
 }
 
 .home-clock-hm {
-  font-size: 2.9rem;
+  /* 艺术字体只给**数字**：日期行、标签、脚注仍是系统字体 ——
+     中文没有子集化到 1.5 KB 的可能，硬上就是几 MB。 */
+  font-family: "RoseClock", "Palatino Linotype", Georgia, serif;
+  font-size: 3.1rem;
   font-weight: 600;
-  letter-spacing: .01em;
+  letter-spacing: .015em;
 }
 
 .home-clock-sec {
+  /* 挂在「几点几分」的右外侧：绝对定位因而**不撑宽时间盒**，居中就落在数字本体上。
+     纵向用 bottom 抬到接近基线的位置（数字是 3.1rem，秒是 1rem）。 */
+  position: absolute;
+  left: 100%;
+  bottom: .42rem;
+  margin-left: .2rem;
+  /* nowrap 是必须的：绝对定位元素在 left:100% 处可用宽度为 0，两位数会被折成两行
+     （实测 47 竖着排成 4 和 7）。宽度由内容决定，别让它参与收缩。 */
+  white-space: nowrap;
+  width: max-content;
   font-size: 1rem;
   color: var(--secondary);
 }
@@ -289,11 +326,20 @@
   color: var(--accent);
 }
 
+/* 日期行：与居中的时间对齐，居中排；问候语跟它并排（中间隔一个 · 的空隙） */
 .home-clock-date {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: .6rem;
   margin: 0;
   font-size: .85rem;
   letter-spacing: .02em;
   color: var(--secondary);
+}
+
+.home-clock-greet-inline {
+  color: var(--accent);
 }
 
 .home-clock-meters {

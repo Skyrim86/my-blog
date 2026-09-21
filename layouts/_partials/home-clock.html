@@ -31,11 +31,14 @@
       <span class="home-clock-hm"></span>
       <span class="home-clock-sec"></span>
     </div>
-    {{- /* 问候语摆在时间右侧（不是压在下一行）：面板整宽 672px，只放一个时间的话
-           右半边是空的 —— 「时间左、问候右」一次把横向的空用掉。 */ -}}
-    <span class="home-clock-greet"></span>
+    {{- /* 右侧那格刻意留空：三列网格的中间才是几何中心，时间才真的落在正中间
+           （2026-09-21 用户要求「把几点几分挪到中间」）。
+           问候语因此挪到下面那行、与日期并排。 */ -}}
   </div>
-  <p class="home-clock-date"></p>
+  <p class="home-clock-date">
+    <span class="home-clock-date-main"></span>
+    <span class="home-clock-greet-inline"></span>
+  </p>
   <div class="home-clock-meters">
     <div class="home-clock-meter">
       <span class="home-clock-mlabel">{{ i18n "clockToday" }}</span>

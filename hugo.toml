@@ -205,8 +205,8 @@ pagerSize = 10
   # **中档最低是故意的**：三段渐变的停靠点是 0%/52%/100%，中档压到最低 = 画面中段基本不过滤，
   # 人物的颜色与亮度原样露出来，这就是「背景透亮」的来源；顶/底两档留一点，给页首页尾兜底。
   # 改这三个数（或改底衬的 --glass-tint）都要重跑 `.shots/girlbg/measure.py both`。
-  maskLight = [0.26, 0.06, 0.32]
-  maskDark = [0.22, 0.05, 0.28]
+  maskLight = [0.10, 0.02, 0.14]
+  maskDark = [0.08, 0.02, 0.12]
 
 [[params.appearance.presets]]
   id = 'city'

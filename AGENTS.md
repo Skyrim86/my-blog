@@ -69,6 +69,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 | 关于页的拼贴（Bento） | `data/about-bento.yaml`（清单）、`layouts/_shortcodes/bento.html`、`27-bento.css`；正文里一句 `{{< bento >}}` | [`docs/features.md`](docs/features.md) ㊺ |
 | 正文分割线的霜晶 | `13-ornament.css`（`hr::after` 的 mask 形状） | 同上 ㊻ |
 | 切页转场（原生 View Transitions） | `assets/css/view-transition.css`（**不压缩、单独外链**，别挪进 `css/extended/`）、`extend_head.html` | 同上 ㊻ |
+| 首页时钟的数字字体（Playfair 数字子集） | `assets/fonts/rose-clock.woff2`（子集与换字体的做法在同目录 `README.md`）、`extend_head.html`（发布 + `@font-face` + preload，**只在首页**） | [`docs/features.md`](docs/features.md) ㊽ |
 | 无障碍（跳过链接 / 动态列表播报 / 主题英文可访问名本地化 / `sr-only`） | `layouts/baseof.html`（第 7 处覆盖）、`assets/css/extended/17-a11y.css`、`assets/js/a11y-announce.js`、`assets/js/a11y-controls.js`（改主题模板里写死的 `aria-label`，不覆盖模板）、`terms-filter.js` 与 `list-tools.js` 里的 `role="status"` | [`docs/features.md`](docs/features.md) 第 4 节 |
 | JSON-LD 结构化数据（删 `articleBody`、零值日期、`@type`） | `layouts/_partials/templates/schema_json.html`（第 8 处覆盖，逐字保留主题实现，共三处差异） | [`docs/features.md`](docs/features.md) 第 4 节第 8 条 + ㉟ |
 | 正文横向溢出（行间公式滚动）/ 导航与分页悬停 | `assets/css/extended/08-reader.css`、`10-nav.css`，卡片的 `:focus-within` 在 `04`/`05`/`09` | [`docs/features.md`](docs/features.md) ㊱ |

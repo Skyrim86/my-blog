@@ -308,6 +308,21 @@
 {{- /* 首页卡片组（切换 + 自动轮播）：只在首页加载，脚本不大约 3KB。
        卡片清单经模板的 data-deck 传入（见 home-cards.html），文案走 data-* 传。 */ -}}
 {{- if .IsHome }}
+{{- /* 首页时钟的数字字体（Playfair Display 的数字子集，1.5 KB 自托管）。
+       两件事一起做：**preload** 让它在 JS 要它之前就到（时钟等字体就绪才填第一帧），
+       以及把 `@font-face` 生成成一小段外链 CSS —— 字体必须经资源管线才会被发布，
+       而写在 css/extended/ 里的 `url()` 只是文本、不会有产物（见 09-home.css 那条注释）。
+       只在首页输出：时钟只长在首页，别的页面不该为此多付一个请求。 */ -}}
+{{- with resources.Get "fonts/rose-clock.woff2" }}
+{{- $f := . | fingerprint }}
+<link rel="preload" href="{{ $f.RelPermalink }}" as="font" type="font/woff2" crossorigin="anonymous">
+{{- $ff := printf "@font-face{font-family:RoseClock;src:url(%s) format('woff2');font-weight:600;font-style:normal;font-display:block}" $f.RelPermalink }}
+{{- $ffcss := resources.FromString "css/clock-font.css" $ff | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $ffcss.RelPermalink }}" integrity="{{ $ffcss.Data.Integrity }}" crossorigin="anonymous">
+{{- else }}
+{{- warnf "找不到 assets/fonts/rose-clock.woff2：时钟数字会退回系统字体" }}
+{{- end }}
+
 {{- /* 首页右栏的时钟：只在首页加载。文案经 data-* 传（见 home-clock.html）。 */ -}}
 {{- $clock := resources.Get "js/home-clock.js" | minify | fingerprint }}
 <script defer src="{{ $clock.RelPermalink }}" integrity="{{ $clock.Data.Integrity }}" crossorigin="anonymous"></script>
