@@ -122,11 +122,14 @@
   --cart-inset: calc(var(--rank-frame, 2px) + max(var(--rank-mat, 0px), var(--rank-band, 0px)));
   --cart-r: max(0px, calc(var(--cradius) - var(--cart-inset)));
 
-  /* 雕花框那两张瓦片在带子里的居中偏移：边栏瓦片 48×20、角花 26×26，各自在带子里居中。
-     放在这里而不是那几条规则里，是因为雕花线（.home-card-fret::after）与四角宝石
-     （.home-card-rank::after）都要用同一个值 —— 写两遍就会有一处漂移。 */
-  --fret-off: calc((var(--cart-inset) - 20px) / 2);
-  --fret-corner-off: calc((var(--cart-inset) - 26px) / 2);
+  /* 边框环的厚度：**从卡边缘到画面边缘**（框棱 + 衬边/带宽）。边框上的一切装饰
+     （边栏线、四角花心、宝石）都必须待在它里面 —— 一个像素都不许压到插画上。
+     2026-09-21 修正：以前瓦片按固定的 20px、角花按 26px **居中**放，而环厚只有 6~11px，
+     于是 (环厚-20)/2 成了负数、上下各溢出 5~10px：**高档卡的四角花心整圈压在画面上**
+     （用户：「边框的亮带不要侵占画面主体」）。现在尺寸与位置都从环厚算，越界在几何上不可能。 */
+  --fret-w: calc(var(--cart-inset) - var(--rank-frame, 2px));
+  --fret-off: var(--rank-frame, 2px);
+  --fret-corner-off: var(--rank-frame, 2px);
 
   /* ---------- 边框的**分量**由等级给，**材质**由工艺给（2026-09-21 第二次重做）
 
@@ -160,6 +163,7 @@
   --rank-band: 0px;
   --rank-band-a: 0;
   --rank-line: rgba(44, 46, 54, .5);
+  --fret-line: rgba(255, 252, 244, .92);   /* 装饰线的默认材质色 = foil 的珠白 */
   --craft-gem-color: #6fcaa0;
 
   /* 雕花框的**零件**（默认这份是雕花金那套）。每个进阶工艺只换其中一件 ——
@@ -291,15 +295,12 @@
      不显式分层的话，它们会盖在雕花框上（实测：玻璃那几条的高光是 screen 混合，把深色边栏
      整片提亮，雕花框直接看不见了）。三层从下到上：框底+线(2) → 等级覆膜与宝石(3) → 名牌(4)。 */
   z-index: 2;
-}
 
-/* 暗底：上 / 下 / 左 / 右四条带子拼成一个「回」字。纯渐变当 mask，mask-size 给每条带子的厚度 */
-.home-card-fret::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  /* 边栏底：**随等级淡入的半透明压深**，不是一整条不透明的深色 ——
-     这样它读作「这条边更实」，底下的材质还透得出来（--rank-band-a 由等级给）。 */
+  /* ---------- 三层各司其职：底（元素本身）→ 雕花线（::before）→ 会走的光（::after） ----------
+     拆开的理由：光与线挤在同一层时，「只让四角亮、边栏的线保持静态」这种要求没法落笔 ——
+     一改光的遮罩就连线一起抹掉（做对比图时踩到过）。 */
+  /* ① 底：上 / 下 / 左 / 右四条带子拼成一个「回」字。**随等级淡入的半透明压深**
+     （--rank-band-a），不是一整条不透明的深色 —— 这样它读作「这条边更实」，底下的材质还透得出来。 */
   background: rgba(14, 12, 18, var(--rank-band-a, .5));
   -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000),
                       linear-gradient(#000, #000), linear-gradient(#000, #000);
@@ -315,40 +316,47 @@
   mask-repeat: no-repeat;
 }
 
-/* 雕花线 + 角花：横向两条边栏（平铺瓦片）、竖向两条、四个角花 */
-.home-card-fret::after {
+/* ② 线：雕花边栏 + 四角花心（**静态**）。横向两条边栏（平铺瓦片）、竖向两条、四个角花 */
+.home-card-fret::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--rank-line, #e9ca86);
-  /* 八层：上边栏平铺、下边栏平铺、左边栏平铺、右边栏平铺、四个角花。零件全走令牌，
-     所以每个工艺换一副框只需要覆写上面那四个令牌（结构不动）。 */
+  /* 线的**颜色**归工艺（它是材质，不是结构）—— 用户 2026-09-21 选的口径。
+     边框的**结构**（带宽、角饰显隐、淡入）仍归等级，所以同档一样厚、而颜色能看出工艺。
+     十二种工艺各给一条，金只出现在金边 / 金继 / 雕花金 / 珐琅彩四种上。 */
+  /* 八层：上边栏平铺、下边栏平铺、左边栏平铺、右边栏平铺、四个角花。尺寸与位置都从
+     --fret-w / --fret-off 算，所以装饰永远待在边框环里，一个像素都不压到插画上。 */
+  background: var(--fret-line, var(--rank-line, rgba(255, 252, 244, .92)));
   -webkit-mask-image: var(--fret-rail-h), var(--fret-rail-h), var(--fret-rail-v), var(--fret-rail-v),
                       var(--fret-corner), var(--fret-corner), var(--fret-corner), var(--fret-corner);
   mask-image: var(--fret-rail-h), var(--fret-rail-h), var(--fret-rail-v), var(--fret-rail-v),
               var(--fret-corner), var(--fret-corner), var(--fret-corner), var(--fret-corner);
-  -webkit-mask-size: 48px 20px, 48px 20px, 20px 48px, 20px 48px,
-                     26px 26px, 26px 26px, 26px 26px, 26px 26px;
-  mask-size: 48px 20px, 48px 20px, 20px 48px, 20px 48px,
-             26px 26px, 26px 26px, 26px 26px, 26px 26px;
+  /* 上下两条边栏：高度 = **环厚**（瓦片被压扁到环里，不再溢出）；左右两条把宽高对调。
+     四个角花也按环厚正方形给 —— 高档的环厚 11px，角花就是 11px，正好落在环的角里。 */
+  -webkit-mask-size: 48px var(--fret-w), 48px var(--fret-w), var(--fret-w) 48px, var(--fret-w) 48px,
+                     var(--fret-w) var(--fret-w), var(--fret-w) var(--fret-w),
+                     var(--fret-w) var(--fret-w), var(--fret-w) var(--fret-w);
+  mask-size: 48px var(--fret-w), 48px var(--fret-w), var(--fret-w) 48px, var(--fret-w) 48px,
+             var(--fret-w) var(--fret-w), var(--fret-w) var(--fret-w),
+             var(--fret-w) var(--fret-w), var(--fret-w) var(--fret-w);
   -webkit-mask-position:
     0 var(--fret-off),
-    0 calc(100% - var(--fret-off) - 20px),
+    0 calc(100% - var(--fret-off) - var(--fret-w)),
     var(--fret-off) 0,
-    calc(100% - var(--fret-off) - 20px) 0,
+    calc(100% - var(--fret-off) - var(--fret-w)) 0,
     var(--fret-corner-off) var(--fret-corner-off),
-    calc(100% - var(--fret-corner-off) - 26px) var(--fret-corner-off),
-    var(--fret-corner-off) calc(100% - var(--fret-corner-off) - 26px),
-    calc(100% - var(--fret-corner-off) - 26px) calc(100% - var(--fret-corner-off) - 26px);
+    calc(100% - var(--fret-corner-off) - var(--fret-w)) var(--fret-corner-off),
+    var(--fret-corner-off) calc(100% - var(--fret-corner-off) - var(--fret-w)),
+    calc(100% - var(--fret-corner-off) - var(--fret-w)) calc(100% - var(--fret-corner-off) - var(--fret-w));
   mask-position:
     0 var(--fret-off),
-    0 calc(100% - var(--fret-off) - 20px),
+    0 calc(100% - var(--fret-off) - var(--fret-w)),
     var(--fret-off) 0,
-    calc(100% - var(--fret-off) - 20px) 0,
+    calc(100% - var(--fret-off) - var(--fret-w)) 0,
     var(--fret-corner-off) var(--fret-corner-off),
-    calc(100% - var(--fret-corner-off) - 26px) var(--fret-corner-off),
-    var(--fret-corner-off) calc(100% - var(--fret-corner-off) - 26px),
-    calc(100% - var(--fret-corner-off) - 26px) calc(100% - var(--fret-corner-off) - 26px);
+    calc(100% - var(--fret-corner-off) - var(--fret-w)) var(--fret-corner-off),
+    var(--fret-corner-off) calc(100% - var(--fret-corner-off) - var(--fret-w)),
+    calc(100% - var(--fret-corner-off) - var(--fret-w)) calc(100% - var(--fret-corner-off) - var(--fret-w));
   -webkit-mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y,
                        no-repeat, no-repeat, no-repeat, no-repeat;
   mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y,
@@ -356,6 +364,49 @@
   /* 压印感：线比底高一点点 —— 与卡面那条「边一律 inset 阴影」的规矩同源，只是这里是一条细线 */
   filter: drop-shadow(0 0.5px 0.5px rgba(0, 0, 0, .55));
 }
+/* ③ 光：那条**绕框走**的亮带（动效层）。遮罩与线那一层**逐层相同**（边栏 + 四角），
+   所以它只走在框上、不碰插画；底色由「边框的动效层」那条规则给（conic-gradient + 动画）。
+   「只在四角亮」这类变体只需改这一层的 mask-size，线不受影响 —— 三层分家的收益。 */
+.home-card-fret::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+    -webkit-mask-image: var(--fret-rail-h), var(--fret-rail-h), var(--fret-rail-v), var(--fret-rail-v),
+                      var(--fret-corner), var(--fret-corner), var(--fret-corner), var(--fret-corner);
+  mask-image: var(--fret-rail-h), var(--fret-rail-h), var(--fret-rail-v), var(--fret-rail-v),
+              var(--fret-corner), var(--fret-corner), var(--fret-corner), var(--fret-corner);
+  /* 上下两条边栏：高度 = **环厚**（瓦片被压扁到环里，不再溢出）；左右两条把宽高对调。
+     四个角花也按环厚正方形给 —— 高档的环厚 11px，角花就是 11px，正好落在环的角里。 */
+  -webkit-mask-size: 48px var(--fret-w), 48px var(--fret-w), var(--fret-w) 48px, var(--fret-w) 48px,
+                     var(--fret-w) var(--fret-w), var(--fret-w) var(--fret-w),
+                     var(--fret-w) var(--fret-w), var(--fret-w) var(--fret-w);
+  mask-size: 48px var(--fret-w), 48px var(--fret-w), var(--fret-w) 48px, var(--fret-w) 48px,
+             var(--fret-w) var(--fret-w), var(--fret-w) var(--fret-w),
+             var(--fret-w) var(--fret-w), var(--fret-w) var(--fret-w);
+  -webkit-mask-position:
+    0 var(--fret-off),
+    0 calc(100% - var(--fret-off) - var(--fret-w)),
+    var(--fret-off) 0,
+    calc(100% - var(--fret-off) - var(--fret-w)) 0,
+    var(--fret-corner-off) var(--fret-corner-off),
+    calc(100% - var(--fret-corner-off) - var(--fret-w)) var(--fret-corner-off),
+    var(--fret-corner-off) calc(100% - var(--fret-corner-off) - var(--fret-w)),
+    calc(100% - var(--fret-corner-off) - var(--fret-w)) calc(100% - var(--fret-corner-off) - var(--fret-w));
+  mask-position:
+    0 var(--fret-off),
+    0 calc(100% - var(--fret-off) - var(--fret-w)),
+    var(--fret-off) 0,
+    calc(100% - var(--fret-off) - var(--fret-w)) 0,
+    var(--fret-corner-off) var(--fret-corner-off),
+    calc(100% - var(--fret-corner-off) - var(--fret-w)) var(--fret-corner-off),
+    var(--fret-corner-off) calc(100% - var(--fret-corner-off) - var(--fret-w)),
+    calc(100% - var(--fret-corner-off) - var(--fret-w)) calc(100% - var(--fret-corner-off) - var(--fret-w));
+  -webkit-mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y,
+                       no-repeat, no-repeat, no-repeat, no-repeat;
+  mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y,
+               no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
 
 /* 四角宝石：坐在角花的中心（角花 26px、宝石 9px → 各自居中偏移 8.5px）。
    颜色由 --craft-gem-color 给（等级那套是金属色阶，给不了宝石色）。 */
@@ -372,10 +423,10 @@
   -webkit-mask-size: 9px 9px, 9px 9px, 9px 9px, 9px 9px;
   mask-size: 9px 9px, 9px 9px, 9px 9px, 9px 9px;
   -webkit-mask-position:
-    calc(var(--fret-corner-off) + 8.5px) calc(var(--fret-corner-off) + 8.5px),
-    calc(100% - var(--fret-corner-off) - 17.5px) calc(var(--fret-corner-off) + 8.5px),
-    calc(var(--fret-corner-off) + 8.5px) calc(100% - var(--fret-corner-off) - 17.5px),
-    calc(100% - var(--fret-corner-off) - 17.5px) calc(100% - var(--fret-corner-off) - 17.5px);
+    calc(var(--fret-corner-off) + (var(--fret-w) - 9px) / 2) calc(var(--fret-corner-off) + (var(--fret-w) - 9px) / 2),
+    calc(100% - var(--fret-corner-off) - (var(--fret-w) + 9px) / 2) calc(var(--fret-corner-off) + (var(--fret-w) - 9px) / 2),
+    calc(var(--fret-corner-off) + (var(--fret-w) - 9px) / 2) calc(100% - var(--fret-corner-off) - (var(--fret-w) + 9px) / 2),
+    calc(100% - var(--fret-corner-off) - (var(--fret-w) + 9px) / 2) calc(100% - var(--fret-corner-off) - (var(--fret-w) + 9px) / 2);
   mask-position:
     calc(var(--fret-corner-off) + 8.5px) calc(var(--fret-corner-off) + 8.5px),
     calc(100% - var(--fret-corner-off) - 17.5px) calc(var(--fret-corner-off) + 8.5px),
@@ -931,6 +982,7 @@ a.home-deck-dialog-credit:hover {
    与全息（foil）的分工：foil 是**条纹型**衍射（一条条彩虹带随角度移），星芒是**放射型**
    （一圈圈色环从中心推出去，像宝可梦卡的「宇宙闪」）。悬停时整层转一点，读作「把卡在光里转了个角度」。 */
 .home-card--holo-prism {
+  --fret-line: linear-gradient(100deg, #ffd9a0, #ff9ec4 28%, #a0e8ff 52%, #c9a0ff 76%, #ffe6b0);   /* 边框装饰线的材质色（结构仍由等级给） */
   /* 它的框不另设：**边框的结构归等级**（2026-09-21 第二次重做的口径），工艺只给材质 ——
      那点「棱面感」来自下面这层框质感叠层（两层不同角度的白 + 一层冷蓝），以及它自己的卡面纹样
      （放射虹彩 + 星点）。宝石色留着：它是**材质**不是结构。 */
@@ -964,6 +1016,7 @@ a.home-deck-dialog-credit:hover {
    所以底子上有一层沿 96° 的细密丝纹，而且它的明暗是**软停**（写 1px 硬停就是纱窗，
    见文件顶部第 2 条规矩），并挂手抖滤镜（第 3 条：直线纹样一律挂 --cfilter）。 */
 .home-card--gold {
+  --fret-line: #f0d9a0;   /* 边框装饰线的材质色（结构仍由等级给） */
   --craft-gem-color: #ffd891;
   --cframe-finish: linear-gradient(140deg, rgba(255, 246, 213, .52), rgba(231, 205, 126, .26) 16%, rgba(201, 162, 39, .30) 32%, rgba(255, 248, 221, .46) 50%, rgba(184, 153, 31, .28) 66%, rgba(168, 121, 26, .30) 84%, rgba(255, 238, 184, .42));
   --cplate: linear-gradient(to top, rgba(30, 21, 6, .93), rgba(30, 21, 6, .62));
@@ -990,6 +1043,7 @@ a.home-deck-dialog-credit:hover {
 /* 和纸：**各向异性**纤维（横向的长丝）+ 两团纸浆的云斑。
    上一版是 90°/0° 等距十字 —— 那是织布，不是纸：纸的纤维只朝一个方向，而且有长有短。 */
 .home-card--washi {
+  --fret-line: rgba(246, 236, 220, .92);   /* 边框装饰线的材质色（结构仍由等级给） */
   --cframe-finish: linear-gradient(140deg, rgba(244, 236, 220, .46), rgba(216, 201, 178, .26) 52%, rgba(250, 244, 232, .40));
   --cplate: linear-gradient(to top, rgba(48, 35, 25, .92), rgba(48, 35, 25, .6));
   --cplate-solid: rgba(48, 35, 25, .87);
@@ -1008,6 +1062,7 @@ a.home-deck-dialog-credit:hover {
 
 /* 墨：底部压深 + 一道飞白 + 纸颗粒（原来那 2px/6px 的横向细纹在 272px 下只是瑕疵，去掉了） */
 .home-card--ink {
+  --fret-line: rgba(196, 200, 214, .85);   /* 边框装饰线的材质色（结构仍由等级给） */
   --cframe-finish: linear-gradient(140deg, rgba(59, 53, 67, .42), rgba(20, 17, 25, .50) 55%, rgba(75, 68, 82, .38));
   --cplate: linear-gradient(to top, rgba(8, 7, 11, .94), rgba(8, 7, 11, .68));
   --cplate-solid: rgba(8, 7, 11, .9);
@@ -1029,6 +1084,7 @@ a.home-deck-dialog-credit:hover {
    子元素 `.home-card-lens` 把画作（`--art`）再铺一遍、放大错位模糊后**只在边缘露出**，模拟厚玻璃
    把画面折过去的那一圈。磨砂仍然只做下半张（上半张通透，脸才看得清）。 */
 .home-card--glass {
+  --fret-line: rgba(238, 248, 255, .90);   /* 边框装饰线的材质色（结构仍由等级给） */
   --craft-gem-color: #cfe6ff;
   --cframe-finish: linear-gradient(150deg, rgba(255, 255, 255, .50), rgba(214, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
   --cplate: linear-gradient(to top, rgba(14, 22, 32, .9), rgba(14, 22, 32, .55));
@@ -1134,6 +1190,7 @@ a.home-deck-dialog-credit:hover {
    尺寸那两列是配对的：卡是 5:7，要让雪花是**正方形**（不然花瓣被拉长），
    高度百分比必须等于宽度百分比 × 5/7。 */
 .home-card--yukika {
+  --fret-line: rgba(228, 244, 255, .92);   /* 边框装饰线的材质色（结构仍由等级给） */
   --cframe-finish: linear-gradient(140deg, rgba(244, 252, 255, .46), rgba(168, 212, 238, .24) 46%, rgba(255, 255, 255, .40));
   --cplate: linear-gradient(to top, rgba(12, 28, 44, .93), rgba(12, 28, 44, .68));
   --cplate-solid: rgba(12, 28, 44, .9);
@@ -1164,6 +1221,7 @@ a.home-deck-dialog-credit:hover {
    这四条全在生成器里（tools/cards/make-ornaments.py 的 crack_net），令牌仍是 `--tex-crack`。
    **混合模式用 normal 而不是 screen**：金色裂缝在浅色画上（木刀那张）用 screen 会完全消失（实测）。 */
 .home-card--kintsugi {
+  --fret-line: #e5b96a;   /* 边框装饰线的材质色（结构仍由等级给） */
   --craft-gem-color: #b98a3e;
   --cframe-finish: linear-gradient(140deg, rgba(74, 64, 72, .40), rgba(22, 19, 26, .48) 52%, rgba(61, 54, 64, .36));
   --cplate: linear-gradient(to top, rgba(10, 8, 12, .94), rgba(10, 8, 12, .7));
@@ -1221,6 +1279,7 @@ a.home-deck-dialog-credit:hover {
    它是这一批里最贴参考图的一张 —— 但**卡面本身是素的**（参考图上人物之外没有花纹）：
    繁复全在边框上，这也是「工艺克制」那条的落地（全卡闪到看不清插画就失败了）。 */
 .home-card--filigree {
+  --fret-line: #e9ca86;   /* 边框装饰线的材质色（结构仍由等级给） */
      「每种进阶工艺都有自己的框」这件事在代码里一眼可见，也让守卫的检查口径统一。 */
   --craft-gem-color: #f0b96a;
   --cframe-finish: linear-gradient(140deg, rgba(198, 162, 94, .38), rgba(58, 44, 22, .46) 52%, rgba(152, 120, 64, .34));
@@ -1242,6 +1301,7 @@ a.home-deck-dialog-credit:hover {
    格子是实心的 mask（见生成器里 cloison 的说明），涂上四块宝石色；**缝里露出来的是卡自己的
    框色** —— 等级给的是金属色阶，所以缝在高档是金线、在低档是银灰线，金线不必另画一层。 */
 .home-card--enamel {
+  --fret-line: #f2e3b0;   /* 边框装饰线的材质色（结构仍由等级给） */
   --craft-gem-color: #7f9ce6;
   --cframe-finish: linear-gradient(140deg, rgba(255, 246, 214, .42), rgba(196, 158, 68, .30) 52%, rgba(255, 240, 196, .36));
   --cplate: linear-gradient(to top, rgba(16, 14, 26, .94), rgba(16, 14, 26, .68));
@@ -1267,6 +1327,7 @@ a.home-deck-dialog-credit:hover {
    **不遮画面**：mask 就是星点本身，所以印上去的只有星星，插画原样透出来 ——
    「夜天」那半由框的深蓝紫叠层给。 */
 .home-card--starnight {
+  --fret-line: rgba(206, 216, 255, .90);   /* 边框装饰线的材质色（结构仍由等级给） */
   --cframe-finish: linear-gradient(140deg, rgba(96, 116, 200, .34), rgba(28, 26, 62, .46) 52%, rgba(72, 88, 168, .32));
   --cplate: linear-gradient(to top, rgba(10, 12, 30, .94), rgba(10, 12, 30, .7));
   --cplate-solid: rgba(10, 12, 30, .9);
@@ -1286,6 +1347,7 @@ a.home-deck-dialog-credit:hover {
 /* 冰裂纹：**无色的裂** —— 与金继共用同一张裂缝网，只是材质换成冷白（没有金、没有漆）。
    缝是「亮」的（冰面裂开处反光），所以用 --coverlay 的冷白印上去，而不是压暗。 */
 .home-card--frostcrack {
+  --fret-line: rgba(236, 248, 255, .95);   /* 边框装饰线的材质色（结构仍由等级给） */
   --cframe-finish: linear-gradient(140deg, rgba(226, 240, 252, .40), rgba(148, 178, 204, .30) 52%, rgba(240, 248, 255, .38));
   --cplate: linear-gradient(to top, rgba(14, 24, 36, .93), rgba(14, 24, 36, .66));
   --cplate-solid: rgba(14, 24, 36, .9);

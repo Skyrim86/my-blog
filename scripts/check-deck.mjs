@@ -487,11 +487,24 @@ for (const r of cssRanks) {
     }
   }
   for (const s of knownStyles) {
+    if (s === 'foil') continue;   // foil 没有规则块：它的线色就是基类默认那一份
     const blk = rulesWith(stylesSec, `.home-card--${s}`);
-    if (blk && /--fret-(rail|corner|line|band)/.test(blk)) {
+    if (!blk) continue;
+    // ① **结构**令牌（边栏瓦片、角花）不许由工艺给 —— 那是等级的，一旦回到「每种工艺一副框」，
+    //    「同档的卡框一厚一薄」就会重现（这正是上一版被打回的那件事）。
+    if (/--fret-(rail|corner)/.test(blk)) {
       failures.push(
-        `✗ ${CSS} 的风格「${s}」里出现了 --fret-*（边框的零件）—— 边框归**等级**管，` +
-          `工艺只提供材质（--cframe-finish）。照旧写法加回去会让「同档的卡框一厚一薄」重现`
+        `✗ ${CSS} 的风格「${s}」里出现了 --fret-rail / --fret-corner（边框的**结构**）——` +
+          `结构归等级：带宽、角饰显隐、淡入都由 .home-card-rank--* 给`
+      );
+    }
+    // ② 但装饰线的**颜色**必须由工艺给（它是材质）—— 用户 2026-09-21 选的口径：
+    //    「不喜欢全部都是金色」，于是十二种工艺各有一条自己的线色。漏写的表现是
+    //    「这颗卡沿用默认的珠白」，页面上只是颜色不太对，看不出是漏了。
+    if (!blk.includes('--fret-line')) {
+      failures.push(
+        `✗ ${CSS} 的风格「${s}」没有声明 --fret-line —— 边框装饰线的颜色归**工艺**（材质），` +
+          `漏了会沿用默认的珠白。见「边框：等级管结构、工艺管材质」那一节`
       );
     }
   }
