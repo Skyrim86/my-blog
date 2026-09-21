@@ -956,7 +956,7 @@ a.home-deck-dialog-credit:hover {
       这里：金色裂缝在「木刀」那张浅画上完全看不见）、`multiply` 压在深画上同理。加「亮材料」用
       `normal` / `soft-light` + 半透明颜色，比 `screen` 稳。
    5. **每种都要同时给 `--cplate-solid` 与 `--cplate`**：实心色喂对比度脚本（它只沿祖先链合成
-      background-color，看不见渐变），渐变换观感。见 traps 第 69 条。
+      background-color，看不见渐变），渐变换观感。见 本文件「卡面风格」七条规矩的第 5 条。
    6. **边一律 inset box-shadow，不用 border**（border 占盒尺寸）；深色主题逐条给 `--coverlay-op`，
       **新增风格必须补一条**，否则它在深色下要么白掉、要么整层消失。
    7. **风格只写 `--cframe-finish`，不写 `--cframe`**（2026-09-21 六档阶梯加的）：`--cframe` 是

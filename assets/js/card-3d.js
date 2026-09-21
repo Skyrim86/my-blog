@@ -69,16 +69,37 @@
   // 网格密度与 POM 步数：按设备能力降级（见 pickQuality）。必须在建网格**之前**定。
   var GRID = { nx: 40, ny: 56, corner: 10 };
   // POM 步数的**编译期上限**（GLSL ES 要求循环边界是常量）；每档实际走几步由 RANK_3D.steps 给、
-  // 运行期经 uSteps 早退。原来固定 12，现在 8（收藏/弱设备）→ 24（奇迹）。
-  // 位移加大之后掠射角下的步进误差会显出来（条纹状的自遮挡），所以高档需要更多步。
-  var POM_STEPS_MAX = 24;
+  // 运行期经 uSteps 早退，**再按视角乘一个 0.60~1.15 的系数**（见片元里那段：掠射角才需要多步）。
+  // 所以上限要装得下 max(档位步数) × 1.15 —— 24 × 1.15 = 27.6，取 32 留余量。
+  // **写小了是静默降质**：掠射角那一档会被悄悄截到上限，页面上只表现为「高档在侧面看还是有条纹」，
+  // check-deck.mjs 有一条守卫核这个不等式。
+  var POM_STEPS_MAX = 32;
+  var POM_GRAZE_MAX = 1.15;        // 与片元里那个系数同一份口径（守卫要用它算上限）
   // 松手后的**余韵**：时间驱动的效果（星屑闪、彩虹流光）只在这段时间里继续演，之后连循环一起停。
   // 为什么不是「一直动」：这个弹层挂在博客首页上，「静止时零帧」是这个文件的一条铁律（文件头第 3 条）。
   // 2.5s 是「看着它回弹、星光还在流」的长度；验收读数从「空闲 900ms 内 0 帧」改成「松开 3s 后 0 帧」。
   var FX_TAIL_MS = 2500;
   var qualityPicked = false;
-  var fxScale = 1;               // 弱设备的新效果整体打折（见 pickQuality）
-  var lidScale = 1;              // 盖子单独一个开关（弱设备 = 0：它那几步 ALU + 一次深度采样也不白给）
+  // ---------- 帧时间调速器（2026-09-21）----------
+  // 原来只有 pickQuality() 那一次性静态判断（看核数与视口），**没有任何基于实测帧时间的反馈**：
+  // 6 核配弱核显的笔记本、或者任何我没法测的设备，要么白降质、要么掉帧。这里补上反馈回路。
+  //
+  // 三条口径：
+  //   · **预算不写死**：刷新率靠实测（`refreshMs = min(样本 p10, 16.7)`）推出来 —— 165Hz 屏得到 6.1、
+  //     60Hz 屏得到 16.7；而「一台从头就吃力的 60Hz 机器」因为那个 min() 仍会被判超预算。
+  //   · 只在**动画循环活着**时采样（不碰「静止即停帧」），并且每次换卡后跳过前 GOV_WARM 帧 ——
+  //     贴图上传与解码的尖峰不是渲染成本，算进去会让每张卡都「降一档」。
+  //   · 降档要**出声**（console.info + stats().q），与「失败不静默」同一条口径。
+  var GOV_WARM = 24;             // 换卡/开弹层后跳过的帧数
+  var GOV_WIN = 30;              // 一个判定窗口多少帧
+  var GOV = [
+    { stepsCap: 32, fx: 1.00, lid: 1, pix: 1.00 },   // 0 = 全开
+    { stepsCap: 20, fx: 0.85, lid: 1, pix: 1.00 },   // 1 = 中
+    { stepsCap: 12, fx: 0.60, lid: 0, pix: 0.75 }    // 2 = 低（盖子整个关掉，画布也缩）
+  ];
+  // govBase = 这台设备的**档位上限**（弱设备从 1 起步、最多也就回到 1）；govTier 在 [0,2] 里动。
+  var govTier = 0, govBase = 0, govWarm = GOV_WARM, govSamples = [], govOver = 0, govUnder = 0;
+  var govRefresh = 16.7, govP75 = 0;
 
   // 每种卡面风格在 3D 里的一组着色器参数。**这张表是 YAML 里 style 字段的第二处消费点**：
   // 首页那张卡用 CSS 类（home-card--<style>），弹层里的 3D 卡用这里的参数。
@@ -146,10 +167,10 @@
                  steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.028, bgPar: 0.012,
                  wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00 },
     legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 2.40, back: 4, shadow: 1.00, sweep: 0.85,
-                 steps: 18, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
+                 steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
                  wall: 0.70, cast: 0.65, lid: 0.75, cone: 0.70, drift: 0.60 },
     miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 2.90, back: 5, shadow: 1.15, sweep: 1.00,
-                 steps: 20, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030,
+                 steps: 24, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030,
                  wall: 1.00, cast: 1.00, lid: 1.00, cone: 1.00, drift: 1.00 },
   };
   // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。这两张表是卡背
@@ -453,7 +474,10 @@
     '  vec2 dir = -V.xy / max(0.25, abs(V.z)) * uPom;',
     // 步数是**运行期**的（等级阶梯给）：GLSL ES 要求循环边界是常量，所以边界写编译期上限、
     // 到步数就 break —— 与「把 POM_STEPS 写死成 24 再让低档白跑」是同一个结果、更省。
-    '  float steps = max(2.0, uSteps);',
+    // **再按视角缩一道**：POM 的步进误差只在掠射角显形（正视时高度场几乎不位移，粗步就够），
+    // 所以正面看省约四成成本、侧面看反而更准。参考站也是这么做的（那边是 mix(32,10,|N·V|)）。
+    '  float graze = clamp(1.0 - abs(V.z), 0.0, 1.0);',
+    '  float steps = max(4.0, uSteps * mix(0.60, 1.15, graze));',
     '  float stepH = 1.0 / steps;',
     '  vec2 d = dir * stepH * uRelief;',
     '  float h = 1.0;',
@@ -855,7 +879,7 @@
   var lastInput = 0;           // 最后一次交互的时刻（松手后的余韵以它为起点，见 FX_TAIL_MS）
   var ptrX = 0, ptrY = 0;      // 指针在台面里的位置（-1~1 的视图空间坐标，用于跟手高光）
   // 送进着色器的**生效值**（draw 每帧填）。stats().fx 直接回它 —— 让 lab 读「真正生效的数」
-  // 而不是回读参数表：表到着色器之间还夹着 fxScale 与编译期上限两道，回读表会假绿。
+  // 而不是回读参数表：表到着色器之间还夹着调速器档位与编译期上限两道，回读表会假绿。
   var fxEff = { relief: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0,
               bgZoom: 0, bgParMax: 0, wall: 0, cast: 0, lid: 0, cone: 0, drift: 0 };
   var fxOverride = null;       // lab 拍对比图时的临时覆盖（api.setFx），产品路径上恒为 null
@@ -871,11 +895,9 @@
       GRID.nx = 28; GRID.ny = 40; GRID.corner = 7;
       POM_STEPS_MAX = 8;      // 编译期上限：低档机少走一半步数（档位阶梯再经 uSteps 夹一次）
       POM_STRENGTH = 0;
-      // 新通道在弱设备上一律打折：切边与流光减半、背景视差整个关掉（它要动的是**采样 uv**，
-      // 一旦降级就得同时改顶点位移那边，不值得在低端机上冒这个险）。
-      fxScale = 0.5;
-      // 盖子**整个关掉**（不是打折）：它是唯一多一遍绘制的效果，低端机上不值得冒险。
-      lidScale = 0;
+      // 弱设备直接从「第 1 档」起步（新效果打折、步数上限 20），而且**最多也只能回到第 1 档** ——
+      // 不再另设一份 fxScale：两套系数会在同一台机器上叠乘，谁都说不清最后是多少。
+      govBase = 1; govTier = 1;
     }
   }
 
@@ -987,7 +1009,8 @@
   function resize() {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var cw = Math.max(1, canvas.clientWidth), ch = Math.max(1, canvas.clientHeight);
-    if (cw * ch * dpr * dpr > MAX_PIXELS) dpr = Math.max(1, Math.sqrt(MAX_PIXELS / (cw * ch)));
+    var cap = MAX_PIXELS * GOV[govTier].pix;
+    if (cw * ch * dpr * dpr > cap) dpr = Math.max(1, Math.sqrt(cap / (cw * ch)));
     var w = Math.max(1, Math.round(cw * dpr));
     var h = Math.max(1, Math.round(ch * dpr));
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
@@ -1046,26 +1069,27 @@
     gl.uniform1f(U.uShadow, R.shadow * (texDepth ? 1 : 0));
 
     // ---------- 立体通道（2026-09-21）----------
-    // 全部过一遍 fxScale（弱设备打折，见 pickQuality）。两个夹取是必须的：
+    // 全部过一遍当前档位的因子 G（弱设备与实测掉帧都走它，见 GOV）。两个夹取是必须的：
     //   uSteps  等级表可能给出比**编译期上限**更大的步数（弱设备上限是 8），夹住就不会白跑；
     //   uBgPar  位移不能超过放大余量，否则采样跑出画面外 —— 表里写超了也只挪到安全线。
-    var bgZoom = R.bgZoom * fxScale;
-    var bgMax = R.bgPar * fxScale;
+    var bgZoom = R.bgZoom;
+    var bgMax = R.bgPar;
     // 生效值留档（stats().fx 读它；见 fxEff 的声明）
     fxEff.relief = RELIEF * S.relief * R.relief;
-    fxEff.steps = Math.min(R.steps, POM_STEPS_MAX);
-    fxEff.sparkle = R.sparkle * S.sparkle * fxScale;
-    fxEff.holo = R.holo * fxScale;
-    fxEff.halo = R.halo * fxScale;
-    fxEff.cliff = R.cliff * fxScale;
+    var G = GOV[govTier];
+    fxEff.steps = Math.min(R.steps, G.stepsCap);
+    fxEff.sparkle = R.sparkle * S.sparkle * G.fx;
+    fxEff.holo = R.holo * G.fx;
+    fxEff.halo = R.halo * G.fx;
+    fxEff.cliff = R.cliff * G.fx;
     fxEff.bgZoom = bgZoom;
     // 「好像要脱离卡面」那四条 + 盖子。盖子单独一个系数：它**多一遍混合绘制**，
     // 弱设备上直接关掉（见 pickQuality），而不是偷偷降画质。
-    fxEff.wall = R.wall * fxScale;
-    fxEff.cast = R.cast * fxScale;
-    fxEff.drift = R.drift * fxScale;
-    fxEff.lid = R.lid * lidScale;
-    fxEff.cone = R.cone * lidScale;
+    fxEff.wall = R.wall * G.fx;
+    fxEff.cast = R.cast * G.fx;
+    fxEff.drift = R.drift * G.fx;
+    fxEff.lid = R.lid  * G.lid;
+    fxEff.cone = R.cone ;
     gl.uniform1f(U.uSteps, fxEff.steps);
     gl.uniform1f(U.uSparkle, fxEff.sparkle);
     gl.uniform1f(U.uHolo, fxEff.holo);
@@ -1079,7 +1103,7 @@
     gl.uniform1f(U.uCone, fxEff.cone);
     // 跟手高光只在**按住拖动**时给。这条正好卡在「鼠标划过卡片不会让它动」那条要求的边界上：
     // 光可以跟手，卡不能跟手。
-    fxEff.glint = dragging ? R.glint * fxScale : 0;
+    fxEff.glint = dragging ? R.glint : 0;
     gl.uniform1f(U.uGlint, fxEff.glint);
     // 指针灯：把指针在台面里的位置换算成视图空间的一盏灯，再与两盏主灯一样转到模型空间。
     // 不拖时把它摆在视线方向上（N·H≈1），但那时 uGlint 是 0，所以不会有任何贡献。
@@ -1252,9 +1276,43 @@
     return true;
   }
 
+  // 一帧的原始间隔（**不夹取**）：物理用夹取过的那份，调速器必须看真实值。
+  var lastFrameRaw = 0;
+  function govern(t) {
+    if (!lastFrameRaw) { lastFrameRaw = t; return; }
+    var ms = t - lastFrameRaw;
+    lastFrameRaw = t;
+    if (ms > 100) { govSamples.length = 0; govWarm = GOV_WARM; return; }   // 切标签/暂停回来的巨缝
+    if (govWarm > 0) { govWarm--; return; }
+    govSamples.push(ms);
+    if (govSamples.length < GOV_WIN) return;
+    var sorted = govSamples.slice().sort(function (a, b) { return a - b; });
+    var p10 = sorted[Math.floor(sorted.length * 0.10)];
+    govP75 = sorted[Math.floor(sorted.length * 0.75)];
+    govRefresh = Math.min(govRefresh === 16.7 ? p10 : Math.min(govRefresh, p10 + 0.5), 16.7);
+    var budget = govRefresh * 1.25;
+    govSamples.length = 0;
+    if (govP75 > budget) {
+      govOver++; govUnder = 0;
+      if (govOver >= 2 && govTier < 2) setTier(govTier + 1, govP75, budget);
+    } else if (govP75 < govRefresh * 0.85) {
+      govUnder++; govOver = 0;
+      // 回不去超过**设备档位上限**（弱设备最多升回 1，不会因为某几帧宽裕就跳到全开）
+      if (govUnder >= 4 && govTier > govBase) setTier(govTier - 1, govP75, budget);
+    } else { govOver = 0; govUnder = 0; }
+  }
+  function setTier(next, p75, budget) {
+    var dir = next > govTier ? '降' : '升';
+    govTier = next; govOver = 0; govUnder = 0;
+    console.info('[card3d] 画质' + dir + '到第 ' + next + ' 档（实测 p75 ' + p75.toFixed(1) +
+      'ms / 预算 ' + budget.toFixed(1) + 'ms，刷新率约 ' + Math.round(1000 / govRefresh) + 'Hz）');
+    resize();                        // 画布总像素上限跟着档位走
+    kick();
+  }
   function frame(t) {
     raf = 0;
     if (!open || !GL) return;
+    govern(t);
     var dt = Math.min(0.05, Math.max(0.001, (t - lastFrame) / 1000));
     lastFrame = t;
     // 时间相位只在**循环活着**的时候走（而且 reduced-motion 下冻结）：新效果里那两条时间驱动的
@@ -1396,6 +1454,7 @@
     setItem: function (next) {
       item = next;
       revealed = false; backSince = 0; backKey = '';
+      govWarm = GOV_WARM; govSamples.length = 0; lastFrameRaw = 0;   // 新贴图的尖峰不算渲染成本
       api.reset();
       if (!GL) return;
       var jobs = [];
@@ -1467,6 +1526,9 @@
         pom: GL ? GL.pom : 0, relief: !!texDepth, pinned: pinned,
         rank: (item && item.rank) || '', rankEff: rankOf(), revealed: revealed, turned: +turned.toFixed(2),
         canvas: canvas ? canvas.width + 'x' + canvas.height : '',
+        // 调速器的状态（lab 断言读它：限速/超大台面下档位必须升、正常时不许误判）
+        q: { tier: govTier, baseTier: govBase, p75: +govP75.toFixed(2),
+             refreshMs: +govRefresh.toFixed(2), budget: +(govRefresh * 1.25).toFixed(2) },
         // 立体通道的**生效值**（不是表里的值：已过 fxScale、已夹进编译期上限），由 draw() 现填 ——
         // 断言「六档单调递增」「奇迹显形前 = 收藏」读的就是它。写成读数而不是让 lab 自己算，
         // 是因为「表里的值」与「真正送进着色器的值」中间还夹着打折与上限两道，读表会假绿。
@@ -1487,6 +1549,15 @@
     setFx: function (over) {
       fxOverride = over || null;
       if (pinned && canvas && canvas.clientWidth) { resize(); draw(); } else kick();
+    },
+    // 把调速器**钉在指定档位**（**只给 lab 量「降档到底省不省成本」用**；产品路径上不调用）。
+    // 不把它暴露成 RANK_3D 的一个通道，是因为档位不是设计参数、是运行期反馈的结果。
+    setGovTier: function (n) {
+      govTier = Math.max(0, Math.min(GOV.length - 1, n | 0));
+      govOver = 0; govUnder = 0;
+      resize();
+      if (pinned && canvas && canvas.clientWidth) { resize(); draw(); } else kick();
+      return govTier;
     },
     // 把卡钉在指定角度（lab 拍照用；pin=true 时不起弹簧，不会被拉回正面）。
     // pin 时**同步画一帧**而不是排进 rAF：lab 里紧接着就要把画布 drawImage 到合成图上，

@@ -226,7 +226,7 @@
 
    **出厂隐藏**：脚本填好第一帧内容才摘掉 data-pending。用自定义属性而不是 `hidden`
    属性 —— `.home-clock` 上的 `display: flex` 会压过浏览器默认样式表里的
-   `[hidden] { display: none }`，那样面板会先空着显示出来（traps 第 38 条）。
+   `[hidden] { display: none }`，那样面板会先空着显示出来（features.md ㉕ 的两条取景判据）。
 
    版式是「三行＋一条脚注」，用的是面板整宽，不是堆在左边一小块：
      第一行  大号时间（左）  +  问候语（右，推到最右）

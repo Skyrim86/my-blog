@@ -641,6 +641,28 @@ if (!existsSync(CARD3D)) {
       }
     }
   }
+  // POM 上限必须装得下「档位最大步数 × 掠射角倍数」。
+  // 写小了**不会报错**：循环边界是编译期常量，掠射角那一档会被静默截到上限 ——
+  // 页面上只表现为「最高档在侧面看还是有条纹状的步进误差」，没人会想到是上限写小了。
+  {
+    const maxSteps = Math.max(...[...perRank.values()].map((f) => f.get('steps') || 0));
+    const capM = js.match(/var\s+POM_STEPS_MAX\s*=\s*(\d+)/);
+    const multM = js.match(/var\s+POM_GRAZE_MAX\s*=\s*([\d.]+)/);
+    if (!capM) {
+      failures.push(`✗ ${CARD3D} 里没解析出 POM_STEPS_MAX —— 解析正则与代码结构脱节了，请同步`);
+    } else {
+      const need = Math.ceil(maxSteps * (multM ? Number(multM[1]) : 1));
+      if (Number(capM[1]) < need) {
+        failures.push(
+          `✗ ${CARD3D} 的 POM_STEPS_MAX = ${capM[1]} 装不下「档位最大步数 ${maxSteps} × 掠射角倍数 ` +
+            `${multM ? multM[1] : '?'}」= ${need} —— 超出的部分会被**静默截掉**（最高档在侧面看仍有步进条纹）`
+        );
+      } else {
+        notes.push(`· POM 上限 ${capM[1]} ≥ 最大步数 ${maxSteps} × ${multM ? multM[1] : 1}（掠射角那档装得下）`);
+      }
+    }
+  }
+
   // uniform 名单 vs draw() 里真正设置的。draw() 的函数体**按两个函数头切片**取，不用花括号
   // 配平的正则：这个仓库的工作区是 CRLF，`\n  }\n` 那样的正则匹配不到（第一版就这么假绿过 ——
   // 它报的是「解析不出」，而不是「对不上」）。

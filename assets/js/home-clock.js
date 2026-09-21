@@ -171,7 +171,7 @@
         }
         /* 用 replaceChildren 一次换掉整棵子树，而不是 `textContent = ''` + append：
            这一步以后要重建很多次，一次性换掉最不容易留下半截旧节点。（别往**有兄弟节点**的
-           父节点写 textContent —— 那是 traps 第 113 条。） */
+           父节点写 textContent —— 那是 features.md ㊾。） */
         calGrid.replaceChildren(frag);
         calMonth.textContent = tpl(read('calMonth'), { y: y, m: m0 + 1 });
         const streak = streakEndingToday(y, m0, today);

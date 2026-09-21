@@ -52,6 +52,15 @@ MANIFEST = os.path.join(ROOT, "data", "home-cards.yaml")
 FACES = os.path.join(ROOT, "assets", "images", "cards")
 DEPTH = os.path.join(FACES, "depth")
 LAB = os.path.join(ROOT, os.pardir, "lab", "shots", "cards_depth_check.png")
+# 模型：**默认 Small，这是量出来的结论，不是随手选的**。
+# 2026-09-21 拿 6 张代表卡（近景 / 全身 / 细长物件 / 细线密集）做过 Small vs Base 的对照，
+# 判据是「浮雕边缘利不利落」——`lab/shots/deck7/depth_model_ab.py` 出表与放大图：
+#   · 高度梯度 p99：6 张里 4 张 Base **更低**（更软）；最大梯度 3 张更低
+#   · 肉眼看：白蔷、银霜、木刀在 Base 下明显更糊，而「闲坐」的花束与「大小姐」的面部
+#     内部起伏 Base 略多 —— 有得有失，但没有一项统计上更好
+#   · 点阵比（16 取模）也没改善（1.39→1.44、1.55→1.65）
+# 结论：**插画不是照片，换大模型换不来更利的边缘**，继续用 Small。--model 留着，
+# 以后想再试（比如换 Large、或去掉中值那道）直接用，不必改文件。
 MODEL = "depth-anything/Depth-Anything-V2-Small-hf"
 QUALITY = 75          # 灰阶图没有细节纹理，q75 实测 600×840 约 6 KB（卡面画作本身 44 KB）
 BLUR = 2.0
@@ -80,11 +89,12 @@ def label_font(size=13):
     return ImageFont.load_default()
 
 
-def load_model():
+def load_model(name=None):
+    name = name or MODEL
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"▸ 模型 {MODEL}（device={dev}，HF_ENDPOINT={os.environ['HF_ENDPOINT']}）")
-    proc = AutoImageProcessor.from_pretrained(MODEL)
-    model = AutoModelForDepthEstimation.from_pretrained(MODEL).eval().to(dev)
+    print(f"▸ 模型 {name}（device={dev}，HF_ENDPOINT={os.environ['HF_ENDPOINT']}）")
+    proc = AutoImageProcessor.from_pretrained(name)
+    model = AutoModelForDepthEstimation.from_pretrained(name).eval().to(dev)
     return proc, model, dev
 
 
@@ -183,6 +193,10 @@ def main():
     ap.add_argument("--quality", type=int, default=QUALITY)
     ap.add_argument("--fillet", type=float, default=FILLET,
                     help="轮廓倒角半径（卡面宽度的比例，默认 0.02；给 0 就是不倒角）")
+    ap.add_argument("--model", default=MODEL,
+                    help="换深度模型（做对照用，例如 depth-anything/Depth-Anything-V2-Base-hf）")
+    ap.add_argument("--out", default=DEPTH,
+                    help="产物目录（默认 assets/images/cards/depth；做模型对照时写到临时目录）")
     args = ap.parse_args()
 
     with open(MANIFEST, encoding="utf-8") as f:
@@ -197,7 +211,7 @@ def main():
         for miss in sorted(want - got):
             print(f"✗ 清单里没有这一张：{miss}")
 
-    os.makedirs(DEPTH, exist_ok=True)
+    os.makedirs(args.out, exist_ok=True)
     pairs, total, skipped = [], 0, 0
     proc = model = dev = None
     t0 = time.time()
@@ -205,7 +219,7 @@ def main():
     for c in todo:
         base = os.path.basename(c["image"])
         face_path = os.path.join(ROOT, "assets", c["image"])
-        dest = os.path.join(DEPTH, base)
+        dest = os.path.join(args.out, base)
         if not os.path.exists(face_path):
             print(f"✗ 卡面不在：{c['image']}（先跑 make-cards.py）")
             continue
@@ -214,7 +228,7 @@ def main():
             skipped += 1
             continue
         if model is None:
-            proc, model, dev = load_model()
+            proc, model, dev = load_model(args.model)
 
         im = Image.open(face_path).convert("RGB")
         d = infer(proc, model, dev, im)
@@ -268,14 +282,17 @@ def main():
 
     # 清单里有、深度图不在的：这条守卫在 scripts/check-deck.mjs 里也有（构建时阻断），
     # 这里报一遍是为了让「生成阶段」就把话说清楚，而不是等构建才红。
+    # **只在写正式产物目录时查**：--out 到临时目录做模型对照时天然只有几张，报「缺 57 张」只会误导。
+    if args.out != DEPTH:
+        return
     missing = [os.path.basename(c["image"]) for c in cards
-               if not os.path.exists(os.path.join(DEPTH, os.path.basename(c["image"])))]
+               if not os.path.exists(os.path.join(args.out, os.path.basename(c["image"])))]
     if missing:
         print(f"✗ 有 {len(missing)} 张卡没有深度图：" + "、".join(missing))
 
     expected = {os.path.basename(c["image"]) for c in cards}
-    orphans = sorted(f for f in os.listdir(DEPTH)
-                     if f not in expected and os.path.isfile(os.path.join(DEPTH, f)))
+    orphans = sorted(f for f in os.listdir(args.out)
+                     if f not in expected and os.path.isfile(os.path.join(args.out, f)))
     if orphans:
         print(f"⚠ assets/images/cards/depth/ 里有 {len(orphans)} 个不在清单里的产物（撤卡后忘了删？）：")
         for f in orphans:
