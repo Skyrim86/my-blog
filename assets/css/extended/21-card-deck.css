@@ -152,6 +152,17 @@
   --craft-band: 20px;
   --craft-gem-color: #6fcaa0;
 
+  /* 雕花框的**零件**（默认这份是雕花金那套）。每个进阶工艺只换其中一件 ——
+     这就是「边框与卡片风格匹配」的实现方式：框的**结构**（暗底 + 边栏 + 角花 + 宝石）共用，
+     **纹样与材料**按工艺换。金继的框该是「裂」，金边/玻璃/珐琅彩该是「规整的线」，
+     星芒全息该是「棱面」—— 四种语气各一副框，而不是六种工艺共用一副卷草。
+     四个令牌都可以被风格类覆写；`--fret-line` 与 `--fret-band` 接受**颜色或渐变**（星芒全息用渐变）。 */
+  --fret-rail-h: var(--tex-fret-h);
+  --fret-rail-v: var(--tex-fret-v);
+  --fret-corner: var(--tex-fret-corner);
+  --fret-line: #e9ca86;
+  --fret-band: rgba(16, 13, 20, .84);
+
   /* ---------- 等级令牌的默认值 = 最低档「收藏」那一套 ----------
 
      与 --cframe 上面那条同一个道理：等级类（.home-card-rank--*）会整组覆写它们，漏挂时按收藏渲染。
@@ -280,7 +291,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background-color: rgba(16, 13, 20, .84);
+  background: var(--fret-band, rgba(16, 13, 20, .84));
   -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000),
                       linear-gradient(#000, #000), linear-gradient(#000, #000);
   mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000),
@@ -300,11 +311,13 @@
   content: "";
   position: absolute;
   inset: 0;
-  background-color: var(--rank-fret, #e9ca86);
-  -webkit-mask-image: var(--tex-fret-h), var(--tex-fret-h), var(--tex-fret-v), var(--tex-fret-v),
-                      var(--tex-fret-corner), var(--tex-fret-corner), var(--tex-fret-corner), var(--tex-fret-corner);
-  mask-image: var(--tex-fret-h), var(--tex-fret-h), var(--tex-fret-v), var(--tex-fret-v),
-              var(--tex-fret-corner), var(--tex-fret-corner), var(--tex-fret-corner), var(--tex-fret-corner);
+  background: var(--fret-line, #e9ca86);
+  /* 八层：上边栏平铺、下边栏平铺、左边栏平铺、右边栏平铺、四个角花。零件全走令牌，
+     所以每个工艺换一副框只需要覆写上面那四个令牌（结构不动）。 */
+  -webkit-mask-image: var(--fret-rail-h), var(--fret-rail-h), var(--fret-rail-v), var(--fret-rail-v),
+                      var(--fret-corner), var(--fret-corner), var(--fret-corner), var(--fret-corner);
+  mask-image: var(--fret-rail-h), var(--fret-rail-h), var(--fret-rail-v), var(--fret-rail-v),
+              var(--fret-corner), var(--fret-corner), var(--fret-corner), var(--fret-corner);
   -webkit-mask-size: 48px 20px, 48px 20px, 20px 48px, 20px 48px,
                      26px 26px, 26px 26px, 26px 26px, 26px 26px;
   mask-size: 48px 20px, 48px 20px, 20px 48px, 20px 48px,
@@ -910,6 +923,16 @@ a.home-deck-dialog-credit:hover {
    （一圈圈色环从中心推出去，像宝可梦卡的「宇宙闪」）。悬停时整层转一点，读作「把卡在光里转了个角度」。 */
 .home-card--holo-prism {
   --craft-ornate: 1;
+  /* 它的框：**棱面语气**。边栏不是卷草也不是规整线，而是一排斜向棱纹（纯 CSS 渐变当 mask，0 新增图）；
+     角花换成棱角碎星；线是彩虹渐变（--fret-line 接受渐变，就是为它留的）。 */
+  --fret-rail-h: repeating-linear-gradient(104deg, rgba(255, 255, 255, .18) 0 2px,
+    rgba(255, 255, 255, .95) 2.8px 3.6px, rgba(255, 255, 255, .22) 4.4px 9px);
+  --fret-rail-v: repeating-linear-gradient(14deg, rgba(255, 255, 255, .18) 0 2px,
+    rgba(255, 255, 255, .95) 2.8px 3.6px, rgba(255, 255, 255, .22) 4.4px 9px);
+  --fret-corner: var(--tex-fret-shard);
+  --fret-line: linear-gradient(100deg, #ffd9a0, #ff9ec4 28%, #a0e8ff 52%, #c9a0ff 76%, #ffe6b0);
+  --fret-band: rgba(28, 26, 48, .74);
+  --craft-gem-color: #d9c9ff;
   --cframe-finish: linear-gradient(140deg, rgba(255, 255, 255, .46), rgba(226, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
   --cplate: linear-gradient(to top, rgba(16, 14, 26, .92), rgba(16, 14, 26, .6));
   --cplate-solid: rgba(16, 14, 26, .88);
@@ -940,6 +963,13 @@ a.home-deck-dialog-credit:hover {
    见文件顶部第 2 条规矩），并挂手抖滤镜（第 3 条：直线纹样一律挂 --cfilter）。 */
 .home-card--gold {
   --craft-ornate: 1;
+  /* 它的框：**规整线条款**（三横线 + 双排珠）+ 暖黑边栏 + 亮金线 —— 与「拉丝金属」同一种语气 */
+  --fret-rail-h: var(--tex-fret-rule);
+  --fret-rail-v: var(--tex-fret-rule-v);
+  --fret-corner: var(--tex-fret-corner);
+  --fret-line: #f0d9a0;
+  --fret-band: rgba(28, 20, 8, .86);
+  --craft-gem-color: #ffd891;
   --cframe-finish: linear-gradient(140deg, rgba(255, 246, 213, .52), rgba(231, 205, 126, .26) 16%, rgba(201, 162, 39, .30) 32%, rgba(255, 248, 221, .46) 50%, rgba(184, 153, 31, .28) 66%, rgba(168, 121, 26, .30) 84%, rgba(255, 238, 184, .42));
   --cplate: linear-gradient(to top, rgba(30, 21, 6, .93), rgba(30, 21, 6, .62));
   --cplate-solid: rgba(30, 21, 6, .88);
@@ -1007,6 +1037,13 @@ a.home-deck-dialog-credit:hover {
    把画面折过去的那一圈。磨砂仍然只做下半张（上半张通透，脸才看得清）。 */
 .home-card--glass {
   --craft-ornate: 1;
+  /* 它的框：**规整线条款 + 半透明的边栏**（能透出后面的画面，玻璃的性格）+ 冷白线 */
+  --fret-rail-h: var(--tex-fret-rule);
+  --fret-rail-v: var(--tex-fret-rule-v);
+  --fret-corner: var(--tex-fret-corner);
+  --fret-line: rgba(238, 248, 255, .9);
+  --fret-band: rgba(18, 28, 38, .62);
+  --craft-gem-color: #cfe6ff;
   --cframe-finish: linear-gradient(150deg, rgba(255, 255, 255, .50), rgba(214, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
   --cplate: linear-gradient(to top, rgba(14, 22, 32, .9), rgba(14, 22, 32, .55));
   --cplate-solid: rgba(14, 22, 32, .86);
@@ -1143,6 +1180,13 @@ a.home-deck-dialog-credit:hover {
    **混合模式用 normal 而不是 screen**：金色裂缝在浅色画上（木刀那张）用 screen 会完全消失（实测）。 */
 .home-card--kintsugi {
   --craft-ornate: 1;
+  /* 它的框：**裂缝款** —— 框上的裂与卡面的裂缝网同族（这就是「边框匹配工艺」最直接的一处） */
+  --fret-rail-h: var(--tex-fret-crack);
+  --fret-rail-v: var(--tex-fret-crack-v);
+  --fret-corner: var(--tex-fret-corner);
+  --fret-line: #e5b96a;
+  --fret-band: rgba(10, 8, 12, .9);
+  --craft-gem-color: #b98a3e;
   --cframe-finish: linear-gradient(140deg, rgba(74, 64, 72, .40), rgba(22, 19, 26, .48) 52%, rgba(61, 54, 64, .36));
   --cplate: linear-gradient(to top, rgba(10, 8, 12, .94), rgba(10, 8, 12, .7));
   --cplate-solid: rgba(10, 8, 12, .9);
@@ -1201,6 +1245,13 @@ a.home-deck-dialog-credit:hover {
    繁复全在边框上，这也是「工艺克制」那条的落地（全卡闪到看不清插画就失败了）。 */
 .home-card--filigree {
   --craft-ornate: 1;
+  /* 它的框：**卷草边栏 + 圆花心**（参考图那副），也就是默认那一套 —— 显式写全是为了
+     「每种进阶工艺都有自己的框」这件事在代码里一眼可见，也让守卫的检查口径统一。 */
+  --fret-rail-h: var(--tex-fret-h);
+  --fret-rail-v: var(--tex-fret-v);
+  --fret-corner: var(--tex-fret-corner);
+  --fret-line: #e9ca86;
+  --fret-band: rgba(16, 13, 20, .86);
   --craft-gem-color: #f0b96a;
   --cframe-finish: linear-gradient(140deg, rgba(198, 162, 94, .38), rgba(58, 44, 22, .46) 52%, rgba(152, 120, 64, .34));
   --cplate: linear-gradient(to top, rgba(20, 15, 8, .95), rgba(20, 15, 8, .72));
@@ -1222,6 +1273,12 @@ a.home-deck-dialog-credit:hover {
    框色** —— 等级给的是金属色阶，所以缝在高档是金线、在低档是银灰线，金线不必另画一层。 */
 .home-card--enamel {
   --craft-ornate: 1;
+  /* 它的框：**规整线条款**（那排珠子读作掐丝的小格）+ 深蓝紫边栏 + 亮金线 —— 与格子里的宝石色同族 */
+  --fret-rail-h: var(--tex-fret-rule);
+  --fret-rail-v: var(--tex-fret-rule-v);
+  --fret-corner: var(--tex-fret-corner);
+  --fret-line: #f2e3b0;
+  --fret-band: rgba(18, 16, 44, .88);
   --craft-gem-color: #7f9ce6;
   --cframe-finish: linear-gradient(140deg, rgba(255, 246, 214, .42), rgba(196, 158, 68, .30) 52%, rgba(255, 240, 196, .36));
   --cplate: linear-gradient(to top, rgba(16, 14, 26, .94), rgba(16, 14, 26, .68));

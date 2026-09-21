@@ -83,7 +83,14 @@
     ink:          { foil: 0.18, scale: 1.9, tint: [0.70, 0.70, 0.82], spec: 0.35, relief: 1.00, edge: [0.28, 0.28, 0.34] },
     washi:        { foil: 0.14, scale: 1.3, tint: [1.00, 0.96, 0.86], spec: 0.25, relief: 0.85, edge: [0.94, 0.91, 0.83] },
     kintsugi:     { foil: 0.62, scale: 2.7, tint: [1.00, 0.82, 0.40], spec: 0.70, relief: 1.00, edge: [0.22, 0.20, 0.20] },
-    yukika:       { foil: 0.44, scale: 3.1, tint: [0.85, 0.95, 1.00], spec: 0.55, relief: 1.00, edge: [0.91, 0.95, 1.00] }
+    yukika:       { foil: 0.44, scale: 3.1, tint: [0.85, 0.95, 1.00], spec: 0.55, relief: 1.00, edge: [0.91, 0.95, 1.00] },
+    // 2026-09-21 新加的四种。**少写一种不会报错、只会静默套用兜底（foil）** —— 表现是
+    // 「首页看着是雕花金、转起来是普通全息」，而这两种视图永远不会同时出现在一屏里。
+    // check-deck.mjs 有一条守卫核这张表与清单里用到的风格一一对应（就是它拦下这一处的）。
+    filigree:     { foil: 0.40, scale: 2.0, tint: [1.00, 0.86, 0.58], spec: 0.85, relief: 1.05, edge: [0.86, 0.70, 0.36] },
+    enamel:       { foil: 0.30, scale: 2.6, tint: [0.96, 0.92, 1.00], spec: 0.95, relief: 1.10, edge: [0.80, 0.74, 0.44] },
+    starnight:    { foil: 0.26, scale: 3.4, tint: [0.78, 0.84, 1.00], spec: 0.45, relief: 1.00, edge: [0.30, 0.34, 0.66] },
+    frostcrack:   { foil: 0.22, scale: 3.0, tint: [0.90, 0.96, 1.00], spec: 0.60, relief: 1.05, edge: [0.86, 0.92, 0.98] }
   };
   var STYLE_FALLBACK = 'foil';
 

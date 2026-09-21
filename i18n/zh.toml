@@ -241,7 +241,7 @@ other = "传世"
 [deckRankMiracle]
 other = "奇迹"
 
-# 收藏库（/collection/，见 docs/features.md ㊿）—— 八种工艺的**中文名**。
+# 收藏库（/collection/，见 docs/features.md ㊿）—— 十二种工艺的**中文名**。
 # 这是全站第一次给「工艺」起对外名字：此前 style 只有代码名（foil / washi / kintsugi…），
 # 中文叫法只出现在 21-card-deck.css 的注释与文档里，卡片墙的筛选项需要真名字。
 # 取的就是 CSS 注释里那套叫法（全息 / 星芒全息 / 金边 / 玻璃 / 墨 / 和纸 / 雪华 / 金继）。

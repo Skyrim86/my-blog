@@ -475,6 +475,18 @@ for (const r of cssRanks) {
           `进阶工艺显式写 1，普通工艺显式写 0`
       );
     }
+    // 进阶工艺还要**显式**给出自己那副框的零件（--fret-line 是这套里的代表：它决定线的材料）。
+    // 漏写的表现是「这颗卡的框沿用默认的金色」—— 页面上只是金得不太对，看不出是漏了。
+    if (blk && /--craft-ornate:\s*1/.test(blk)) {
+      for (const tok of ['--fret-line', '--fret-rail-h', '--fret-corner']) {
+        if (!blk.includes(tok)) {
+          failures.push(
+            `✗ ${CSS} 的进阶工艺「${s}」没有声明 ${tok} —— 它会沿用默认那一副框（雕花金的卷草款式），` +
+              `与它自己的语气对不上。四种框的语气见「工艺的两档」那一节`
+          );
+        }
+      }
+    }
   }
 }
 

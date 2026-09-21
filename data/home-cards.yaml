@@ -19,8 +19,10 @@
 #               filigree 雕花金 / enamel 珐琅彩
 #           分档口径取「能从代码里数出来」的那个（普通只有一层、进阶要多层叠加），
 #           两档各驱动什么见 assets/css/extended/21-card-deck.css 的「工艺的两档」一节。
-#           **filigree / enamel / starnight / frostcrack 四种是 2026-09-21 新加的，
-#           清单里还没有卡在用** —— 下一步是给它们分卡（各档的候选名单见 features.md ㊴）。
+#           **filigree / enamel / starnight / frostcrack 是 2026-09-21 新加的**，当天就按
+#           「名字与气质对得上」分给了 18 张卡（**只改 style、不动 rank**，所以六档分布没变）：
+#           冰裂 6 张（霜华/雪舞/糖霜/雪原/冰纹/雪松）、星屑 5 张（夜间/夜行/猎星/月影/雨幕）、
+#           雕花金 4 张（花信/星夜/银霜/电波，原先是金继）、珐琅彩 3 张（初始之音/旋律/琉璃音）。
 #           2026-09-20 从十六种精简而来（十六种里其实只有四个原子配方，同一配方的变体在
 #           272px 下看不出差别，而每多一种就多一份明暗两套的维护面；CSS 因此从 67 KB 降到 54 KB）。
 #           被砍的按族挪到最接近的保留项：holo-gold→foil（同构，只差色相）、frost/sakura→yukika、
@@ -72,7 +74,7 @@
   crop: figure
   series: 绫华
   name: 花信
-  style: kintsugi
+  style: filigree
   rank: legend
   credit: twitter wani_Dile
   credit_url: https://twitter.com/wani_Dile
@@ -90,7 +92,7 @@
   crop: figure
   series: 绫华
   name: 霜华
-  style: yukika
+  style: frostcrack
   rank: legend
   credit: safebooru 4194498
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4194498
@@ -108,7 +110,7 @@
   crop: figure
   series: 绫华
   name: 星夜
-  style: kintsugi
+  style: filigree
   rank: arcane
   credit: safebooru 4806294
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4806294
@@ -172,7 +174,7 @@
   crop: figure
   series: 绫华
   name: 雪舞
-  style: yukika
+  style: frostcrack
   rank: collector
   credit: safebooru 3987957
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3987957
@@ -240,7 +242,7 @@
   crop: figure
   series: 绫华
   name: 糖霜
-  style: washi
+  style: frostcrack
   rank: arcane
   credit: safebooru 4498197
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4498197
@@ -260,7 +262,7 @@
   crop: [0.54, 0.06, 0.96, 1.0]         # 夜间那张人物在 76% 处
   series: 黑长直少女
   name: 夜间
-  style: ink
+  style: starnight
   rank: epic
   credit: pixiv 77002104（壁纸套·夜间）
   credit_url: https://www.pixiv.net/artworks/77002104
@@ -294,7 +296,7 @@
   crop: figure
   series: 卡夫卡
   name: 猎星
-  style: kintsugi
+  style: starnight
   rank: collector
   credit: safebooru 4601052
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4601052
@@ -303,7 +305,7 @@
   crop: figure
   series: 卡夫卡
   name: 夜行
-  style: ink
+  style: starnight
   rank: collector
   credit: safebooru 4596259
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4596259
@@ -339,7 +341,7 @@
   crop: figure
   series: 卡夫卡
   name: 雨幕
-  style: glass
+  style: starnight
   rank: rare
   credit: safebooru 4092477
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4092477
@@ -361,7 +363,7 @@
   src: tools/cards/sources/emilia-01.webp
   series: 艾米莉亚
   name: 银霜
-  style: kintsugi
+  style: filigree
   rank: legend
   credit: safebooru 2948619
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2948619
@@ -377,7 +379,7 @@
   src: tools/cards/sources/emilia-03.webp
   series: 艾米莉亚
   name: 雪原
-  style: washi
+  style: frostcrack
   rank: rare
   credit: safebooru 3370906
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3370906
@@ -393,7 +395,7 @@
   src: tools/cards/sources/emilia-05.webp
   series: 艾米莉亚
   name: 月影
-  style: washi
+  style: starnight
   rank: arcane
   credit: safebooru 3285846
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3285846
@@ -457,7 +459,7 @@
   src: tools/cards/sources/emilia-13.webp
   series: 艾米莉亚
   name: 冰纹
-  style: washi
+  style: frostcrack
   rank: rare
   credit: safebooru 3985983
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3985983
@@ -473,7 +475,7 @@
   src: tools/cards/sources/emilia-15.webp
   series: 艾米莉亚
   name: 雪松
-  style: washi
+  style: frostcrack
   rank: collector
   credit: safebooru 3954029
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3954029
@@ -577,7 +579,7 @@
   src: tools/cards/sources/miku-01.webp
   series: 初音未来
   name: 初始之音
-  style: kintsugi
+  style: enamel
   rank: epic
   credit: safebooru 1869610
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=1869610
@@ -585,7 +587,7 @@
   src: tools/cards/sources/miku-02.webp
   series: 初音未来
   name: 旋律
-  style: ink
+  style: enamel
   rank: arcane
   credit: safebooru 1485416
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=1485416
@@ -593,7 +595,7 @@
   src: tools/cards/sources/miku-03.webp
   series: 初音未来
   name: 电波
-  style: kintsugi
+  style: filigree
   rank: legend
   credit: safebooru 3561974
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3561974
@@ -601,7 +603,7 @@
   src: tools/cards/sources/miku-04.webp
   series: 初音未来
   name: 琉璃音
-  style: ink
+  style: enamel
   rank: epic
   credit: safebooru 2466422
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2466422

@@ -260,6 +260,72 @@ def fret_rail(seed, tile=48.0, band_h=20.0):
                    for d, sw in strokes)
 
 
+def fret_rule_rail(seed, tile=32.0, band_h=20.0):
+    """**规整线条款**的边栏瓦片：三条横贯的细线 + 双排珠子。
+
+    给「金边 / 玻璃 / 珐琅彩」那一类用 —— 它们的性格是**干净、规整、有工艺感**，
+    与雕花金那副卷草边栏是两种语气（用户：「边框要和卡片风格匹配」）。
+    珠子的大小仍有微小的不均匀（完全等距就成齿条了），但周期取整、两端接得上，能平铺。
+    """
+    rng = random.Random(seed)
+    strokes = []
+    for yy in (1.0, band_h / 2, band_h - 1.0):
+        strokes.append((f"M0 {yy:.0f}H{tile:.0f}", 1.2 if yy != band_h / 2 else 0.9))
+    for row in (band_h * 0.3, band_h * 0.7):
+        for k in range(4):
+            x = (k + 0.5) * tile / 4
+            r = rng.uniform(1.0, 1.5)
+            strokes.append((f"M{x - r:.1f} {row:.1f}a{r:.1f} {r:.1f} 0 1 0 {2 * r:.1f} 0"
+                            f"a{r:.1f} {r:.1f} 0 1 0 {-2 * r:.1f} 0", 0.9))
+    return "".join(f'<path d="{d}" stroke="#fff" fill="none" stroke-width="{sw}"/>'
+                   for d, sw in strokes)
+
+
+def fret_crack_rail(seed, tile=48.0, band_h=20.0):
+    """**裂缝款**的边栏瓦片：几条棱角的裂线横穿这一格，带细枝。
+
+    给金继用 —— 它的框不该是卷草，应该是**裂**：与卡片自己的裂缝网同族，
+    于是「边框与卡面是一套语言」。这就是「边框要匹配工艺」的直接落地。
+    """
+    rng = random.Random(seed)
+    out = []
+    for k in range(2):
+        pts = [(0.0, band_h * (0.32 + 0.36 * k))]
+        for i in range(1, 6):
+            pts.append((i * tile / 5, pts[-1][1] + rng.uniform(-3.4, 3.4)))
+        out.append(band(pts, 1.5, 0.6, taper=1.1, dec=1))
+        if rng.random() < 0.9:                      # 一条细枝，从中间斜出去
+            bx, by = pts[2]
+            ang = rng.uniform(-0.9, 0.9)
+            out.append(band([(bx, by), (bx + math.cos(ang) * 7, by + math.sin(ang) * 7)],
+                            0.9, 0.0, taper=1.0, dec=1))
+    return "".join(f'<path d="{d}" fill="#fff"/>' for d in out)
+
+
+def corner_shard(seed, size=26.0):
+    """**棱角碎星款**角花：给星芒全息用 —— 它的性格是放射与棱面，不该戴一朵圆花。
+
+    两枚交叉的梭形（四角星）+ 中心一个小棱面 + 四个斜向小棱片，全用等宽 stroke 与直线，
+    **故意不做圆**：这一款与圆花心的区别就是「有棱」。
+    """
+    c = size / 2
+    out = []
+    for a0 in (0.0, math.pi / 2):
+        pts = []
+        for k in range(4):
+            a = a0 + k * math.pi / 2
+            r = size * (0.47 if k % 2 == 0 else 0.16)
+            pts.append((c + math.cos(a) * r, c + math.sin(a) * r))
+        out.append(f'<path d="M{"L".join(f"{x:.1f} {y:.1f}" for x, y in pts)}Z" fill="#fff"/>')
+    out.append(f'<path d="{circle(c, c, size * 0.115, 1)}" fill="#fff"/>')
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        px, py = c + math.cos(a) * size * 0.30, c + math.sin(a) * size * 0.30
+        out.append(f'<path d="M{px:.1f} {py:.1f}l{math.cos(a) * 3.4:.1f} {math.sin(a) * 3.4:.1f}" '
+                   f'stroke="#fff" stroke-width="1.4" fill="none"/>')
+    return "".join(out)
+
+
 def rot90(body, w, h):
     """把一张瓦片整体转 90°（给竖向边栏用）。返回 (body, 新的宽, 新的高)。"""
     return f'<g transform="translate({h:.0f} 0) rotate(90)">{body}</g>', h, w
@@ -399,8 +465,20 @@ def main():
         "雕花边栏瓦片·横（上下双线 + 正弦缠枝 + 小卷与小点；1:1 尺寸、可平铺）")
     body, vw, vh = rot90(rail, 48, 20)
     add("--tex-fret-v", body, vw, vh, "雕花边栏瓦片·竖（横向那格的 90° 版本）")
+    rule = fret_rule_rail(53, tile=32.0, band_h=20.0)
+    add("--tex-fret-rule", rule, 32, 20,
+        "边栏瓦片·规整线条款（三横线 + 双排珠）—— 给金边/玻璃/珐琅彩这一类「干净规整」的工艺")
+    body, vw, vh = rot90(rule, 32, 20)
+    add("--tex-fret-rule-v", body, vw, vh, "规整线条款·竖")
+    crackrail = fret_crack_rail(67, tile=48.0, band_h=20.0)
+    add("--tex-fret-crack", crackrail, 48, 20,
+        "边栏瓦片·裂缝款（棱角裂线 + 细枝）—— 给金继：框上的裂与卡面的裂缝网同族")
+    body, vw, vh = rot90(crackrail, 48, 20)
+    add("--tex-fret-crack-v", body, vw, vh, "裂缝款·竖")
     add("--tex-fret-corner", corner_boss(71), 26, 26,
-        "角花（双圈 + 四叶 + 疏密不匀的点；中心留给宝石）")
+        "角花·圆花心（双圈 + 四叶 + 疏密不匀的点；中心留给宝石）—— 雕花金/金边/玻璃/金继/珐琅彩")
+    add("--tex-fret-shard", corner_shard(89), 26, 26,
+        "角花·棱角碎星（交叉梭形 + 棱片，故意不做圆）—— 给星芒全息：它的性格是放射与棱面")
     add("--tex-fret-gem", gem(7, 9.0), 9, 9, "宝石（六边明亮式：轮廓 + 切面线）")
 
     lines = [
