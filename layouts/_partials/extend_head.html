@@ -322,10 +322,6 @@
 {{- else }}
 {{- warnf "找不到 assets/fonts/rose-clock.woff2：时钟数字会退回系统字体" }}
 {{- end }}
-
-{{- /* 首页右栏的时钟：只在首页加载。文案经 data-* 传（见 home-clock.html）。 */ -}}
-{{- $clock := resources.Get "js/home-clock.js" | minify | fingerprint }}
-<script defer src="{{ $clock.RelPermalink }}" integrity="{{ $clock.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
 {{- /* 卡片组的两个脚本：**首页与收藏库（/collection/）共用**。
@@ -333,9 +329,14 @@
        三维弹层（点一格看那张卡），而它与首页用的是同一份实现：home-deck.js 在
        「根节点里没有轮播卡」时只提供弹层（判据见该文件头部的 `carousel`）。
 
-       **顺序是硬要求**（三者都是 defer，按文档顺序执行）：
-         card-3d.js → home-deck.js → deck-wall.js
+       **顺序是硬要求**（都是 defer，按文档顺序执行，**必须是这个顺序**）：
+         card-3d.js → home-deck.js → 首页的 home-clock.js → 收藏库的 deck-wall.js
        · card-3d.js 必须在 home-deck.js 前面：后者第一次打开弹层时会调 window.card3d.attach；
+       · **home-deck.js 必须在首页的 home-clock.js 前面**：首页每天只展示随机 12 张
+         （`data-deck-daily`），而「今日一卡」要读卡片组算好的那一份（`window.homeDeck.items`）、
+         按下标调 openAt。时钟首次 tick 排在字体就绪 + 对齐整秒之后，只要它**注册**时
+         window.homeDeck 已经在了就没问题 —— 反过来的话它会用整副 63 张抽，
+         抽到那 12 张之外的卡时点击**静默失效**（下标越界被 openAt 挡掉，不报错）。实测踩到过。
        · deck-wall.js 必须在 home-deck.js 后面：它要把格子升级成按钮并调 window.homeDeck.openAt，
          拿不到 window.homeDeck 时它**只插筛选条**（不留点不动的按钮）。
 
@@ -352,6 +353,14 @@
 {{- if eq .Section "collection" }}
 {{- $wall := resources.Get "js/deck-wall.js" | minify | fingerprint }}
 <script defer src="{{ $wall.RelPermalink }}" integrity="{{ $wall.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}
+
+{{- /* 首页右栏的时钟：只在首页加载，**必须排在卡片组那两个脚本之后**（见上面那段的顺序说明：
+       「今日一卡」要读卡片组算好的当天 12 张，注册太早会退回整副 63 张、点击静默失效）。
+       文案经 data-* 传（见 home-clock.html）。 */ -}}
+{{- if .IsHome }}
+{{- $clock := resources.Get "js/home-clock.js" | minify | fingerprint }}
+<script defer src="{{ $clock.RelPermalink }}" integrity="{{ $clock.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
 {{- /* 搜索快捷键（Ctrl/⌘+K，或不在输入框时按 "/"）：全站加载，脚本本身很小。

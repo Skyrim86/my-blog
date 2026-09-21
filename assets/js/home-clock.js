@@ -18,9 +18,12 @@
  * 5. **只有「日」变了才重建月历 / mini 条 / 今日一卡**：这三块由「今天几号」决定，
  *    每秒重建三十来个节点纯属浪费。用一个「年-月-日」签名挡着。
  * 6. **今日一卡从卡片组的清单里抽，不另抄一份数据**：`.home-deck` 的 `data-deck` 已经带着
- *    63 张的图 URL、名字、系列、等级（约 13KB），再抄一份进这块就是白涨体积。代价是两处耦合：
- *    清单读不到（卡片组那块被摘掉）时今日一卡整块不出现 —— 符合「宁可没有，也不给一个错的」；
- *    点击要调卡片组暴露的 `window.homeDeck.openAt`。
+ *    全部 63 张的图 URL、名字、系列、等级（约 13KB），再抄一份进这块就是白涨体积。**2026-09-21
+ *    起，抽的范围是「卡片组正在用的那一份」而不是整副**：首页每天只展示随机 12 张
+ *    （home-deck.js 的 data-deck-daily），这块按下标调 openAt，池子不一致会静默点不动 ——
+ *    所以走 `deckPool()`：优先读卡片组暴露的 `window.homeDeck.items`，读不到才退回整副 63 张。
+ *    代价仍是两处耦合：清单读不到（卡片组那块被摘掉）时今日一卡整块不出现 —— 符合
+ *    「宁可没有，也不给一个错的」；点击要调卡片组暴露的 `window.homeDeck.openAt`。
  *
  * 代价：每秒一次文本与两个 transform 更新，都在这块面板内。
  * 没有做「减少动效」分叉：这不是动画，是数值刷新（14-mascot / reveal 那类做法针对的是位移与淡入）；
@@ -90,16 +93,28 @@
 
     /* 卡片组清单：读同页 `.home-deck` 已经带在文档里的那份（见文件头第 6 条）。
        注意它不在 `.home-clock` 上，所以不能走 read()/json() 那两个按 el.dataset 取的助手。
-       读不到就整块不出 —— 按钮一直带着 data-pending，CSS 里就是 display:none。 */
+       读不到就整块不出 —— 按钮一直带着 data-pending，CSS 里就是 display:none。
+
+       **2026-09-21：优先用卡片组算好的那一份**（`window.homeDeck.items`）。首页每天只展示清单里
+       随机 12 张（见 home-deck.js 的 data-deck-daily），而这里的抽取是**按下标**调 openAt 的 ——
+       两边池子不一致的表现是「点微卡没反应」：下标在那 12 张里越界，被 openAt 的边界判断挡掉，
+       不报任何错。所以池子只有「卡片组正在用的那一份」这一个来源，下面这份 63 张只是它没跑起来时的兜底。
+       取用时机是安全的：deckPool() 在 tick() 里被调，而首次 tick 排在「字体就绪 + 对齐到整秒」之后，
+       那时 home-deck.js（同为 defer，排在本文件之后）早已执行完。 */
     const deckEl = document.querySelector('.home-deck');
-    let deckItems = [];
+    let fullItems = [];
     if (deckEl) {
         try {
             const parsed = JSON.parse(deckEl.dataset.deck || '[]');
-            if (Array.isArray(parsed)) deckItems = parsed;
+            if (Array.isArray(parsed)) fullItems = parsed;
         } catch (e) {
-            deckItems = [];
+            fullItems = [];
         }
+    }
+
+    function deckPool() {
+        const live = window.homeDeck && window.homeDeck.items;
+        return (Array.isArray(live) && live.length) ? live : fullItems;
     }
 
     const greetFor = (h) => {
@@ -228,10 +243,11 @@
             acc += RANK_WEIGHT[k][1];
             if (r < acc) { rank = RANK_WEIGHT[k][0]; break; }
         }
+        const items = deckPool();
         let pool = [];
-        deckItems.forEach((it, idx) => { if ((it.rank || 'collector') === rank) pool.push(idx); });
+        items.forEach((it, idx) => { if ((it.rank || 'collector') === rank) pool.push(idx); });
         if (!pool.length) {
-            deckItems.forEach((it, idx) => { if ((it.rank || 'collector') === 'collector') pool.push(idx); });
+            items.forEach((it, idx) => { if ((it.rank || 'collector') === 'collector') pool.push(idx); });
         }
         if (!pool.length) return null;
         return pool[Math.floor(hash01(seed ^ 0x51ed270b) * pool.length)];
@@ -242,10 +258,11 @@
        显形只是换一组 CSS 令牌（.is-revealed），没有动画。播报**只在换日时**做：
        首屏不播 —— 页面刚打开就念一串话会打断读屏用户正在做的事。 */
     function renderDaily(seed, announce) {
-        if (!dailyBtn || !deckItems.length) return;
+        const items = deckPool();
+        if (!dailyBtn || !items.length) return;
         const idx = pickDaily(seed);
         if (idx == null) return;
-        const it = deckItems[idx];
+        const it = items[idx];
         if (!it || !it.s) return;
         dailyArt.src = it.s;
         dailyArt.srcset = it.s + ' 1x, ' + (it.l || it.s) + ' 2x';

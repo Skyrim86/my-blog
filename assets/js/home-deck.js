@@ -2,9 +2,10 @@
 // 卡下的 ⤢ 按钮打开弹层看大图，弹层里带名字、系列、序号与出处（可点外链）。
 //
 // **两支模式（2026-09-21）**：根节点是「带 data-deck 的容器」而不是写死的 .home-deck ——
-//   · 首页（.home-deck）：有页内轮播卡 → 全套行为都在；
+//   · 首页（.home-deck）：有页内轮播卡 → 全套行为都在。**清单会被抽成「今天的 12 张」**
+//     （`data-deck-daily="12"`，按访客本地日期作种子，见下面那段），所以首页的序号是 `01 / 12`；
 //   · 收藏库 /collection/（.deck-wall）：**没有**页内轮播卡（63 张各自是一个格子、点哪张看哪张）
-//     → 只提供「弹层 + 3D 查看器」，轮播相关的初始化全部跳过。判据是 `carousel`。
+//     → 只提供「弹层 + 3D 查看器」，轮播相关的初始化全部跳过；清单是全部 63 张，不抽。
 //   弹层与 3D 查看器只有这一份实现：卡片墙上的格子点一下，走的就是 openAt（与「今日一卡」同一条路）。
 //
 // 与 extend_head.html 的接线方式同其它脚本：清单（每张卡的 1x/2x URL、名牌文字、风格、出处）由模板经
@@ -58,6 +59,56 @@
   // 没有轮播卡时这个脚本只提供「弹层 + 3D 查看器」：轮播的按钮、进度条、自动播放、键盘与触屏
   // 滑动一律不初始化。下面的分支都挂在这个判据上，首页那一路全为真。
   var carousel = deck.hasAttribute('data-deck-carousel') && !!(card && img);
+
+  /* ---------- 首页每天只展示 12 张（2026-09-21 用户要求）----------
+
+     一副 63 张的牌轮一圈是 6s × 63 ≈ 6 分钟，而且**天天一样**；首页那一格要的是「今天长什么样」，
+     整副浏览是收藏库（/collection/）的事。所以首页每天从清单里随机抽 12 张当这一天的展示集。
+
+     四条刻意的选择：
+       1. **张数由模板声明**（`data-deck-daily="12"`），不在这里写死，也**不按 DOM 形状猜** ——
+          这一轮已经因为「猜容器里有没有 .home-card」吃过一次静默的亏（见下面 carousel 那条）。
+       2. **种子 = 「年 × 1000 + 一年中的第几天」**（访客本地日期），与时间卡「今日一卡」用的是同一个
+          —— 两边必须同一天换、且**同池**（见 window.homeDeck.items 的注释）。
+       3. **不重新构建也能换日**：抽签在浏览器里按日期做，日期一变就换批；静态站没有「今天」，
+          这是唯一不依赖每日 CI 重构建的做法。
+       4. **抽完按清单原序排回来**：这一天 12 张在首页的先后与收藏库里的顺序一致，一眼能对上
+          「今天挑的是这几张」。 */
+
+  /* 与时间卡同款：整数雪崩散列 → [0,1)。用它而不是 Math.random()，是为了「同一天所有访客、
+     同一次访问里的每次刷新，看到的都是同一批」。 */
+  function hash01(n) {
+    var x = n | 0;
+    x = Math.imul(x ^ (x >>> 16), 0x85ebca6b);
+    x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
+    x ^= x >>> 16;
+    return (x >>> 0) / 4294967296;
+  }
+
+  function daySeed(d) {
+    d = d || new Date();
+    var yearStart = new Date(d.getFullYear(), 0, 1);
+    var dayOfYear = Math.floor((d - yearStart) / 86400000) + 1;
+    return d.getFullYear() * 1000 + dayOfYear;
+  }
+
+  /* 按日期种子做一次 Fisher–Yates（只洗**下标**），取前 n 个再排回原序。
+     每一步用不同的种子（seed 加一个黄金比例常数乘步号），否则同一天的洗牌会退化成固定置换。 */
+  function pickDailySubset(all, n, seed) {
+    var idx = [];
+    for (var i = 0; i < all.length; i++) idx.push(i);
+    for (var k = idx.length - 1; k > 0; k--) {
+      var j = Math.floor(hash01(seed + k * 0x9e3779b1) * (k + 1));
+      var t = idx[k]; idx[k] = idx[j]; idx[j] = t;
+    }
+    idx = idx.slice(0, n).sort(function (a, b) { return a - b; });
+    return idx.map(function (p) { return all[p]; });
+  }
+
+  var DAILY = parseInt(deck.getAttribute('data-deck-daily') || '0', 10);
+  // 张数 ≥ 清单长度时整副照旧（清单还小的时候不该「抽」出重样的东西）
+  var dailySubset = DAILY > 0 && DAILY < items.length;
+  if (dailySubset) items = pickDailySubset(items, DAILY, daySeed());
 
   // 文案挂在**卡组容器**上（模板里 data-next / data-prev / data-announce 都在 .home-deck 上），
   // 不是挂在 <script> 上 —— 一开始写成 script.dataset，结果全取到 undefined、播报只剩兜底模板。
@@ -553,6 +604,11 @@
      不检查 busy（正在做交叉淡入）：apply 只是换 src 与类，那个等待中的 320ms 回调也只会清掉
      ghost / is-in 并把 busy 放掉，不会把卡片换回去。 */
   window.homeDeck = {
+    /* **当前这一页真正在用的那份清单**（下标口径的唯一来源）。
+       首页那支是「今天的 12 张」（见上面 data-deck-daily 那段），收藏库那支是全部 63 张。
+       时间卡的「今日一卡」必须用它、而不是自己再解析一遍 data-deck：那是**按下标**调 openAt 的，
+       池子不一致的表现是「点微卡没反应」—— 下标越界被 openAt 里的边界判断挡掉，不报任何错。 */
+    items: items,
     openAt: function (index, opener) {
       if (typeof index !== 'number' || index < 0 || index >= items.length) return false;
       i = index;
@@ -567,6 +623,13 @@
   // 卡片墙三件都不做（没有「第一张」可播报、没有轮播；预取等第一次打开弹层时再开始，
   // 否则每个访客一进这一页就先多下两张 2x 图，而他可能一张都不点开）。
   if (carousel) {
+    /* **首帧要把服务端那张换掉**：模板渲染的是**整副的第一张**（它不知道今天是哪 12 张），
+       而这里已经在轮今天这 12 张 —— 不补这一下的话，首屏显示的是一张**不在今天这批里**的卡
+       （序号却写着 `01 / 12`），而且按一次 → 会跳过今天的第一张直接到第二张。
+       同步换、不做交叉淡入：这一步几乎总在首帧之前完成（defer 脚本在解析结束时执行，
+       而那张卡的图通常还在下载 —— 换 src 等于把那个请求掐掉，不产生「空白一瞬」），
+       真要做淡入反而会在首屏硬加 320ms 动画。 */
+    if (dailySubset) apply(0);
     announce(items[0]);
     prefetch();
     start();

@@ -29,9 +29,17 @@
        deck-manifest.html 里 —— 收藏库（/collection/）的卡片墙读同一份，改字段只改那一处。
        这里只管**首页这一张卡**怎么渲染与交给 JS 什么。 */ -}}
 {{- $items := partial "deck-manifest.html" . }}
+{{- /* 首页每天只展示清单里随机 12 张（2026-09-21 用户要求）：张数在这里声明一次，
+       JS 按 `data-deck-daily` 读它，序号也用同一份口径。
+       **这里的判断必须与 home-deck.js 里那条一致**（张数 ≥ 清单长度时整副照旧，不抽），
+       否则首帧会写一个 JS 一上来就更正的数字。JS 跑起来后序号由 apply() 覆盖，所以不一致只影响
+       首帧与禁 JS 的情况。 */ -}}
+{{- $daily := 12 }}
+{{- $shown := len $items }}
+{{- if and (gt $daily 0) (lt $daily (len $items)) }}{{ $shown = $daily }}{{ end }}
 {{- with $items }}
 {{- $first := index . 0 }}
-<div class="home-deck" data-deck-carousel="1" data-deck="{{ . | jsonify }}"
+<div class="home-deck" data-deck-carousel="1" data-deck-daily="{{ $daily }}" data-deck="{{ . | jsonify }}"
      data-next="{{ i18n "deckNext" }}" data-prev="{{ i18n "deckPrev" }}"
      data-announce="{{ i18n "deckAnnounce" }}"
      data-zoom="{{ i18n "deckZoom" }}" data-close="{{ i18n "deckClose" }}"
@@ -53,7 +61,7 @@
         <span class="home-card-rank" aria-hidden="true"></span>
         <span class="home-card-plate">
             <span class="home-card-label">{{ $first.label }}</span>
-            <span class="home-card-index">01 / {{ printf "%02d" (len .) }}</span>
+            <span class="home-card-index">01 / {{ printf "%02d" $shown }}</span>
         </span>
     </div>
 </div>
