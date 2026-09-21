@@ -4,7 +4,7 @@
 // 工艺、**档位**、等级、等级中文名），文案走 data-*（JS 调不到 i18n）—— 都在 `.deck-wall` 那个
 // 容器上，所以这支脚本不需要自己的 data-*。
 //
-// 八条刻意的取舍：
+// 七条刻意的取舍：
 //
 //   1. **筛选项是现算的**，模板里不写三排按钮：清单里已经有 series / style / styleTier /
 //      rankLabel，数一遍就有了 —— 加一张新系列的卡，筛选条自己多一项，不必回头改模板、也不会
@@ -41,8 +41,6 @@
 //      role="status" 的节点播报（读屏用户看不到网格变短了）。置灰的 chip 用原生 disabled，
 //      因此**退出 tab 序列**（键盘用户不会一路撞过 9 颗点不动的项）—— 这要求「可点的 chip 不会
 //      因为自己这一下变成 disabled」，那条不变量在 apply 里写着。
-//
-//   8. **列表头一个字也不写卡**：筛选条整条由这里注入，无 JS 时这一页就是一张静态卡册。
 (function () {
   'use strict';
 
@@ -266,7 +264,7 @@
       box.className = 'deck-filter-group';
       if (g.label) {
         // 组标签是**控件**（整档选中/取消），所以它同时是这一组的 aria-label ——
-        // 读屏用户听到的是「普通, 分组」+「普通工艺：选中或取消这一档全部工艺, 切换按钮」。
+        // 读屏用户听到的是「普通, 分组」+「普通工艺：选中或取消这一档工艺, 切换按钮」。
         box.setAttribute('role', 'group');
         box.setAttribute('aria-label', g.label);
         var t = document.createElement('button');
