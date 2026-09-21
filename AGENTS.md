@@ -9,6 +9,7 @@ Hugo 静态博客（中文）。本文件只放**每次动手都要遵守的规�
 - 内容三类：**文章**（`content/posts/<slug>/index.md`）、**课程**（课程 → 章 → 材料页）、**项目**（默认平铺单页）
 - 部署：push `main` → GitHub Actions `deploy.yml` → 校验 + 构建 → Pages。**校验与构建的唯一定义在 `.github/actions/validate/action.yml`**（`checks.yml` 与 `deploy.yml` 共用）
 - 推送固定入口：`bash scripts/push-blog.sh "feat: 说明"`（自己跑校验、构建、commit、push；校验不过就中止，不推）
+- **这个仓库的改动做完就推，不必先问人**（用户 2026-09-21 明示「以后都要推送」）。例外只有一条：下面那条「可能同时有别的会话在改」命中时先问一声 —— 推之前 `git status` 看一眼有没有不认识的改动
 - **可能同时有别的会话在改这个仓库**（人在两个窗口里对话时就会这样）：`push-blog.sh` 的 `git add -A` 会把**别人写到一半的文件**一起提交推送——实测踩过：另一个会话提交了一个没闭合的模板注释，CI 构建直接失败（线上不受影响，Pages 继续发上一次成功的版本）。所以推送前后都 `git status` 看一眼，发现不认识的改动先问人，别急着 add
 
 ## 2. 硬规则
