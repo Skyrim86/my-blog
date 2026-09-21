@@ -88,9 +88,11 @@
   --grain: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'160'%20height%3D'160'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'0.9'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.4'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.14'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
   --grain-fine: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'140'%20height%3D'140'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'1.6'%20numOctaves%3D'2'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.35'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.10'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
   --grain-fiber: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'200'%20height%3D'200'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'0.02%201.1'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.5'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.18'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
-  --tex-crack: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.34'%20stroke-width%3D'7.5'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.5'%20stroke-width%3D'3.2'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'1'%20stroke-width%3D'2.0'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'1'%20stroke-width%3D'1.1'%3E%3Cpath%20d%3D'M74%20214%20c%2026%208,%2042%202,%2064%2018'/%3E%3Cpath%20d%3D'M218%20176%20c%20-20%2012,%20-30%208,%20-48%2020'/%3E%3Cpath%20d%3D'M118%20106%20c%2016%20-14,%2030%20-12,%2044%20-26'/%3E%3C/g%3E%3C/svg%3E");
-  --tex-crack-shade: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20transform%3D'translate(1.3%201.6)'%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.5'%20stroke-width%3D'3.4'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.85'%20stroke-width%3D'1.6'%3E%3Cpath%20d%3D'M6%20344%20C%2050%20306,%2026%20252,%2074%20214'/%3E%3Cpath%20d%3D'M74%20214%20C%20104%20188,%2084%20142,%20118%20106'/%3E%3Cpath%20d%3D'M266%2046%20C%20234%2092,%20254%20136,%20218%20176'/%3E%3Cpath%20d%3D'M218%20176%20C%20198%20202,%20208%20236,%20192%20266'/%3E%3Cpath%20d%3D'M250%20360%20C%20226%20340,%20234%20322,%20214%20302'/%3E%3C/g%3E%3Cg%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-linecap%3D'round'%20opacity%3D'.7'%20stroke-width%3D'1.0'%3E%3Cpath%20d%3D'M74%20214%20c%2026%208,%2042%202,%2064%2018'/%3E%3Cpath%20d%3D'M218%20176%20c%20-20%2012,%20-30%208,%20-48%2020'/%3E%3Cpath%20d%3D'M118%20106%20c%2016%20-14,%2030%20-12,%2044%20-26'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  --tex-flake: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'272'%20height%3D'381'%20viewBox%3D'0%200%20272%20381'%20preserveAspectRatio%3D'none'%3E%3Cg%20transform%3D'translate(44%2096)%20scale(1.50)'%20opacity%3D'0.85'%3E%3Cpath%20d%3D'M0%200L21.6%20-14.5m9.5%20-6.4%20l8.1%203.9m9.5%20-6.4%20l-0.6%20-9.0m15.5%20-10.5%20l5.8%202.8m15.5%20-10.5%20l-0.5%20-6.5M0%200L23.4%2011.4m10.3%205.0%20l0.6%209.0m10.3%205.0%20l7.5%20-5.0m16.8%208.2%20l0.5%206.5m16.8%208.2%20l5.4%20-3.6M0%200L1.8%2025.9m0.8%2011.4%20l-7.5%205.0m0.8%2011.4%20l8.1%203.9m1.3%2018.7%20l-5.4%203.6m1.3%2018.7%20l5.8%202.8M0%200L-21.6%2014.5m-9.5%206.4%20l-8.1%20-3.9m-9.5%206.4%20l0.6%209.0m-15.5%2010.5%20l-5.8%20-2.8m-15.5%2010.5%20l0.5%206.5M0%200L-23.4%20-11.4m-10.3%20-5.0%20l-0.6%20-9.0m-10.3%20-5.0%20l-7.5%205.0m-16.8%20-8.2%20l-0.5%20-6.5m-16.8%20-8.2%20l-5.4%203.6M0%200L-1.8%20-25.9m-0.8%20-11.4%20l7.5%20-5.0m-0.8%20-11.4%20l-8.1%20-3.9m-1.3%20-18.7%20l5.4%20-3.6m-1.3%20-18.7%20l-5.8%20-2.8'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.33'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(214%2062)%20scale(1.05)'%20opacity%3D'0.70'%3E%3Cpath%20d%3D'M0%200L1.8%20-25.9m0.8%20-11.4%20l8.1%20-3.9m0.8%20-11.4%20l-7.5%20-5.0m1.3%20-18.7%20l5.8%20-2.8m1.3%20-18.7%20l-5.4%20-3.6M0%200L23.4%20-11.4m10.3%20-5.0%20l7.5%205.0m10.3%20-5.0%20l0.6%20-9.0m16.8%20-8.2%20l5.4%203.6m16.8%20-8.2%20l0.5%20-6.5M0%200L21.6%2014.5m9.5%206.4%20l-0.6%209.0m9.5%206.4%20l8.1%20-3.9m15.5%2010.5%20l-0.5%206.5m15.5%2010.5%20l5.8%20-2.8M0%200L-1.8%2025.9m-0.8%2011.4%20l-8.1%203.9m-0.8%2011.4%20l7.5%205.0m-1.3%2018.7%20l-5.8%202.8m-1.3%2018.7%20l5.4%203.6M0%200L-23.4%2011.4m-10.3%205.0%20l-7.5%20-5.0m-10.3%205.0%20l-0.6%209.0m-16.8%208.2%20l-5.4%20-3.6m-16.8%208.2%20l-0.5%206.5M0%200L-21.6%20-14.5m-9.5%20-6.4%20l0.6%20-9.0m-9.5%20-6.4%20l-8.1%203.9m-15.5%20-10.5%20l0.5%20-6.5m-15.5%20-10.5%20l-5.8%202.8'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.90'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(120%20330)%20scale(1.70)'%20opacity%3D'0.90'%3E%3Cpath%20d%3D'M0%200L13.0%20-22.5m5.7%20-9.9%20l9.0%20-0.0m5.7%20-9.9%20l-4.5%20-7.8m9.4%20-16.2%20l6.5%20-0.0m9.4%20-16.2%20l-3.2%20-5.6M0%200L26.0%20-0.0m11.4%20-0.0%20l4.5%207.8m11.4%20-0.0%20l4.5%20-7.8m18.7%20-0.0%20l3.3%205.6m18.7%20-0.0%20l3.2%20-5.6M0%200L13.0%2022.5m5.7%209.9%20l-4.5%207.8m5.7%209.9%20l9.0%200.0m9.4%2016.2%20l-3.3%205.6m9.4%2016.2%20l6.5%200.0M0%200L-13.0%2022.5m-5.7%209.9%20l-9.0%200.0m-5.7%209.9%20l4.5%207.8m-9.4%2016.2%20l-6.5%200.0m-9.4%2016.2%20l3.2%205.6M0%200L-26.0%200.0m-11.4%200.0%20l-4.5%20-7.8m-11.4%200.0%20l-4.5%207.8m-18.7%200.0%20l-3.3%20-5.6m-18.7%200.0%20l-3.3%205.6M0%200L-13.0%20-22.5m-5.7%20-9.9%20l4.5%20-7.8m-5.7%20-9.9%20l-9.0%200.0m-9.4%20-16.2%20l3.2%20-5.6m-9.4%20-16.2%20l-6.5%200.0'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.18'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(238%20300)%20scale(1.20)'%20opacity%3D'0.75'%3E%3Cpath%20d%3D'M0%200L18.7%20-18.1m8.2%20-7.9%20l8.7%202.5m8.2%20-7.9%20l-2.2%20-8.7m13.5%20-13.0%20l6.2%201.8m13.5%20-13.0%20l-1.6%20-6.3M0%200L25.0%207.2m11.0%203.2%20l2.2%208.7m11.0%203.2%20l6.5%20-6.3m18.0%205.2%20l1.6%206.3m18.0%205.2%20l4.7%20-4.5M0%200L6.3%2025.2m2.8%2011.1%20l-6.5%206.3m2.8%2011.1%20l8.7%202.5m4.5%2018.2%20l-4.7%204.5m4.5%2018.2%20l6.2%201.8M0%200L-18.7%2018.1m-8.2%207.9%20l-8.7%20-2.5m-8.2%207.9%20l2.2%208.7m-13.5%2013.0%20l-6.2%20-1.8m-13.5%2013.0%20l1.6%206.3M0%200L-25.0%20-7.2m-11.0%20-3.2%20l-2.2%20-8.7m-11.0%20-3.2%20l-6.5%206.3m-18.0%20-5.2%20l-1.6%20-6.3m-18.0%20-5.2%20l-4.7%204.5M0%200L-6.3%20-25.2m-2.8%20-11.1%20l6.5%20-6.3m-2.8%20-11.1%20l-8.7%20-2.5m-4.5%20-18.2%20l4.7%20-4.5m-4.5%20-18.2%20l-6.2%20-1.8'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'1.67'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(26%20224)%20scale(0.85)'%20opacity%3D'0.50'%3E%3Cpath%20d%3D'M0%200L6.3%20-25.2m2.8%20-11.1%20l8.7%20-2.5m2.8%20-11.1%20l-6.5%20-6.3m4.5%20-18.2%20l6.2%20-1.8m4.5%20-18.2%20l-4.7%20-4.5M0%200L25.0%20-7.2m11.0%20-3.2%20l6.5%206.3m11.0%20-3.2%20l2.2%20-8.7m18.0%20-5.2%20l4.7%204.5m18.0%20-5.2%20l1.6%20-6.3M0%200L18.7%2018.1m8.2%207.9%20l-2.2%208.7m8.2%207.9%20l8.7%20-2.5m13.5%2013.0%20l-1.6%206.3m13.5%2013.0%20l6.2%20-1.8M0%200L-6.3%2025.2m-2.8%2011.1%20l-8.7%202.5m-2.8%2011.1%20l6.5%206.3m-4.5%2018.2%20l-6.2%201.8m-4.5%2018.2%20l4.7%204.5M0%200L-25.0%207.2m-11.0%203.2%20l-6.5%20-6.3m-11.0%203.2%20l-2.2%208.7m-18.0%205.2%20l-4.7%20-4.5m-18.0%205.2%20l-1.6%206.3M0%200L-18.7%20-18.1m-8.2%20-7.9%20l2.2%20-8.7m-8.2%20-7.9%20l-8.7%202.5m-13.5%20-13.0%20l1.6%20-6.3m-13.5%20-13.0%20l-6.2%201.8'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'2.35'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(196%20186)%20scale(0.70)'%20opacity%3D'0.42'%3E%3Cpath%20d%3D'M0%200L4.5%20-25.6m2.0%20-11.3%20l8.5%20-3.1m2.0%20-11.3%20l-6.9%20-5.8m3.3%20-18.4%20l6.1%20-2.2m3.3%20-18.4%20l-5.0%20-4.2M0%200L24.4%20-8.9m10.8%20-3.9%20l6.9%205.8m10.8%20-3.9%20l1.6%20-8.9m17.6%20-6.4%20l5.0%204.2m17.6%20-6.4%20l1.1%20-6.4M0%200L19.9%2016.7m8.8%207.4%20l-1.6%208.9m8.8%207.4%20l8.5%20-3.1m14.3%2012.0%20l-1.1%206.4m14.3%2012.0%20l6.1%20-2.2M0%200L-4.5%2025.6m-2.0%2011.3%20l-8.5%203.1m-2.0%2011.3%20l6.9%205.8m-3.3%2018.4%20l-6.1%202.2m-3.3%2018.4%20l5.0%204.2M0%200L-24.4%208.9m-10.8%203.9%20l-6.9%20-5.8m-10.8%203.9%20l-1.6%208.9m-17.6%206.4%20l-5.0%20-4.2m-17.6%206.4%20l-1.1%206.4M0%200L-19.9%20-16.7m-8.8%20-7.4%20l1.6%20-8.9m-8.8%20-7.4%20l-8.5%203.1m-14.3%20-12.0%20l1.1%20-6.4m-14.3%20-12.0%20l-6.1%202.2'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'2.86'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(72%2040)%20scale(0.60)'%20opacity%3D'0.38'%3E%3Cpath%20d%3D'M0%200L10.6%20-23.8m4.7%20-10.5%20l9.0%20-0.9m4.7%20-10.5%20l-5.3%20-7.3m7.6%20-17.1%20l6.5%20-0.7m7.6%20-17.1%20l-3.8%20-5.3M0%200L25.9%20-2.7m11.4%20-1.2%20l5.3%207.3m11.4%20-1.2%20l3.7%20-8.2m18.6%20-2.0%20l3.8%205.3m18.6%20-2.0%20l2.6%20-5.9M0%200L15.3%2021.0m6.7%209.3%20l-3.7%208.2m6.7%209.3%20l9.0%20-0.9m11.0%2015.1%20l-2.6%205.9m11.0%2015.1%20l6.5%20-0.7M0%200L-10.6%2023.8m-4.7%2010.5%20l-9.0%200.9m-4.7%2010.5%20l5.3%207.3m-7.6%2017.1%20l-6.5%200.7m-7.6%2017.1%20l3.8%205.3M0%200L-25.9%202.7m-11.4%201.2%20l-5.3%20-7.3m-11.4%201.2%20l-3.7%208.2m-18.6%202.0%20l-3.8%20-5.3m-18.6%202.0%20l-2.6%205.9M0%200L-15.3%20-21.0m-6.7%20-9.3%20l3.7%20-8.2m-6.7%20-9.3%20l-9.0%200.9m-11.0%20-15.1%20l2.6%20-5.9m-11.0%20-15.1%20l-6.5%200.7'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'3.33'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(44%20366)%20scale(0.75)'%20opacity%3D'0.45'%3E%3Cpath%20d%3D'M0%200L11.4%20-23.4m5.0%20-10.3%20l9.0%20-0.6m5.0%20-10.3%20l-5.0%20-7.5m8.2%20-16.8%20l6.5%20-0.5m8.2%20-16.8%20l-3.6%20-5.4M0%200L25.9%20-1.8m11.4%20-0.8%20l5.0%207.5m11.4%20-0.8%20l3.9%20-8.1m18.7%20-1.3%20l3.6%205.4m18.7%20-1.3%20l2.8%20-5.8M0%200L14.5%2021.6m6.4%209.5%20l-3.9%208.1m6.4%209.5%20l9.0%20-0.6m10.5%2015.5%20l-2.8%205.8m10.5%2015.5%20l6.5%20-0.5M0%200L-11.4%2023.4m-5.0%2010.3%20l-9.0%200.6m-5.0%2010.3%20l5.0%207.5m-8.2%2016.8%20l-6.5%200.5m-8.2%2016.8%20l3.6%205.4M0%200L-25.9%201.8m-11.4%200.8%20l-5.0%20-7.5m-11.4%200.8%20l-3.9%208.1m-18.7%201.3%20l-3.6%20-5.4m-18.7%201.3%20l-2.8%205.8M0%200L-14.5%20-21.6m-6.4%20-9.5%20l3.9%20-8.1m-6.4%20-9.5%20l-9.0%200.6m-10.5%20-15.5%20l2.8%20-5.8m-10.5%20-15.5%20l-6.5%200.5'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'2.67'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3Cg%20transform%3D'translate(176%20372)%20scale(0.65)'%20opacity%3D'0.34'%3E%3Cpath%20d%3D'M0%200L3.6%20-25.7m1.6%20-11.3%20l8.3%20-3.4m1.6%20-11.3%20l-7.1%20-5.5m2.6%20-18.5%20l6.0%20-2.4m2.6%20-18.5%20l-5.1%20-4.0M0%200L24.1%20-9.7m10.6%20-4.3%20l7.1%205.5m10.6%20-4.3%20l1.3%20-8.9m17.4%20-7.0%20l5.1%204.0m17.4%20-7.0%20l0.9%20-6.4M0%200L20.5%2016.0m9.0%207.0%20l-1.3%208.9m9.0%207.0%20l8.3%20-3.4m14.8%2011.5%20l-0.9%206.4m14.8%2011.5%20l6.0%20-2.4M0%200L-3.6%2025.7m-1.6%2011.3%20l-8.3%203.4m-1.6%2011.3%20l7.1%205.5m-2.6%2018.5%20l-6.0%202.4m-2.6%2018.5%20l5.1%204.0M0%200L-24.1%209.7m-10.6%204.3%20l-7.1%20-5.5m-10.6%204.3%20l-1.3%208.9m-17.4%207.0%20l-5.1%20-4.0m-17.4%207.0%20l-0.9%206.4M0%200L-20.5%20-16.0m-9.0%20-7.0%20l1.3%20-8.9m-9.0%20-7.0%20l-8.3%203.4m-14.8%20-11.5%20l0.9%20-6.4m-14.8%20-11.5%20l-6.0%202.4'%20fill%3D'none'%20stroke%3D'%23fff'%20stroke-width%3D'3.08'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3C/svg%3E");
+  /* 纹样令牌（雪花 / 裂缝 / 星屑 / 珐琅格 / 雕花边栏 / 角花 / 宝石）现在都在
+     assets/css/extended/20-card-ornaments.css 里 —— **那个文件是生成的**
+     （tools/cards/make-ornaments.py），不要手改、也不要搬回来：它们是有机形状，
+     由「宽度沿脊柱变化」的轮廓生成，改参数要整批重出。上面那三条 grain 是手写的
+     feTurbulence 噪声，留在原处。 */
   /* 手抖滤镜：卡面的纹样全是 CSS 画的直线（铅条、扇骨、裂纹、经纬…），272px 下是「尺子画的」。
      挂上这个 SVG 位移滤镜（内联在 home-cards.html 里，约 300 字节）之后，十四种风格的直线一起
      变成手绘的那点不平整 —— 一处生效。**滤镜 id 拼错是静默失效**，所以 check-deck 会核 id。
@@ -117,8 +119,38 @@
      （玻璃厚度/釉面）、.home-card-plate（名牌）与 .home-card-mat（内衬线）。以前它们各自硬编码
      inset: 2px —— 而那正好等于**旧的**默认框宽，所以框一加粗（史诗 4px、传世 5px）纹样就比画面
      多铺出 2px，只是没人会去比这个。现在全从这两个令牌算，只有一处定义。 */
-  --cart-inset: calc(var(--rank-frame, 2px) + var(--rank-mat, 0px));
+  --cart-inset: calc(var(--rank-frame, 2px) + max(var(--rank-mat, 0px), calc(var(--craft-band) * var(--craft-ornate, 0))));
   --cart-r: max(0px, calc(var(--cradius) - var(--cart-inset)));
+
+  /* 雕花框那两张瓦片在带子里的居中偏移：边栏瓦片 48×20、角花 26×26，各自在带子里居中。
+     放在这里而不是那几条规则里，是因为雕花线（.home-card-fret::after）与四角宝石
+     （.home-card-rank::after）都要用同一个值 —— 写两遍就会有一处漂移。 */
+  --fret-off: calc((var(--cart-inset) - 20px) / 2);
+  --fret-corner-off: calc((var(--cart-inset) - 26px) / 2);
+
+  /* ---------- 工艺的两档：普通与进阶 ----------
+
+     2026-09-21 加。分档口径是**能从代码里数出来**的那个：普通工艺只有一层（纸底 + 单层印纹或
+     单层闪），进阶工艺要多层叠加（箔膜、厚度折射、金属拉丝、金缝两层）。于是
+       普通（4）：foil 全息 / washi 和纸 / ink 墨 / yukika 雪华
+       进阶（4）：holo-prism 星芒全息 / glass 玻璃 / gold 金边 / kintsugi 金继
+     再加上后加的四档：雕花金、珐琅彩（进阶）与星屑夜天、冰裂纹（普通）。见各自的规则块。
+
+     这两档**不只用来分类**：进阶工艺的卡长一副**雕花框**（用户给的参考图那套 —— 一圈细亮内线
+     + 外层雕花边栏 + 四个角镶宝石）。两个令牌：
+       --craft-ornate  0/1，雕花框的总开关（普通档 0，进阶档 1）
+       --craft-band    雕花边栏的宽度，默认 20px；只在 ornate 为 1 时参与画面内缩的计算
+     `--cart-inset` 里那个 `max(--rank-mat, 边栏宽)` 是关键：**普通档仍然是等级给的画面内缩**
+     （六档 14px → 5px 那条阶梯照旧），而进阶档的画面内缩改由边栏宽度决定（约 20px + 框棱），
+     因为雕花边栏需要**够宽的带子**才画得下 —— 参考图里那条带子约占卡宽的 8%。
+     代价是进阶档上「画面逐级出框」那条线索让位给了雕花框；等级在那些卡上仍由**颜色、框棱宽、
+     工艺浓度、覆膜、徽章**五个通道表达，所以三重编码没破（`probe.js` 量内缩那条用的是 foil，
+     一个普通档工艺，所以那条断言仍然有效）。
+
+     宝石的颜色不能由等级给（等级那套是金属色阶），所以单独一个令牌，默认珐琅绿。 */
+  --craft-ornate: 0;
+  --craft-band: 20px;
+  --craft-gem-color: #6fcaa0;
 
   /* ---------- 等级令牌的默认值 = 最低档「收藏」那一套 ----------
 
@@ -214,6 +246,125 @@
   border-radius: var(--rank-mark-radius, 0);
 }
 
+/* ---------- 雕花框（进阶工艺专属）----------
+
+   参考图那副框拆成四件：一条**细亮内线**（画面边缘）＋ 一圈**暗底雕花边栏** ＋ 四个角花
+   ＋ 四颗宝石。内线是早就有的 `.home-card-mat`；这里画中间两件（边栏底 + 雕花线与角花）；
+   宝石挂在 `.home-card-rank::after`（那一层的虹彩覆膜用主层、::before 用四角纹章，::after 空着）。
+
+   **为什么边栏要分「暗底」与「线」两层**：线是金色的，而边栏底下是**卡自己的金属**（等级给的
+   六档色阶）—— 金线画在金色金属上等于没有。所以先铺一层暗色，那层就是参考图里那圈深色卡纸。
+   这也顺手把「进阶工艺的卡面第一眼是深色边」这件事做成了这一档的身份。
+
+   两层各用四条**静态 mask**（一层一条边栏），**刻意不用 `mask-composite`**：那条属性在旧
+   Chromium 上要写 `-webkit-mask-composite` 的老关键字（`xor` / `source-out`），两者语义不一致，
+   写错的表现是整条边栏静默消失。四条矩形带的并集用四层 mask 就够了，不需要布尔运算。
+
+   位置一律从 `--cart-inset` 与 `--fret-*-off` 算，所以档位一变（框棱宽 + 边栏宽）整副框跟着走，
+   不必为六个档位各写一遍。 */
+.home-card-fret {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--craft-ornate, 0);
+  /* **必须显式给 z-index**：卡面上的风格层里有几条是挂在 ::before/::after 上的
+     （玻璃的镜面高光、金继的暗侧、全息的扫光），而伪元素的绘制顺序排在**所有子元素之后** ——
+     不显式分层的话，它们会盖在雕花框上（实测：玻璃那几条的高光是 screen 混合，把深色边栏
+     整片提亮，雕花框直接看不见了）。三层从下到上：框底+线(2) → 等级覆膜与宝石(3) → 名牌(4)。 */
+  z-index: 2;
+}
+
+/* 暗底：上 / 下 / 左 / 右四条带子拼成一个「回」字。纯渐变当 mask，mask-size 给每条带子的厚度 */
+.home-card-fret::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(16, 13, 20, .84);
+  -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000),
+                      linear-gradient(#000, #000), linear-gradient(#000, #000);
+  mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000),
+              linear-gradient(#000, #000), linear-gradient(#000, #000);
+  -webkit-mask-size: 100% var(--cart-inset), 100% var(--cart-inset),
+                     var(--cart-inset) 100%, var(--cart-inset) 100%;
+  mask-size: 100% var(--cart-inset), 100% var(--cart-inset),
+             var(--cart-inset) 100%, var(--cart-inset) 100%;
+  -webkit-mask-position: 0 0, 0 100%, 0 0, 100% 0;
+  mask-position: 0 0, 0 100%, 0 0, 100% 0;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* 雕花线 + 角花：横向两条边栏（平铺瓦片）、竖向两条、四个角花 */
+.home-card-fret::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--rank-fret, #e9ca86);
+  -webkit-mask-image: var(--tex-fret-h), var(--tex-fret-h), var(--tex-fret-v), var(--tex-fret-v),
+                      var(--tex-fret-corner), var(--tex-fret-corner), var(--tex-fret-corner), var(--tex-fret-corner);
+  mask-image: var(--tex-fret-h), var(--tex-fret-h), var(--tex-fret-v), var(--tex-fret-v),
+              var(--tex-fret-corner), var(--tex-fret-corner), var(--tex-fret-corner), var(--tex-fret-corner);
+  -webkit-mask-size: 48px 20px, 48px 20px, 20px 48px, 20px 48px,
+                     26px 26px, 26px 26px, 26px 26px, 26px 26px;
+  mask-size: 48px 20px, 48px 20px, 20px 48px, 20px 48px,
+             26px 26px, 26px 26px, 26px 26px, 26px 26px;
+  -webkit-mask-position:
+    0 var(--fret-off),
+    0 calc(100% - var(--fret-off) - 20px),
+    var(--fret-off) 0,
+    calc(100% - var(--fret-off) - 20px) 0,
+    var(--fret-corner-off) var(--fret-corner-off),
+    calc(100% - var(--fret-corner-off) - 26px) var(--fret-corner-off),
+    var(--fret-corner-off) calc(100% - var(--fret-corner-off) - 26px),
+    calc(100% - var(--fret-corner-off) - 26px) calc(100% - var(--fret-corner-off) - 26px);
+  mask-position:
+    0 var(--fret-off),
+    0 calc(100% - var(--fret-off) - 20px),
+    var(--fret-off) 0,
+    calc(100% - var(--fret-off) - 20px) 0,
+    var(--fret-corner-off) var(--fret-corner-off),
+    calc(100% - var(--fret-corner-off) - 26px) var(--fret-corner-off),
+    var(--fret-corner-off) calc(100% - var(--fret-corner-off) - 26px),
+    calc(100% - var(--fret-corner-off) - 26px) calc(100% - var(--fret-corner-off) - 26px);
+  -webkit-mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y,
+                       no-repeat, no-repeat, no-repeat, no-repeat;
+  mask-repeat: repeat-x, repeat-x, repeat-y, repeat-y,
+               no-repeat, no-repeat, no-repeat, no-repeat;
+  /* 压印感：线比底高一点点 —— 与卡面那条「边一律 inset 阴影」的规矩同源，只是这里是一条细线 */
+  filter: drop-shadow(0 0.5px 0.5px rgba(0, 0, 0, .55));
+}
+
+/* 四角宝石：坐在角花的中心（角花 26px、宝石 9px → 各自居中偏移 8.5px）。
+   颜色由 --craft-gem-color 给（等级那套是金属色阶，给不了宝石色）。 */
+.home-card-rank::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--craft-ornate, 0);
+  background-color: var(--craft-gem-color, #6fcaa0);
+  -webkit-mask-image: var(--tex-fret-gem), var(--tex-fret-gem), var(--tex-fret-gem), var(--tex-fret-gem);
+  mask-image: var(--tex-fret-gem), var(--tex-fret-gem), var(--tex-fret-gem), var(--tex-fret-gem);
+  -webkit-mask-size: 9px 9px, 9px 9px, 9px 9px, 9px 9px;
+  mask-size: 9px 9px, 9px 9px, 9px 9px, 9px 9px;
+  -webkit-mask-position:
+    calc(var(--fret-corner-off) + 8.5px) calc(var(--fret-corner-off) + 8.5px),
+    calc(100% - var(--fret-corner-off) - 17.5px) calc(var(--fret-corner-off) + 8.5px),
+    calc(var(--fret-corner-off) + 8.5px) calc(100% - var(--fret-corner-off) - 17.5px),
+    calc(100% - var(--fret-corner-off) - 17.5px) calc(100% - var(--fret-corner-off) - 17.5px);
+  mask-position:
+    calc(var(--fret-corner-off) + 8.5px) calc(var(--fret-corner-off) + 8.5px),
+    calc(100% - var(--fret-corner-off) - 17.5px) calc(var(--fret-corner-off) + 8.5px),
+    calc(var(--fret-corner-off) + 8.5px) calc(100% - var(--fret-corner-off) - 17.5px),
+    calc(100% - var(--fret-corner-off) - 17.5px) calc(100% - var(--fret-corner-off) - 17.5px);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  /* 一点微光：宝石压在深色边栏上，靠这一圈让它像「镶着」而不是「印着」 */
+  filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, .45));
+}
+
 .home-card::before {
   background-image: var(--coverlay);
   background-size: var(--coverlay-size);
@@ -233,6 +384,10 @@
   -webkit-mask-size: var(--cmask-size);
   mask-repeat: var(--cmask-repeat);
   -webkit-mask-repeat: var(--cmask-repeat);
+  /* 2026-09-21 补：纹样的**位置**也要能被风格控制 —— 雪花那一档用三朵生成出来的准对称枝晶
+     铺成一片（见 yukika），每朵的大小与位置都不同，靠的就是 size/position 两层各给一串值。 */
+  mask-position: var(--cmask-position, 0 0);
+  -webkit-mask-position: var(--cmask-position, 0 0);
   transition: opacity .3s ease;
 }
 
@@ -260,6 +415,7 @@
    位置与圆角都从画面几何算，所以它始终贴着画面底边。 */
 .home-card-plate {
   position: absolute;
+  z-index: 4;              /* 名牌永远在最上（覆膜会染色，名字不能跟着变） */
   left: var(--cart-inset);
   right: var(--cart-inset);
   bottom: var(--cart-inset);
@@ -753,6 +909,7 @@ a.home-deck-dialog-credit:hover {
    与全息（foil）的分工：foil 是**条纹型**衍射（一条条彩虹带随角度移），星芒是**放射型**
    （一圈圈色环从中心推出去，像宝可梦卡的「宇宙闪」）。悬停时整层转一点，读作「把卡在光里转了个角度」。 */
 .home-card--holo-prism {
+  --craft-ornate: 1;
   --cframe-finish: linear-gradient(140deg, rgba(255, 255, 255, .46), rgba(226, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
   --cplate: linear-gradient(to top, rgba(16, 14, 26, .92), rgba(16, 14, 26, .6));
   --cplate-solid: rgba(16, 14, 26, .88);
@@ -774,26 +931,41 @@ a.home-deck-dialog-credit:hover {
   --cfilter: url(#deck-rough);
 }
 
-/* 金边：拉丝金属框 + 斜向柔光 + 描金角（**没有菱格了**：45°/−45° 等距十字是「纱窗」） */
+/* 金边：**暗底 + 一条窄高光 + 拉丝**。2026-09-21 重做（用户：「金边的线条生硬」）。
+   上一版是一条又宽又亮的黄渐变 + 两个描金角 —— 发闷、发硬的根因是**物理搞反了**：金属是导体，
+   它的颜色活在**镜面反射**里（测出来的金色高光约 #ffd891），漫反射几乎为零。所以正确的画法是
+   「暗的、低饱和的底 + 一条**窄**而亮的高光」，而不是「一大片黄」。
+   第二处是「拉丝」：各向异性 —— 高光要**沿一个方向拉长**（Filament 的 anisotropy 那条），
+   所以底子上有一层沿 96° 的细密丝纹，而且它的明暗是**软停**（写 1px 硬停就是纱窗，
+   见文件顶部第 2 条规矩），并挂手抖滤镜（第 3 条：直线纹样一律挂 --cfilter）。 */
 .home-card--gold {
+  --craft-ornate: 1;
   --cframe-finish: linear-gradient(140deg, rgba(255, 246, 213, .52), rgba(231, 205, 126, .26) 16%, rgba(201, 162, 39, .30) 32%, rgba(255, 248, 221, .46) 50%, rgba(184, 153, 31, .28) 66%, rgba(168, 121, 26, .30) 84%, rgba(255, 238, 184, .42));
   --cplate: linear-gradient(to top, rgba(30, 21, 6, .93), rgba(30, 21, 6, .62));
   --cplate-solid: rgba(30, 21, 6, .88);
   --cplate-text: #fbeecb;
   --cplate-accent: #e8cf8f;
   --coverlay:
-    linear-gradient(118deg, rgba(255, 242, 206, 0) 6%, rgba(255, 242, 206, .34) 26%, rgba(255, 226, 150, .10) 44%, rgba(255, 248, 224, .28) 62%, rgba(255, 238, 186, 0) 88%),
-    radial-gradient(circle 9px at 12% 88%, rgba(255, 240, 196, .5) 0 34%, rgba(255, 240, 196, 0) 100%),
-    radial-gradient(circle 9px at 88% 12%, rgba(255, 240, 196, .44) 0 34%, rgba(255, 240, 196, 0) 100%),
+    /* ① 窄高光：全卡最亮的那一笔，宽度只有卡宽的一小段（金属镜面反射的形状） */
+    linear-gradient(112deg, rgba(255, 240, 200, 0) 40%, rgba(255, 236, 186, .26) 45.5%,
+      rgba(255, 249, 228, .62) 48.5%, rgba(255, 236, 186, .24) 51.5%, rgba(255, 240, 200, 0) 58%),
+    /* ② 第二条更窄的高光（金属面有两处反光时才有「弧面」感，一处会像贴纸） */
+    linear-gradient(112deg, rgba(255, 236, 186, 0) 63%, rgba(255, 244, 205, .30) 66%, rgba(255, 240, 200, 0) 70%),
+    /* ③ 拉丝：沿一个方向的细密丝纹，明暗都是软停、周期取互质数避免等距感 */
+    repeating-linear-gradient(96deg, rgba(255, 236, 186, 0) 0 1.7px, rgba(255, 236, 186, .15) 2.5px 3.4px,
+      rgba(120, 86, 20, .13) 4.6px 5.5px, rgba(255, 236, 186, 0) 6.7px 9.4px),
+    /* ④ 压深四边：金色要暗，暗在高光旁边才亮得起来 */
+    radial-gradient(126% 96% at 50% 46%, rgba(60, 40, 6, 0) 46%, rgba(40, 26, 4, .34) 100%),
     var(--grain-fine);
   --cblend: overlay;
-  --coverlay-op: .7;
-  --cfilter: none;
+  --coverlay-op: .85;
+  --cfilter: url(#deck-rough);
 }
 
 /* 和纸：**各向异性**纤维（横向的长丝）+ 两团纸浆的云斑。
    上一版是 90°/0° 等距十字 —— 那是织布，不是纸：纸的纤维只朝一个方向，而且有长有短。 */
 .home-card--washi {
+  --craft-ornate: 0;
   --cframe-finish: linear-gradient(140deg, rgba(244, 236, 220, .46), rgba(216, 201, 178, .26) 52%, rgba(250, 244, 232, .40));
   --cplate: linear-gradient(to top, rgba(48, 35, 25, .92), rgba(48, 35, 25, .6));
   --cplate-solid: rgba(48, 35, 25, .87);
@@ -812,6 +984,7 @@ a.home-deck-dialog-credit:hover {
 
 /* 墨：底部压深 + 一道飞白 + 纸颗粒（原来那 2px/6px 的横向细纹在 272px 下只是瑕疵，去掉了） */
 .home-card--ink {
+  --craft-ornate: 0;
   --cframe-finish: linear-gradient(140deg, rgba(59, 53, 67, .42), rgba(20, 17, 25, .50) 55%, rgba(75, 68, 82, .38));
   --cplate: linear-gradient(to top, rgba(8, 7, 11, .94), rgba(8, 7, 11, .68));
   --cplate-solid: rgba(8, 7, 11, .9);
@@ -833,6 +1006,7 @@ a.home-deck-dialog-credit:hover {
    子元素 `.home-card-lens` 把画作（`--art`）再铺一遍、放大错位模糊后**只在边缘露出**，模拟厚玻璃
    把画面折过去的那一圈。磨砂仍然只做下半张（上半张通透，脸才看得清）。 */
 .home-card--glass {
+  --craft-ornate: 1;
   --cframe-finish: linear-gradient(150deg, rgba(255, 255, 255, .50), rgba(214, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
   --cplate: linear-gradient(to top, rgba(14, 22, 32, .9), rgba(14, 22, 32, .55));
   --cplate-solid: rgba(14, 22, 32, .86);
@@ -927,33 +1101,48 @@ a.home-deck-dialog-credit:hover {
   opacity: calc(.9 * var(--rank-craft, 1));
 }
 
-/* 雪华：**散落**的九朵真雪花（主枝 + 60° 分枝 + 棱面核心，形状在 mask 里）。
-   第一版是平铺的六向星号；第二版把一朵雪花按 72×62 平铺 —— 用户看了一眼就说「整齐排列然后铺满
-   卡面很呆」。**规整的平铺读起来像壁纸，雪要的是疏密不匀**：现在这一张是整卡尺寸的一次性贴花
-   （`--cmask-size: 100% 100%` + 不平铺），九朵各有位置、大小（1.7~0.6 倍）、角度与浓淡
-   （近处的雪大而清楚、远处的雪小而淡），中央偏上那一竖条留空给人物。
-   颜色用冷蓝而不是纯白：纯白的图案压在浅色画上等于没有（浅画的背景本身就接近白）。 */
+/* 雪华：**十二朵准对称枝晶**铺成一片，2026-09-21 重做（用户：「线条生硬」）。
+   上一版是九朵手工写的雪花脚本，根因是那套「等宽描边画直线段 + 完美镜像」—— 等宽就是尺子画的。
+   现在这十二朵来自生成器（tools/cards/make-ornaments.py）：每枝**向尖端收细到 0**、侧枝越靠
+   枝尖越短、同一枝两侧**不镜像**、六枝之间还有 ±2° 的抖动 —— 那四条才是「真雪花」的几何。
+   一朵雪花只有 3 KB、三朵共用一个令牌组，而**排布留在 CSS 里**（改疏密不用重跑生成器）：
+   十二层 mask，各自给 size 与 position，全是**手工点过位置**的 —— 中央那一竖条留空给人物
+   （规矩 1：纹样不许盖住主体），所以位置都压在左右两条边与上下两端。
+   尺寸那两列是配对的：卡是 5:7，要让雪花是**正方形**（不然花瓣被拉长），
+   高度百分比必须等于宽度百分比 × 5/7。 */
 .home-card--yukika {
+  --craft-ornate: 0;
   --cframe-finish: linear-gradient(140deg, rgba(244, 252, 255, .46), rgba(168, 212, 238, .24) 46%, rgba(255, 255, 255, .40));
   --cplate: linear-gradient(to top, rgba(12, 28, 44, .93), rgba(12, 28, 44, .68));
   --cplate-solid: rgba(12, 28, 44, .9);
   --cplate-text: #eef8ff;
   --cplate-accent: #cde9ff;
-  --coverlay:
-    linear-gradient(150deg, rgba(92, 138, 190, .95), rgba(140, 186, 226, .9) 48%, rgba(78, 122, 172, .95));
+  --coverlay: linear-gradient(150deg, rgba(92, 138, 190, .95), rgba(140, 186, 226, .9) 48%, rgba(78, 122, 172, .95));
   --cblend: normal;
   --coverlay-op: .62;
-  --coverlay-mask: var(--tex-flake);
-  --cmask-size: 100% 100%;
+  --coverlay-mask:
+    var(--tex-flake1), var(--tex-flake2), var(--tex-flake3), var(--tex-flake1),
+    var(--tex-flake2), var(--tex-flake3), var(--tex-flake1), var(--tex-flake2),
+    var(--tex-flake3), var(--tex-flake1), var(--tex-flake2), var(--tex-flake3);
+  --cmask-size:
+    26% 18.6%, 20% 14.3%, 15% 10.7%, 22% 15.7%, 13% 9.3%, 18% 12.9%,
+    16% 11.4%, 24% 17.1%, 14% 10%, 21% 15%, 17% 12.1%, 19% 13.6%;
+  --cmask-position:
+    1% 2%, 58% 0%, 82% 10%, 0% 12%, 88% 30%, 2% 30%,
+    86% 48%, 0% 52%, 88% 64%, 2% 70%, 74% 80%, 18% 84%;
   --cmask-repeat: no-repeat;
-  --cfilter: none;
+  /* 直线的软处理：收细后的花瓣仍是「直的短段」，挂上手抖滤镜才有手绘的那点不平整（规矩 3） */
+  --cfilter: url(#deck-rough);
 }
 
-/* 金继：黑底 + 4~5 道**弯曲分叉**的金缝（形状在 mask 里、颜色在 CSS 里）。
-   上一版是三根笔直的 linear-gradient 金线 —— CSS 画不出弯的，读作「金丝」。现在每道缝在 mask 里
-   画两遍（宽的 34% 当漆面的晕、窄的 100% 当金属亮芯），收尖靠「递减线宽的路径链」。
+/* 金继：黑底 + 一张**裂缝网**。2026-09-21 重做（用户：「金继的线条生硬」）。
+   上一版是 5 条手工写的固定折线、在 4 个固定线宽（7.5/3.2/2.0/1.1）上重复，**彼此没有一处交叉** ——
+   等宽叠等宽，读作「画上去的金丝」。真金继是**裂缝的开口**里填了漆与金粉，所以几何是：
+   向两端收细、**在分叉处变宽**（宽度汇聚）、子缝比母缝更细更短、密度在一个起点附近更大。
+   这四条全在生成器里（tools/cards/make-ornaments.py 的 crack_net），令牌仍是 `--tex-crack`。
    **混合模式用 normal 而不是 screen**：金色裂缝在浅色画上（木刀那张）用 screen 会完全消失（实测）。 */
 .home-card--kintsugi {
+  --craft-ornate: 1;
   --cframe-finish: linear-gradient(140deg, rgba(74, 64, 72, .40), rgba(22, 19, 26, .48) 52%, rgba(61, 54, 64, .36));
   --cplate: linear-gradient(to top, rgba(10, 8, 12, .94), rgba(10, 8, 12, .7));
   --cplate-solid: rgba(10, 8, 12, .9);
@@ -970,13 +1159,15 @@ a.home-deck-dialog-credit:hover {
 
 /* 金继的「缝」要有厚度：一侧受光、一侧落影。金缝本身在 ::before（颜色由渐变给、形状由 mask 给），
    而**暗侧必须放在另一层** —— mask 会把 ::before 上所有背景层一起裁掉，暗侧放进去就跟着变成金的了。
-   ::after 已经不挂 mask（暗角在那儿），把暗侧再加一层、一起 multiply 压暗即可。 */
+   ::after 已经不挂 mask（暗角在那儿），把暗侧再加一层、一起 multiply 压暗即可。
+   **暗侧复用同一张裂缝图、只把位置错开 1.3px**：那正是旧版 --tex-crack-shade 那张令牌干的事
+   （它内部就是同一份几何加了个 translate），而独立出一张 3 KB 的令牌纯属浪费 —— 生成器那边已删。 */
 .home-card--kintsugi::after {
   background-image:
-    var(--tex-crack-shade),
+    var(--tex-crack),
     radial-gradient(126% 96% at 50% 46%, transparent 42%, rgba(4, 3, 7, .45) 100%);
   background-size: 100% 100%, 100% 100%;
-  background-position: 0 0, 0 0;
+  background-position: 1.3px 1.6px, 0 0;
   mix-blend-mode: multiply;
   opacity: calc(.85 * var(--rank-craft, 1));
 }
@@ -998,6 +1189,98 @@ a.home-deck-dialog-credit:hover {
   pointer-events: none;
 }
 
+
+/* ============================================
+   ---------- 2026-09-21 新加的四种工艺 ----------
+   用户「可以添加一些工艺」时圈的四种。前两种属**进阶**（多层 / 有雕花框与宝石），
+   后两种属**普通**（一层印纹）。四种的纹样都来自 tools/cards/make-ornaments.py。
+   ============================================ */
+
+/* 雕花金（参考图那种）：深底 + 细金线雕花框 + 角上镶琥珀宝石。
+   它是这一批里最贴参考图的一张 —— 但**卡面本身是素的**（参考图上人物之外没有花纹）：
+   繁复全在边框上，这也是「工艺克制」那条的落地（全卡闪到看不清插画就失败了）。 */
+.home-card--filigree {
+  --craft-ornate: 1;
+  --craft-gem-color: #f0b96a;
+  --cframe-finish: linear-gradient(140deg, rgba(198, 162, 94, .38), rgba(58, 44, 22, .46) 52%, rgba(152, 120, 64, .34));
+  --cplate: linear-gradient(to top, rgba(20, 15, 8, .95), rgba(20, 15, 8, .72));
+  --cplate-solid: rgba(20, 15, 8, .92);
+  --cplate-text: #f8ecd4;
+  --cplate-accent: #e6c68a;
+  /* 深底 + 一层暖光：底子暗下来，边栏上的金线才亮得起来（与 gold 那条同一个物理） */
+  --coverlay:
+    linear-gradient(158deg, rgba(46, 36, 20, .55), rgba(20, 15, 9, .62) 52%, rgba(38, 29, 16, .55)),
+    radial-gradient(120% 88% at 50% 40%, rgba(255, 224, 160, .16), rgba(255, 224, 160, 0) 72%),
+    var(--grain-fine);
+  --cblend: normal;
+  --coverlay-op: .78;
+  --cfilter: none;
+}
+
+/* 珐琅彩：金线分格 + 宝石块（景泰蓝/教堂彩窗）。
+   格子是实心的 mask（见生成器里 cloison 的说明），涂上四块宝石色；**缝里露出来的是卡自己的
+   框色** —— 等级给的是金属色阶，所以缝在高档是金线、在低档是银灰线，金线不必另画一层。 */
+.home-card--enamel {
+  --craft-ornate: 1;
+  --craft-gem-color: #7f9ce6;
+  --cframe-finish: linear-gradient(140deg, rgba(255, 246, 214, .42), rgba(196, 158, 68, .30) 52%, rgba(255, 240, 196, .36));
+  --cplate: linear-gradient(to top, rgba(16, 14, 26, .94), rgba(16, 14, 26, .68));
+  --cplate-solid: rgba(16, 14, 26, .9);
+  --cplate-text: #f2f0fb;
+  --cplate-accent: #cdc2f0;
+  --coverlay:
+    /* 四块「宝石」：青 / 紫 / 玫 / 翠，位置与大小都不等距（等距就成壁纸了） */
+    radial-gradient(42% 30% at 24% 22%, rgba(92, 172, 216, .92), rgba(92, 172, 216, 0) 100%),
+    radial-gradient(38% 26% at 76% 38%, rgba(126, 96, 194, .88), rgba(126, 96, 194, 0) 100%),
+    radial-gradient(34% 24% at 38% 72%, rgba(198, 92, 132, .86), rgba(198, 92, 132, 0) 100%),
+    radial-gradient(30% 22% at 82% 80%, rgba(84, 178, 140, .84), rgba(84, 178, 140, 0) 100%),
+    var(--grain-fine);
+  --cblend: normal;
+  --coverlay-op: .72;
+  --coverlay-mask: var(--tex-cloison);
+  --cmask-size: 100% 100%;
+  --cmask-repeat: no-repeat;
+  --cfilter: none;
+}
+
+/* 星屑夜天：深蓝紫的框 + 一层疏密不匀的星点与流星痕。
+   **不遮画面**：mask 就是星点本身，所以印上去的只有星星，插画原样透出来 ——
+   「夜天」那半由框的深蓝紫叠层给。 */
+.home-card--starnight {
+  --craft-ornate: 0;
+  --cframe-finish: linear-gradient(140deg, rgba(96, 116, 200, .34), rgba(28, 26, 62, .46) 52%, rgba(72, 88, 168, .32));
+  --cplate: linear-gradient(to top, rgba(10, 12, 30, .94), rgba(10, 12, 30, .7));
+  --cplate-solid: rgba(10, 12, 30, .9);
+  --cplate-text: #eceafd;
+  --cplate-accent: #b9c4ff;
+  --coverlay:
+    linear-gradient(160deg, rgba(30, 34, 88, .42), rgba(18, 16, 44, .30) 55%, rgba(26, 30, 76, .40)),
+    var(--grain-fine);
+  --cblend: normal;
+  --coverlay-op: .55;
+  --coverlay-mask: var(--tex-starfield);
+  --cmask-size: 100% 100%;
+  --cmask-repeat: no-repeat;
+  --cfilter: none;
+}
+
+/* 冰裂纹：**无色的裂** —— 与金继共用同一张裂缝网，只是材质换成冷白（没有金、没有漆）。
+   缝是「亮」的（冰面裂开处反光），所以用 --coverlay 的冷白印上去，而不是压暗。 */
+.home-card--frostcrack {
+  --craft-ornate: 0;
+  --cframe-finish: linear-gradient(140deg, rgba(226, 240, 252, .40), rgba(148, 178, 204, .30) 52%, rgba(240, 248, 255, .38));
+  --cplate: linear-gradient(to top, rgba(14, 24, 36, .93), rgba(14, 24, 36, .66));
+  --cplate-solid: rgba(14, 24, 36, .9);
+  --cplate-text: #eef6ff;
+  --cplate-accent: #cfe4f5;
+  --coverlay:
+    linear-gradient(150deg, rgba(238, 248, 255, .96), rgba(186, 212, 234, .88) 48%, rgba(228, 242, 252, .94)),
+    var(--grain-fine);
+  --cblend: normal;
+  --coverlay-op: .46;
+  --coverlay-mask: var(--tex-crack);
+  --cfilter: url(#deck-rough-crack);
+}
 
 /* ---------- 等级：六档阶梯，只改一组令牌，不动版式 ----------
 
@@ -1091,6 +1374,7 @@ a.home-deck-dialog-credit:hover {
   border-radius: inherit;
   pointer-events: none;
   opacity: var(--rank-foil, 0);
+  z-index: 3;              /* 覆膜与四角宝石要压在雕花框之上，见 .home-card-fret 那条注释 */
   /* 虹彩：三层不同角度的软带 + 一圈边缘光。周期取互质数，避免出现等距的「纱窗」 */
   background:
     linear-gradient(104deg, transparent 18%, rgba(255,214,150,.5) 31%, rgba(150,220,255,.46) 43%,
@@ -1138,6 +1422,13 @@ a.home-deck-dialog-credit:hover {
 :root[data-theme="dark"] .home-card--glass { --coverlay-op: 1; }
 :root[data-theme="dark"] .home-card--yukika { --coverlay-op: .85; }
 :root[data-theme="dark"] .home-card--kintsugi { --coverlay-op: .95; }
+/* 2026-09-21 新加的四种（规矩 6：**新增风格必须补一条**，否则它在深色下要么白掉、要么整层消失）。
+   前三种是 `normal` + 半透明材料，深色下本来正常，只微调；冰裂是冷白印上去的，深色下要压住，
+   不然整张卡发白发亮。 */
+:root[data-theme="dark"] .home-card--filigree { --coverlay-op: 1; }
+:root[data-theme="dark"] .home-card--enamel { --coverlay-op: .85; }
+:root[data-theme="dark"] .home-card--starnight { --coverlay-op: .75; }
+:root[data-theme="dark"] .home-card--frostcrack { --coverlay-op: .75; }
 
 /* ---------- 减少动态：不轮播（JS 侧直接跳过）、不做淡入淡出与扫光 ---------- */
 @media (prefers-reduced-motion: reduce) {

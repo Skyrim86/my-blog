@@ -40,6 +40,7 @@ const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClos
   'deckRankCollector', 'deckRankRare', 'deckRankEpic', 'deckRankArcane', 'deckRankLegend', 'deckRankMiracle',
   'deckStyleFoil', 'deckStyleHoloPrism', 'deckStyleGold', 'deckStyleGlass',
   'deckStyleInk', 'deckStyleWashi', 'deckStyleYukika', 'deckStyleKintsugi',
+  'deckStyleFiligree', 'deckStyleEnamel', 'deckStyleStarnight', 'deckStyleFrostcrack',
   'deckFilterLabel', 'deckFilterAll', 'deckFilterSeries', 'deckFilterStyle', 'deckFilterRank',
   'deckFilterCount', 'deckFilterEmpty', 'deckOpenCard'];
 // 出处里能推出可点链接的几种写法（弹层里 credit_url 就用它核）；官方立绘 / 站点看板娘没有链接，留空是对的
@@ -423,6 +424,56 @@ for (const r of cssRanks) {
   for (const s of knownStyles) {
     if (!dStyles.has(s)) {
       failures.push(`✗ ${MANIFEST_HTML} 的 styleLabel 表里没有「${s}」—— 卡片墙的工艺副标题会缺中文名`);
+    }
+  }
+}
+
+/* ⑤ 生成的纹样令牌（雪花 / 裂缝 / 星屑 / 珐琅格 / 雕花边栏 / 角花 / 宝石）
+   它们在 assets/css/extended/20-card-ornaments.css 里，由 tools/cards/make-ornaments.py 生成。
+   引用了不存在的令牌 = **静默失效**：mask 取不到图，那一层什么都不画（页面上只是「这一档没有
+   那个纹样」，构建、控制台全绿）。所以两个方向都核：用到的必须存在、生成物里的最好都用上。 */
+{
+  const ORN = join('assets', 'css', 'extended', '20-card-ornaments.css');
+  if (!existsSync(ORN)) {
+    failures.push(
+      `✗ 找不到 ${ORN} —— 卡面纹样令牌都在那里（雪花 / 裂缝 / 星屑 / 珐琅格 / 雕花框零件）。` +
+        `跑 tools/cards/make-ornaments.py 生成`
+    );
+  } else {
+    const gen = new Set([...readFileSync(ORN, 'utf8').matchAll(/^\s*(--[\w-]+):/gm)].map((m) => m[1]));
+    if (!gen.size) {
+      failures.push(`✗ ${ORN} 里一个令牌都没解析出来 —— 生成器的输出格式变了？这条守卫会失效，请同步`);
+    }
+    // 生成物里的令牌**统一用 --tex- 前缀**（雕花框那四件也是 --tex-fret-*），所以按前缀收窄即可 ——
+    // 手写在 21-card-deck.css 里的长度类令牌（--fret-off / --fret-corner-off）不带这个前缀，
+    // 不会被误判成「引用了不存在的图」（第一版就是这么误报的）。
+    const used = new Set([...css.matchAll(/var\((--tex-[\w-]+)/g)].map((m) => m[1]));
+    const missing = [...used].filter((t) => !gen.has(t)).sort();
+    if (missing.length) {
+      failures.push(
+        `✗ ${CSS} 引用了生成物里没有的纹样令牌：${missing.join(' / ')} —— mask 取不到图是**静默失效**` +
+          `（那一层什么都不画），跑 tools/cards/make-ornaments.py`
+      );
+    }
+    const unused = [...gen].filter((t) => !used.has(t)).sort();
+    if (unused.length) notes.push(`· 生成物里有没被引用的纹样令牌：${unused.join(' / ')}`);
+  }
+}
+
+/* ⑥ 每种风格都要**显式**声明它在哪一档（--craft-ornate 0/1）
+   这一档决定那张卡长不长雕花框（进阶工艺专属），所以它必须是被写出来的决定，而不是靠
+   `.home-card` 上的默认值 —— 漏写的表现是「这一档静默按普通工艺渲染」，页面上看不出是漏了
+   还是本来就该这样。foil 是特例（它没有规则块，基础声明就是它，与前面那几处同一个道理）。 */
+{
+  const sec = css.slice(stylesOpen, stylesClose);
+  for (const s of knownStyles) {
+    if (s === 'foil') continue;
+    const blk = rulesWith(sec, `.home-card--${s}`);
+    if (blk && !blk.includes('--craft-ornate')) {
+      failures.push(
+        `✗ ${CSS} 的风格「${s}」没有声明 --craft-ornate —— 它静默算普通工艺（不长雕花框）。` +
+          `进阶工艺显式写 1，普通工艺显式写 0`
+      );
     }
   }
 }

@@ -269,6 +269,20 @@ other = "雪华"
 [deckStyleKintsugi]
 other = "金继"
 
+# 2026-09-21 新加的四种（三种工艺 + 冰裂）。分档：雕花金与珐琅彩是**进阶**（卡面长雕花框），
+# 星屑与冰裂是**普通**。分档口径与那两档的作用见 21-card-deck.css 的「工艺的两档」一节。
+[deckStyleFiligree]
+other = "雕花金"
+
+[deckStyleEnamel]
+other = "珐琅彩"
+
+[deckStyleStarnight]
+other = "星屑"
+
+[deckStyleFrostcrack]
+other = "冰裂"
+
 # 卡片墙的筛选条（三排 pill 由 assets/js/deck-wall.js 注入，文案经 data-* 传）。
 # {n} 与 deckNext 那套一样是**由 JS 填**的占位符，不是 Hugo 模板变量。
 [deckFilterLabel]

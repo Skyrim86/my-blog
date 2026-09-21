@@ -63,6 +63,9 @@
               它画在 .home-card-lens 之上，所以玻璃的折射不会把它盖掉 —— 这条线是「画框里有画」
               与「画面铺满」两个状态之间在缩略图上唯一看得见的分界。 */}}
         <span class="home-card-mat" aria-hidden="true"></span>
+        {{- /* 雕花框（进阶工艺专属）：暗色边栏底 + 金色雕花线 + 四角角花，宝石在 .home-card-rank::after。
+              普通工艺的卡上这一层 opacity 为 0（--craft-ornate），所以它一直挂在 DOM 里也不花钱。 */}}
+        <span class="home-card-fret" aria-hidden="true"></span>
         {{- /* 等级层：整卡覆膜 + 四角纹章。见 21-card-deck.css 的「等级」一节 */}}
         <span class="home-card-rank" aria-hidden="true"></span>
         {{- /* 底部**信息带**：名字（最大）→ 系列（次之）→ 卡号（最小）+ 稀有度徽章（形状编码）。

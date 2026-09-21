@@ -11,9 +11,16 @@
 #   flat    垫底渐变（[上, 下] 两个 RGB）：给透明源图，或 figure 取景装不下时手定底色；
 #           不写则用源图四角的实测底色
 #   series  系列名；name = 这张卡自己的名字（名牌显示 name + 系列副标）
-#   style   卡面风格（**现役八种**，全是 CSS 画的，不烘进图里）。写的是代码名：
-#             foil 全息 / holo-prism 星芒全息 / gold 金边 / glass 玻璃 /
-#             ink 墨 / washi 和纸 / yukika 雪华（六角结晶）/ kintsugi 金继（黑底金缝）
+#   style   卡面风格（**现役十二种**，全是 CSS 画的，不烘进图里）。写的是代码名，分两档：
+#             · 普通工艺（纸面 + 单层印纹，别得不长雕花框）：
+#               foil 全息 / washi 和纸 / ink 墨 / yukika 雪华 / starnight 星屑
+#             · 进阶工艺（多层材料，**卡面长雕花框**：暗底边栏 + 金线缠枝 + 四角宝石）：
+#               holo-prism 星芒全息 / glass 玻璃 / gold 金边 / kintsugi 金继 /
+#               filigree 雕花金 / enamel 珐琅彩
+#           分档口径取「能从代码里数出来」的那个（普通只有一层、进阶要多层叠加），
+#           两档各驱动什么见 assets/css/extended/21-card-deck.css 的「工艺的两档」一节。
+#           **filigree / enamel / starnight / frostcrack 四种是 2026-09-21 新加的，
+#           清单里还没有卡在用** —— 下一步是给它们分卡（各档的候选名单见 features.md ㊴）。
 #           2026-09-20 从十六种精简而来（十六种里其实只有四个原子配方，同一配方的变体在
 #           272px 下看不出差别，而每多一种就多一份明暗两套的维护面；CSS 因此从 67 KB 降到 54 KB）。
 #           被砍的按族挪到最接近的保留项：holo-gold→foil（同构，只差色相）、frost/sakura→yukika、
