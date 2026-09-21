@@ -116,6 +116,21 @@
   }
 }
 
+/* 入场：一次性淡入（2026-09-21 加）。在此之前她是跟着首帧「啪」一下出现的，
+   而首页周围每一块都是淡入上浮 —— 只有她不是，观感上像贴上去的。
+   只动 opacity、一次性、backwards 填充（动画开始前就铺 from 的值，不会先闪一下终态）。 */
+@media (prefers-reduced-motion: no-preference) {
+  .mascot {
+    animation: mascot-in .55s ease .12s backwards;
+  }
+}
+
+@keyframes mascot-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @media print {
   .mascot {
     display: none;

@@ -7,7 +7,7 @@
        为什么放 footer hook：baseof 只在 footer.html 里调它一次，且 extend_footer 不是 partialCached
        （缓存串页的坑见 docs/features.md ㉓）；这个位置在 <body> 末尾，fixed 定位不受父级影响。 */ -}}
 {{- with resources.Get "images/mascot.webp" }}
-<a class="mascot mascot--right" href="{{ "about/" | relLangURL }}" aria-label="{{ i18n "mascotLabel" }}">
+<a class="mascot mascot--right" href="{{ "about/" | relLangURL }}" aria-label="{{ i18n "mascotLabel" }}" title="{{ i18n "mascotLabel" }}">
   <img src="{{ .RelPermalink }}" width="366" height="720" alt="" loading="lazy" decoding="async">
 </a>
 {{- end }}

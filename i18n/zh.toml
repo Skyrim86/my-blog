@@ -446,3 +446,13 @@ other = "下午好"
 other = "晚上好"
 [clockGreetLate]
 other = "夜深了"
+
+# 时钟里那两条进度与脚注（数字由脚本算，标签是模板渲染的）
+[clockToday]
+other = "今天已过"
+[clockYear]
+other = "今年已过"
+[clockDayOfYear]
+other = "今年第 {n} 天"
+[clockYearLeft]
+other = "还剩 {n} 天"

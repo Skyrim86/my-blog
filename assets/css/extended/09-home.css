@@ -219,14 +219,24 @@
   }
 }
 
-/* ---------- 首页时钟（layouts/_partials/home-clock.html + assets/js/home-clock.js） ----------
+/* ---------- 首页时间卡（layouts/_partials/home-clock.html + assets/js/home-clock.js） ----------
 
    面板的玻璃底、圆角、投影来自上面那条与 .home-browse / .home-recent 共用的规则；
    这里只管它内部的排版。
 
    **出厂隐藏**：脚本填好第一帧内容才摘掉 data-pending。用自定义属性而不是 `hidden`
    属性 —— `.home-clock` 上的 `display: flex` 会压过浏览器默认样式表里的
-   `[hidden] { display: none }`，那样面板会先空着显示出来。 */
+   `[hidden] { display: none }`，那样面板会先空着显示出来（traps 第 38 条）。
+
+   版式是「三行＋一条脚注」，用的是面板整宽，不是堆在左边一小块：
+     第一行  大号时间（左）  +  问候语（右，推到最右）
+     第二行  日期 · 星期
+     第三行  今天已过 / 今年已过 两条进度（标签 · 进度条 · 百分比）
+     脚注    今年第 N 天 · 还剩 N 天
+   时间刻意**不用**标题那套衬线栈：Georgia / Palatino 的阿拉伯数字是**旧体**（0、1 只有
+   x-height，2、3 是等高），`10:30` 摆在一起高低不齐；而这些字体没有 lining 变体可切
+   （`font-variant-numeric` 只在字体带该特性时才生效）。所以时间留在无衬线栈上，
+   靠字号、字重与两条进度做出「这块是别处没有的」。 */
 .home-clock[data-pending="1"] {
   display: none;
 }
@@ -234,7 +244,21 @@
 .home-clock {
   display: flex;
   flex-direction: column;
-  gap: .4rem;
+  gap: .5rem;
+  /* **吃掉右栏的剩余高度**（与下面那条 `.home-recent { margin-top: auto }` 是一对）：
+     左栏（hero + 卡片组）比右栏这两块内容高一截，差出来的那两百来像素原来是**裸露的壁纸**
+     ——截图里看着就是「两块面板中间挖了个洞」。现在把这段高度给时间卡，
+     右栏的两块面板之间不再有缝，底边照样与左栏齐平。
+     内容因此分成上下两端：时间与日期在顶，仪表与脚注贴底（见下面 `margin-top: auto`）。
+     窄屏（单列）时右栏没有确定高度，flex-grow 没有东西可分，这条自动失效。 */
+  flex: 1 1 auto;
+}
+
+.home-clock-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .home-clock-time {
@@ -247,7 +271,7 @@
 }
 
 .home-clock-hm {
-  font-size: 2.6rem;
+  font-size: 2.9rem;
   font-weight: 600;
   letter-spacing: .01em;
 }
@@ -257,12 +281,72 @@
   color: var(--secondary);
 }
 
-.home-clock-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: .45rem;
+.home-clock-greet {
+  flex: none;
+  padding-bottom: .18rem;
+  font-size: .88rem;
+  letter-spacing: .04em;
+  color: var(--accent);
+}
+
+.home-clock-date {
+  margin: 0;
   font-size: .85rem;
+  letter-spacing: .02em;
+  color: var(--secondary);
+}
+
+.home-clock-meters {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  /* auto（而不是固定值）：右栏拉高时把仪表与脚注推到卡片底部，
+     与顶部的读数分开 —— 不然卡片被拉高之后所有内容都会挤在顶上。 */
+  margin-top: auto;
+}
+
+/* 三列：标签 / 进度条 / 百分比。用 grid 而不是 flex —— 两个标签恰好等长，
+   由内容定宽就自然对齐，不需要写一个 em 级的魔法宽度 */
+.home-clock-meter {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .6rem;
+  font-size: .78rem;
+  color: var(--secondary);
+}
+
+.home-clock-mlabel {
+  white-space: nowrap;
+}
+
+.home-clock-mtrack {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tertiary);
+  overflow: hidden;
+}
+
+/* 进度只动 transform，不改 width：这条每秒都在更新，改 width 会让浏览器每秒
+   对这块面板做一次布局，而 scaleX 是合成器能接管的量。 */
+.home-clock-mfill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transform-origin: 0 50%;
+  transform: scaleX(var(--p, 0));
+}
+
+.home-clock-mval {
+  min-width: 2.6em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-clock-foot {
+  margin: 0;
+  font-size: .78rem;
   letter-spacing: .02em;
   color: var(--secondary);
 }
