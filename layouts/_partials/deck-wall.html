@@ -33,10 +33,13 @@
 {{- $items := partial "deck-manifest.html" . }}
 {{- with $items }}
 <div class="deck-wall" data-deck="{{ . | jsonify }}"
-     data-all="{{ i18n "deckFilterAll" }}"
      data-by-series="{{ i18n "deckFilterSeries" }}"
      data-by-style="{{ i18n "deckFilterStyle" }}"
      data-by-rank="{{ i18n "deckFilterRank" }}"
+     data-tier-basic="{{ i18n "deckFilterTierBasic" }}"
+     data-tier-advanced="{{ i18n "deckFilterTierAdvanced" }}"
+     data-tier-hint="{{ i18n "deckFilterTierHint" }}"
+     data-clear="{{ i18n "deckFilterClear" }}"
      data-count="{{ i18n "deckFilterCount" }}"
      data-empty="{{ i18n "deckFilterEmpty" }}"
      data-open="{{ i18n "deckOpenCard" }}"
@@ -62,7 +65,7 @@
                 <span class="home-card-lens" aria-hidden="true"></span>
                 {{- /* 画面的内衬线（低档清楚、高档归零）—— 与首页同一支 span */}}
                 <span class="home-card-mat" aria-hidden="true"></span>
-                {{- /* 雕花框（进阶工艺专属）—— 与首页同一支 span；普通工艺上 opacity 为 0 */}}
+                {{- /* 雕花框（秘藏及以上显形，普通工艺那几张上 opacity 也是 0）—— 与首页同一支 span */}}
                 <span class="home-card-fret" aria-hidden="true"></span>
                 <span class="home-card-rank" aria-hidden="true"></span>
                 {{- /* 稀有度徽章：卡片墙**没有名牌**（名字在格子下方那条 cap 里，见上面第 3 条），

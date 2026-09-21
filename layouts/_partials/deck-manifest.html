@@ -49,6 +49,22 @@
       **注释不能写进下面那个 dict 的括号里面**：Go 模板不允许注释动作出现在表达式中间
       （`unexpected "{" in operand`），实测踩到过一次。 */}}
 {{- $style := .style | default "foil" }}
+{{- /* 工艺的两档 —— **分类口径的唯一定义处**（2026-09-21 起也驱动收藏库筛选条的分组）。
+
+     普通（basic）= 纸面 + 单层印纹；进阶（advanced）= 多层材料。两档各 6 种。
+     它**不驱动边框**（边框归等级：带宽 / 角饰显隐 / 淡入全由 .home-card-rank--* 给），
+     只作分类口径 —— 让工艺驱动边框必然与稀有度阶梯打架，这是 2026-09-21 那次重做的结论。
+
+     为什么这张表在这里而不是在 deck-wall.js 里：与 styleLabel / rankLabel 同一条理由 ——
+     JS 调不到 i18n，也不该再抄一份「哪种工艺算进阶」。漏掉一种的表现是那张卡在筛选条里
+     **没有档位标签、排到所有组后面**，页面上不报错；所以 check-deck.mjs 核两件事：
+     ① CSS 里的每种风格都在这张表里且只出现一次；② 这张表的两个键与 deck-wall.js 的
+     TIER_ORDER 对得上（对不上 = 分组整片塌成一组，同样不报错）。 */}}
+{{- $styleTier := dict
+    "foil" "basic" "washi" "basic" "ink" "basic"
+    "yukika" "basic" "starnight" "basic" "frostcrack" "basic"
+    "holo-prism" "advanced" "glass" "advanced" "gold" "advanced"
+    "kintsugi" "advanced" "filigree" "advanced" "enamel" "advanced" }}
 {{- $rank := .rank | default "collector" }}
 {{- $items = $items | append (dict
     "s" $small.RelPermalink "l" $large.RelPermalink
@@ -62,6 +78,7 @@
         "yukika" (i18n "deckStyleYukika") "kintsugi" (i18n "deckStyleKintsugi")
         "filigree" (i18n "deckStyleFiligree") "enamel" (i18n "deckStyleEnamel")
         "starnight" (i18n "deckStyleStarnight") "frostcrack" (i18n "deckStyleFrostcrack")) $style)
+    "styleTier" (index $styleTier $style)
     "rank" $rank
     "rankLabel" (index (dict
         "collector" (i18n "deckRankCollector") "rare" (i18n "deckRankRare")

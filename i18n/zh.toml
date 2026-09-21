@@ -269,8 +269,9 @@ other = "雪华"
 [deckStyleKintsugi]
 other = "金继"
 
-# 2026-09-21 新加的四种（三种工艺 + 冰裂）。分档：雕花金与珐琅彩是**进阶**（卡面长雕花框），
-# 星屑与冰裂是**普通**。分档口径与那两档的作用见 21-card-deck.css 的「工艺的两档」一节。
+# 2026-09-21 新加的四种（三种工艺 + 冰裂）。分档：雕花金与珐琅彩是**进阶**，
+# 星屑与冰裂是**普通**。分档口径的唯一事实源是 layouts/_partials/deck-manifest.html 的
+# $styleTier 表（十二种各归一档，6 + 6），这里只给对外词。
 [deckStyleFiligree]
 other = "雕花金"
 
@@ -284,12 +285,11 @@ other = "星屑"
 other = "冰裂"
 
 # 卡片墙的筛选条（三排 pill 由 assets/js/deck-wall.js 注入，文案经 data-* 传）。
+# 三排都可以多选（同排 OR、排与排 AND），所以**没有「全部」这一颗**：把选中的 chip 再点一次
+# 就是取消，整排清空由结果行末尾的「清空筛选」负责（2026-09-21 那一轮）。
 # {n} 与 deckNext 那套一样是**由 JS 填**的占位符，不是 Hugo 模板变量。
 [deckFilterLabel]
 other = "按系列、工艺、等级筛选"
-
-[deckFilterAll]
-other = "全部"
 
 [deckFilterSeries]
 other = "系列"
@@ -302,9 +302,28 @@ other = "工艺"
 [deckFilterRank]
 other = "等级"
 
+# 工艺那两档的**组标签**（代码名在 deck-manifest.html 的 $styleTier 表里）。标签本身是颗按钮：
+# 按一下就把这一档当前够得着的工艺一次选中 / 取消 —— 十二项挨个点太费事。
+[deckFilterTierBasic]
+other = "普通"
+
+[deckFilterTierAdvanced]
+other = "进阶"
+
+# 组标签的可读名：读屏用户只听到「普通」不知道按下去会怎样。{tier} 由 JS 填。
+# 「这一档工艺」而不是「全部」：整档选中只收**当前够得着的**（别的排把它排除干净的项本来就是灰的）。
+[deckFilterTierHint]
+other = "{tier}工艺：选中或取消这一档工艺"
+
 [deckFilterCount]
 other = "共 {n} 张"
 
+# 只在真有选中项时出现（在结果行末尾）。
+[deckFilterClear]
+other = "清空筛选"
+
+# 理论上到不了这里：0 张的项已经置灰不可点，而每次选择都是往 OR 里「加」一项、结果只会变多。
+# 留着当兜底（万一以后加了会把结果收窄的维度）。
 [deckFilterEmpty]
 other = "没有同时符合这三条的卡，换一个筛选试试"
 

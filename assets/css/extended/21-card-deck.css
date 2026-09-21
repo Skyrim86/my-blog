@@ -1681,7 +1681,14 @@ a.home-deck-dialog-credit:hover {
   display: none;
 }
 
-/* ---------- 筛选条 ---------- */
+/* ---------- 筛选条 ----------
+   三排 pill 全部由 assets/js/deck-wall.js 注入（无 JS 时这一页是一张静态卡册、没有点不动的控件）。
+   两条几何约定：
+     · **分组的维度（工艺）多一层 `.deck-filter-groups`（竖排）**，每组 = 可点的组标签 + 一串 chip。
+       用竖排而不是「在一排里一路排下去」：那样窄屏折行时组标签会落在行尾、与它那一组 chip 分家；
+       竖排则每组自己折自己的行。
+     · 组标签占 2.1rem，比排头的 2.5rem 窄一点 —— 于是「工艺」下面两组的 chip 彼此对齐、
+       又明确缩在「工艺」这一排之下（读作从属关系）。 */
 .deck-filters {
   display: flex;
   flex-direction: column;
@@ -1701,6 +1708,61 @@ a.home-deck-dialog-credit:hover {
   width: 2.5rem;
   font-size: .8rem;
   color: var(--secondary);
+}
+
+.deck-filter-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* min-width:0 才能让它缩到「最宽的那一组」以下、并在组内折行 —— flex 项默认不肯小于内容宽 */
+  min-width: 0;
+}
+
+.deck-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 档位标签：**读作标签、其实是按钮**（按一下 = 把这一档够得着的工艺整档选中 / 取消）。
+   所以它不长成 pill —— 没有底色与边框，只有字，hover 才浮出一层底色；按下时换成主色 + 加重，
+   与旁边那些 pill 的「选中」是同一个语义、不同的分量（分组是个层级，不该看着像又一颗 chip）。 */
+.deck-filter-tier {
+  flex: none;
+  width: 2.1rem;
+  padding: 0 2px;
+  font: inherit;
+  font-size: .76rem;
+  line-height: 1.8;
+  text-align: left;
+  color: var(--secondary);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: .75;
+  transition: color .18s ease, background-color .18s ease, opacity .18s ease;
+}
+
+.deck-filter-tier:hover {
+  color: var(--accent);
+  background: var(--entry);
+  opacity: 1;
+}
+
+.deck-filter-tier.is-active {
+  color: var(--accent);
+  opacity: 1;
+  font-weight: 600;
+}
+
+/* 这一档当前一张都够不着（其它两排的当前组合把它排除干净了）：与 chip 一样置灰、点不动 */
+.deck-filter-tier:disabled {
+  color: var(--secondary);
+  background: none;
+  opacity: .35;
+  cursor: default;
 }
 
 .deck-chip {
@@ -1734,11 +1796,43 @@ a.home-deck-dialog-credit:hover {
   opacity: .7;
 }
 
+/* 在**其它两排**的当前组合下是 0 张的项：置灰、点不动（原生 disabled，同时退出 tab 序列）。
+   数字是实时重算的 —— 所以「金边 14」会在选中「绫华」之后变成它在绫华那批里的张数。 */
+.deck-chip:disabled {
+  opacity: .38;
+  cursor: default;
+}
+
+.deck-chip:disabled:hover {
+  border-color: var(--edge);
+}
+
 .deck-result,
 .deck-empty {
   margin: .7rem 0 0;
   font-size: .88rem;
   color: var(--secondary);
+}
+
+/* 结果行：张数 +（有选中时的）「清空筛选」并排。张数必须写在里层那个 span 上 ——
+   role="status" 挂在它上面，而往外层写 textContent 会把按钮一起抹掉。 */
+.deck-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .6rem;
+}
+
+.deck-clear {
+  padding: 0;
+  font: inherit;
+  font-size: .82rem;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* 窄屏：一排排头占的那 2.5rem 在 320px 上太贵，让 chip 自己换行排满；

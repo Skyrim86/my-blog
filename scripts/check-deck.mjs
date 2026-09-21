@@ -34,15 +34,17 @@ const DEPTH_DIR = join(FACES_DIR, 'depth');
 const depthOf = (image) => join(DEPTH_DIR, basename(image));
 
 // 卡片组要用的词条：文案走 data-* 从模板传给 JS（JS 调不到 i18n），少一条就只剩兜底模板。
-// 后 16 条是收藏库（/collection/）的卡片墙要用的：八种工艺的中文名 + 筛选条与格子按钮名。
+// 后半批是收藏库（/collection/）的卡片墙要用的：十二种工艺的中文名 + 筛选条与格子按钮名。
+// 筛选条那几条里**没有「全部」**：三排都能多选，取消靠再点一次，整排清空走 deckFilterClear。
 const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClose', 'deckCredit',
   'deckDialogLabel', 'deckFlip', 'deckFlipBack', 'deckRotate', 'deckGlFail',
   'deckRankCollector', 'deckRankRare', 'deckRankEpic', 'deckRankArcane', 'deckRankLegend', 'deckRankMiracle',
   'deckStyleFoil', 'deckStyleHoloPrism', 'deckStyleGold', 'deckStyleGlass',
   'deckStyleInk', 'deckStyleWashi', 'deckStyleYukika', 'deckStyleKintsugi',
   'deckStyleFiligree', 'deckStyleEnamel', 'deckStyleStarnight', 'deckStyleFrostcrack',
-  'deckFilterLabel', 'deckFilterAll', 'deckFilterSeries', 'deckFilterStyle', 'deckFilterRank',
-  'deckFilterCount', 'deckFilterEmpty', 'deckOpenCard'];
+  'deckFilterLabel', 'deckFilterSeries', 'deckFilterStyle', 'deckFilterRank',
+  'deckFilterTierBasic', 'deckFilterTierAdvanced', 'deckFilterTierHint',
+  'deckFilterCount', 'deckFilterClear', 'deckFilterEmpty', 'deckOpenCard'];
 // 出处里能推出可点链接的几种写法（弹层里 credit_url 就用它核）；官方立绘 / 站点看板娘没有链接，留空是对的
 const CREDIT_URLS = [
   [/^pixiv (\d+)/, (m) => `https://www.pixiv.net/artworks/${m[1]}`],
@@ -588,6 +590,77 @@ if (!existsSync(CARD3D)) {
         `超出的档位取到 undefined，卡背那圈徽记环会**静默画不出来**`
     );
   }
+}
+
+/* ---------- ⑦ 工艺的两档（收藏库筛选条的分组） ----------
+
+   deck-manifest.html 的 $styleTier 是「哪种工艺算哪一档」的**唯一事实源** —— 筛选条按它把
+   十二项分成「普通 / 进阶」两组，JS 侧读的是清单里那个 styleTier 字段。三种漏法都是静默的：
+
+     · 表里漏一种风格 → 那张卡在筛选条里**排到所有工艺之后、没有档位标签**（页面上只是顺序怪）；
+     · 表里写了 CSS 里不存在的风格 → 与风格表脱节（多半是改名后忘删）；
+     · 档位名与 deck-wall.js 的 TIER_ORDER 对不上 → 分组**整片塌成一组**，两个组标签一个都不显示。
+
+   所以核三件事：与 CSS 的风格集合**双向**对齐、与清单里用到的风格一致（前者已覆盖）、
+   以及两个键与 TIER_ORDER 逐字相同。 */
+{
+  const MANIFEST_HTML = join('layouts', '_partials', 'deck-manifest.html');
+  const mh = readFileSync(MANIFEST_HTML, 'utf8');
+  const a = mh.indexOf('$styleTier := dict');
+  const b = a >= 0 ? mh.indexOf('}}', a) : -1;
+  const block = b > a ? mh.slice(a, b) : '';
+  const tierOf = new Map();
+  for (const m of block.matchAll(/"([a-z0-9-]+)"\s+"([a-z]+)"/g)) {
+    if (tierOf.has(m[1])) {
+      failures.push(`✗ ${MANIFEST_HTML} 的 $styleTier 里「${m[1]}」出现了两次 —— 后一条会盖掉前一条`);
+    }
+    tierOf.set(m[1], m[2]);
+  }
+  if (!tierOf.size) {
+    failures.push(`✗ ${MANIFEST_HTML} 里没解析出 $styleTier 的键 —— 那条正则与模板结构脱节了，请同步`);
+  }
+  const missTier = [...knownStyles].filter((s) => !tierOf.has(s)).sort();
+  if (missTier.length) {
+    failures.push(
+      `✗ 这些风格在 $styleTier 里查不到档位：${missTier.join(' / ')} —— ` +
+        `它们在收藏库的筛选条里会**没有档位标签、排到所有工艺之后**`
+    );
+  }
+  const extraTier = [...tierOf.keys()].filter((s) => !knownStyles.has(s)).sort();
+  if (extraTier.length) {
+    failures.push(`✗ $styleTier 里有 CSS 中不存在的风格：${extraTier.join(' / ')} —— 档位表与风格表脱节了`);
+  }
+
+  // 档位名要与 deck-wall.js 的 TIER_ORDER 一致（那是筛选条里两组的呈现顺序）
+  const WALL_JS = join('assets', 'js', 'deck-wall.js');
+  const wallJs = readFileSync(WALL_JS, 'utf8');
+  const om = wallJs.match(/var TIER_ORDER\s*=\s*\[([^\]]*)\]/);
+  const order = om ? [...om[1].matchAll(/'([a-z]+)'/g)].map((m) => m[1]) : [];
+  if (!order.length) {
+    failures.push(`✗ ${WALL_JS} 里没解析出 TIER_ORDER —— 那条正则与代码结构脱节了，请同步`);
+  } else {
+    const usedTiers = [...new Set([...tierOf.values()])].sort();
+    const onlyMap = usedTiers.filter((t) => !order.includes(t));
+    const onlyJs = order.filter((t) => !usedTiers.includes(t));
+    if (onlyMap.length || onlyJs.length) {
+      failures.push(
+        `✗ 档位名对不上：$styleTier 用 ${usedTiers.join(' / ')}，${WALL_JS} 的 TIER_ORDER 用 ` +
+          `${order.join(' / ')} —— 对不上的档在筛选条里**整组塌掉**（没有组标签、混进别的组），页面上不报错`
+      );
+    }
+  }
+
+  const perTier = {};
+  for (const c of entries) {
+    const t = tierOf.get(String(c.style));
+    if (t) perTier[t] = (perTier[t] || 0) + 1;
+  }
+  notes.push(
+    '· 工艺两档：' +
+      order
+        .map((t) => `${t} ${[...tierOf.values()].filter((v) => v === t).length} 种 / ${perTier[t] || 0} 张`)
+        .join('，')
+  );
 }
 
 /* ---------- 报告 ---------- */
