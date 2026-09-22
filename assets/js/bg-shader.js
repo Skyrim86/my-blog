@@ -4,7 +4,8 @@
  * v1 只有一套深色极光；实测把它放在浅色主题下会把正文最坏对比度从 4.82 压到 4.30
  * （AA 线 4.5，见 lab/shots/bg-shader-contrast/）—— 浅色主题是深字，底色变暗就崩。
  * v2 按 data-theme 切两套配色：深色用原样的深空极光，浅色用亮紫白的白昼天光
- * （glow 只加色、不提暗，所以只会把底提亮，对比度方向安全）。
+ * （深色那套是「加色」：glow 只提亮、不提暗，对比度方向安全。浅色那套是「按 glow 插值上色」，
+ *  并且对光带色做**亮度中性提饱和**（c' = luma + (c-luma)*k）—— 彩度放开提、对比度一分不掉）。
  *
  * 挂载点：document.documentElement 的第一个子节点。
  *   理由：body::before（壁纸 + 文字对比蒙版）与 body::after（玻璃质感层）同为负 z-index，
@@ -101,17 +102,23 @@
       '   float d=abs(p.y-y); float w=.05+.02*sin(p.x*2.3+t*2.);',
       '   band+=(1.-smoothstep(0.,w,d))*(.55-fi*.13);}',
       ' float n=fbm(p*2.4+vec2(t*.6,-t*.9));',
-      // 浅色主题：glow 收窄到一半（只做柔和的天光，不做高对比的极光带）
-      ' float glow=band*(.45+.75*n)*(1.-.45*u_light);',
+      // glow 的强度：浅色下收到约一半（天光不该像极光那样硬）
+      ' float glow=band*(.45+.75*n)*(1.-.22*u_light);',
       ' vec3 baseD=mix(vec3(.043,.039,.058),vec3(.078,.071,.12),uv.y);',
-      ' vec3 baseL=mix(vec3(.950,.944,.972),vec3(.902,.896,.950),uv.y);',
+      // 浅色底：压到 luma≈0.86~0.92 并带一点冷紫。**不再逼近纯白** —— 白底上没有位置放光带
+      ' vec3 baseL=mix(vec3(.872,.866,.906),vec3(.756,.748,.842),uv.y);',
       ' vec3 base=mix(baseD,baseL,u_light);',
       ' vec3 aurD=mix(vec3(.18,.75,.62),vec3(.42,.35,.85),uv.y*1.3);',
-      ' vec3 aurL=mix(vec3(.60,.80,.86),vec3(.78,.72,.92),uv.y*1.3);',
+      ' vec3 aurL=mix(vec3(.36,.88,.82),vec3(.70,.56,.98),uv.y*1.3);',
+      // 浅色那套的关键：**亮度中性提饱和** —— WCAG 只看亮度，而 c' = luma + (c-luma)*k 保证
+      // luma 不变、只把与灰轴的距离放大，所以彩度可以放开提而对比度一分不掉（余量见 features.md ⑫）。
+      // 同时把上色方式从「压暗一层」改成「按 glow 在底与极光色之间插值」：压暗得到的是灰雾，
+      // 插值得到的才是带颜色的光带。
+      ' float lA=dot(aurL,vec3(.2126,.7152,.0722));',
+      ' aurL=lA+(aurL-lA)*2.30;',
       ' vec3 aur=mix(aurD,aurL,u_light);',
-      // 浅色那套：极光带**压暗**而不是提亮（亮底上再提亮就看不见了），但仍不越过 base 的亮度下界太多
       ' vec3 col=base+aur*glow*(1.-u_light);',
-      ' col=mix(col, base-aurD*glow*.10*u_light, u_light);',
+      ' col=mix(col,mix(baseL,aurL,clamp(glow*2.30,0.,1.)),u_light);',
       ' vec2 sp=floor(gl_FragCoord.xy/2.); float h=hash(sp);',
       ' col+=step(.9985,h)*(.35+.65*hash(sp+3.7))*vec3(.9,.94,1.)*(1.-uv.y)*(1.-u_light);',
       ' gl_FragColor=vec4(col,1.);',
