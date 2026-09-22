@@ -1541,6 +1541,35 @@ v3 不画线的斜向碎纹带（「碎」得更彻底，但线没了、分段�
 - 减少动效偏好下把四条 transition 伪元素的动画全关掉（`animation: none`，各版本都认；
   不用 `@view-transition { navigation: none }` —— 把 at-rule 嵌进 `@media` 的支持面不稳）。
 
+### ㊽ 卡片工艺参数化：15 种工艺的令牌改成数据（2026-09-22）
+
+改前的病：一种「卡面工艺」散在**五处**手写代码里 —— ① `data/home-cards.yaml` 的 `style:`、② `21-card-deck.css` 的 `.home-card--<名>` 块、③ `card-3d.js` 的 `STYLE_3D`、④ i18n 的 `deckStyle<名>`、⑤ `deck-manifest.html` 的 `styleLabel` / `$styleTier`。16 种合计**同步面 271 行**（≈17 行/种），漏一处全是**静默**失效 —— 漏 `STYLE_3D` 最阴：首页看着是雕花金、转起来是普通全息，而这两种视图永远不会同时出现在一屏里。
+
+改后 ②③ 变成**生成的**：`data/card-styles.yaml` 是工艺参数的单一事实源，`node tools/cards/render-styles.mjs --write` 出 `assets/css/extended/21-card-styles.css` 并就地重写 `card-3d.js` 的 `STYLE_3D` 托管行；`scripts/check-deck.mjs` 拿产物与参数表**逐字对拍**（不一致即阻断）。
+
+**范围 15 种**（13 种主块 + 样板 nacre / silk）。没进表的：
+
+- `foil` —— 它没有主块，`.home-card` 的基础声明（彩虹 conic + `color-dodge`）**本身就是**全息的观感。
+- **结构层**：伪元素（`glass::before/::after`、`kintsugi::after`、`holo-prism::before` 与 `:hover::before`）、后代（`.home-card-lens`）。
+- **主题层**：`:root[data-theme="dark"] .home-card--<名> { --coverlay-op: … }` 那 11 行。
+
+这三类留在 `21-card-deck.css` 手写 —— 它们是几何与主题，不是材质参数；每个工艺在原位留一行指针注释。
+
+参数模型的权威字段表在 `data/card-styles.yaml` 的文件头：`fretLine` / `gemColor`（可选）/ `finish` / `plate` / `plateSolid` / `plateText` / `plateAccent` / `blend` / `opacity` / `mask`（**多层**，与 `print` 同构）/ `maskSize` / `maskPosition` / `maskRepeat` / `filter` / `boxShadow`（玻璃那种长在盒模型上的材质）/ `print`（图层栈）/ `threeD`（七个通道，按字符串逐字复现，`0.20` 不归一成 `0.2`）。
+
+**等价性**不是靠眼睛证的：把 13 个手写主块反向解析成 `{属性 → 值}` 与生成块比（压掉空白差异）—— **13 种全部逐字一致**，含 glass 的 7 段 `box-shadow` 与 yukika 的十二片 `var(--tex-flake*)`。另外 `tools/cards/guard-inject.py` 会往产物注入五种漂移（手改生成物、手改 `STYLE_3D` 托管行、把手写块加回来、生成物丢掉 `--fret-line`、`tier` 与 `$styleTier` 写岔），逐条确认被 `check-deck.mjs` 拦下 —— 守卫不是摆设。
+
+规模变化：`21-card-deck.css` 2277 → 2022 行（−255），生成文件 353 行；合并后的主样式 174716 → 174225 B（生成器不写行内注释，注释里的设计动机只留在 YAML 与指针上方）。`data/card-styles.yaml` 1034 行（含大段字段说明与每种工艺的设计动机）。
+
+**加一种工艺现在要动**：`data/card-styles.yaml` 一条（11~14 个字段）+ 有伪元素时再写结构 CSS + i18n 的 `deckStyle*` 一行 + 模板的 `styleLabel` / `$styleTier` 各一行。后两处仍手写，但与 YAML 的 `labelKey` / `tier` 对拍，写岔会报。
+
+```bash
+node tools/cards/render-styles.mjs --check     # 产物与数据是否一致（--print 只看不打盘）
+python tools/cards/guard-inject.py             # 五条守卫的注入测试
+python tools/cards/style-footprint.py          # 「一种工艺散在哪几处」的测绘
+node scripts/check-deck.mjs                    # 全套（CI / push-blog / 体检面板三处都跑）
+```
+
 ## 5. 总览页标题
 
 `/tags/`、`/categories/`、`/series/` 三个总览页的标题由 `content/<taxonomy>/_index.md` 提供。**不要**再新建 `content/tags.md` 之类带 `url` 的普通页面去覆盖它们——那会把 `kind=taxonomy` 的列表页顶替成普通文章页（曾因此让「标签」入口整页空白）。

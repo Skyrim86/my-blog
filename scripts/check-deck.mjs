@@ -21,6 +21,7 @@
 // 退出码：0 = 清单合规；1 = 有不合规的地方
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const MANIFEST = join('data', 'home-cards.yaml');
 const CSS = join('assets', 'css', 'extended', '21-card-deck.css');
@@ -106,6 +107,16 @@ if (!entries.length) {
 /* ---------- 清单里的 style 必须真有对应的 CSS 类 ---------- */
 const css = readFileSync(CSS, 'utf8');
 
+/* ---------- 参数化的工艺块（data/card-styles.yaml → 21-card-styles.css + card-3d.js 的 STYLE_3D 行）----------
+
+   2026-09-21 加（样板，见 docs/exp-craft.md）。**参数化不等于少盯**：被参数化的那几种工艺
+   仍然是「卡面风格」那一段的一部分，下面 ①③⑥ 三条纪律与 knownStyles 都要把它算进来 ——
+   否则删掉手写块的那一刻，这几种工艺就悄悄脱离守卫了（漏 --fret-line、写了 --cframe 都不再报错，
+   而这正是这个仓库最怕的那种静默失效）。 */
+const GEN_CSS = join('assets', 'css', 'extended', '21-card-styles.css');
+const genCss = existsSync(GEN_CSS) ? readFileSync(GEN_CSS, 'utf8') : '';
+const cssAll = genCss ? `${css}\n${genCss}` : css;
+
 /* ---------- ⓪ 声明有没有丢掉分号（手改 CSS 最容易犯、且**完全静默**的错）----------
    真事：用脚本往 `.home-card-rank--epic` 尾部插 `--fret-corner` 时，插入点落在「最后一个
    声明」与 `; }` 之间，于是 `--cframe: linear-gradient(...)` 丢了分号、下一个声明被并进它的
@@ -114,12 +125,14 @@ const css = readFileSync(CSS, 'utf8');
    判据：一行以 `)` 收尾且没有分号，下一行又是声明。合法的换行续写只会以 `,` 或未闭合的
    括号收尾，所以这一条不误报。 */
 {
-  const lines = css.split(/\r?\n/);
   const bad = [];
-  for (let i = 0; i < lines.length - 1; i++) {
-    const a = lines[i].trim(), b = lines[i + 1].trim();
-    if (a.startsWith('--') && a.endsWith(')') && !a.endsWith(';') && b.startsWith('--')) {
-      bad.push(`第 ${i + 1} 行 ${a.slice(0, 44)}… 紧跟 ${b.slice(0, 26)}…`);
+  for (const [file, text] of [[CSS, css], [GEN_CSS, genCss]]) {
+    const lines = text.split(/\r?\n/);
+    for (let i = 0; i < lines.length - 1; i++) {
+      const a = lines[i].trim(), b = lines[i + 1].trim();
+      if (a.startsWith('--') && a.endsWith(')') && !a.endsWith(';') && b.startsWith('--')) {
+        bad.push(`${file} 第 ${i + 1} 行 ${a.slice(0, 44)}… 紧跟 ${b.slice(0, 26)}…`);
+      }
     }
   }
   if (bad.length) {
@@ -129,7 +142,7 @@ const css = readFileSync(CSS, 'utf8');
   }
   console.log('· 声明分号：逐行查过，没有「值以 ) 收尾却没分号」的行');
 }
-const knownStyles = new Set([...css.matchAll(/\.home-card--([a-z0-9-]+)/g)].map((m) => m[1]));
+const knownStyles = new Set([...cssAll.matchAll(/\.home-card--([a-z0-9-]+)/g)].map((m) => m[1]));
 // foil 是个特例：它**没有** .home-card--foil 这条规则 —— .home-card 的基础声明（彩虹 conic +
 // color-dodge）本身就是全息的观感，`style: foil` 出来的类名没规则可命中，正好落在基础样式上。
 // 模板与 JS 的兜底值也都是 'foil'，所以它是合法值，不能算「拼错了」。
@@ -300,7 +313,7 @@ const stylesClose = css.indexOf('/* ---------- 减少动态');
 if (stylesOpen < 0 || stylesClose < 0 || stylesClose <= stylesOpen) {
   failures.push(`✗ ${CSS} 里找不到卡面风格段（分隔注释被改过？）—— 这两条纪律的扫描范围就失效了，请同步调整 check-deck.mjs`);
 } else {
-  const styleSection = css.slice(stylesOpen, stylesClose);
+  const styleSection = css.slice(stylesOpen, stylesClose) + genCss;
   const hard = [];
   for (const m of styleSection.matchAll(/repeating-(?:linear|conic|radial)-gradient\(/g)) {
     const chunk = styleSection.slice(m.index, m.index + 420);
@@ -319,7 +332,7 @@ if (stylesOpen < 0 || stylesClose < 0 || stylesClose <= stylesOpen) {
   // 它 —— 少 include 的那一页不会报错，只是那一页的卡悄悄没有手抖/颗粒感（就是下面这条纪律
   // 要防的静默失效）。所以这里两件事一起核：id 在不在、用它的模板有没有引到。
   const ids = new Set();
-  for (const m of css.matchAll(/url\(#([\w-]+)\)/g)) ids.add(m[1]);
+  for (const m of cssAll.matchAll(/url\(#([\w-]+)\)/g)) ids.add(m[1]);
   if (ids.size) {
     const FILTERS = join('layouts', '_partials', 'deck-filters.html');
     const have = new Set(
@@ -415,7 +428,7 @@ for (const r of cssRanks) {
 
 /* ③ 风格的框值必须走 --cframe-finish、不许写 --cframe */
 {
-  const sec = css.slice(stylesOpen, stylesClose);
+  const sec = css.slice(stylesOpen, stylesClose) + genCss;  // 生成区也要被同一条纪律盯住
   for (const s of knownStyles) {
     if (s === 'foil') continue;   // 特例：foil 的质感层就是 .home-card 的基础声明
     const blk = rulesWith(sec, `.home-card--${s}`);
@@ -504,7 +517,7 @@ for (const r of cssRanks) {
   const rankOpen = css.indexOf('---------- 等级');
   const rankClose = css.indexOf('/* ---------- 深色主题');
   const sec = rankOpen >= 0 && rankClose > rankOpen ? css.slice(rankOpen, rankClose) : '';
-  const stylesSec = css.slice(stylesOpen, stylesClose);
+  const stylesSec = css.slice(stylesOpen, stylesClose) + genCss;  // 生成区同样算「卡面风格」
   for (const r of RANKS) {
     if (!cssRanks.has(r)) continue;
     // 收藏档特例：带宽与装饰线的值就是 `.home-card` 基础声明那一份（与 --rank-frame 的
@@ -825,6 +838,88 @@ if (!existsSync(CARD3D)) {
         .map((t) => `${t} ${[...tierOf.values()].filter((v) => v === t).length} 种 / ${perTier[t] || 0} 张`)
         .join('，')
   );
+}
+
+/* ---------- ⑧ 参数化的工艺：数据 → 生成物（2026-09-21 加，样板见 docs/exp-craft.md）----------
+
+   data/card-styles.yaml 是「已参数化工艺」的单一事实源（样板里是 nacre / silk），
+   tools/cards/render-styles.mjs 读它出两样东西：assets/css/extended/21-card-styles.css、
+   以及 card-3d.js 的 STYLE_3D 里那几行。两条纪律：
+
+     · **数据与生成物必须逐字一致**：手改生成物、或改了 YAML 忘了重跑渲染器 —— 都在这里拦下。
+       做法是把渲染器当模块调（不另开子进程），拿到与 --write 完全相同的预期文本再比。
+     · **同一种工艺不许既有手写块又有生成块**：两处都在的话后写的赢，改另一处「没有反应」，
+       构建全绿、只是那几张卡的工艺不对 —— 正是这个仓库最怕的静默失效。
+
+   顺带把数据里那两个「将来要接管手写表」的字段与现状对拍：labelKey ↔ i18n 词条 ↔
+   deck-manifest.html 的 styleLabel 表；tier ↔ 同一文件的 $styleTier 表。写岔了在迁移完成前就看得见。 */
+{
+  const DATA_STYLES = join('data', 'card-styles.yaml');
+  const RENDERER = join('tools', 'cards', 'render-styles.mjs');
+  const MANIFEST_HTML = join('layouts', '_partials', 'deck-manifest.html');
+  if (!existsSync(DATA_STYLES) || !existsSync(RENDERER)) {
+    failures.push(`✗ 缺 ${DATA_STYLES} 或 ${RENDERER} —— 参数化工艺的事实源/渲染器不见了，这一节守卫失效`);
+  } else {
+    const mod = await import(pathToFileURL(RENDERER).href);
+    const styles = mod.loadStyles();
+    const names = Object.keys(styles);
+    for (const p of mod.checkSync(styles).problems) failures.push(p);
+
+    // ① 手写块与生成块不许并存。
+    // 判据是「**恰好是主块**」（行首 .home-card--<名> {）而不是「出现过」：伪元素
+    // （.home-card--glass::before）、后代（.home-card--glass .home-card-lens）与深色主题覆写
+    // （:root[data-theme="dark"] .home-card--glass { --coverlay-op }）都是结构层/主题层，
+    // 与参数化的令牌块**本来就该并存** —— 按「出现过」判会在这 11 种工艺上误报。
+    const handwritten = new Set(
+      [...css.matchAll(/^[.]home-card--([a-z0-9-]+)[ \t]*\{/gm)].map((m) => m[1])
+    );
+    const both = names.filter((n) => handwritten.has(n));
+    if (both.length) {
+      failures.push(
+        `✗ 这些工艺**同时**有手写块与生成块：${both.join(' / ')} —— ` +
+          `${CSS} 里那一处要删掉：后写的赢，改另一处不会有反应，页面上也不报错`
+      );
+    }
+    const noClass = names.filter((n) => !knownStyles.has(n));
+    if (noClass.length) failures.push(`✗ 生成的 CSS 里没有这些工艺的类：${noClass.join(' / ')}`);
+
+    // ② labelKey / tier 与还在手写的那两张表对拍
+    const mh = readFileSync(MANIFEST_HTML, 'utf8');
+    const labelOf = new Map(
+      [...mh.matchAll(new RegExp('"([a-z0-9-]+)"[ ]*[(]i18n[ ]*"(deckStyle[A-Za-z]+)"', 'g'))].map(
+        (m) => [m[1], m[2]]
+      )
+    );
+    const tierOpen = mh.indexOf('$styleTier := dict');
+    const tierBlock = tierOpen < 0 ? '' : mh.slice(tierOpen, mh.indexOf('}}', tierOpen));
+    const tierOf = new Map(
+      [...tierBlock.matchAll(new RegExp('"([a-z0-9-]+)"[ ]+"([a-z]+)"', 'g'))].map((m) => [m[1], m[2]])
+    );
+    const i18nText = readFileSync(I18N, 'utf8');
+    for (const n of names) {
+      const s = styles[n];
+      if (!i18nText.includes(`[${s.labelKey}]`)) {
+        failures.push(
+          `✗ ${DATA_STYLES} 的「${n}」写了 labelKey ${s.labelKey}，但 ${I18N} 里没有这个词条 —— 卡片墙那格会缺中文名`
+        );
+      }
+      const inMh = labelOf.get(n);
+      if (inMh && inMh !== s.labelKey) {
+        failures.push(
+          `✗ 「${n}」的中文名词条：${DATA_STYLES} 写 ${s.labelKey}，${MANIFEST_HTML} 的 styleLabel 表写 ${inMh} —— 卡片墙显示的是模板那一套`
+        );
+      }
+      const t = tierOf.get(n);
+      if (t && t !== s.tier) {
+        failures.push(
+          `✗ 「${n}」的档位：${DATA_STYLES} 写 ${s.tier}，${MANIFEST_HTML} 的 $styleTier 写 ${t} —— 筛选条分组按模板那一套`
+        );
+      }
+    }
+    notes.push(
+      `· 参数化的工艺 ${names.length} 种（${names.join(' / ')}）：CSS 块与 STYLE_3D 行都由 ${DATA_STYLES} 出，已核与生成物逐字一致`
+    );
+  }
 }
 
 /* ---------- 报告 ---------- */

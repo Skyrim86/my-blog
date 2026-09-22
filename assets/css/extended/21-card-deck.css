@@ -1047,33 +1047,7 @@ a.home-deck-dialog-credit:hover {
 /* 星芒全息（holo-prism）：以画面上方三分之一处为中心的**放射虹彩** + 几颗星点 + 大扫光。
    与全息（foil）的分工：foil 是**条纹型**衍射（一条条彩虹带随角度移），星芒是**放射型**
    （一圈圈色环从中心推出去，像宝可梦卡的「宇宙闪」）。悬停时整层转一点，读作「把卡在光里转了个角度」。 */
-.home-card--holo-prism {
-  --fret-line: linear-gradient(100deg, #ffd9a0, #ff9ec4 28%, #a0e8ff 52%, #c9a0ff 76%, #ffe6b0);   /* 边框装饰线的材质色（结构仍由等级给） */
-  /* 它的框不另设：**边框的结构归等级**（2026-09-21 第二次重做的口径），工艺只给材质 ——
-     那点「棱面感」来自下面这层框质感叠层（两层不同角度的白 + 一层冷蓝），以及它自己的卡面纹样
-     （放射虹彩 + 星点）。宝石色留着：它是**材质**不是结构。 */
-  --craft-gem-color: #d9c9ff;
-  --cframe-finish: linear-gradient(140deg, rgba(255, 255, 255, .46), rgba(226, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
-  --cplate: linear-gradient(to top, rgba(16, 14, 26, .92), rgba(16, 14, 26, .6));
-  --cplate-solid: rgba(16, 14, 26, .88);
-  --cplate-text: #f4f2ff;
-  --cplate-accent: #d9c9ff;
-  --coverlay:
-    repeating-conic-gradient(from 0deg at 50% 34%,
-      rgba(255, 148, 204, 0) 0 1deg, rgba(255, 148, 204, .42) 2.4deg 5deg, rgba(255, 148, 204, 0) 6deg 12deg,
-      rgba(156, 255, 214, 0) 12deg 13deg, rgba(156, 255, 214, .38) 14.4deg 17deg, rgba(156, 255, 214, 0) 18deg 24deg,
-      rgba(148, 204, 255, 0) 24deg 25deg, rgba(148, 204, 255, .42) 26.4deg 29deg, rgba(148, 204, 255, 0) 30deg 36deg,
-      rgba(204, 156, 255, 0) 36deg 37deg, rgba(204, 156, 255, .38) 38.4deg 41deg, rgba(204, 156, 255, 0) 42deg 48deg),
-    radial-gradient(64% 40% at 50% 34%, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 74%),
-    radial-gradient(circle 3.2px at 22% 78%, rgba(255, 255, 255, .9) 0 26%, rgba(255, 255, 255, 0) 100%),
-    radial-gradient(circle 2.2px at 74% 22%, rgba(255, 255, 255, .75) 0 26%, rgba(255, 255, 255, 0) 100%),
-    radial-gradient(circle 2.6px at 62% 64%, rgba(255, 255, 255, .65) 0 26%, rgba(255, 255, 255, 0) 100%),
-    var(--grain-fine);
-  --cblend: overlay;
-  --coverlay-op: .8;
-  --cfilter: url(#deck-rough);
-}
-
+/* holo-prism 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 金边：**暗底 + 一条窄高光 + 拉丝**。2026-09-21 重做（用户：「金边的线条生硬」）。
    上一版是一条又宽又亮的黄渐变 + 两个描金角 —— 发闷、发硬的根因是**物理搞反了**：金属是导体，
    它的颜色活在**镜面反射**里（测出来的金色高光约 #ffd891），漫反射几乎为零。所以正确的画法是
@@ -1081,97 +1055,19 @@ a.home-deck-dialog-credit:hover {
    第二处是「拉丝」：各向异性 —— 高光要**沿一个方向拉长**（Filament 的 anisotropy 那条），
    所以底子上有一层沿 96° 的细密丝纹，而且它的明暗是**软停**（写 1px 硬停就是纱窗，
    见文件顶部第 2 条规矩），并挂手抖滤镜（第 3 条：直线纹样一律挂 --cfilter）。 */
-.home-card--gold {
-  --fret-line: #f0d9a0;   /* 边框装饰线的材质色（结构仍由等级给） */
-  --craft-gem-color: #ffd891;
-  --cframe-finish: linear-gradient(140deg, rgba(255, 246, 213, .52), rgba(231, 205, 126, .26) 16%, rgba(201, 162, 39, .30) 32%, rgba(255, 248, 221, .46) 50%, rgba(184, 153, 31, .28) 66%, rgba(168, 121, 26, .30) 84%, rgba(255, 238, 184, .42));
-  --cplate: linear-gradient(to top, rgba(30, 21, 6, .93), rgba(30, 21, 6, .62));
-  --cplate-solid: rgba(30, 21, 6, .88);
-  --cplate-text: #fbeecb;
-  --cplate-accent: #e8cf8f;
-  --coverlay:
-    /* ① 窄高光：全卡最亮的那一笔，宽度只有卡宽的一小段（金属镜面反射的形状） */
-    linear-gradient(112deg, rgba(255, 240, 200, 0) 40%, rgba(255, 236, 186, .26) 45.5%,
-      rgba(255, 249, 228, .62) 48.5%, rgba(255, 236, 186, .24) 51.5%, rgba(255, 240, 200, 0) 58%),
-    /* ② 第二条更窄的高光（金属面有两处反光时才有「弧面」感，一处会像贴纸） */
-    linear-gradient(112deg, rgba(255, 236, 186, 0) 63%, rgba(255, 244, 205, .30) 66%, rgba(255, 240, 200, 0) 70%),
-    /* ③ 拉丝：沿一个方向的细密丝纹，明暗都是软停、周期取互质数避免等距感 */
-    repeating-linear-gradient(96deg, rgba(255, 236, 186, 0) 0 1.7px, rgba(255, 236, 186, .15) 2.5px 3.4px,
-      rgba(120, 86, 20, .13) 4.6px 5.5px, rgba(255, 236, 186, 0) 6.7px 9.4px),
-    /* ④ 压深四边：金色要暗，暗在高光旁边才亮得起来 */
-    radial-gradient(126% 96% at 50% 46%, rgba(60, 40, 6, 0) 46%, rgba(40, 26, 4, .34) 100%),
-    var(--grain-fine);
-  --cblend: overlay;
-  --coverlay-op: .85;
-  --cfilter: url(#deck-rough);
-}
-
+/* gold 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 和纸：**各向异性**纤维（横向的长丝）+ 两团纸浆的云斑。
    上一版是 90°/0° 等距十字 —— 那是织布，不是纸：纸的纤维只朝一个方向，而且有长有短。 */
-.home-card--washi {
-  --fret-line: rgba(246, 236, 220, .92);   /* 边框装饰线的材质色（结构仍由等级给） */
-  --cframe-finish: linear-gradient(140deg, rgba(244, 236, 220, .46), rgba(216, 201, 178, .26) 52%, rgba(250, 244, 232, .40));
-  --cplate: linear-gradient(to top, rgba(48, 35, 25, .92), rgba(48, 35, 25, .6));
-  --cplate-solid: rgba(48, 35, 25, .87);
-  --cplate-text: #fdf7ec;
-  --cplate-accent: #e2b9a4;
-  --coverlay:
-    var(--grain-fiber),
-    radial-gradient(62% 36% at 30% 24%, rgba(186, 140, 108, .18), rgba(186, 140, 108, 0) 100%),
-    radial-gradient(54% 32% at 74% 70%, rgba(150, 120, 90, .16), rgba(150, 120, 90, 0) 100%),
-    var(--grain);
-  --cblend: multiply;
-  --coverlay-op: 1;
-  --coverlay-mask: radial-gradient(58% 46% at 50% 40%, transparent 0 40%, #000 82%);
-  --cfilter: none;
-}
-
+/* washi 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 墨：底部压深 + 一道飞白 + 纸颗粒（原来那 2px/6px 的横向细纹在 272px 下只是瑕疵，去掉了） */
-.home-card--ink {
-  --fret-line: rgba(196, 200, 214, .85);   /* 边框装饰线的材质色（结构仍由等级给） */
-  --cframe-finish: linear-gradient(140deg, rgba(59, 53, 67, .42), rgba(20, 17, 25, .50) 55%, rgba(75, 68, 82, .38));
-  --cplate: linear-gradient(to top, rgba(8, 7, 11, .94), rgba(8, 7, 11, .68));
-  --cplate-solid: rgba(8, 7, 11, .9);
-  --cplate-text: #efe8f0;
-  --cplate-accent: var(--accent);
-  --coverlay:
-    linear-gradient(0deg, rgba(0, 0, 0, .34), rgba(0, 0, 0, 0) 54%),
-    linear-gradient(122deg, rgba(255, 255, 255, 0) 56%, rgba(255, 255, 255, .10) 68%, rgba(255, 255, 255, 0) 80%),
-    var(--grain);
-  --cblend: overlay;
-  --coverlay-op: .65;
-  --cfilter: none;
-}
-
+/* ink 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 玻璃：**四件套**（倒角 + 柔和高光 + 边缘折射 + 假厚度）。
    上一版只有「一道斜渐变 + 1px 内环 + 半张磨砂」，零立体线索。真玻璃的深度感来自四件事，
    这里逐件做：① 倒角 —— 左上受光、右下背光的分层 inset 阴影（不占盒尺寸）；② 高光 —— 三个软椭圆
    的径向渐变（不再是硬光带）；③ 边缘折射 —— 底边一道 1px 亮线与一圈玻璃边；④ **厚度** —— 装饰
    子元素 `.home-card-lens` 把画作（`--art`）再铺一遍、放大错位模糊后**只在边缘露出**，模拟厚玻璃
    把画面折过去的那一圈。磨砂仍然只做下半张（上半张通透，脸才看得清）。 */
-.home-card--glass {
-  --fret-line: rgba(238, 248, 255, .90);   /* 边框装饰线的材质色（结构仍由等级给） */
-  --craft-gem-color: #cfe6ff;
-  --cframe-finish: linear-gradient(150deg, rgba(255, 255, 255, .50), rgba(214, 236, 255, .22) 42%, rgba(255, 255, 255, .42));
-  --cplate: linear-gradient(to top, rgba(14, 22, 32, .9), rgba(14, 22, 32, .55));
-  --cplate-solid: rgba(14, 22, 32, .86);
-  --cplate-text: #f2f8ff;
-  --cplate-accent: #cfe6ff;
-  --coverlay: linear-gradient(to bottom, rgba(255, 255, 255, 0) 44%, rgba(255, 255, 255, .07) 74%);
-  --cblend: normal;
-  --coverlay-op: 1;
-  --coverlay-mask: linear-gradient(to bottom, transparent 0 44%, #000 74%);
-  --cfilter: none;
-  box-shadow:
-    var(--shadow-card),
-    inset 1px 1px 0 rgba(255, 255, 255, .6),             /* 左上受光的倒角 */
-    inset -1px -1px 0 rgba(0, 0, 0, .3),                 /* 右下背光 */
-    inset 0 0 0 1px rgba(255, 255, 255, .34),            /* 一圈玻璃边 */
-    inset 0 -3px 2px -2px rgba(255, 255, 255, .6),       /* 底边的折射亮线（再加宽一档） */
-    inset 0 16px 28px -22px rgba(255, 255, 255, .5),     /* 顶部内侧的体积光 */
-    inset 0 12px 20px -18px rgba(0, 0, 0, .5);           /* 顶部**内阴影**：玻璃自身的厚度挡住的那点光 */
-}
-
+/* glass 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 .home-card--glass::before {
   backdrop-filter: blur(2.5px) saturate(112%);
   -webkit-backdrop-filter: blur(2.5px) saturate(112%);
@@ -1256,54 +1152,14 @@ a.home-deck-dialog-credit:hover {
    （规矩 1：纹样不许盖住主体），所以位置都压在左右两条边与上下两端。
    尺寸那两列是配对的：卡是 5:7，要让雪花是**正方形**（不然花瓣被拉长），
    高度百分比必须等于宽度百分比 × 5/7。 */
-.home-card--yukika {
-  --fret-line: rgba(228, 244, 255, .92);   /* 边框装饰线的材质色（结构仍由等级给） */
-  --cframe-finish: linear-gradient(140deg, rgba(244, 252, 255, .46), rgba(168, 212, 238, .24) 46%, rgba(255, 255, 255, .40));
-  --cplate: linear-gradient(to top, rgba(12, 28, 44, .93), rgba(12, 28, 44, .68));
-  --cplate-solid: rgba(12, 28, 44, .9);
-  --cplate-text: #eef8ff;
-  --cplate-accent: #cde9ff;
-  --coverlay: linear-gradient(150deg, rgba(92, 138, 190, .95), rgba(140, 186, 226, .9) 48%, rgba(78, 122, 172, .95));
-  --cblend: normal;
-  --coverlay-op: .62;
-  --coverlay-mask:
-    var(--tex-flake1), var(--tex-flake2), var(--tex-flake3), var(--tex-flake1),
-    var(--tex-flake2), var(--tex-flake3), var(--tex-flake1), var(--tex-flake2),
-    var(--tex-flake3), var(--tex-flake1), var(--tex-flake2), var(--tex-flake3);
-  --cmask-size:
-    26% 18.6%, 20% 14.3%, 15% 10.7%, 22% 15.7%, 13% 9.3%, 18% 12.9%,
-    16% 11.4%, 24% 17.1%, 14% 10%, 21% 15%, 17% 12.1%, 19% 13.6%;
-  --cmask-position:
-    1% 2%, 58% 0%, 82% 10%, 0% 12%, 88% 30%, 2% 30%,
-    86% 48%, 0% 52%, 88% 64%, 2% 70%, 74% 80%, 18% 84%;
-  --cmask-repeat: no-repeat;
-  /* 直线的软处理：收细后的花瓣仍是「直的短段」，挂上手抖滤镜才有手绘的那点不平整（规矩 3） */
-  --cfilter: url(#deck-rough);
-}
-
+/* yukika 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 金继：黑底 + 一张**裂缝网**。2026-09-21 重做（用户：「金继的线条生硬」）。
    上一版是 5 条手工写的固定折线、在 4 个固定线宽（7.5/3.2/2.0/1.1）上重复，**彼此没有一处交叉** ——
    等宽叠等宽，读作「画上去的金丝」。真金继是**裂缝的开口**里填了漆与金粉，所以几何是：
    向两端收细、**在分叉处变宽**（宽度汇聚）、子缝比母缝更细更短、密度在一个起点附近更大。
    这四条全在生成器里（tools/cards/make-ornaments.py 的 crack_net），令牌仍是 `--tex-crack`。
    **混合模式用 normal 而不是 screen**：金色裂缝在浅色画上（木刀那张）用 screen 会完全消失（实测）。 */
-.home-card--kintsugi {
-  --fret-line: #e5b96a;   /* 边框装饰线的材质色（结构仍由等级给） */
-  --craft-gem-color: #b98a3e;
-  --cframe-finish: linear-gradient(140deg, rgba(74, 64, 72, .40), rgba(22, 19, 26, .48) 52%, rgba(61, 54, 64, .36));
-  --cplate: linear-gradient(to top, rgba(10, 8, 12, .94), rgba(10, 8, 12, .7));
-  --cplate-solid: rgba(10, 8, 12, .9);
-  --cplate-text: #f6efe4;
-  --cplate-accent: #e5b96a;
-  --coverlay:
-    linear-gradient(150deg, rgba(228, 180, 96, .95), rgba(252, 228, 164, .9) 44%, rgba(206, 158, 76, .95)),
-    var(--grain-fine);
-  --cblend: normal;
-  --coverlay-op: .9;
-  --coverlay-mask: var(--tex-crack);
-  --cfilter: url(#deck-rough-crack);
-}
-
+/* kintsugi 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 金继的「缝」要有厚度：一侧受光、一侧落影。金缝本身在 ::before（颜色由渐变给、形状由 mask 给），
    而**暗侧必须放在另一层** —— mask 会把 ::before 上所有背景层一起裁掉，暗侧放进去就跟着变成金的了。
    ::after 已经不挂 mask（暗角在那儿），把暗侧再加一层、一起 multiply 压暗即可。
@@ -1345,90 +1201,18 @@ a.home-deck-dialog-credit:hover {
 /* 雕花金（参考图那种）：深底 + 细金线雕花框 + 角上镶琥珀宝石。
    它是这一批里最贴参考图的一张 —— 但**卡面本身是素的**（参考图上人物之外没有花纹）：
    繁复全在边框上，这也是「工艺克制」那条的落地（全卡闪到看不清插画就失败了）。 */
-.home-card--filigree {
-  --fret-line: #e9ca86;   /* 边框装饰线的材质色（结构仍由等级给） */
-     「每种进阶工艺都有自己的框」这件事在代码里一眼可见，也让守卫的检查口径统一。 */
-  --craft-gem-color: #f0b96a;
-  --cframe-finish: linear-gradient(140deg, rgba(198, 162, 94, .38), rgba(58, 44, 22, .46) 52%, rgba(152, 120, 64, .34));
-  --cplate: linear-gradient(to top, rgba(20, 15, 8, .95), rgba(20, 15, 8, .72));
-  --cplate-solid: rgba(20, 15, 8, .92);
-  --cplate-text: #f8ecd4;
-  --cplate-accent: #e6c68a;
-  /* 深底 + 一层暖光：底子暗下来，边栏上的金线才亮得起来（与 gold 那条同一个物理） */
-  --coverlay:
-    linear-gradient(158deg, rgba(46, 36, 20, .55), rgba(20, 15, 9, .62) 52%, rgba(38, 29, 16, .55)),
-    radial-gradient(120% 88% at 50% 40%, rgba(255, 224, 160, .16), rgba(255, 224, 160, 0) 72%),
-    var(--grain-fine);
-  --cblend: normal;
-  --coverlay-op: .78;
-  --cfilter: none;
-}
-
+/* filigree 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 珐琅彩：金线分格 + 宝石块（景泰蓝/教堂彩窗）。
    格子是实心的 mask（见生成器里 cloison 的说明），涂上四块宝石色；**缝里露出来的是卡自己的
    框色** —— 等级给的是金属色阶，所以缝在高档是金线、在低档是银灰线，金线不必另画一层。 */
-.home-card--enamel {
-  --fret-line: #f2e3b0;   /* 边框装饰线的材质色（结构仍由等级给） */
-  --craft-gem-color: #7f9ce6;
-  --cframe-finish: linear-gradient(140deg, rgba(255, 246, 214, .42), rgba(196, 158, 68, .30) 52%, rgba(255, 240, 196, .36));
-  --cplate: linear-gradient(to top, rgba(16, 14, 26, .94), rgba(16, 14, 26, .68));
-  --cplate-solid: rgba(16, 14, 26, .9);
-  --cplate-text: #f2f0fb;
-  --cplate-accent: #cdc2f0;
-  --coverlay:
-    /* 四块「宝石」：青 / 紫 / 玫 / 翠，位置与大小都不等距（等距就成壁纸了） */
-    radial-gradient(42% 30% at 24% 22%, rgba(92, 172, 216, .92), rgba(92, 172, 216, 0) 100%),
-    radial-gradient(38% 26% at 76% 38%, rgba(126, 96, 194, .88), rgba(126, 96, 194, 0) 100%),
-    radial-gradient(34% 24% at 38% 72%, rgba(198, 92, 132, .86), rgba(198, 92, 132, 0) 100%),
-    radial-gradient(30% 22% at 82% 80%, rgba(84, 178, 140, .84), rgba(84, 178, 140, 0) 100%),
-    var(--grain-fine);
-  --cblend: normal;
-  --coverlay-op: .72;
-  --coverlay-mask: var(--tex-cloison);
-  --cmask-size: 100% 100%;
-  --cmask-repeat: no-repeat;
-  --cfilter: none;
-}
-
+/* enamel 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 星屑夜天：深蓝紫的框 + 一层疏密不匀的星点与流星痕。
    **不遮画面**：mask 就是星点本身，所以印上去的只有星星，插画原样透出来 ——
    「夜天」那半由框的深蓝紫叠层给。 */
-.home-card--starnight {
-  --fret-line: rgba(206, 216, 255, .90);   /* 边框装饰线的材质色（结构仍由等级给） */
-  --cframe-finish: linear-gradient(140deg, rgba(96, 116, 200, .34), rgba(28, 26, 62, .46) 52%, rgba(72, 88, 168, .32));
-  --cplate: linear-gradient(to top, rgba(10, 12, 30, .94), rgba(10, 12, 30, .7));
-  --cplate-solid: rgba(10, 12, 30, .9);
-  --cplate-text: #eceafd;
-  --cplate-accent: #b9c4ff;
-  --coverlay:
-    linear-gradient(160deg, rgba(30, 34, 88, .42), rgba(18, 16, 44, .30) 55%, rgba(26, 30, 76, .40)),
-    var(--grain-fine);
-  --cblend: normal;
-  --coverlay-op: .55;
-  --coverlay-mask: var(--tex-starfield);
-  --cmask-size: 100% 100%;
-  --cmask-repeat: no-repeat;
-  --cfilter: none;
-}
-
+/* starnight 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 冰裂纹：**无色的裂** —— 与金继共用同一张裂缝网，只是材质换成冷白（没有金、没有漆）。
    缝是「亮」的（冰面裂开处反光），所以用 --coverlay 的冷白印上去，而不是压暗。 */
-.home-card--frostcrack {
-  --fret-line: rgba(236, 248, 255, .95);   /* 边框装饰线的材质色（结构仍由等级给） */
-  --cframe-finish: linear-gradient(140deg, rgba(226, 240, 252, .40), rgba(148, 178, 204, .30) 52%, rgba(240, 248, 255, .38));
-  --cplate: linear-gradient(to top, rgba(14, 24, 36, .93), rgba(14, 24, 36, .66));
-  --cplate-solid: rgba(14, 24, 36, .9);
-  --cplate-text: #eef6ff;
-  --cplate-accent: #cfe4f5;
-  --coverlay:
-    linear-gradient(150deg, rgba(238, 248, 255, .96), rgba(186, 212, 234, .88) 48%, rgba(228, 242, 252, .94)),
-    var(--grain-fine);
-  --cblend: normal;
-  --coverlay-op: .46;
-  --coverlay-mask: var(--tex-crack);
-  --cfilter: url(#deck-rough-crack);
-}
-
+/* frostcrack 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* ---------- 四张新工艺（2026-09-21 加，十二 → 十六种）----------
 
    判据只有一条：**每种工艺要有一个别的工艺没有的物理机制**，不能只是换色。
@@ -1436,95 +1220,19 @@ a.home-deck-dialog-credit:hover {
    下面这四种各自对应一个之前没用到过的机制：薄膜干涉 / 金属双高光（冷色相）/ 织物经向丝光 / 高层大气发光。
    全部只用 --coverlay 那一叠渐变 + --cblend 表达，不动版式、不新增图片。 */
 
-/* 珍珠母贝：**薄膜干涉的虹彩** —— 几条大尺度、互相错位的斜面渐变，颜色只出现在掠角处。
-   与全息的区别在于：全息是周期性衍射（等距、多色、碎），珠母是层间干涉（大块、缓变、只在斜角出彩）。
-   所以这里一根 repeating 条纹都不放，全靠三层大跨度渐变互相错位。 */
-.home-card--nacre {
-  --fret-line: rgba(244, 250, 255, .90);   /* 边框装饰线的材质色（结构仍由等级给） */
-  --craft-gem-color: #cfe8e6;
-  --cframe-finish: linear-gradient(140deg, rgba(238, 247, 252, .50), rgba(206, 228, 236, .28) 46%, rgba(246, 234, 246, .42));
-  --cplate: linear-gradient(to top, rgba(16, 26, 32, .93), rgba(16, 26, 32, .62));
-  --cplate-solid: rgba(16, 26, 32, .88);
-  --cplate-text: #eef6fa;
-  --cplate-accent: #a8d8dc;
-  --coverlay:
-    linear-gradient(118deg, rgba(255, 214, 236, 0) 30%, rgba(255, 214, 236, .42) 42%,
-      rgba(198, 236, 255, .44) 50%, rgba(214, 255, 232, .38) 58%, rgba(255, 214, 236, 0) 70%),
-    linear-gradient(72deg, rgba(198, 236, 255, 0) 34%, rgba(226, 214, 255, .34) 48%,
-      rgba(255, 240, 214, .32) 60%, rgba(198, 236, 255, 0) 74%),
-    radial-gradient(120% 90% at 42% 38%, rgba(255, 255, 255, .18), rgba(255, 255, 255, 0) 62%),
-    var(--grain);
-  --cblend: soft-light;
-  --coverlay-op: 1;
-  --cfilter: none;
-}
+/* 珍珠母贝（nacre）—— **已参数化**：这一块现在由 data/card-styles.yaml 生成，产物在
+   assets/css/extended/21-card-styles.css（tools/cards/render-styles.mjs --write）。
+   在这里手加回来 = 同一个类出现两处，check-deck.mjs 会拦下（工艺的说明写在 YAML 的 note 里）。 */
 
 /* 烫银：与烫金是**同一套结构**（两条高光 + 拉丝 + 压深四边），只把色相换到冷端。
    银比金难做：明度差一大，暗部一拍就脏，所以压深比 gold 浅一档（.26 对 .34）。 */
-.home-card--silver {
-  --fret-line: #eaf0f8;
-  --craft-gem-color: #d6e4f2;
-  --cframe-finish: linear-gradient(140deg, rgba(250, 253, 255, .56), rgba(196, 210, 226, .30) 16%, rgba(140, 158, 178, .32) 32%, rgba(246, 251, 255, .50) 50%, rgba(126, 144, 164, .30) 66%, rgba(104, 122, 142, .30) 84%, rgba(240, 248, 255, .44));
-  --cplate: linear-gradient(to top, rgba(14, 20, 28, .93), rgba(14, 20, 28, .62));
-  --cplate-solid: rgba(14, 20, 28, .88);
-  --cplate-text: #eef4fb;
-  --cplate-accent: #cfe0f0;
-  --coverlay:
-    linear-gradient(112deg, rgba(240, 248, 255, 0) 40%, rgba(226, 240, 255, .24) 45.5%,
-      rgba(255, 255, 255, .60) 48.5%, rgba(226, 240, 255, .22) 51.5%, rgba(240, 248, 255, 0) 58%),
-    linear-gradient(112deg, rgba(226, 240, 255, 0) 63%, rgba(246, 252, 255, .28) 66%, rgba(226, 240, 255, 0) 70%),
-    repeating-linear-gradient(96deg, rgba(226, 240, 255, 0) 0 1.7px, rgba(226, 240, 255, .24) 2.5px 3.4px,
-      rgba(40, 56, 74, .20) 4.6px 5.5px, rgba(226, 240, 255, 0) 6.7px 9.4px),
-    radial-gradient(126% 96% at 50% 46%, rgba(20, 34, 48, 0) 46%, rgba(12, 22, 34, .40) 100%),
-    var(--grain-fine);
-  --cblend: overlay;
-  --coverlay-op: .95;
-  --cfilter: url(#deck-rough);
-}
-
-/* 绸缎：**经向丝光**。缎面只沿经线反光，所以是一束束竖向的软高光带。
-   周期 6 / 11 / 23 / 37 取互质数避免等距感 —— 等距的竖条在 272px 下会读成条形码，不是绸子。 */
-.home-card--silk {
-  --fret-line: rgba(255, 246, 240, .92);
-  --craft-gem-color: #e6c8c8;
-  --cframe-finish: linear-gradient(140deg, rgba(255, 246, 240, .48), rgba(226, 202, 198, .26) 48%, rgba(255, 248, 244, .42));
-  --cplate: linear-gradient(to top, rgba(38, 22, 26, .93), rgba(38, 22, 26, .62));
-  --cplate-solid: rgba(38, 22, 26, .88);
-  --cplate-text: #fdf0ee;
-  --cplate-accent: #e8a8a4;
-  --coverlay:
-    repeating-linear-gradient(94deg, rgba(255, 250, 246, 0) 0 6px, rgba(255, 250, 246, .12) 11px 17px,
-      rgba(120, 78, 74, .15) 23px 30px, rgba(255, 250, 246, 0) 37px 52px),
-    linear-gradient(102deg, rgba(255, 255, 255, 0) 44%, rgba(255, 250, 246, .30) 52%, rgba(255, 255, 255, 0) 62%),
-    radial-gradient(120% 92% at 46% 40%, rgba(255, 240, 236, .14), rgba(255, 240, 236, 0) 64%),
-    var(--grain-fine);
-  --cblend: overlay;
-  --coverlay-op: .7;
-  --cfilter: none;
-}
+/* silver 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
+/* 绸缎（silk）—— **已参数化**：同上一处，块由 data/card-styles.yaml 生成到
+   assets/css/extended/21-card-styles.css。 */
 
 /* 极光：**高层大气发光** —— 斜向的绿紫光带，边缘比中心亮（发光层的厚度）。
    用 screen（只加亮不加暗）：底图暗的地方才看得见它，这与「夜」的语义一致。 */
-.home-card--aurora {
-  --fret-line: rgba(206, 255, 238, .92);
-  --craft-gem-color: #7fe0c0;
-  --cframe-finish: linear-gradient(140deg, rgba(214, 255, 240, .44), rgba(140, 200, 190, .26) 46%, rgba(224, 240, 255, .40));
-  --cplate: linear-gradient(to top, rgba(8, 20, 24, .94), rgba(8, 20, 24, .64));
-  --cplate-solid: rgba(8, 20, 24, .9);
-  --cplate-text: #e6fbf6;
-  --cplate-accent: #8fe8cc;
-  --coverlay:
-    linear-gradient(128deg, rgba(120, 255, 210, 0) 26%, rgba(120, 255, 210, .44) 40%,
-      rgba(150, 130, 255, .38) 52%, rgba(120, 220, 255, .34) 62%, rgba(120, 255, 210, 0) 76%),
-    linear-gradient(64deg, rgba(160, 140, 255, 0) 32%, rgba(140, 200, 255, .34) 48%, rgba(160, 140, 255, 0) 66%),
-    radial-gradient(120% 100% at 50% 30%, rgba(180, 255, 226, .16), rgba(180, 255, 226, 0) 60%),
-    var(--grain);
-  --cblend: overlay;
-  --coverlay-op: .95;
-  --cfilter: none;
-}
-
-
+/* aurora 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* ---------- 等级：六档阶梯，只改一组令牌，不动版式 ----------
 
    等级（rank）与纹样（style）是**正交**的两件事：等级管材料与档位，纹样管卡面上的图案。
