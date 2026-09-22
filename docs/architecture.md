@@ -257,16 +257,22 @@ my-blog/
 
 `docs/`、`tools/`、`README.md` 都在 Hugo 的构建目录之外（Hugo 只读 `content/ layouts/ static/ assets/ data/ i18n/ themes/ archetypes/` 与根配置），不会被发布到线上。
 
-**仓库外的 `../lab/`（2026-09-19 归拢）**：量测脚本、候选素材与截图**一律不入库**，全部放在与本仓库并列的 `lab/` 下 —— 文档里写的 `../lab/shots/...` 指的就是它：
+**仓库外的 `../lab/`（2026-09-19 建，2026-09-22 再归拢）**：量测脚本、候选素材与截图**一律不入库**，全部放在与本仓库并列的 `lab/` 下 —— 文档里写的 `../lab/shots/...` 指的就是它：
 
 | 目录 | 内容 |
 |---|---|
-| `lab/shots/` | 性能 / 对比度 / A-B 量测脚本与结果（`perf.py`、`startjank.py`、`girlbg/`、`navtest/`、`libshot/`…） |
+| `lab/shots/` | 性能 / 对比度 / A-B 量测脚本与结果（`perf.py`、`startjank.py`、`girlbg/`、`navtest/`、`libshot/`、`bg-shader/`、`craft-ab/`、`craft-ctl/`、`cards-412/`、`mathml-exp/`…） |
 | `lab/assets/` | 抓来筛选的背景与角色候选素材（成品由 `tools/backgrounds/` 生成进 `assets/images/`） |
-| `lab/serve/` | 手工 serve 出来的站点副本（量线上表现用） |
-| `lab/audit/` | 外部体检报告与每次清理的动作记录 |
+| `lab/serve/` | 手工 serve 出来的站点副本（量线上表现用；副本用完即删，按需重建） |
+| `lab/dumps/` | 零引用的一次性转储：旧版样式稿（`deck-styles-*.css`）、素材清单、旧版 features / traps 草稿 |
+| `lab/scripts/` | 一次性仪器与提取器（`extract_style_params.py`、`gen_style_yaml.py`） |
+| `lab/wt/mathml/` | **暂缓**的 MathML 实验工作树（分支 `exp/mathml`，`dc0d7e3`）；其余三个实验工作树 2026-09-22 已删，改动在 main |
+| `lab/audit/` | 外部体检报告与每次清理的动作记录（`cleanup-<日期>.md`） |
+| `lab/HANDOFF-*.md`、`lab/exp*.md` | 跨会话交接与实验报告的正本（`docs/exp-*.md` 是落地版，两者分工：lab 版记现场，docs 版记结论） |
 
 此前它们是仓库旁三个平级的 `.shots/` / `.assets/` / `.serve/`，改名只为让「哪边是仓库、哪边是草稿」一眼可辨。里面那些脚本带写死的绝对路径，复跑前先读 [`traps.md` 第 4 节](traps.md)。
+
+2026-09-22 那一轮清掉的东西：`lab/cibuild/`（落后主线的整仓克隆 39 MB）、`lab/serve/my-blog/`（构建副本 9.9 MB）、仓库里的 `d/DevEnv/` 事故树（26 MB，MSYS 路径没被翻译）、被文档指回却躺在临时区的证据（`craft-ab` / `craft-ctl` / `bg-shader` / `cards-412` / `mathml-exp`）—— 后者一律**迁进 `lab/shots/` 再引用**，因为临时区 72 小时自清，文档指过去会变成悬空引用。同理，量测仪器与原始数据先落 `lab/`，再写进文档。
 
 ## 3. hugo.toml 配置要点
 

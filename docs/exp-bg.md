@@ -278,9 +278,13 @@ shader pass 只有 1.37 ms**。也就是说**崩的不是着色，是那张 9352
 
 ## 9. 原始数据与产物（绝对路径）
 
-**报告**：`D:\DevEnv\agent\hermes\profiles\skyrim\cache\scratch\bg\exp-bg.md`
+**报告**：本文件（`docs/exp-bg.md`）。
 
-**原型与工具**（同目录）
+> 2026-09-22 归拢：原型、仪器与全部原始数据原在临时区（`…\cache\scratch\bg\`，72 小时自动清理），
+> 已整体迁到 `..\lab\shots\bg-shader\`，浏览器 profile 与三份构建副本删除。下表文件名不变，
+> 路径一律以 `..\lab\shots\bg-shader\` 为根。
+
+**原型与工具**
 - `bg-shader.js`（原型；含 `scale/oct/fps/once/gpuQuery` 旋钮、`stats()` 暴露帧数/draw 数/主线程 µs/GPU 分布）
 - `nobg.js`（定义「顶掉静态壁纸」的动作，由 shader 在挂载成功后调用）
 - `frameab2.py`（改造版仪器）、`probe.py`（原型自检 + 截图 + 层级/蒙版核对）、

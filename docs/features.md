@@ -122,7 +122,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 - **空闲预取另一套**：加载完成、浏览器空闲且**页面在前台**时，把「另一套 + 当前主题」那一张用 `new Image()` 取回来并 `decode()` —— 点切换时图已在解码缓存里，是秒切。跳过三种情况：`navigator.connection.saveData`、`effectiveType` 是 2g/3g（桌面浏览器基本不报这个值，尽力而为）、以及页面在后台（改为 `visibilitychange` 回到前台时再补）。明暗按钮改的是 `data-theme`，所以用 `MutationObserver` 盯着它——换了主题，「另一套那一张」就换成另一张图了。
   - 图片来源是**模板给**的：`extend_head.html` 把每套两个主题的指纹 URL 一并写进现有的 `data-presets` JSON（每页多约 110 字节/套）。脚本不自己拼 URL —— 指纹在构建期算，JS 拼不出来。
-  - **代价要认清**：从不切换背景的访客也会多下一张（**日间 63 KB / 夜间 128 KB**，对照：默认套自己那张是 93 KB / 137 KB）。只在空闲且可见时发生，所以不推迟 `load`；实测 4G 首页传输因此从约 232 KB 升到 295 KB（`../lab/shots/perf-home-4g*.json`）。想收可以改两处：只对非触屏预取、或把 `onIdle` 的延迟拉长。
+  - **代价要认清**：从不切换背景的访客也会多下一张（**日间 63 KB / 夜间 128 KB**，对照：默认套自己那张是 93 KB / 137 KB）。只在空闲且可见时发生，所以不推迟 `load`；实测 4G 首页传输因此从约 232 KB 升到 295 KB（`../lab/shots/home/perf-home-4g*.json`）。想收可以改两处：只对非触屏预取、或把 `onIdle` 的延迟拉长。
 - **切换做交叉淡入，而不是硬切**：`background-image` 是离散属性、过渡不插值，所以做法是——点击时把**当前 `body::before` 的已解析背景栈**（`getComputedStyle(body, '::before')` 的 `backgroundImage/Size/Position/Repeat`，蒙版渐变与图片 URL 都在里面）快照到一个临时 `<div class="bg-ghost">` 上，等目标图 `decode()` 就绪后改 `data-bg`，再让 ghost 从 1 淡到 0（250ms，样式在 `00-theme.css`）。**不在 CSS 里抄第二份背景栈**：抄的那份迟早与 `::before` 漂移。
   - 层级：ghost 是 `body` 的子节点、与 `body::before` 同为 `z-index: -1`，按树序绘制 ⇒ 它画在**旧壁纸之上、玻璃质感层（`body::after`）之下**，所以淡出期间质感层不动、只有壁纸在换。实测的中段帧见 `../lab/shots/bgfade/vis-1.png`（新旧两张叠在一起，正文与导航清晰压在画面上）。
   - 失败与降级都退回原来的硬切：`prefers-reduced-motion: reduce`、`presets` 只有一套、`::before` 读不到背景（背景关掉）三种情况**根本不建 ghost**。连点：上一层的淡出立刻收掉，不叠层（爆发点击算作一步）。
@@ -1643,10 +1643,10 @@ node scripts/check-deck.mjs                    # 全套（CI / push-blog / 体�
 
 | 指标 | 值 | 出处 |
 |---|---|---|
-| 首页 4G 传输 / 请求数 | 295.5 KB / 21 | `../lab/shots/perf-home-4g2.json` |
+| 首页 4G 传输 / 请求数 | 295.5 KB / 21 | `../lab/shots/home/perf-home-4g2.json` |
 | 首页 4G DCL / load / FCP | 441 / 742 / 564 ms | 同上（两次跑 DCL 424~441、FCP 496~564，落在既有噪声里） |
 | 首页 HTML / DOM | 16 KB / 230 节点（原 17 KB / 168） | `../lab/shots/home/*.png` 同批构建 + `startjank.json` |
-| layout-shift / 长任务 | **0 条 / 0 条**（六轮，开/关动画都一样） | `/tmp/labrun/startjank.json`（交替重复三轮 ×2 臂） |
+| layout-shift / 长任务 | **0 条 / 0 条**（六轮，开/关动画都一样） | `../lab/shots/home/startjank-anim-ab.json`（交替重复三轮 ×2 臂；2026-09-22 从系统临时区 `/tmp/labrun` 迁入，原指针已作废） |
 
 - **传输增长全部来自预取那一张背景图**：日间城市 63.0 KB、日间少女 93.0 KB（当前生效的那张）—— 也就是说 295.5 KB 里有 156 KB 是壁纸，其余是主样式 59.5 KB、看板娘 41 KB、头像 4.7 KB、脚本与导航小人各 1 KB 上下。**要不要这笔预取是产品决定**（见 ⑫ 那条），不是性能问题：它发生在 `load` 之后，不推迟任何加载指标。
 - **入场动效「吃不吃帧」这件事量不出来**：`startjank.py --headless` 的首秒帧窗波动很大，交替重复三轮后**关掉动画那组同样出现 6/1/2 帧超 7ms（单次最大 90.9ms）**，而开动画那组是 1/20/0 帧（最大 12.2ms）—— 两臂差异（中位 1 vs 2 帧）远小于轮间波动，说明这个环境里首秒是噪声主导（冷启动、合成分层预热），**不能拿单次差值下结论**（口径同下面那条「同配置两次 4G 运行 DCL 差 3 s」）。真要判它得上真窗口 165Hz 的 `frameab.py` 反复多轮。
@@ -1684,7 +1684,7 @@ node scripts/check-deck.mjs                    # 全套（CI / push-blog / 体�
 
 ### 2026-09-22 追加九：收藏库卡片墙加 412 档（已落地）
 
-量法：实验 worktree 里的 `wallmeasure.py`（`--url …/collection/ --dpr 1|2`，同一台机、冷缓存、滚完整页，从 CDP 的资源表按卡名归集解码字节），前后两轮各跑一次；实验现场见 `../lab/exp-2026-09-21-architecture-experiments.md`，报告 `docs/exp-cards.md`。
+量法：`wallmeasure.py`（`--url …/collection/ --dpr 1|2`，同一台机、冷缓存、滚完整页，从 CDP 的资源表按卡名归集解码字节），前后两轮各跑一次；仪器与全部量测数据在 `../lab/shots/cards-412/`，实验现场见 `../lab/exp-2026-09-21-architecture-experiments.md`，报告 `docs/exp-cards.md`。
 
 **改了什么**：`deck-manifest.html` 每张卡多出一档 `412x webp q72`（`$thumb`，清单字段 `t`）；`deck-wall.html` 的 `<img>` 从 `1x/2x` 描述符改成 `272w/412w/544w` + `sizes="(max-width: 767px) 44vw, 206px"`，并把 `--art`（玻璃的厚度层、金继釉面的底图）从 2x 指到 412。
 

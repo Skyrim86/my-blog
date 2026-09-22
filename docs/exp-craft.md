@@ -1,7 +1,8 @@
 # 实验 2：卡片工艺参数化 —— 结论（样板 2 种 → 2026-09-22 全量 15 种）
 
 > 2026-09-22 由主会话补完。下面是**已有实测数据的判读**，不是新一轮实验：
-> 全部数字来自 `scratch/shots/craft-ab/`（三臂全量）与 `scratch/shots/craft-ctl/`（灵敏度臂）。
+> 全部数字来自 `../lab/shots/craft-ab/`（三臂全量）与 `../lab/shots/craft-ctl/`（灵敏度臂）。
+> 这两份数据原在临时区 `scratch/shots/`，2026-09-22 迁入 `lab/`（临时区 72 小时自清）。
 
 ## 结论
 
@@ -48,13 +49,15 @@
 ## 复跑
 
 ```bash
-W=D:/DevEnv/agent/hermes/profiles/skyrim/cache/scratch
+R=D:/Study/projects/blog/my-blog
+L=D:/Study/projects/blog/lab
 # 三份产物：out/base（原版）· out/var（参数化）· out/ctrl（故意改一处，作灵敏度对照）
-cd $W/out/base && python -m http.server 8795 --bind 127.0.0.1 &
-cd $W/out/var  && python -m http.server 8796 --bind 127.0.0.1 &
-cd $W/wt/craft && python tools/cards/ab-card-styles.py \
+# 这三份构建是一次性的（原在临时区，2026-09-22 已随 72 小时规则清掉），复跑要自己重建，端口别撞
+cd <base 构建目录> && python -m http.server 8795 --bind 127.0.0.1 &
+cd <var  构建目录> && python -m http.server 8796 --bind 127.0.0.1 &
+cd $R && python tools/cards/ab-card-styles.py \
     --a http://127.0.0.1:8795/ --b http://127.0.0.1:8796/ --control \
-    --out $W/shots/craft-ab --dialog 5,8
+    --out $L/shots/craft-ab --dialog 5,8
 python tools/cards/style-footprint.py     # 「一种工艺散在哪五处」
 ```
 
@@ -90,7 +93,7 @@ kintsugi / silver / starnight / washi / yukika）搬进 `data/card-styles.yaml`�
 **规模变化**：`21-card-deck.css` 2277 → 2022 行（−255），生成文件 353 行；
 合并后的主样式 174716 → 174225 B（生成器不写行内注释、注释里的设计说明也不重复）。
 
-**迁移怎么做的**：写了一次性反向提取器（`scratch/extract_style_params.py` + `gen_style_yaml.py`）
+**迁移怎么做的**：写了一次性反向提取器（`../lab/scripts/extract_style_params.py` + `gen_style_yaml.py`）
 把主块解析成 YAML 条目 —— 13 种 × 约 20 行不可能靠手抄保证逐字一致。
 
 **加一种工艺现在的成本**：`data/card-styles.yaml` 一条（11~14 个字段）+（若有伪元素再写结构 CSS）
