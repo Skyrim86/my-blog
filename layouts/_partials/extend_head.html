@@ -208,7 +208,26 @@
    都得不到数组 —— 前者会变成 `["'a','b'"]`（一个元素，永远不匹配，表现是「刷新后存的套丢了」），
    后者会变成字符串 `"[\"a\",\"b\"]"`（靠子串匹配侥幸能用，但 id 之间有包含关系时就会误判）。
    两者都不报错，所以这里用不依赖转义行为的那种写法。 */ -}}
-{{- if gt (len $presets) 1 }}
+{{- /* 动态背景（WebGL shader）：顶掉壁纸图、蒙版与玻璃层照旧。两个顺序约束是硬要求：
+
+     ① `__bgOpts` / `__bgNoStatic` 必须先于 bg-shader.js 执行 —— 所以内联脚本在前、脚本走 defer；
+     ② **摘静态壁纸只能发生在 GL 上下文与着色器都成功之后**（由 bg-shader.js 自己调 __bgNoStatic）。
+        早先的原型把摘图写在预置里，结果 prefers-reduced-motion 下变成「页面没有背景」——
+        三条早退路径（reduced-motion / 无 WebGL / GLSL 失败）上必须都留着原图。
+
+     代价、对比度与降级链的实测见 docs/exp-bg.md 与 docs/features.md ⑫。 */ -}}
+{{- $shader := $appearance.shader | default dict }}
+{{- $shaderOn := $shader.enable | default false }}
+{{- if $shaderOn }}
+<script>(function(){window.__bgOpts={scale:{{ $shader.scale | default 1.0 }},oct:{{ $shader.oct | default 3 }},fps:{{ $shader.fps | default 30 }}};
+window.__bgNoStatic=function(){var s=document.documentElement.style;s.setProperty("--bg-image-light","none");s.setProperty("--bg-image-dark","none");window.__bgNoStaticDone=true;};})()</script>
+{{- $bgShader := resources.Get "js/bg-shader.js" | minify | fingerprint }}
+<script defer src="{{ $bgShader.RelPermalink }}" integrity="{{ $bgShader.Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end }}
+
+{{- /* 背景套切换按钮：shader 开着时**不输出** —— 那时候 --bg-image-* 已经是 none，
+   一个点了没有任何变化的按钮比没有按钮更糟（与「按钮由 JS 注入」同一条道理）。 */ -}}
+{{- if and (gt (len $presets) 1) (not $shaderOn) }}
 <script>(function(){try{var p=localStorage.getItem("pref-bg");if(p&&"|{{ delimit $ids "|" }}|".indexOf("|"+p+"|")>-1)document.documentElement.setAttribute("data-bg",p)}catch(e){}})()</script>
 {{- $bgSwitch := resources.Get "js/bg-switch.js" | minify | fingerprint }}
 <script defer src="{{ $bgSwitch.RelPermalink }}" integrity="{{ $bgSwitch.Data.Integrity }}" crossorigin="anonymous"

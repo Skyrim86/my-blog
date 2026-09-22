@@ -257,6 +257,27 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 - 过渡本身很便宜，是因为 Chromium 对「只变颜色」的失效有优化：过渡期间 p50 仍是 6.1ms，没有出现「每帧重画整页」。
 - 复跑方式（脚本是临时写的，没进仓库）：`--js` 传一段 `awaitPromise` 的代码 —— rAF 采样循环 + `document.getElementById('theme-toggle').click()` + 禁过渡那一臂注入 `html.theme-fading *{transition:none !important}`。
 
+**动态背景（WebGL shader，2026-09-22 落地）**：`[params.appearance.shader]` 开着时，`extend_head.html` 输出一段内联预置
+（`__bgOpts` + `__bgNoStatic` —— AGENTS 规则 6 的又一处例外，它必须先于 defer 的 `bg-shader.js` 执行）与外链 `bg-shader.js`
+（极光 + 星野的全屏 fragment shader）。**挂载成功后**才调 `__bgNoStatic()` 把 `--bg-image-light/dark` 置 `none`：壁纸图不再下载，
+而蒙版（`body::before`）与玻璃层（`body::after`）照旧 —— 所以本节那套「局部底衬」的对比度设计不用重做。
+
+**三条早退路径都必须留着原图**（原型踩过的坑：第一版把摘图写在预置里，`prefers-reduced-motion` 下页面变成「没有背景」）：
+reduced-motion → 整支脚本不挂载；无 WebGL / GLSL 编译失败 → 同样不挂载且**不摘图**。复跑：
+`lab/shots/bg-shader-contrast/check-degrade.py <url>`（三种情况各起一个 Edge，判据是 `__bg.why` 与 `--bg-image-light` 还是不是 `url(...)`）。
+
+**代价**（仪器与原始数据在 `lab/shots/bg-shader-contrast/` 与 [`exp-bg.md`](exp-bg.md)）：RTX 5060 + 3.13 Mpx 出货分辨率下
+GPU 0.13 ms/帧（6.06 ms 帧预算的 2.1%）、主线程 0.007 ms/帧。**旋钮是 canvas 像素数、不是 shader 复杂度** —— 4× 像素（50 Mpx）时
+帧间隔崩到 max 115 ms，而 shader 本身只有 1.37 ms。重绘上限 30 fps（同一窗口 `draw` 367 → 61，帧间隔量不出差别）、
+页面不可见停 rAF、弹层期间由 `home-deck.js` 停背景 rAF（与卡的调速器没有协调，弹层期间把预算全留给卡）。
+
+**对比度也是量过的**（同一套口径，逐帧取底色众数、排除笔画像素）：**深色主题最差 6.02、浅色 6.12，都高于静态壁纸的 5.31 / 4.82**
+（AA 线 4.5）。浅色主题是风险面（深字 + 会变暗的底）：只有一套深色配色时浅色主题有 28 项掉到 4.30~4.49，所以落地版按
+`data-theme` 切两套配色（浅色那套是亮底白昼天光，极光只朝提亮方向叠加）。复跑：`capture-contrast.py` + `analyze-contrast.py`。
+
+开着 shader 时**不输出背景套切换按钮**：那时候 `--bg-image-*` 已经是 `none`，一个点了没有反应的按钮比没有按钮更糟。
+换回静态壁纸 = `enable = false` 重新部署。
+
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`
 只在真正走单页模板的页面加载（`extend_head.html` 的判据与 Giscus 同源：`.Kind == "page"` 且排除 `archives`/`search` 两个独立 layout。`archives` 那条现在没有对象了——归档页 2026-09-15 删除——留着是为了它回来时不用再想起这件事）。脚本自建 `#reading-progress`（fixed 顶部 2px，用 `transform: scaleX()` 推进），并按「最后一个已越过的标题」给 `.toc a`、`.toc-rail a`（单页的左侧目录栏，见 ㉓）加 `.active`。
 

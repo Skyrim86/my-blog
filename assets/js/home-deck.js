@@ -395,6 +395,10 @@
     fillDialog(items[i]);
     if (viewer) viewer.setOpen(true);
     stop();                        // 弹层开着时不要在背后换卡
+    // 背景 shader 与卡的 rAF 之间没有任何协调（各跑各的），而卡的调速器判据是它自己的
+    // p75 > refresh×1.25 就降档 —— 弹层期间把帧预算全留给卡是零风险的选择：背景是缓慢流动的，
+    // 停几秒看不出来。恢复放在 closeDialog（bg-shader.js 的 start() 自己会看页面是否可见）。
+    if (window.__bg && window.__bg.stop) window.__bg.stop();
     progress.classList.add('is-paused');
     syncHash(true);                // 收藏库：把「打开的是哪一张」写进地址（首页那支不写，见那个函数）
     closeBtn.focus();
@@ -421,6 +425,7 @@
   function closeDialog() {
     if (dlg.hidden) return;
     if (viewer) viewer.setOpen(false);   // 停掉动画循环：弹层关着时不该占着 GPU
+    if (window.__bg && window.__bg.start) window.__bg.start();   // 背景 shader 恢复（见 openDialog）
     dlg.hidden = true;
     document.documentElement.classList.remove('is-deck-dialog');
     deck.classList.remove('is-dialog');

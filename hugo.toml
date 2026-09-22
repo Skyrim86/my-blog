@@ -218,6 +218,27 @@ pagerSize = 10
   maskLight = [0.20, 0.04, 0.26]
   maskDark = [0.26, 0.13, 0.46]
 
+# 动态背景（WebGL shader）：开着的时候它顶掉壁纸图（--bg-image-* 置 none），蒙版与玻璃层照旧。
+#
+# 代价是**量过**的（lab/shots/bg-shader-contrast/ 与 docs/exp-bg.md）：RTX 5060 + 3.13 Mpx 出货分辨率下
+# GPU 0.13 ms/帧（6.06 ms 帧预算的 2.1%）、主线程 0.007 ms/帧；真页面帧间隔 A/B 里量不到可归因于它的掉帧。
+# 对比度也量过（同一套 WCAG 口径，逐帧取最坏）：深色主题最差 6.02、浅色 6.12，都**高于**静态壁纸的 5.31 / 4.82。
+# 浅色主题是风险面（深字 + 会变暗的底），所以 shader 里按 data-theme 切两套配色，浅色那套是亮底白昼天光。
+#
+# 降级链（三条都在 bg-shader.js 里，都有实测）：prefers-reduced-motion → 整支脚本不挂载、壁纸保留；
+# 无 WebGL / GLSL 编译失败 → 同样保留壁纸（摘图只发生在两者都成功之后）；页面不可见 → 停 rAF。
+# 弹层打开时由 home-deck.js 停背景 rAF、关闭时恢复（卡的调速器与背景没有协调，弹层期间把预算全留给卡）。
+[params.appearance.shader]
+  enable = true
+  # 渲染分辨率倍率。**这是第一个该拧的旋钮**：代价随 canvas 像素近似线性（1×/2×/4× = 0.13/0.52/1.37 ms），
+  # 而 4×（50 Mpx）时帧间隔崩到 max 115 ms 的同时 shader 自己只有 1.37 ms —— 崩的是 canvas 层，不是着色。
+  scale = 1.0
+  # fbm 噪声层数：3 = 出厂，2 便宜约 40% 且看不出区别（原型实测 0.129 → 0.077 ms/帧）
+  oct = 3
+  # 重绘上限：每帧唤醒、每 33 ms 才画一次。同一 2.2 s 窗口里 draw 从 367 降到 61，
+  # 而帧间隔在任何安静轮里都量不出差别（缓慢流动的极光看不出来）
+  fps = 30
+
 # 首页「最近更新」条数（0 = 不显示该区块），见 layouts/_partials/index_profile.html
 [params.home]
   recentCount = 8
