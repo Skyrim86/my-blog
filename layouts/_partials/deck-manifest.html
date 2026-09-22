@@ -42,6 +42,13 @@
 {{- /* xl 只给 3D 查看器与弹层大图用（不进 srcset，见文件头）。q72：760px 已经比 544 大一档，
        而它的用途是「放大看」，质量收到 q70 会在渐变处露出块 —— 实测这一档约 30KB/张。 */ -}}
 {{- $xl := $img.Resize "760x webp q72" }}
+{{- /* **卡片墙专用一档（2026-09-22）**：412px q72。收藏库的格子在 ≥768px 视口下是 205.73 CSS px，
+      DPR2 要 411.5 个物理像素 —— 现役 2x 档（544）在那里会被浏览器缩到 411，多下的 1/3 像素全丢掉。
+      **必须是 412 而不是 410**：srcset 的 w 描述符按「候选密度 = 宽 / 槽宽」选图，
+      410 / 205.73 = 1.993 < 2，DPR2 上会退回 544、一个字节也省不下来。
+      这一档只给收藏库卡片墙用（deck-wall.html 的 srcset 与 --art），首页轮播照旧 272/544。
+      实测体积与观感见 docs/exp-cards.md（DPR2 卡片下载 −22.7%，DPR1 零变化）。 */ -}}
+{{- $thumb := $img.Resize "412x webp q72" }}
 {{- /* 浮雕高度图（3D 查看器用）：灰阶、与卡面同尺寸，路径**由 image 推导**（不是 YAML 字段，
        见 tools/cards/make-depth.py 头部）。指纹一下是为了缓存失效：重出深度图后 URL 会变。
        缺失时只是这一张卡转起来是平的 —— 所以这里 warnf，check-deck.mjs 里还会在构建前阻断。 */ -}}
@@ -93,7 +100,7 @@
 {{- with $img.Colors }}{{ $tint = printf "%v" (index . 0) }}{{ end }}
 {{- $rankWall := cond (eq $rank "miracle") "collector" $rank }}
 {{- $items = $items | append (dict
-    "s" $small.RelPermalink "l" $large.RelPermalink "xl" $xl.RelPermalink
+    "s" $small.RelPermalink "l" $large.RelPermalink "xl" $xl.RelPermalink "t" $thumb.RelPermalink
     "w" $small.Width "h" $small.Height
     "d" $durl
     "label" (.name | default .series) "series" .series "style" $style

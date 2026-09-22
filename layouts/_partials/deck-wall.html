@@ -76,11 +76,15 @@
         <div class="deck-tile" data-i="{{ $n }}">
             {{- /* `--tile-base` 是这张画的主色（模板从调色板取的，见 deck-manifest.html 的 $tint）：
                    格子的垫底色 —— 图是 lazy 的，滚到附近才开始下，没有它那一块在解码前是空底。
-                   `--art` 同首页（玻璃/金继的厚度层靠它再铺一遍同一张画作，不多一次请求）。 */}}
+                   `--art`（玻璃的厚度层与金继的釉面要再铺一遍这张画）**取 412 档、不取 2x**：
+                   它必须与 <img> 在这一页真正选中的那一档同 URL，否则同一页会为同一张画下两个档。
+                   2026-09-22 实测（docs/exp-cards.md）：改前 5 张玻璃卡各多下一张 544 档，白扔约 160 KB。
+                   DPR1 下 <img> 走 272、这里仍会取一次 412（约 20 KB × 5 张），换 DPR2 上的零额外。 */}}
             <span class="home-card home-card--{{ $it.style }} home-card-rank--{{ $it.rank }}"
-                  style="--art: url('{{ $it.l }}'){{ with $it.tint }}; --tile-base: {{ . }}{{ end }}">
+                  style="--art: url('{{ $it.t }}'){{ with $it.tint }}; --tile-base: {{ . }}{{ end }}">
                 <img draggable="false" src="{{ $it.s }}"
-                    srcset="{{ $it.s }} 1x, {{ $it.l }} 2x"
+                    srcset="{{ $it.s }} 272w, {{ $it.t }} 412w, {{ $it.l }} 544w"
+                    sizes="(max-width: 767px) 44vw, 206px"
                     width="{{ $it.w }}" height="{{ $it.h }}" alt=""
                     loading="lazy" decoding="async">
                 {{- /* 玻璃的厚度层 / 金继的釉面反光：与首页同一支 span，CSS 里只给那两种风格显形
