@@ -18,6 +18,10 @@
 //      把「当前 body::before 的已解析背景栈」快照到一个临时 ghost 图层上，改掉 data-bg 之后让它
 //      淡出 —— 露出的就是新图。副产物是切换前先 decode 目标图，不会再出现「切过去先露一下底色」。
 //      关掉背景、只有一套、系统要求减少动态这三种情况走原来的硬切。
+//   5. **动态背景也在这个循环里**：extend_head.html 往 data-presets 里追加一项
+//      `{id:'__shader', name:'动态', light:'', dark:''}` —— 它是唯一 url 为空的「套」，
+//      所以预取会自动跳过它去找下一张真图，而「切到它 / 切走它」由这里调
+//      window.__bg.start()/stop()：shader 自己不管「我该不该跑」。
 (function () {
   'use strict';
 
@@ -117,14 +121,26 @@
     return !/^(slow-2g|2g|3g)$/.test(c.effectiveType || '');
   }
 
+  /* 要找的是「点了按钮之后真正会用到的那张图」。按钮的循环里掺进了动态背景（它没有图），
+     所以不能只看 nextId() —— 那可能正好是它，于是什么都不预取。往后逐个找，第一个有图的就是。 */
+  function nextImageTarget(theme) {
+    for (var k = 1; k <= ids.length; k++) {
+      var id = ids[(ids.indexOf(current) + k) % ids.length];
+      var url = urlOf(id, theme);
+      if (url) return { id: id, url: url };
+    }
+    return null;
+  }
+
   function prefetchNext() {
     if (!canPrefetch()) return;
     // 后台标签页不预取：访客没在看，先别花他的流量；等他切回来（visibilitychange）再补上
     if (document.visibilityState === 'hidden') return;
     var theme = themeKey();
-    var id = nextId();
-    var url = urlOf(id, theme);
-    if (!url) return;
+    var target = nextImageTarget(theme);
+    if (!target) return;
+    var id = target.id;
+    var url = target.url;
     var key = id + '|' + theme;
     if (prefetched[key]) return;
     prefetched[key] = true;
@@ -201,6 +217,13 @@
 
   function apply(id) {
     root.setAttribute('data-bg', id);
+    // 动态背景那一套没有图：切到它要启动 shader 的 rAF，切走就停（停着不花 GPU）。
+    // 脚本可能根本不在（没开 shader，或它自己早退了 reduced-motion / 无 WebGL），所以全程判空。
+    if (window.__bg && window.__bgOpts && id === window.__bgOpts.id && window.__bg.start) {
+      window.__bg.start();
+    } else if (window.__bg && window.__bg.stop) {
+      window.__bg.stop();
+    }
     current = id;
     // 隐私模式下 localStorage 会抛，存不上就只当次生效，不影响切换本身。
     try {

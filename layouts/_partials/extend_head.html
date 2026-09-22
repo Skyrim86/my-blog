@@ -96,6 +96,18 @@
 {{- $presets := $appearance.presets | default slice }}
 {{- $defaultId := $appearance.defaultPreset | default "" }}
 
+{{- /* 动态背景也是一个「背景套」：它进切换按钮的循环（动态 → 少女 → 城市 → 动态 …），
+       也是 data-bg 的一个合法取值。与那些套的唯一区别是它没有图片 URL —— 选中它的那份
+       「不下发壁纸」写在生成的 CSS 里（见下面 $cssBlocks），切换脚本靠 URL 为空来跳过它的
+       预取与解码，不必认识 shader 这个概念。
+
+       id 用 `__shader`：presets 的 id 校验规则是 ^[a-z0-9-]+$，下划线开头进不去那个命名空间，
+       两边的 id 集永远不会撞。 */ -}}
+{{- $shader := $appearance.shader | default dict }}
+{{- $shaderOn := $shader.enable | default false }}
+{{- $shaderId := "__shader" }}
+{{- $shaderName := $shader.name | default "动态" }}
+
 {{- /* 某一套没写 position / maskLight / maskDark 时的兜底。放模板里而不是 CSS 里，
        是为了让每个 [data-bg] 块自洽；00-theme.css 那边只留 var() 的行内兜底。
        改这些数值要连带重量正文对比度（做法见 docs/features.md ⑫）。 */ -}}
@@ -112,6 +124,10 @@
 {{- if not $defaultId }}
 {{- with $presets }}{{ $defaultId = (index . 0).id }}{{ end }}
 {{- end }}
+{{- /* 动态背景开着且标了 default：首屏默认就是它。访客自己切过之后听 localStorage 的
+       （那段前置脚本读到的合法 id 集合 $ids 里已经含 $shaderId，所以存过 `__shader` 也认）。 */ -}}
+{{- $staticDefaultId := $defaultId }}
+{{- if and $shaderOn ($shader.default | default false) }}{{ $defaultId = $shaderId }}{{ end }}
 
 {{- $ids := slice }}
 {{- $presetJs := slice }}
@@ -168,6 +184,16 @@
 {{- $cssBlocks = $cssBlocks | append (printf "%s{%s}" $sel (delimit $vars ";")) }}
 {{- end }}
 
+{{- if $shaderOn }}
+{{- $ids = $ids | append $shaderId }}
+{{- $presetJs = $presetJs | append (dict "id" $shaderId "name" $shaderName "light" "" "dark" "") }}
+{{- /* 选中动态背景时不下发壁纸图。写在**生成的 CSS** 里、而不是让 JS 去改行内变量：
+       首屏就选动态背景的访客一次都不会请求壁纸，而行内变量方案要等脚本跑完才摘图
+       （脚本一定晚于 CSS 解析，那段窗口里图已经在下了）。GL 起不来时由 bg-shader.js
+       把 data-bg 换回静态套（$staticDefaultId），壁纸自然回来 —— 见它的失败分支。 */ -}}
+{{- $cssBlocks = $cssBlocks | append (printf ":root[data-bg=\"%s\"]{--bg-image-light:none;--bg-image-dark:none;--bg-position:%s}" $shaderId $fallbackPosition) }}
+{{- end }}
+
 {{- with $cssBlocks }}
 {{- $bgCss := resources.FromString "css/bg-image.css" (delimit . "") | minify | fingerprint }}
 <link rel="stylesheet" href="{{ $bgCss.RelPermalink }}" integrity="{{ $bgCss.Data.Integrity }}" crossorigin="anonymous">
@@ -216,19 +242,16 @@
         三条早退路径（reduced-motion / 无 WebGL / GLSL 失败）上必须都留着原图。
 
      代价、对比度与降级链的实测见 docs/exp-bg.md 与 docs/features.md ⑫。 */ -}}
-{{- $shader := $appearance.shader | default dict }}
-{{- $shaderOn := $shader.enable | default false }}
 {{- if $shaderOn }}
-<script>(function(){window.__bgOpts={scale:{{ $shader.scale | default 1.0 }},oct:{{ $shader.oct | default 3 }},fps:{{ $shader.fps | default 30 }}};
-window.__bgNoStatic=function(){var s=document.documentElement.style;s.setProperty("--bg-image-light","none");s.setProperty("--bg-image-dark","none");window.__bgNoStaticDone=true;};})()</script>
+<script>(function(){window.__bgOpts={id:"{{ $shaderId }}",fallback:"{{ $staticDefaultId }}",scale:{{ $shader.scale | default 1.0 }},oct:{{ $shader.oct | default 3 }},fps:{{ $shader.fps | default 30 }}};})()</script>
 {{- $bgShader := resources.Get "js/bg-shader.js" | minify | fingerprint }}
 <script defer src="{{ $bgShader.RelPermalink }}" integrity="{{ $bgShader.Data.Integrity }}" crossorigin="anonymous"></script>
 {{- end }}
 
-{{- /* 背景套切换按钮：shader 开着时**不输出** —— 那时候 --bg-image-* 已经是 none，
-   一个点了没有任何变化的按钮比没有按钮更糟（与「按钮由 JS 注入」同一条道理）。 */ -}}
-{{- if and (gt (len $presets) 1) (not $shaderOn) }}
-<script>(function(){try{var p=localStorage.getItem("pref-bg");if(p&&"|{{ delimit $ids "|" }}|".indexOf("|"+p+"|")>-1)document.documentElement.setAttribute("data-bg",p)}catch(e){}})()</script>
+{{- /* 切换按钮：候选集是 $ids（presets + 动态背景），只有一套时不给按钮（点了也不会有变化）。 */ -}}
+{{- if $ids }}
+<script>(function(){var w="{{ $defaultId }}";try{var p=localStorage.getItem("pref-bg");if(p&&"|{{ delimit $ids "|" }}|".indexOf("|"+p+"|")>-1)w=p}catch(e){}
+document.documentElement.setAttribute("data-bg",w)})()</script>
 {{- $bgSwitch := resources.Get "js/bg-switch.js" | minify | fingerprint }}
 <script defer src="{{ $bgSwitch.RelPermalink }}" integrity="{{ $bgSwitch.Data.Integrity }}" crossorigin="anonymous"
         data-presets="{{ $presetJs | jsonify }}"

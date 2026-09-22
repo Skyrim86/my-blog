@@ -15,7 +15,9 @@
  * **必须在 whenRoot 里初始化**：注入时机早于 documentElement 出现时，直接
  * insertBefore 会抛 TypeError，整支脚本静默死掉。
  *
- * 可调：注入前设 window.__bgOpts = {scale, oct, id, fps, once, theme}
+ * 可调：注入前设 window.__bgOpts = {id, fallback, scale, oct, fps, once, theme}
+ *   id = data-bg 里表示「动态背景」的那个值（模板传 '__shader'）；fallback = GL 起不来时换回哪一套静态套。
+ *   两者都只影响「我该不该跑 / 起不来时谁顶上」，与 canvas 自身无关（canvas 的 id 固定 __bgshader）。
  *   scale —— 渲染分辨率倍率（1 = 每 CSS 像素按 devicePixelRatio 出像素；0.5 = 缩一半再拉伸）
  *   oct   —— fbm 噪声层数（3 = 出厂，2 = 低保真）
  *   fps   —— 重绘上限（不设 = 每个 rAF 都画；30 = 每 33ms 才画一次）
@@ -29,7 +31,20 @@
   var O = window.__bgOpts || {};
   var SCALE = O.scale || 1;
   var OCT = O.oct || 3;
-  var ID = O.id || '__bgshader';
+  var ID = '__bgshader';               // canvas 的 DOM id（固定，与 data-bg 的套 id 无关）
+  var BID = O.id || '__shader';        // data-bg 里表示「动态背景」的那个值（由模板传进来）
+  var FALLBACK = O.fallback || '';     // GL 起不来时把 data-bg 换回哪一套静态套
+
+  /* GL 起不来 / 系统要求减少动态时，**这个套不能继续占着 data-bg** —— 占着就是「页面没有背景」
+     （选中的套没有图、shader 又没起来）。换回静态兜底套，壁纸自然回来。
+     注意这不是「摘图」，是「换套」：图的下载与不下发由生成的 CSS 决定，这里只动属性。 */
+  function standDown() {
+    try {
+      if (FALLBACK && document.documentElement.getAttribute('data-bg') === BID) {
+        document.documentElement.setAttribute('data-bg', FALLBACK);
+      }
+    } catch (e) { /* 改不动属性也不该让脚本炸掉 */ }
+  }
   var FPS = O.fps || 0;
   var ONCE = !!O.once;
   var THEME = O.theme || 'auto';
@@ -38,6 +53,7 @@
   // 系统要求减少动态：整支脚本不落地（站点 bg-switch.js 对交叉淡入走的是同一条判据）。
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     window.__bg = { ok: false, why: 'reduced-motion' };
+    standDown();
     return;
   }
 
@@ -65,7 +81,7 @@
     var gl = O.gpuQuery ? canvas.getContext('webgl2', glOpts) : null;
     var isGL2 = !!gl;
     if (!gl) gl = canvas.getContext('webgl', glOpts);
-    if (!gl) { canvas.remove(); window.__bg = { ok: false, why: 'no-webgl' }; return; }
+    if (!gl) { canvas.remove(); standDown(); window.__bg = { ok: false, why: 'no-webgl' }; return; }
 
     var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
     var FS = [
@@ -114,7 +130,7 @@
       gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
       gl.linkProgram(prog);
       if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-    } catch (e) { canvas.remove(); window.__bg = { ok: false, why: 'glsl', err: String(e) }; return; }
+    } catch (e) { canvas.remove(); standDown(); window.__bg = { ok: false, why: 'glsl', err: String(e) }; return; }
     gl.useProgram(prog);
     var buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -201,10 +217,13 @@
     window.addEventListener('resize', function () { size(); });
 
     size();
-    // 只有到这里（GL 上下文 + 着色器都成功）才摘静态壁纸：reduced-motion / 无 WebGL / GLSL 失败
-    // 三条早退路径上都留着原图，页面不会变成「没有背景」。
-    if (window.__bgNoStatic) window.__bgNoStatic();
-    start();
+    // 挂载成功，但**跑不跑由当前选中的套决定**：访客选的是静态套时 rAF 一次都不启动（GPU 一秒不花），
+    // 切到动态背景时由 bg-switch.js 调 start()。
+    //
+    // 这里不再自己去摘静态壁纸：「选中动态背景这一套就不下发壁纸」写在**生成的 CSS**里
+    // （:root[data-bg="__shader"]{--bg-image-*:none}）—— 比 JS 改行内变量早一整步，
+    // 首屏连请求都不会发出去。三条早退路径则由 standDown() 换回静态套。
+    if (document.documentElement.getAttribute('data-bg') === BID) start();
     window.__bg = {
       ok: true,
       canvas: canvas,
@@ -217,7 +236,7 @@
           cw: canvas.width, ch: canvas.height, css: [canvas.clientWidth, canvas.clientHeight],
           dpr: window.devicePixelRatio || 1, scale: SCALE, oct: OCT, fps: FPS, once: ONCE,
           light: lightNow(),
-          noStatic: !!window.__bgNoStaticDone,
+          active: document.documentElement.getAttribute('data-bg') === BID, shaderId: BID,
           gl2: isGL2, timerQuery: !!TQ, gpu: gpuStats(),
           lastStop: lastStop
         };

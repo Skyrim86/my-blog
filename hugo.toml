@@ -230,6 +230,12 @@ pagerSize = 10
 # 弹层打开时由 home-deck.js 停背景 rAF、关闭时恢复（卡的调速器与背景没有协调，弹层期间把预算全留给卡）。
 [params.appearance.shader]
   enable = true
+  # 背景套里的显示名：开着动态背景时它和 presets 那些套一起进切换按钮的循环
+  # （「动态 → 黑长直少女 → 城市 → 动态 …」），所以名字要与套名同风格、同长度。
+  name = '动态'
+  # 首屏默认选中哪一套：true = 动态背景，false = presets 里 defaultPreset 那一套。
+  # 访客一旦自己切过（localStorage['pref-bg']），以后都听他的。
+  default = true
   # 渲染分辨率倍率。**这是第一个该拧的旋钮**：代价随 canvas 像素近似线性（1×/2×/4× = 0.13/0.52/1.37 ms），
   # 而 4×（50 Mpx）时帧间隔崩到 max 115 ms 的同时 shader 自己只有 1.37 ms —— 崩的是 canvas 层，不是着色。
   scale = 1.0
