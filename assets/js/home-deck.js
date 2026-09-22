@@ -335,14 +335,27 @@
 
   /* 「先上哪一张」不能猜档：首页那张卡在 2x 屏下的是 544（`l`）、1x 屏下的是 272（`s`），
      而收藏库那一页的格子 `sizes: 206px` 配 272w/412w/544w，2x 屏下的是 **412** —— 猜错就是
-     现下一次，等于没省。所以取**页内那张 <img> 的 currentSrc**：它就是浏览器真下过的那张，
-     必然在缓存里（点开弹层的人刚才还在看它）。 */
+     现下一次，等于没省。所以取**页内正显示这一张的那个 <img> 的 currentSrc**：
+     它就是浏览器真下过的那张，必然在缓存里（点开弹层的人刚才还在看它）。
+     两条路分开找：首页是轮播卡（`apply()` 里 `img.src` 先换、`fillDialog` 后调，所以它已经是
+     这一张了），收藏库是**按下标**对应的那一格 —— **不能拿 `lastOpener`**：那是「最开始点开的
+     那一张」，弹层里按 › 翻过去之后它就不对了（低清会重传上一个张、白做一次 texImage2D）。 */
   function lowTierOf(item) {
-    var el = lastOpener;
-    var img = null;
-    if (el) img = (el.tagName === 'IMG') ? el : (el.querySelector ? el.querySelector('img') : null);
-    if (!img && card) img = card.querySelector('img');
-    if (img && img.currentSrc) return img.currentSrc;
+    // **只认已经下完的那张**：`currentSrc` 在 src 一赋值的瞬间就有值（那时图一个字都没到），
+    // 拿它当低清，这次上传就会跟那条**还没调度的 lazy 请求**合流 —— 等的是浏览器的懒加载
+    // 排队，实测把「收藏库里在弹层里按 ›」拖到 3~6 s（traps.md 有这条）。没下完就退回自带的档。
+    function usable(img) {
+      return (img && img.complete && img.naturalWidth > 0 && img.currentSrc) ? img.currentSrc : '';
+    }
+    if (card) {                                  // 首页的轮播卡
+      var ci = usable(card.querySelector('img'));
+      if (ci) return ci;
+    }
+    var tile = document.querySelector('.deck-tile[data-i="' + i + '"]');   // 收藏库：墙上同序
+    if (tile) {
+      var ti = usable(tile.querySelector('img'));
+      if (ti) return ti;
+    }
     return item.l || item.s || item.xl || '';
   }
 
@@ -386,10 +399,17 @@
       creditText.hidden = true;
     }
     dlg.setAttribute('aria-label', dialogTpl.replace('{label}', item.label || ''));
-    // **顺序要紧**（2026-09-22 晚实测）：先把**这一张**的 xl + 深度图排进队列，等这两张就绪后再去
-    // 预取后两张。四张一起排会把「打开弹层」从 2.2 s 拖到 3.2 s —— 本地是 HTTP/1.1 单连接，
-    // `fetchPriority: low` 在这种连接上不改变排队顺序，于是这一张被后两张堵住。
-    Promise.all([warm(item.xl, true), warm(item.d, true)]).then(function () { prefetch(2, true); });
+    // **顺序与延后都紧要**（2026-09-22 晚实测）：先把**这一张**的 xl + 深度图排进队列，等这两张就绪
+    // 再**缓 1.2 s** 才排后两张。四张一起排会把「打开弹层」从 2.2 s 拖到 3.2 s；而排得太紧还有
+    // 第二个坑 —— 在收藏库那一页，后两张的预取（约 130 KB）会挡住「按 › 要显示的那一档」，
+    // 把弹层里翻一张从 ~0.4 s 拖到 **3.3 s**（本地单连接服务最明显）。缓一步之后：这一跳先让
+    // 低清与那一张的 xl 走完，人真去翻的时候通常已经过了 2 s，预取照样赶得上。
+    // 页内那一档**立刻**取：它是翻页时先上屏的那张，而且在收藏库那一页它就是格子的图 ——
+    // 浏览器本来也要下它，这里等于只是把顺序提前。xl 与深度图才往后放（见上）。
+    prefetch(2, false);
+    Promise.all([warm(item.xl, true), warm(item.d, true)]).then(function () {
+      window.setTimeout(function () { prefetch(2, true); }, 1200);
+    });
     if (viewer) {
       viewer.setItem({
         // `xl` 这一档**只给 3D 查看器用**（760×1064，不生进 srcset）。2026-09-21 之前这里
@@ -530,7 +550,17 @@
     return pr;
   }
 
-  function pageTier(it) {
+  /* 页内那一档是**按页**定的，不是按卡：首页那张卡 `srcset` 只有 `s 1x / l 2x`，收藏库的格子是
+     `s 272w / t 412w / l 544w` 配 `sizes: 206px` —— 同样是 2x 屏，前者要 `l`（544）、后者要 `t`（412）。
+     所以优先问**墙上那一格自己的 `<img>`**（`currentSrc` 就是浏览器选中并发起的那张），
+     没有那一格（首页）才回落到按 DPR 猜。猜错的代价在收藏库那一页量过：预取回来的档没人用，
+     而弹层里按 › 要显示的那张还是得现下。 */
+  function pageTierOf(idx, it) {
+    var tile = document.querySelector('.deck-tile[data-i="' + idx + '"]');
+    if (tile) {
+      var ti = tile.querySelector('img');
+      if (ti && ti.currentSrc) return ti.currentSrc;
+    }
     return (window.devicePixelRatio || 1) >= 2 ? (it.l || it.s) : it.s;
   }
 
@@ -538,7 +568,7 @@
     for (var k = 1; k <= (n || 2); k++) {
       var it = items[(i + k) % items.length];
       if (!it) continue;
-      warm(pageTier(it));
+      warm(pageTierOf((i + k) % items.length, it));
       if (withXL) { warm(it.xl, true); warm(it.d, true); }
     }
   }
