@@ -5,7 +5,9 @@
    套的清单在 hugo.toml 的 [params.appearance].presets（静态，有图）与 .shaders（动态，WebGL）。
    2026-09-22 晚把两者拆开的：此前动态背景是 presets 里的一「套」，与静态壁纸挤在同一个循环
    按钮上、共用一份偏好 —— 想固定看某张壁纸又想偶尔开一下动态，得点着循环数圈。现在两个按钮、
-   两份 localStorage（pref-bg / pref-bg-dyn）。取舍与那条唯一的耦合写在 bg-switch.js 的文件头。
+   两份 localStorage（pref-bg / pref-bg-dyn），两条轴之间**没有任何交叉写入**（点壁纸不碰动态）。
+   取舍、动态开着时点壁纸的三处反馈、兜底路径优先换回访客自己那张的理由，都写在 bg-switch.js
+   的文件头与 docs/features.md ⑫。
 
    2026-09-19：按钮的形状（34×34 圆角方 + 1px --edge 边）与悬停反馈**统一挪到 10-nav.css 的
    「顶栏图标按钮」一节** —— 那里同时管明暗按钮、这两个背景按钮与窄屏菜单按钮，四个顶栏图标按钮

@@ -270,9 +270,19 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 | `#bg-switch`（图片图标） | presets 里的静态套 | `localStorage['pref-bg']` | `defaultPreset` |
 | `#bg-dyn`（闪光图标） | 关闭 → 极光 → 夜樱 → 关闭 | `localStorage['pref-bg-dyn']`（空串 = 关） | `dynamicDefault`（留空 = 首屏给静态壁纸） |
 
-两者**唯一的耦合**是：点壁纸按钮时若动态正开着，先把它关掉。不关掉的话那个按钮「点了没反应」（动态背景盖着壁纸），
-而点不动的控件比没有更糟；播报里会把这件事说出来（「壁纸已切换到 X，动态背景已关闭」），否则读屏用户只知道壁纸换了。
-「动态按钮只有在 shader 真的挂上了才建」也是同一条口径：三条早退路径下它根本不出现。
+两条轴之间**没有任何交叉写入**（2026-09-22 晚第二版的口径）：点壁纸按钮不碰动态，点动态按钮不碰壁纸。
+前一版让「点壁纸时顺带关掉动态」——那是拿一次隐式状态改写去换「按钮看起来有反应」，与「两根轴分开」
+自相矛盾：静态侧的动作改写了动态侧的状态，访客点一次壁纸就丢了他开着的那套动态。代价与对策：
+
+- 动态开着时点壁纸，画面上不会有变化（画布盖着它；而且生成 CSS 把 `--bg-image-*` 置成了 `none`，
+  那一张图这次连下都没下）。所以 ①按钮的 `aria-label` / `title` 立刻更新成新套名（悬停看得到）；
+  ②播报里带一句「动态背景正开着，关掉它才能看到」（`bgStaticHiddenNote`）——不说的话读屏用户会以为按钮坏了；
+  ③动态开着时**不预取**壁纸（`prefetchNext` 直接返回），省掉那次看不见的下载；
+  ④想立刻看到，路径明摆着：点一下动态按钮把它关掉，就是你刚选的那张。
+- 兜底路径也不覆盖静态侧：`standDown()` 优先换回**访客自己存过的**那张壁纸（`localStorage['pref-bg']`，
+  拿 `data-opts.statics` 校验它还在），够不着才用构建期的 `fallback`。否则「无 WebGL + 存过城市」的访客
+  会被悄悄换回默认套。
+- 「动态按钮只有在 shader 真的挂上了才建」是同一条口径：三条早退路径下它根本不出现。
 
 **多套与「前缀即判据」**：每套一条 `[[params.appearance.shaders]]`（`id` / `name` / `kind` / `scale` / `oct` / `fps`）。
 `kind` 是画法，必须与 `bg-shader.js` 里 `KINDS` 的键对上 —— 模板构建期校验，写错是 `errorf` 而不是上线后一片黑。
@@ -316,9 +326,11 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 
 **三条早退路径都必须留着原图**（原型踩过的坑：第一版把摘图写在预置里，`prefers-reduced-motion` 下页面变成「没有背景」）：
 减少动态 → 整支脚本不挂载；无 WebGL / GLSL 编译失败 → 同样不挂载。这三种情况下由脚本里的 `standDown()` 把 `data-bg`
-**从动态套换回静态兜底套**，壁纸自然回来。复跑：`python lab/结果/bg-shader-contrast/check-degrade.py <url>`，
-判据是五档全绿：正常首次访问（动态套在跑、壁纸 none）+ 减少动态的两种进入方式（首次访问不套动态默认；**存过动态偏好**时
-由 `standDown` 换回静态套）+ 无 WebGL 的同样两种。后两档就是老坑的回归测。
+**从动态套换回静态侧** —— 优先换回**访客自己存过的那张**（`localStorage['pref-bg']`，用 `data-opts.statics` 校验
+它还在），没有才落到构建期的 `fallback`；壁纸自然回来。复跑：`python lab/结果/bg-shader-contrast/check-degrade.py <url>`，
+判据是**七档**全绿：正常首次访问（动态套在跑、壁纸 none）+ 减少动态的两种进入方式（首次访问不套动态默认；
+**存过动态偏好**时由 `standDown` 换回静态套）+ 无 WebGL 的同样两种 + **存过壁纸偏好**时兜底换回的是他选的那张
+（后两档是「两根轴互不覆盖」的回归测，前两档是老坑的回归测）。
 
 **代价**（仪器与原始数据在 `lab/结果/bg-shader-contrast/` 与 [`exp-bg.md`](exp-bg.md)）：RTX 5060 + 3.13 Mpx 出货分辨率下
 极光套 GPU 0.13 ms/帧（6.06 ms 帧预算的 2.1%）、主线程 0.007 ms/帧。**旋钮是 canvas 像素数、不是 shader 复杂度** ——
@@ -349,7 +361,7 @@ PingFang/雅黑字体栈、行高 1.85、两端对齐、标题行高收紧、中
 **判据变了，旧数据的 `mode_min` 与新字段 `mode_far_min` 不可直接比。**
 
 **复跑清单**（都在 `lab/结果/bg-shader-contrast/`）：`live.py`（真页面探针 + 逐帧截图 + 连点，`--peek` 只留背景）、
-`check-switch.py`（两个按钮各管各的，5 步断言）、`check-degrade.py`（降级链 5 档）、`analyze-contrast.py`（对比度）。
+`check-switch.py`（**两根轴各管各的**：5 步断言 + 两步「动态开着时点壁纸，画面上无动作」的静默检查）、`check-degrade.py`（降级链 7 档）、`analyze-contrast.py`（对比度）。
 彻底关掉动态背景 = 把 `[[params.appearance.shaders]]` 清空并删掉 `dynamicDefault`（动态按钮随之消失，壁纸回到唯一那套）。
 
 ### ⑬ 阅读进度条 + 目录当前项高亮 — `assets/js/reading-progress.js` + `08-reader.css`

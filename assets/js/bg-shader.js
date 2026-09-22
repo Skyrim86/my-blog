@@ -22,13 +22,15 @@
  * **必须在 whenRoot 里初始化**：注入时机早于 documentElement 出现时直接 insertBefore 会抛
  *   TypeError，整支脚本静默死掉（`window.__bg` 始终 undefined，页面上什么也看不出来）。
  *
- * 可调（模板经 `<script data-opts="…">` 注入，**不是** window.__bgOpts）：prefix / sets / fallback。
+ * 可调（模板经 `<script data-opts="…">` 注入，**不是** window.__bgOpts）：prefix / sets / statics / fallback。
  *   为什么不用内联 `window.__bgOpts={sets:{{ jsonify }}}`：html/template 在 <script> 上下文里会把
  *   jsonify 的结果再转义一次，出来是**字符串** `'{"a":1}'` 而不是对象 —— `SETS[id]` 恒 undefined，
  *   整套动态背景静默不挂、构建也不报错（踩过）。属性值由 HTML 解析器解码，没有这层转义；
  *   读取方式是 document.currentScript.dataset.opts（与 bg-switch.js 读自己的 data-* 同一招）。
- *   `fallback` = GL 起不来或系统要求减少动态时把 data-bg 换回哪一套**静态**套（否则那一套没图、
- *   shader 又没跑，页面就是「没有背景」）。
+ *   `statics` = 静态套 id 清单（校验兜底套用），`fallback` = GL 起不来或系统要求减少动态时把 data-bg
+ *   换回哪一套**静态**套（否则那一套没图、shader 又没跑，页面就是「没有背景」）；优先换回访客自己
+ *   选过的那张（localStorage['pref-bg']），够不着才用 `fallback` —— 两个按钮的偏好互相独立，
+ *   兜回构建期默认套等于把静态侧的选择悄悄改掉。
  * 对外：`window.__bg = {ok, why, refresh(), start(), stop(), stats(), canvas}`。
  *   `refresh()` 读 data-bg 决定跑谁（切换脚本改完属性后调它）；`start()/stop()` 是给
  *   弹层暂停用的（home-deck.js 开弹层时 stop、关闭时 start）。
@@ -41,6 +43,7 @@
   try { O = JSON.parse((script && script.dataset.opts) || '{}') || {}; } catch (e) { O = {}; }
   var PREFIX = O.prefix || '__dyn-';
   var SETS = O.sets || {};                 // { '<data-bg 值>': {kind, scale, oct, fps} }
+  var STATICS = O.statics || [];           // 静态套的 id 清单（只为下面 resolveFallback 校验用）
   var FALLBACK = O.fallback || '';         // 起不来时换回哪一套静态套
 
   var CANVAS_ID = '__bgshader';
@@ -50,14 +53,27 @@
     return (id && id.indexOf(PREFIX) === 0 && SETS[id]) ? SETS[id] : null;
   }
 
+  /* 起不来时换回**访客自己选的那张**壁纸，而不是构建期写死的那套。
+     两个按钮的偏好是互相独立的（bg-switch.js 的文件头），所以兜回默认套等于把静态侧的选择
+     悄悄改掉 —— 访客看到的是「背景自己变了」。读 localStorage 有点越权，但这里只有它知道
+     静态侧选了谁；读不到/存的值已被删除时才落到 FALLBACK。 */
+  function resolveFallback() {
+    try {
+      var p = localStorage.getItem('pref-bg');
+      if (p && (!STATICS.length || STATICS.indexOf(p) >= 0)) return p;
+    } catch (e) { /* 隐私模式：照旧用构建期默认 */ }
+    return FALLBACK;
+  }
+
   /* 三条早退路径（减少动态 / 无 WebGL / GLSL 编译失败）都必须把 data-bg 换回静态套：
      选中的是动态套而 shader 没跑 = 页面没有背景。**这不是「摘图」而是「换套」** ——
      壁纸的下发与否由生成的 CSS 决定（:root[data-bg^="__dyn-"] 那条），这里只动属性。 */
   function standDown() {
     try {
       var root = document.documentElement;
-      if (root && FALLBACK && dynCfg(root.getAttribute('data-bg'))) {
-        root.setAttribute('data-bg', FALLBACK);
+      var fb = resolveFallback();
+      if (root && fb && dynCfg(root.getAttribute('data-bg'))) {
+        root.setAttribute('data-bg', fb);
       }
     } catch (e) { /* 改不动属性也不该让脚本炸掉 */ }
   }

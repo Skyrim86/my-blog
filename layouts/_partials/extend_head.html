@@ -252,7 +252,7 @@
 
 {{- /* 动态背景（WebGL shader）：顶掉壁纸图、蒙版与玻璃层照旧。两个顺序约束是硬要求：
 
-     ① `__bgOpts` 必须先于 bg-shader.js 执行 —— 所以内联脚本在前、脚本走 defer；
+     ① shader 的配置必须以 `data-opts` 属性随脚本下发（见下）；脚本走 defer、与 bg-switch.js 同批；
      ② **摘静态壁纸只能发生在 GL 上下文与着色器都成功之后**：摘图不在预置里做，由
         bg-shader.js 读 data-bg 自己决定，失败分支把 data-bg 换回静态套。早先的原型把摘图
         写在预置里，结果 prefers-reduced-motion 下变成「页面没有背景」——
@@ -263,8 +263,12 @@
 {{- /* 套的配置走 **data-opts 属性**，不写内联 window.__bgOpts：在 <script> 上下文里
        html/template 会把 jsonify 的结果再转义一次，出来是**字符串**而不是对象
        （踩过：sets 成了 '{…}' 字面量，SETS[id] 恒 undefined，整套动态背景静默不挂，
-       构建不报错）。属性值由 HTML 解析器解码，没有这层转义 —— 与 data-presets 同一招。 */ -}}
-{{- $dynOpts := dict "prefix" $dynPrefix "fallback" $staticDefaultId "sets" $dynSets }}
+       构建不报错）。属性值由 HTML 解析器解码，没有这层转义 —— 与 data-presets 同一招。
+       `statics` 只给 bg-shader.js 的兜底路径校验用：起不来时换回**访客自己选的那张**壁纸，
+       而不是构建期的默认套 —— 两根轴互不相干，兜回默认等于替访客改了他静态侧的选择。 */ -}}
+{{- $statics := slice }}
+{{- range $presets }}{{ $statics = $statics | append .id }}{{ end }}
+{{- $dynOpts := dict "prefix" $dynPrefix "fallback" $staticDefaultId "statics" $statics "sets" $dynSets }}
 {{- $bgShader := resources.Get "js/bg-shader.js" | minify | fingerprint }}
 <script defer src="{{ $bgShader.RelPermalink }}" integrity="{{ $bgShader.Data.Integrity }}" crossorigin="anonymous"
         data-opts="{{ $dynOpts | jsonify }}"></script>
@@ -314,7 +318,7 @@ document.documentElement.setAttribute("data-bg",w)})()</script>
         data-dyn-label="{{ i18n "bgDynLabel" }}"
         data-dyn-announce="{{ i18n "bgDynAnnounce" }}"
         data-dyn-off="{{ i18n "bgDynOff" }}"
-        data-dyn-off-note="{{ i18n "bgDynOffNote" }}"></script>
+        data-static-hidden-note="{{ i18n "bgStaticHiddenNote" }}"></script>
 {{- end }}
 {{- end }}
 
