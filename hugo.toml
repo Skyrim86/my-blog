@@ -220,7 +220,7 @@ pagerSize = 10
 
 # 动态背景（WebGL shader）：开着的时候它顶掉壁纸图（--bg-image-* 置 none），蒙版与玻璃层照旧。
 #
-# 代价是**量过**的（lab/shots/bg-shader-contrast/ 与 docs/exp-bg.md）：RTX 5060 + 3.13 Mpx 出货分辨率下
+# 代价是**量过**的（lab/结果/bg-shader-contrast/ 与 docs/exp-bg.md）：RTX 5060 + 3.13 Mpx 出货分辨率下
 # GPU 0.13 ms/帧（6.06 ms 帧预算的 2.1%）、主线程 0.007 ms/帧；真页面帧间隔 A/B 里量不到可归因于它的掉帧。
 # 对比度也量过（同一套 WCAG 口径，逐帧取最坏）：深色主题最差 6.08、浅色 5.72，都**高于**静态壁纸的 5.31 / 4.82。
 # 浅色主题是风险面（深字 + 会变暗的底），所以 shader 里按 data-theme 切两套配色，浅色那套是亮底白昼天光。

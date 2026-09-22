@@ -252,7 +252,7 @@ def girl_backgrounds():
                             （经 safebooru post 3336910，2048×1352）
       source-girl-night.jpg pixiv https://www.pixiv.net/artworks/77002104
                             （经 safebooru post 2921614，原图 2500×1500 压到 2048×1229 存）
-    抓候选与筛选的过程留在 ../lab/shots/pick-girl-bg.py 与 ../lab/shots/finalists.py（仓库外）。
+    抓候选与筛选的过程留在 ../lab/工具/pick-girl-bg.py 与 ../lab/工具/finalists.py（仓库外）。
     """
     day = Image.open(os.path.join(ROOT, "tools", "backgrounds", "source-girl-day.jpg")).convert("RGB")
     w, _ = day.size

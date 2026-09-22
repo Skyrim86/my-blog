@@ -25,7 +25,7 @@
 //      POM（光线步进）只负责**比一个网格格子更细**的皱褶。两者共用同一张图、不同尺度。
 //   3. **空闲时完全停掉动画循环**。这是博客首页的一个弹层，不该在没人动的时候一直烧 GPU。
 //      拖拽中、惯性中、回弹中、指针悬在卡上时才 requestAnimationFrame；一旦静止就停，
-//      下次输入再起。`stats().running` 就是给这个断言用的（lab/shots/shots.py 会读它）。
+//      下次输入再起。`stats().running` 就是给这个断言用的（lab/工具/shots.py 会读它）。
 //   4. **失败不静默**：没有 WebGL、或着色器编译/链接失败时，回退到原来的平面大图、
 //      在 console 明确报错、并在容器上写 `data-gl="error"`。黑屏是最糟的结果，
 //      因为它看起来像「这张卡本来就长这样」。
@@ -1269,7 +1269,7 @@
     gl.drawElements(gl.TRIANGLES, GL.count, gl.UNSIGNED_SHORT, 0);
     frames++;
     var now = performance.now();
-    // 观察面（lab/shots/shots.py 读它断言「转到位了」）。降频写 DOM 属性：每帧写会触发样式重算。
+    // 观察面（lab/工具/shots.py 读它断言「转到位了」）。降频写 DOM 属性：每帧写会触发样式重算。
     if (now - lastStats > 120) {
       lastStats = now;
       canvas.setAttribute('data-yaw', yaw.toFixed(3));
@@ -1354,7 +1354,7 @@
 
   /* 弹簧与惯性的积分。**必须分子步**：显式欧拉里阻尼项是 vy*C*dt，而 dt 会被慢帧撑到 0.05s，
      此时 C*dt = 26×0.05 = 1.3 > 1 —— 速度每步翻号且放大，卡片会自己转飞到 -85 弧度。
-     实测就是这么炸的（lab/shots/deck3d/assert.js 里 afterFlip.yaw 一度是 -85.697）。
+     实测就是这么炸的（lab/结果/deck3d/assert.js 里 afterFlip.yaw 一度是 -85.697）。
      子步长取 4ms：C*h = 0.104，稳。最多 24 个子步，够覆盖一帧 96ms。 */
   function integrate(dt) {
     var steps = Math.min(24, Math.max(1, Math.ceil(dt / 0.004)));
@@ -1645,7 +1645,7 @@
       return wantBack;
     },
     isBack: function () { return faceOf(baseYaw) === 'back'; },
-    // 给 lab/shots/shots.py 的读数：断言「转到位了 / 画面非空 / 空闲时真的停了 / 各档效果真的不同」
+    // 给 lab/工具/shots.py 的读数：断言「转到位了 / 画面非空 / 空闲时真的停了 / 各档效果真的不同」
     stats: function () {
       return {
         supported: api.supported, running: !!raf, frames: frames,

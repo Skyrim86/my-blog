@@ -24,7 +24,7 @@
 
 产物：
     data/rank-scores.json            三项子分 + 合成分 + 当前档 + 建议档（入库，可复核）
-    ../lab/shots/rank-pick/sheet.png 六档接触表（每档一段、按分数降序、带分数与改档标记）
+    ../lab/结果/rank-pick/sheet.png 六档接触表（每档一段、按分数降序、带分数与改档标记）
 """
 import argparse
 import json

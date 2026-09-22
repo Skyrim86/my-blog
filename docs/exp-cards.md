@@ -2,7 +2,7 @@
 
 > 2026-09-22 由主会话补完实测部分；同日改动落地 main（`699796b`，另含预算抬到 gzip 11264 KB）。
 > 实验工作树与分支：`wt/cards` / `exp/cards`（`f1cb4cc`）—— 工作树 2026-09-22 已删，分支留档。
-> 仪器与全部量测数据在 `../lab/shots/cards-412/`（原在临时区，2026-09-22 迁入；临时区 72 小时自清）。
+> 仪器与全部量测数据在 `../lab/结果/cards-412/`（原在临时区，2026-09-22 迁入；临时区 72 小时自清）。
 
 ## 改动
 
@@ -28,7 +28,7 @@
 
 ## 观感对照
 
-`lab/shots/cards-412-vs-544/sheet-412-vs-544.jpg`：四张卡（ayaka-kimono / ayaka-desk /
+`lab/结果/cards-412-vs-544/sheet-412-vs-544.jpg`：四张卡（ayaka-kimono / ayaka-desk /
 emilia-01 / kafka-03）在 **411 物理像素**（= 205.7 CSS px × DPR2，与真实显示一致）下
 左 412 档、右 544 档，右侧再各带一张 3× 放大的局部。
 
@@ -41,8 +41,8 @@ emilia-01 / kafka-03）在 **411 物理像素**（= 205.7 CSS px × DPR2，与�
 ## 复跑
 
 ```bash
-R=D:/Study/projects/blog/my-blog
-L=D:/Study/projects/blog/lab
+R=D:/projects/blog/my-blog
+L=D:/projects/blog/lab
 # 站点副本必须带前缀剥离：产物里的资源路径是 /my-blog/...，普通 http.server 会 404
 python $L/shots/serve_public.py 8793 $R/public &
 cd $L/shots/cards-412

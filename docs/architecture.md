@@ -257,22 +257,22 @@ my-blog/
 
 `docs/`、`tools/`、`README.md` 都在 Hugo 的构建目录之外（Hugo 只读 `content/ layouts/ static/ assets/ data/ i18n/ themes/ archetypes/` 与根配置），不会被发布到线上。
 
-**仓库外的 `../lab/`（2026-09-19 建，2026-09-22 再归拢）**：量测脚本、候选素材与截图**一律不入库**，全部放在与本仓库并列的 `lab/` 下 —— 文档里写的 `../lab/shots/...` 指的就是它：
+**仓库外的 `../lab/`（2026-09-19 建，2026-09-22 再归拢）**：量测脚本、候选素材与截图**一律不入库**，全部放在与本仓库并列的 `lab/` 下 —— 文档里写的 `../lab/结果/...` 指的就是它：
 
 | 目录 | 内容 |
 |---|---|
-| `lab/shots/` | 性能 / 对比度 / A-B 量测脚本与结果（`perf.py`、`startjank.py`、`girlbg/`、`navtest/`、`libshot/`、`bg-shader/`、`craft-ab/`、`craft-ctl/`、`cards-412/`、`mathml-exp/`…） |
-| `lab/assets/` | 抓来筛选的背景与角色候选素材（成品由 `tools/backgrounds/` 生成进 `assets/images/`） |
-| `lab/serve/` | 手工 serve 出来的站点副本（量线上表现用；副本用完即删，按需重建） |
-| `lab/dumps/` | 零引用的一次性转储：旧版样式稿（`deck-styles-*.css`）、素材清单、旧版 features / traps 草稿 |
-| `lab/scripts/` | 一次性仪器与提取器（`extract_style_params.py`、`gen_style_yaml.py`） |
-| `lab/wt/mathml/` | **暂缓**的 MathML 实验工作树（分支 `exp/mathml`，`dc0d7e3`）；其余三个实验工作树 2026-09-22 已删，改动在 main |
-| `lab/audit/` | 外部体检报告与每次清理的动作记录（`cleanup-<日期>.md`） |
+| `lab/结果/` | 性能 / 对比度 / A-B 量测脚本与结果（`perf.py`、`startjank.py`、`girlbg/`、`navtest/`、`libshot/`、`bg-shader/`、`craft-ab/`、`craft-ctl/`、`cards-412/`、`mathml-exp/`…） |
+| `lab/素材/` | 抓来筛选的背景与角色候选素材（成品由 `tools/backgrounds/` 生成进 `assets/images/`） |
+| `lab/站点副本/` | 手工 serve 出来的站点副本（量线上表现用；副本用完即删，按需重建） |
+| `lab/转储/` | 零引用的一次性转储：旧版样式稿（`deck-styles-*.css`）、素材清单、旧版 features / traps 草稿 |
+| `lab/工具/` | 一次性仪器与提取器（`extract_style_params.py`、`gen_style_yaml.py`） |
+| `lab/工作树/mathml/` | **暂缓**的 MathML 实验工作树（分支 `exp/mathml`，`dc0d7e3`）；其余三个实验工作树 2026-09-22 已删，改动在 main |
+| `lab/记录/` | 外部体检报告与每次清理的动作记录（`cleanup-<日期>.md`） |
 | `lab/HANDOFF-*.md`、`lab/exp*.md` | 跨会话交接与实验报告的正本（`docs/exp-*.md` 是落地版，两者分工：lab 版记现场，docs 版记结论） |
 
 此前它们是仓库旁三个平级的 `.shots/` / `.assets/` / `.serve/`，改名只为让「哪边是仓库、哪边是草稿」一眼可辨。里面那些脚本带写死的绝对路径，复跑前先读 [`traps.md` 第 4 节](traps.md)。
 
-2026-09-22 那一轮清掉的东西：`lab/cibuild/`（落后主线的整仓克隆 39 MB）、`lab/serve/my-blog/`（构建副本 9.9 MB）、仓库里的 `d/DevEnv/` 事故树（26 MB，MSYS 路径没被翻译）、被文档指回却躺在临时区的证据（`craft-ab` / `craft-ctl` / `bg-shader` / `cards-412` / `mathml-exp`）—— 后者一律**迁进 `lab/shots/` 再引用**，因为临时区 72 小时自清，文档指过去会变成悬空引用。同理，量测仪器与原始数据先落 `lab/`，再写进文档。
+2026-09-22 那一轮清掉的东西：`lab/cibuild/`（落后主线的整仓克隆 39 MB）、`lab/站点副本/my-blog/`（构建副本 9.9 MB）、仓库里的 `d/DevEnv/` 事故树（26 MB，MSYS 路径没被翻译）、被文档指回却躺在临时区的证据（`craft-ab` / `craft-ctl` / `bg-shader` / `cards-412` / `mathml-exp`）—— 后者一律**迁进 `lab/结果/` 再引用**，因为临时区 72 小时自清，文档指过去会变成悬空引用。同理，量测仪器与原始数据先落 `lab/`，再写进文档。
 
 ## 3. hugo.toml 配置要点
 
@@ -418,7 +418,7 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与 assets/ima
 
 8 个菜单项各配一个 Q 版像素小人，角色优先取原神/Re:Zero（派蒙 / 纳西妲 / 甘雨 / 蕾姆 / 可莉 / 胡桃 / 莫娜 / 艾米莉娅），一个导航项一个角色。
 
-**为什么自绘**：safebooru 上这几个角色的 `pixel_art` 少到凑不成一套（艾米莉娅 **0** 张、蕾姆 6 张、派蒙 15 张，且来源是游戏拆包 + 同人混着）；也试过把精细的 Q 版插画压到 32×32 —— 五官糊成一团、边缘还留一圈灰毛边（对比图 `../lab/shots/navtest/sweep-emilia.png`）。自绘顺带把许可问题解决干净：不复制任何官方素材，只是按角色的配色与特征自己画（所以这一条线**没有**上面那两张的许可顾虑）。
+**为什么自绘**：safebooru 上这几个角色的 `pixel_art` 少到凑不成一套（艾米莉娅 **0** 张、蕾姆 6 张、派蒙 15 张，且来源是游戏拆包 + 同人混着）；也试过把精细的 Q 版插画压到 32×32 —— 五官糊成一团、边缘还留一圈灰毛边（对比图 `../lab/结果/navtest/sweep-emilia.png`）。自绘顺带把许可问题解决干净：不复制任何官方素材，只是按角色的配色与特征自己画（所以这一条线**没有**上面那两张的许可顾虑）。
 
 **辨识度押在「发色 + 配饰剪影 + 发长」上，不是五官**：16px 显示时整张脸只有约 6×6 像素。八个角色的发色刻意拉开（奶白 / 白绿 / 淡蓝紫 / 天蓝 / 金 / 暖棕 / 深紫 / 银白），配饰剪影各不相同（王冠 / 叶芽 / 双角 / 女仆头饰 / 便帽 / 梅花 / 女巫帽 / 花）。眼睛沿用 `draw_chibi()` 那套 3×4 结构（上眼睑重线 + 虹膜 + 一点高光）—— 画成 5 宽的整块色会变成护目镜。
 

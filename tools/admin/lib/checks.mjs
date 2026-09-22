@@ -68,7 +68,7 @@ const ITEMS = [
     argv: ['tools/wiki-publish/publish.py', '--check'],
     fast: true,
     // **有意只警告、也刻意不进 action.yml 与 push-blog.sh。**
-    // 知识库在 D:\Study\projects\wiki\statml-wiki —— 仓库外的本地绝对路径，CI 的机器上不存在，
+    // 知识库在 D:\projects\wiki\statml-wiki —— 仓库外的本地绝对路径，CI 的机器上不存在，
     // 这个检查在那边必然报「知识库不存在」。所以它只能是本地检查，而且它拦的也不是
     // 「博客有问题」，只是「有卡片还没发布」，不该阻断发布。
     // 副作用：check-consistency.mjs 的解析规则只认 `bash|node scripts/...`，看不到这一项

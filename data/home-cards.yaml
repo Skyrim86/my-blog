@@ -310,7 +310,7 @@
   credit_url: https://wallhaven.cc/w/6lwmy7
 
 # ---- 卡夫卡（崩坏：星穹铁道）：2026-09-20 加的第三系 ----
-# 源图来自 safebooru，取图口径在 lab/shots/revamp/pick-deck.py（打分 + 接触表）与
+# 源图来自 safebooru，取图口径在 lab/结果/revamp/pick-deck.py（打分 + 接触表）与
 # tools/cards/fetch-sources.py（下载 + 归一化到长边 700px）。
 # **这一系每条查询都带 rating:safe**：站点上她的 `solo simple_background` 不带这个过滤有 100 条、
 # 带上只剩 2 条 —— 不带的那些是 questionable，tags 里的敏感词滤不干净，而这是放在公开首页的图。

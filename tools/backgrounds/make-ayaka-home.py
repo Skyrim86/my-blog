@@ -17,7 +17,7 @@
 # 谁后跑谁赢，卡面尺寸或取景一改，旧脚本就能把它们悄悄覆盖回去。卡面统一只走 make-cards.py
 # （清单是 data/home-cards.yaml），这里只留立绘。
 #
-# 改完**必须看预览图**（写在仓库外的 ../lab/shots/ayaka_check.png，深底 / 浅底各一张）。
+# 改完**必须看预览图**（写在仓库外的 ../lab/结果/ayaka_check.png，深底 / 浅底各一张）。
 import os
 
 import numpy as np

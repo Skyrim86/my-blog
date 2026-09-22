@@ -54,7 +54,7 @@ DEPTH = os.path.join(FACES, "depth")
 LAB = os.path.join(ROOT, os.pardir, "lab", "shots", "cards_depth_check.png")
 # 模型：**默认 Small，这是量出来的结论，不是随手选的**。
 # 2026-09-21 拿 6 张代表卡（近景 / 全身 / 细长物件 / 细线密集）做过 Small vs Base 的对照，
-# 判据是「浮雕边缘利不利落」——`lab/shots/deck7/depth_model_ab.py` 出表与放大图：
+# 判据是「浮雕边缘利不利落」——`lab/结果/deck7/depth_model_ab.py` 出表与放大图：
 #   · 高度梯度 p99：6 张里 4 张 Base **更低**（更软）；最大梯度 3 张更低
 #   · 肉眼看：白蔷、银霜、木刀在 Base 下明显更糊，而「闲坐」的花束与「大小姐」的面部
 #     内部起伏 Base 略多 —— 有得有失，但没有一项统计上更好

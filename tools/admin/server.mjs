@@ -231,7 +231,7 @@ function hostAllowed(req) {
 // 管理页只做外壳：跑脚本、把输出原样交给界面（规则与 push-blog.sh 一致——
 // 界面不自己判断「该不该发」，那套判据在脚本里，只有一份）。
 const WIKI_PUBLISHER = 'tools/wiki-publish/publish.py';
-// 知识库默认在 D:\Study\projects\wiki\statml-wiki（写死在发布器里）；换位置时用
+// 知识库默认在 D:\projects\wiki\statml-wiki（写死在发布器里）；换位置时用
 // ADMIN_WIKI 指定，与 ADMIN_BASH / ADMIN_PYTHON 是同一套出口。
 const wikiArgs = (extra = []) =>
   (process.env.ADMIN_WIKI ? ['--wiki', process.env.ADMIN_WIKI] : []).concat(extra);

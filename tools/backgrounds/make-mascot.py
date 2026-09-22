@@ -19,7 +19,7 @@
 # 3. **缩放要在预乘 alpha 下做**：PIL 的 resize 直接把 RGBA 各自平均，边界上「透明的白」会被平均进
 #    轮廓色，出图再压一次也还是白圈。所以先乘 alpha 再缩、缩完除回来。
 #
-# 改完回到页面上截图核对（深色主题 + 浅色主题各看一遍）：预览图写在仓库外的 ../lab/shots/mascot_check.png。
+# 改完回到页面上截图核对（深色主题 + 浅色主题各看一遍）：预览图写在仓库外的 ../lab/结果/mascot_check.png。
 import os
 import sys
 

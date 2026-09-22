@@ -33,7 +33,7 @@ except ImportError:
     sys.exit("✗ 需要 PyYAML：pip install pyyaml（或 uv pip install pyyaml）")
 
 REPO = Path(__file__).resolve().parents[2]
-DEFAULT_WIKI = Path(r"D:\Study\projects\wiki\statml-wiki")
+DEFAULT_WIKI = Path(r"D:\projects\wiki\statml-wiki")
 
 PUBLISHED_STATE = "已验证"
 SOURCE_TAG = "wiki"
