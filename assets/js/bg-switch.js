@@ -1,53 +1,71 @@
-// 背景套切换（渐进增强）。
+// 背景切换（渐进增强）：**静态壁纸与动态背景各一个按钮、各存各的偏好**。
 //
-// 背景套的事实源是 hugo.toml 的 [params.appearance].presets，模板（extend_head.html）把
-// 「有哪些套」「套名」以及每套两个主题的图片 URL 经 data-* 传进来（JS 调不到 i18n，与
-// nav-toggle.js / list-tools.js 同一做法；图片 URL 必须由模板给，脚本不能自己拼）。
+// 2026-09-22 晚改的口径（前一版把动态背景当成 presets 里的一「套」塞进同一个循环）：
+// 一个按钮上同时管「换壁纸」和「开关动态背景」是拧的 —— 想固定看某张壁纸、又想偶尔开一下
+// 动态，得点着循环数圈，而且数到哪一套完全看上一次停在哪。现在：
+//   · #bg-switch  静态壁纸循环        → localStorage['pref-bg']（原有键，语义收窄为「静态套」）
+//   · #bg-dyn     动态背景：关→套1→套2→…→关 → localStorage['pref-bg-dyn']（空串 = 关）
+// 两个键**互相独立**：关掉动态背景回到的是你自己选的那张壁纸，不是默认套。
+// 唯一的耦合是一条 UX 决定：**点壁纸按钮时，若动态背景正开着就先把它关掉**。不关掉的话，
+// 这个按钮「点了没反应」（动态背景盖着壁纸），而点不动的控件比没有更糟。
 //
-// 四件事刻意这么做：
-//   1. 按钮由 JS 注入，不写进模板。没有 JS 时它不该出现（一个点不动的控件比没有更糟），
-//      而模板里加按钮就得覆盖主题的 header.html（AGENTS 规则 5 不允许）。
-//   2. 当前套读的是 <html data-bg="...">，不是 localStorage：那个属性已被首屏前置脚本
-//      （extend_head.html 里那段内联）按存的偏好写好，读属性才与「屏幕上正在显示的图」一致。
-//      存的值若指向已删除的套，这里会落回默认套，与前置脚本的校验同一套判据。
-//   3. **空闲预取另一套**：访客切过去时要等的那张图，本可以在他读页面的空闲时间里先取回来。
-//      跳过三种情况 —— 省流量模式、2G/3G、以及页面在后台（后台标签页里预取等于白花流量，
-//      等他切回来再补）。代价写在 docs/features.md ⑫：不切换的访客也会多下一张
-//      （日间 63 KB / 夜间 128 KB，只在空闲且可见时）。
-//   4. **切换做交叉淡入，而不是硬切**：background-image 是离散属性、过渡不会插值，所以做法是
-//      把「当前 body::before 的已解析背景栈」快照到一个临时 ghost 图层上，改掉 data-bg 之后让它
-//      淡出 —— 露出的就是新图。副产物是切换前先 decode 目标图，不会再出现「切过去先露一下底色」。
-//      关掉背景、只有一套、系统要求减少动态这三种情况走原来的硬切。
-//   5. **动态背景也在这个循环里**：extend_head.html 往 data-presets 里追加一项
-//      `{id:'__shader', name:'动态', light:'', dark:''}` —— 它是唯一 url 为空的「套」，
-//      所以预取会自动跳过它去找下一张真图，而「切到它 / 切走它」由这里调
-//      window.__bg.start()/stop()：shader 自己不管「我该不该跑」。
+// 事实源仍然是 <html data-bg="..."> 一个属性：静态套写静态 id，动态开写动态 id（形如
+// `__dyn-xxx`，前缀由模板给）。所以：
+//   · 屏幕上是哪一套 = 读属性（首屏那段内联脚本已按偏好写好，含「存的套已删除」的兜底）；
+//   · shader 跑不跑 **不在这里决定** —— 改完属性统一调 window.__bg.refresh()，由 bg-shader.js
+//     自己读属性（原来那版是这里直接调 start()/stop()，两处状态容易对不上）。
+//
+// 交叉淡入两种模式（都是原来那套 ghost 图层，只是方向不同；background-image 是离散属性、
+// 过渡不插值，只能靠叠层）：
+//   · 当前是静态套 → ghost 快照**当前整个背景栈**（蒙版 + 旧图），改完属性让它淡出；
+//   · 当前是动态背景（body::before 里没有 url 可快照）→ 先在**上面**画一张目标壁纸的 ghost，
+//     从 0 淡到 1 盖住画布，落定后改属性、同一帧里把 ghost 换成「新套的已解析栈」再撤掉。
+// 后者是必须的：画布在 body::before **之下**，壁纸一出现就把它整块盖住 —— 从动态切回壁纸
+// 若照旧「淡出旧栈」，露出来的是瞬间出现的新壁纸，等于硬切。
 (function () {
   'use strict';
 
   var script = document.currentScript;
   if (!script) return;
 
-  var presets;
-  try {
-    presets = JSON.parse(script.dataset.presets || '[]');
-  } catch (e) {
-    return;
+  function parseList(s) {
+    try { return JSON.parse(s || '[]'); } catch (e) { return []; }
   }
-  if (!presets || presets.length < 2) return;
+
+  var presets = parseList(script.dataset.presets);   // 静态套（有图）
+  var dyns = parseList(script.dataset.dyn);          // 动态套（无图，只有 id 与名字）
+  if (!presets.length && !dyns.length) return;
+
+  // 动态背景按钮只在 shader 真的挂上了才建：三条早退路径（减少动态 / 无 WebGL / GLSL 编译失败）
+  // 下它点了不会有任何变化，那种按钮不如不出现。bg-shader.js 排在前面（模板保证顺序）。
+  var bgOk = !!(window.__bg && window.__bg.ok);
+  if (!bgOk) dyns = [];
 
   var root = document.documentElement;
   var ids = presets.map(function (p) { return p.id; });
-  var defaultId = script.dataset.default || ids[0];
+  var dynIds = dyns.map(function (d) { return d.id; });
+  var staticDefault = script.dataset.default || ids[0] || '';
+  var dynOffName = script.dataset.dynOff || '—';
   var labelTpl = script.dataset.label || '{name}';
   var announceTpl = script.dataset.announce || '{name}';
+  var dynLabelTpl = script.dataset.dynLabel || '{name}';
+  var dynAnnounceTpl = script.dataset.dynAnnounce || '{name}';
+  var dynOffNote = script.dataset.dynOffNote || '';
 
-  var current = root.getAttribute('data-bg');
-  if (ids.indexOf(current) < 0) current = defaultId;
-  if (ids.indexOf(current) < 0) current = ids[0];
+  /* ---------- 状态 ---------- */
+  // 静态侧的当前值：屏幕上显示的是它，或者（动态开着时）是**下次会回来的那一套**。
+  var staticId = root.getAttribute('data-bg');
+  if (ids.indexOf(staticId) < 0) {
+    try { staticId = localStorage.getItem('pref-bg'); } catch (e) { staticId = null; }
+  }
+  if (ids.indexOf(staticId) < 0) staticId = staticDefault;
+  if (ids.indexOf(staticId) < 0) staticId = ids[0] || '';
 
-  // 主题机制是 <html data-theme="dark">（不是 prefers-color-scheme），所以「当前主题用哪张图」
-  // 只能读属性。
+  // 动态侧：只有 shader 活着、且屏幕上那个属性确实是这套动态套时才算「开着」——
+  // 早退路径下 bg-shader.js 已经把属性换回静态套了，这里读属性自然不会误判。
+  var dynId = root.getAttribute('data-bg');
+  if (dynIds.indexOf(dynId) < 0) dynId = '';
+
   function themeKey() {
     return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
   }
@@ -57,30 +75,18 @@
     return (p && p[theme]) || '';
   }
 
-  function nextId() {
-    return ids[(ids.indexOf(current) + 1) % ids.length];
+  function fill(tpl, name) {
+    return tpl.replace('{name}', name);
   }
 
-  /* ---------- 按钮与播报节点 ---------- */
-
-  // 与明暗按钮同一个位置（.logo-switches，主题 header.html 里的 .logo 内），排在它后面。
-  var themeToggle = document.getElementById('theme-toggle');
+  /* ---------- 两个按钮与一个播报节点 ---------- */
   var container = document.querySelector('.logo-switches') || document.querySelector('.logo');
   if (!container) return;
 
-  var btn = document.createElement('button');
-  btn.type = 'button';
-  btn.id = 'bg-switch';
-  btn.className = 'theme-toggle bg-switch';
-  btn.innerHTML =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" ' +
-    'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
-    'stroke-linejoin="round" aria-hidden="true">' +
-    '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>' +
-    '<circle cx="8.5" cy="8.5" r="1.5"></circle>' +
-    '<polyline points="21 15 16 10 5 21"></polyline></svg>';
+  var themeToggle = document.getElementById('theme-toggle');
+  var prev = themeToggle && themeToggle.parentNode === container ? themeToggle : null;
 
-  // 背景切换是纯视觉变化，读屏用户什么都得不到：给一个 role="status" 的播报节点。
+  // 背景切换是纯视觉变化，读屏用户什么都得不到：一个 role="status" 的播报节点。
   // 挂在 <body> 末尾而不是按钮旁边 —— 放进 .logo-switches 会参与那一行的 flex 布局
   // （主题的 `.logo-switches > *` 会给它 min-height 与 inline-flex）。
   var live = document.createElement('span');
@@ -88,29 +94,82 @@
   live.setAttribute('role', 'status');
   live.setAttribute('aria-live', 'polite');
 
-  function fill(tpl, name) {
-    return tpl.replace('{name}', name);
+  var SVG_ATTRS = ' xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"' +
+    ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+    ' aria-hidden="true"';
+
+  function addButton(id, cls, icon, label, title) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.id = id;
+    b.className = 'theme-toggle ' + cls;
+    b.innerHTML = '<svg' + SVG_ATTRS + '>' + icon + '</svg>';
+    b.setAttribute('aria-label', label);
+    b.setAttribute('title', title);
+    if (prev && prev.parentNode === container) container.insertBefore(b, prev.nextSibling);
+    else container.appendChild(b);
+    prev = b;
+    return b;
   }
 
-  function sync(announce) {
-    var i = ids.indexOf(current);
-    var name = (presets[i] || presets[0]).name;
-    var text = fill(labelTpl, name);
+  var btnStatic = null;
+  var btnDyn = null;
+
+  // 按钮由 JS 注入，不写进模板：没有 JS 时它不该出现（一个点不动的控件比没有更糟），
+  // 而模板里加按钮就得覆盖主题的 header.html（AGENTS 规则 5 不允许）。
+  if (ids.length >= 2) {
+    btnStatic = addButton('bg-switch', 'bg-switch',
+      '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>' +
+      '<circle cx="8.5" cy="8.5" r="1.5"></circle>' +
+      '<polyline points="21 15 16 10 5 21"></polyline>', '', '');
+  }
+  if (dynIds.length) {
+    // 图标：四角星 + 小星（「会动的那一层」）。与壁纸那个「图片」图标一眼能分开。
+    btnDyn = addButton('bg-dyn', 'bg-dyn',
+      '<path d="M11 3.2l1.6 4.4 4.4 1.6-4.4 1.6L11 15.2 9.4 10.8 5 9.2l4.4-1.6z"></path>' +
+      '<path d="M18 14.6l.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8z"></path>', '', '');
+  }
+
+  if (btnStatic || btnDyn) document.body.appendChild(live);
+
+  function nameOfStatic(id) {
+    var p = presets[ids.indexOf(id)];
+    return (p && p.name) || '';
+  }
+  function nameOfDyn(id) {
+    if (!id) return dynOffName;
+    var d = dyns[dynIds.indexOf(id)];
+    return (d && d.name) || dynOffName;
+  }
+
+  function label(btn, text) {
+    if (!btn) return;
     btn.setAttribute('aria-label', text);
     btn.setAttribute('title', text);
-    if (announce) live.textContent = fill(announceTpl, name);
   }
 
-  if (themeToggle && themeToggle.parentNode === container) {
-    container.insertBefore(btn, themeToggle.nextSibling);
-  } else {
-    container.appendChild(btn);
+  var dynOffNoteTpl = script.dataset.dynOffNote || '';
+
+  function syncStatic(announce, noteDynOff) {
+    var name = nameOfStatic(staticId);
+    label(btnStatic, fill(labelTpl, name));
+    if (announce) {
+      var t = fill(announceTpl, name);
+      if (noteDynOff) t += '，' + dynOffNoteTpl;
+      live.textContent = t;
+    }
   }
-  document.body.appendChild(live);
+
+  function syncDyn(announce) {
+    var name = nameOfDyn(dynId);
+    label(btnDyn, fill(dynLabelTpl, name));
+    if (announce) live.textContent = fill(dynAnnounceTpl, name);
+  }
 
   /* ---------- 空闲预取 ----------
-     只预取「当前主题 + 下一套」那一张：两套 × 两主题共 4 张全取，就把「省一次等待」变成了
-     「多下几百 KB」。主题切换（明暗按钮改的也是 data-theme）后由 MutationObserver 重新预取。 */
+     只预取「当前主题 + 下一套静态套」那一张：两套 × 两主题共 4 张全取，就把「省一次等待」
+     变成了「多下几百 KB」。动态背景没有文件可预取。主题切换（明暗按钮改的也是 data-theme）
+     后由 MutationObserver 重新预取。 */
   var prefetched = {};
 
   function canPrefetch() {
@@ -121,15 +180,10 @@
     return !/^(slow-2g|2g|3g)$/.test(c.effectiveType || '');
   }
 
-  /* 要找的是「点了按钮之后真正会用到的那张图」。按钮的循环里掺进了动态背景（它没有图），
-     所以不能只看 nextId() —— 那可能正好是它，于是什么都不预取。往后逐个找，第一个有图的就是。 */
-  function nextImageTarget(theme) {
-    for (var k = 1; k <= ids.length; k++) {
-      var id = ids[(ids.indexOf(current) + k) % ids.length];
-      var url = urlOf(id, theme);
-      if (url) return { id: id, url: url };
-    }
-    return null;
+  function nextStaticId() {
+    if (!ids.length) return '';
+    var i = ids.indexOf(staticId);
+    return ids[(i < 0 ? 0 : i + 1) % ids.length];
   }
 
   function prefetchNext() {
@@ -137,10 +191,9 @@
     // 后台标签页不预取：访客没在看，先别花他的流量；等他切回来（visibilitychange）再补上
     if (document.visibilityState === 'hidden') return;
     var theme = themeKey();
-    var target = nextImageTarget(theme);
-    if (!target) return;
-    var id = target.id;
-    var url = target.url;
+    var id = nextStaticId();
+    var url = urlOf(id, theme);
+    if (!url) return;
     var key = id + '|' + theme;
     if (prefetched[key]) return;
     prefetched[key] = true;
@@ -156,13 +209,7 @@
     else window.setTimeout(fn, 1200);
   }
 
-  if (document.readyState === 'complete') onIdle(prefetchNext);
-  else window.addEventListener('load', function () { onIdle(prefetchNext); });
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') onIdle(prefetchNext);
-  });
-
-  /* ---------- 切换 ---------- */
+  /* ---------- 交叉淡入的两种模式 ---------- */
   var FADE_MS = 250;        // 与 00-theme.css 里 .bg-ghost 的 transition 时长一致
   var DECODE_MAX_MS = 600;  // 目标图没就绪时最多等这么久：超时就照切，宁可轻微跳一下也不要点了没反应
   var ghost = null;
@@ -172,28 +219,35 @@
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
 
-  // 把当前 body::before 的**已解析**背景栈（蒙版渐变 + 图片 URL + size/position/repeat）快照到
-  // ghost 上。这样 CSS 里不必再抄一份背景栈 —— 抄的第二份迟早与 00-theme.css 漂移。
-  // 拿不到（关掉背景、或浏览器不返回伪元素的 computed 背景）就返回 false，调用方退回硬切。
-  function makeGhost() {
-    var cs;
-    try {
-      cs = getComputedStyle(document.body, '::before');
-    } catch (e) {
-      return false;
-    }
-    var bg = cs && cs.backgroundImage;
-    if (!bg || bg === 'none') return false;
+  function pseudoCS() {
+    try { return getComputedStyle(document.body, '::before'); } catch (e) { return null; }
+  }
+
+  // body::before 里现在有没有图。没有 = 动态背景正开着（那条 CSS 把 --bg-image-* 置成了 none），
+  // 也就是「旧栈快照出来是空的」—— 由此决定用哪种淡入，不必另存一份状态。
+  function hasImage() {
+    var cs = pseudoCS();
+    return !!(cs && cs.backgroundImage && cs.backgroundImage.indexOf('url(') >= 0);
+  }
+
+  // 建 ghost 图层。image 传 null = 快照当前 body::before 的**已解析**背景栈（这样 CSS 里不必
+  // 再抄一份背景栈 —— 抄的第二份迟早与 00-theme.css 漂移）；传 url(...) = 用目标图。
+  function makeGhost(image) {
+    var cs = pseudoCS();
+    var bg = image || (cs && cs.backgroundImage) || '';
+    if (!bg || bg === 'none') return null;
     var el = document.createElement('div');
     el.className = 'bg-ghost';
     el.setAttribute('aria-hidden', 'true');
     el.style.backgroundImage = bg;
-    el.style.backgroundSize = cs.backgroundSize;
-    el.style.backgroundPosition = cs.backgroundPosition;
-    el.style.backgroundRepeat = cs.backgroundRepeat;
+    if (cs) {
+      el.style.backgroundSize = cs.backgroundSize;
+      el.style.backgroundPosition = cs.backgroundPosition;
+      el.style.backgroundRepeat = cs.backgroundRepeat;
+    }
     document.body.insertBefore(el, document.body.firstChild);
     ghost = el;
-    return true;
+    return el;
   }
 
   function dropGhost(immediately) {
@@ -215,21 +269,33 @@
     ghostTimer = window.setTimeout(done, FADE_MS + 150);
   }
 
-  function apply(id) {
-    root.setAttribute('data-bg', id);
-    // 动态背景那一套没有图：切到它要启动 shader 的 rAF，切走就停（停着不花 GPU）。
-    // 脚本可能根本不在（没开 shader，或它自己早退了 reduced-motion / 无 WebGL），所以全程判空。
-    if (window.__bg && window.__bgOpts && id === window.__bgOpts.id && window.__bg.start) {
-      window.__bg.start();
-    } else if (window.__bg && window.__bg.stop) {
-      window.__bg.stop();
-    }
-    current = id;
-    // 隐私模式下 localStorage 会抛，存不上就只当次生效，不影响切换本身。
-    try {
-      localStorage.setItem('pref-bg', id);
-    } catch (e) { /* 忽略 */ }
-    sync(true);
+  /* 上纸（当前是动态背景）：目标壁纸先在 ghost 上从 0 淡到 1 盖住画布，落定后再改属性、
+     并且**同一帧里**把 ghost 的背景换成新套的已解析栈（含蒙版）再撤掉 —— 两者像素等价，
+     接缝为 0。不这么做的话撤 ghost 那一瞬会从「无蒙版的图」跳到「带蒙版的图」。 */
+  function fadeInWallpaper(url, st, from) {
+    var mine = makeGhost('url("' + url + '")');
+    if (!mine) { commit(st, from); onIdle(prefetchNext); return; }
+    mine.style.opacity = '0';
+    void mine.offsetHeight;                                  // 给下面的过渡确立起始值
+    mine.style.opacity = '1';
+    var finish = function () {
+      if (ghost !== mine) return;
+      commit(st, from);
+      var cs = pseudoCS();
+      if (cs) {
+        mine.style.backgroundImage = cs.backgroundImage;
+        mine.style.backgroundSize = cs.backgroundSize;
+        mine.style.backgroundPosition = cs.backgroundPosition;
+        mine.style.backgroundRepeat = cs.backgroundRepeat;
+      }
+      mine.remove();
+      if (ghost === mine) ghost = null;
+      if (ghostTimer) { window.clearTimeout(ghostTimer); ghostTimer = null; }
+      onIdle(prefetchNext);
+    };
+    mine.addEventListener('transitionend', finish);
+    // 兜底同上：过渡被中断时也要落定，否则 data-bg 会一直不换（页面停在旧背景上）
+    ghostTimer = window.setTimeout(finish, FADE_MS + 150);
   }
 
   /* 等「下一帧」，但**必须**有定时器兜底：标签页在后台时 rAF 完全不跑（实测：加了 rAF 的切换
@@ -265,33 +331,70 @@
     else img.onload = img.onerror = fire;
   }
 
-  function switchTo(id) {
-    if (reduced() || !makeGhost()) {
-      apply(id);
-      onIdle(prefetchNext);
+  /* ---------- 落定（唯一改属性的地方） ---------- */
+  // st = {static: <静态套 id>, dyn: <动态套 id 或 ''>}；from 说明是哪个按钮点的，只播报那一边。
+  function commit(st, from) {
+    var dynWas = !!dynId;
+    staticId = st.static;
+    dynId = st.dyn;
+    root.setAttribute('data-bg', dynId || staticId);
+    // shader 跑不跑由它自己读属性决定（这个文件不认识「动态」以外的任何细节）
+    if (window.__bg && window.__bg.refresh) window.__bg.refresh();
+    // 隐私模式下 localStorage 会抛，存不上就只当次生效，不影响切换本身。
+    try {
+      localStorage.setItem('pref-bg', staticId);
+      localStorage.setItem('pref-bg-dyn', dynId);
+    } catch (e) { /* 忽略 */ }
+    // 「点壁纸按钮顺带关掉动态」这件事要说出来：不说的话读屏用户只听到壁纸换了，
+    // 不知道动态背景也被关了。两条播报合成一条（分开播报时后一条会盖掉前一条）。
+    var note = from === 'static' && dynWas && !dynId;
+    syncStatic(from === 'static', note);
+    syncDyn(from === 'dyn');
+  }
+
+  /* ---------- 切换 ---------- */
+  // 目标状态 → 过渡 → 落定。三种情形共用这一条路径：
+  //   静态 → 静态：淡出旧栈；静态 → 动态：淡出旧栈；动态 → 静态：从上淡入新壁纸；
+  //   动态 → 动态：没有图可淡，画布自己在换程序时压一下（bg-shader.js 里）。
+  function go(st, from) {
+    if (reduced()) { commit(st, from); onIdle(prefetchNext); return; }
+    var url = st.dyn ? '' : urlOf(st.static, themeKey());
+    if (hasImage()) {
+      var mine = makeGhost(null);
+      if (!mine) { commit(st, from); onIdle(prefetchNext); return; }
+      // ghost 此刻已经盖住旧图（画面与点击前一致），所以这段等目标图就绪的时间里不会露底色
+      decodeThen(url, function () {
+        // 连点：这期间另一次切换已经把这一层收掉/换掉了，就交给那一次去收尾
+        if (ghost !== mine) return;
+        commit(st, from);
+        void mine.offsetHeight;   // 强制一次样式计算，给下面的过渡确立起始值
+        dropGhost(false);
+        onIdle(prefetchNext);
+      });
       return;
     }
-    // ghost 此刻已经盖住旧图（画面与点击前一致），所以这段等目标图就绪的时间里不会露底色 ——
-    // 它下面的 body::before 也还是旧图。
-    var mine = ghost;
-    decodeThen(urlOf(id, themeKey()), function () {
-      // 连点：这期间另一次切换已经把这一层收掉/换掉了，就交给那一次去收尾
-      if (ghost !== mine) return;
-      apply(id);
-      void mine.offsetHeight;   // 强制一次样式计算，给下面的过渡确立起始值
-      dropGhost(false);
-      onIdle(prefetchNext);
+    if (!url) { commit(st, from); onIdle(prefetchNext); return; }
+    decodeThen(url, function () { fadeInWallpaper(url, st, from); });
+  }
+
+  if (btnStatic) {
+    // 悬停/聚焦就先预取：比点击早一步，多数情况下点下去时图已经就绪。
+    btnStatic.addEventListener('pointerenter', prefetchNext);
+    btnStatic.addEventListener('focus', prefetchNext);
+    btnStatic.addEventListener('click', function () {
+      dropGhost(true);   // 连点：上一层的淡出立刻收掉，不叠层
+      go({ static: nextStaticId(), dyn: '' }, 'static');   // 顺带关掉动态背景（见文件头那条 UX 决定）
     });
   }
 
-  // 悬停/聚焦就先预取：比点击早一步，多数情况下点下去时图已经就绪。
-  btn.addEventListener('pointerenter', prefetchNext);
-  btn.addEventListener('focus', prefetchNext);
-
-  btn.addEventListener('click', function () {
-    dropGhost(true);   // 连点：上一层的淡出立刻收掉，不叠层
-    switchTo(nextId());
-  });
+  if (btnDyn) {
+    btnDyn.addEventListener('click', function () {
+      dropGhost(true);
+      var i = dynIds.indexOf(dynId);
+      var next = i < 0 ? 0 : i + 1;             // 关 → 套1 → 套2 → … → 关
+      go({ static: staticId, dyn: next >= dynIds.length ? '' : dynIds[next] }, 'dyn');
+    });
+  }
 
   // 明暗按钮改的是 data-theme —— 换了主题，「下一套那一张」就换成另一张图了。
   if (window.MutationObserver) {
@@ -299,5 +402,12 @@
       .observe(root, { attributes: true, attributeFilter: ['data-theme'] });
   }
 
-  sync(false);
+  if (document.readyState === 'complete') onIdle(prefetchNext);
+  else window.addEventListener('load', function () { onIdle(prefetchNext); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') onIdle(prefetchNext);
+  });
+
+  syncStatic(false);
+  syncDyn(false);
 })();

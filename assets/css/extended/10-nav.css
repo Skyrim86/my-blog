@@ -40,10 +40,10 @@
    `--accent` 底上只有约 1.9:1（浅色），所以悬停**不能**沿用旧写法「底变 --accent、字不动」——
    改成只换环色与字色，文字始终压在 --surface 上（--accent 压 --surface 是量过的正文级对比度）。
 
-   三、顶栏的图标按钮（明暗 / 背景套 / 窄屏菜单）：一副形状
-   三者都是「顶栏里一个 17~18px 图标的方形按钮」，而此前只有窄屏那个有边框 —— 主题的
+   三、顶栏的图标按钮（明暗 / 壁纸 / 动态背景 / 窄屏菜单）：一副形状
+   四者都是「顶栏里一个 17~18px 图标的方形按钮」，而此前只有窄屏那个有边框 —— 主题的
    #theme-toggle 被 core/reset.css 清掉了边框与底色、主题只给了 padding: 0 .4rem，
-   注入的 .bg-switch 复用了同一个类。这里统一成 34×34 + 圆角 8px + 1px --edge，
+   注入的 .bg-switch 与 .bg-dyn 复用了同一个类。这里统一成 34×34 + 圆角 8px + 1px --edge，
    悬停换 --accent（与菜单项同一套反馈）。
 
    四、窄屏导航折叠
@@ -117,8 +117,11 @@
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
-/* ---------- 顶栏图标按钮：明暗 / 背景套 / 窄屏菜单 ---------- */
-:is(#theme-toggle, .bg-switch, .nav-toggle) {
+/* ---------- 顶栏图标按钮：明暗 / 壁纸 / 动态背景 / 窄屏菜单 ----------
+   2026-09-22 晚：壁纸与动态背景拆成两个按钮（原来是一个循环），形状与悬停共用这一块 ——
+   所以加一个按钮**不必**写新样式，把它的类名（或 id）加进下面几条 :is() 的选择器清单即可
+   （`.nav-toggle` 是窄屏菜单，它的定位单独在文件后半段）。 */
+:is(#theme-toggle, .bg-switch, .bg-dyn, .nav-toggle) {
   align-items: center;
   justify-content: center;
   flex: none;
@@ -138,14 +141,14 @@
   transition: color .18s ease, border-color .18s ease;
 }
 
-:is(#theme-toggle, .bg-switch, .nav-toggle):hover {
+:is(#theme-toggle, .bg-switch, .bg-dyn, .nav-toggle):hover {
   color: var(--accent);
   border-color: var(--accent);
 }
 
 /* 注入的 svg 是行内元素，不改成 block 会多出一条基线缝（背景套按钮原先单独写过，
    现在两个按钮一起处理） */
-:is(#theme-toggle, .bg-switch) svg {
+:is(#theme-toggle, .bg-switch, .bg-dyn) svg {
   display: block;
 }
 

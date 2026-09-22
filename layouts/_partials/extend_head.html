@@ -96,17 +96,45 @@
 {{- $presets := $appearance.presets | default slice }}
 {{- $defaultId := $appearance.defaultPreset | default "" }}
 
-{{- /* 动态背景也是一个「背景套」：它进切换按钮的循环（动态 → 少女 → 城市 → 动态 …），
-       也是 data-bg 的一个合法取值。与那些套的唯一区别是它没有图片 URL —— 选中它的那份
-       「不下发壁纸」写在生成的 CSS 里（见下面 $cssBlocks），切换脚本靠 URL 为空来跳过它的
-       预取与解码，不必认识 shader 这个概念。
+{{- /* 动态背景：**与静态壁纸并列的另一个轴**，不再是 presets 里的一「套」。
+       2026-09-22 晚改的口径 —— 原先它进同一个循环（动态 → 少女 → 城市 → 动态 …），
+       于是「换壁纸」与「开关动态背景」挤在一个按钮上、共用一份偏好。现在两个按钮、
+       两份 localStorage（见 assets/js/bg-switch.js 的文件头）。
 
-       id 用 `__shader`：presets 的 id 校验规则是 ^[a-z0-9-]+$，下划线开头进不去那个命名空间，
-       两边的 id 集永远不会撞。 */ -}}
-{{- $shader := $appearance.shader | default dict }}
-{{- $shaderOn := $shader.enable | default false }}
-{{- $shaderId := "__shader" }}
-{{- $shaderName := $shader.name | default "动态" }}
+       动态套在页面上只留一条痕迹：data-bg 的值形如 `__dyn-xxx`。这个前缀就是分界线 ——
+       生成的 CSS 用一条 `:root[data-bg^="__dyn-"]` 覆盖**全部**动态套（加第二套不必再写 CSS），
+       首屏那段内联脚本与切换脚本也按前缀分辨两类。所以 id 校验是 ^__dyn-[a-z0-9-]+$：
+       presets 的 id 规则是 ^[a-z0-9-]+$，下划线开头进不去那个命名空间，两边永不撞。
+
+       kind 必须在 bg-shader.js 的 KINDS 里（$kinds 是那份清单的副本）：写错名字是构建期
+       errorf，而不是上线之后的一片黑（静默失效比失败更坏）。 */ -}}
+{{- $dynPrefix := "__dyn-" }}
+{{- $shaderList := $appearance.shaders | default slice }}
+{{- $kinds := slice "aurora" "anime" }}
+{{- $dynDefault := $appearance.dynamicDefault | default "" }}
+{{- $dynIds := slice }}
+{{- $dynJs := slice }}
+{{- $dynSets := dict }}
+{{- range $i, $s := $shaderList }}
+{{- $sid := $s.id | default "" }}
+{{- if not (findRE `^__dyn-[a-z0-9-]+$` $sid) }}
+{{- errorf "[params.appearance.shaders] 第 %d 套的 id=%q 非法：动态套的 id 必须形如 __dyn-xxx —— 那个前缀是「要不要摘掉壁纸图」的判据，也是与 presets 分开的命名空间" (add $i 1) $sid }}
+{{- end }}
+{{- if in $dynIds $sid }}
+{{- errorf "[params.appearance.shaders] id=%q 重复" $sid }}
+{{- end }}
+{{- $kind := $s.kind | default "" }}
+{{- if not (in $kinds $kind) }}
+{{- errorf "[params.appearance.shaders] %q 的 kind=%q 不在 bg-shader.js 的 KINDS 里（现有：%s）" $sid $kind (delimit $kinds " / ") }}
+{{- end }}
+{{- $dynIds = $dynIds | append $sid }}
+{{- $dynJs = $dynJs | append (dict "id" $sid "name" ($s.name | default $sid)) }}
+{{- $dynSets = merge $dynSets (dict $sid (dict "kind" $kind "scale" ($s.scale | default 1.0) "oct" ($s.oct | default 3) "fps" ($s.fps | default 30))) }}
+{{- end }}
+{{- if and $dynDefault (not (in $dynIds $dynDefault)) }}
+{{- warnf "[params.appearance] dynamicDefault=%q 不在 shaders 里，已忽略（首屏给静态壁纸）" $dynDefault }}
+{{- $dynDefault = "" }}
+{{- end }}
 
 {{- /* 某一套没写 position / maskLight / maskDark 时的兜底。放模板里而不是 CSS 里，
        是为了让每个 [data-bg] 块自洽；00-theme.css 那边只留 var() 的行内兜底。
@@ -124,10 +152,7 @@
 {{- if not $defaultId }}
 {{- with $presets }}{{ $defaultId = (index . 0).id }}{{ end }}
 {{- end }}
-{{- /* 动态背景开着且标了 default：首屏默认就是它。访客自己切过之后听 localStorage 的
-       （那段前置脚本读到的合法 id 集合 $ids 里已经含 $shaderId，所以存过 `__shader` 也认）。 */ -}}
 {{- $staticDefaultId := $defaultId }}
-{{- if and $shaderOn ($shader.default | default false) }}{{ $defaultId = $shaderId }}{{ end }}
 
 {{- $ids := slice }}
 {{- $presetJs := slice }}
@@ -184,14 +209,13 @@
 {{- $cssBlocks = $cssBlocks | append (printf "%s{%s}" $sel (delimit $vars ";")) }}
 {{- end }}
 
-{{- if $shaderOn }}
-{{- $ids = $ids | append $shaderId }}
-{{- $presetJs = $presetJs | append (dict "id" $shaderId "name" $shaderName "light" "" "dark" "") }}
-{{- /* 选中动态背景时不下发壁纸图。写在**生成的 CSS** 里、而不是让 JS 去改行内变量：
-       首屏就选动态背景的访客一次都不会请求壁纸，而行内变量方案要等脚本跑完才摘图
-       （脚本一定晚于 CSS 解析，那段窗口里图已经在下了）。GL 起不来时由 bg-shader.js
-       把 data-bg 换回静态套（$staticDefaultId），壁纸自然回来 —— 见它的失败分支。 */ -}}
-{{- $cssBlocks = $cssBlocks | append (printf ":root[data-bg=\"%s\"]{--bg-image-light:none;--bg-image-dark:none;--bg-position:%s}" $shaderId $fallbackPosition) }}
+{{- if $dynIds }}
+{{- /* 选中任一动态套时不下发壁纸图。写在**生成的 CSS** 里、而不是让 JS 去改行内变量：
+       首屏就选动态的访客一次都不会请求壁纸，而行内变量方案要等脚本跑完才摘图
+       （脚本一定晚于 CSS 解析，那段窗口里图已经在下了）。一条**前缀**选择器覆盖全部动态套 ——
+       这就是「加第二套动态背景不必再改模板」的那一处。GL 起不来时由 bg-shader.js 把 data-bg
+       换回静态套（$staticDefaultId），壁纸自然回来 —— 见它的失败分支。 */ -}}
+{{- $cssBlocks = $cssBlocks | append (printf ":root[data-bg^=\"%s\"]{--bg-image-light:none;--bg-image-dark:none;--bg-position:%s}" $dynPrefix $fallbackPosition) }}
 {{- end }}
 
 {{- with $cssBlocks }}
@@ -226,38 +250,72 @@
 <link rel="stylesheet" href="{{ $navCss.RelPermalink }}" integrity="{{ $navCss.Data.Integrity }}" crossorigin="anonymous">
 {{- end }}
 
-{{- /* 首屏前置脚本 + 切换按钮的接线。只有一套时不输出（没有可切的东西，按钮也不该出现）。
-
-   这段脚本**内联**是刻意的（AGENTS 规则 6 的唯一例外，登记在 docs/traps.md）：data-bg 必须在
-   首次绘制前落到 <html> 上。id 清单写成 "|id1|id2|" 再配 "|"+p+"|" 做**精确**比较：
-   html/template 会把 JS 上下文里的字符串再转义一次，所以拼数组字面量（`['a','b']`）或塞 jsonify
-   都得不到数组 —— 前者会变成 `["'a','b'"]`（一个元素，永远不匹配，表现是「刷新后存的套丢了」），
-   后者会变成字符串 `"[\"a\",\"b\"]"`（靠子串匹配侥幸能用，但 id 之间有包含关系时就会误判）。
-   两者都不报错，所以这里用不依赖转义行为的那种写法。 */ -}}
 {{- /* 动态背景（WebGL shader）：顶掉壁纸图、蒙版与玻璃层照旧。两个顺序约束是硬要求：
 
-     ① `__bgOpts` / `__bgNoStatic` 必须先于 bg-shader.js 执行 —— 所以内联脚本在前、脚本走 defer；
-     ② **摘静态壁纸只能发生在 GL 上下文与着色器都成功之后**（由 bg-shader.js 自己调 __bgNoStatic）。
-        早先的原型把摘图写在预置里，结果 prefers-reduced-motion 下变成「页面没有背景」——
-        三条早退路径（reduced-motion / 无 WebGL / GLSL 失败）上必须都留着原图。
+     ① `__bgOpts` 必须先于 bg-shader.js 执行 —— 所以内联脚本在前、脚本走 defer；
+     ② **摘静态壁纸只能发生在 GL 上下文与着色器都成功之后**：摘图不在预置里做，由
+        bg-shader.js 读 data-bg 自己决定，失败分支把 data-bg 换回静态套。早先的原型把摘图
+        写在预置里，结果 prefers-reduced-motion 下变成「页面没有背景」——
+        三条早退路径（减少动态 / 无 WebGL / GLSL 失败）上必须都留着原图。
 
      代价、对比度与降级链的实测见 docs/exp-bg.md 与 docs/features.md ⑫。 */ -}}
-{{- if $shaderOn }}
-<script>(function(){window.__bgOpts={id:"{{ $shaderId }}",fallback:"{{ $staticDefaultId }}",scale:{{ $shader.scale | default 1.0 }},oct:{{ $shader.oct | default 3 }},fps:{{ $shader.fps | default 30 }}};})()</script>
+{{- if $dynIds }}
+{{- /* 套的配置走 **data-opts 属性**，不写内联 window.__bgOpts：在 <script> 上下文里
+       html/template 会把 jsonify 的结果再转义一次，出来是**字符串**而不是对象
+       （踩过：sets 成了 '{…}' 字面量，SETS[id] 恒 undefined，整套动态背景静默不挂，
+       构建不报错）。属性值由 HTML 解析器解码，没有这层转义 —— 与 data-presets 同一招。 */ -}}
+{{- $dynOpts := dict "prefix" $dynPrefix "fallback" $staticDefaultId "sets" $dynSets }}
 {{- $bgShader := resources.Get "js/bg-shader.js" | minify | fingerprint }}
-<script defer src="{{ $bgShader.RelPermalink }}" integrity="{{ $bgShader.Data.Integrity }}" crossorigin="anonymous"></script>
+<script defer src="{{ $bgShader.RelPermalink }}" integrity="{{ $bgShader.Data.Integrity }}" crossorigin="anonymous"
+        data-opts="{{ $dynOpts | jsonify }}"></script>
 {{- end }}
 
-{{- /* 切换按钮：候选集是 $ids（presets + 动态背景），只有一套时不给按钮（点了也不会有变化）。 */ -}}
-{{- if $ids }}
-<script>(function(){var w="{{ $defaultId }}";try{var p=localStorage.getItem("pref-bg");if(p&&"|{{ delimit $ids "|" }}|".indexOf("|"+p+"|")>-1)w=p}catch(e){}
+{{- /* 首屏前置脚本 + 两个切换按钮的接线。
+
+     这段脚本**内联**是刻意的（AGENTS 规则 6 的唯一例外，登记在 docs/traps.md）：data-bg 必须在
+     首次绘制前落到 <html> 上；走 defer 外链的话会先按默认套下一张图、再换成访客存的那张 ——
+     白下载一百来 KB，还闪一下。主题自己处理 pref-theme 用的是同一招。
+
+     两个键（pref-bg 静态 / pref-bg-dyn 动态）在这里合成一个 data-bg，四条规则按优先级：
+       ① 默认 = 静态默认套 $staticDefaultId；
+       ② 存过的**静态**壁纸合法就用它；
+       ③ pref-bg-dyn 有值且合法 = 动态背景开着（盖过 ②）；
+       ④ dynamicDefault 只在访客**两个键都没存过**时生效 —— 他在静态侧做过选择，
+          说明他要看壁纸，而动态默认是给「什么都没选过」的访客的。
+     另外 reduced-motion 下不套用 ④：那套 shader 根本不会挂，套上去只会白等一次属性回退。
+     注意这里**只判 id 合不合法**，不判 shader 起不起得来 —— 后者由 bg-shader.js 兜底
+     （它会把 data-bg 换回静态套）。
+
+     id 清单写成 "|id1|id2|" 再配 "|"+p+"|" 做**精确**比较：html/template 会把 JS 上下文里的
+     字符串再转义一次，所以拼数组字面量（`['a','b']`）或塞 jsonify 都得不到数组 ——
+     前者会变成 `["'a','b'"]`（一个元素，永远不匹配，表现是「刷新后存的套丢了」），
+     后者会变成字符串 `"[\"a\",\"b\"]"`（靠子串匹配侥幸能用，但 id 之间有包含关系时就会误判）。
+     两者都不报错，所以这里用不依赖转义行为的那种写法。 */ -}}
+{{- if or $ids $dynIds }}
+<script>(function(){var w="{{ $staticDefaultId }}",hasStatic=false,rm=false;
+try{rm=window.matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){}
+try{var p=localStorage.getItem("pref-bg");
+if(p&&"|{{ delimit $ids "|" }}|".indexOf("|"+p+"|")>-1){w=p;hasStatic=true}
+var q=localStorage.getItem("pref-bg-dyn");
+if(q&&"|{{ delimit $dynIds "|" }}|".indexOf("|"+q+"|")>-1)w=q;else if(!q&&!hasStatic&&!rm&&"{{ $dynDefault }}")w="{{ $dynDefault }}"}
+catch(e){}
 document.documentElement.setAttribute("data-bg",w)})()</script>
+{{- /* 两个按钮由同一个文件接线（bg-switch.js）：数据同源、交叉淡入只有一份实现，
+       静态与动态两侧的 id 集合也是同一处解析的。**shader 必须排在它前面** ——
+       bg-switch.js 只在 window.__bg.ok 为真时才建动态按钮。 */ -}}
+{{- if or (gt (len $presets) 1) $dynIds }}
 {{- $bgSwitch := resources.Get "js/bg-switch.js" | minify | fingerprint }}
 <script defer src="{{ $bgSwitch.RelPermalink }}" integrity="{{ $bgSwitch.Data.Integrity }}" crossorigin="anonymous"
         data-presets="{{ $presetJs | jsonify }}"
-        data-default="{{ $defaultId }}"
+        data-dyn="{{ $dynJs | jsonify }}"
+        data-default="{{ $staticDefaultId }}"
         data-label="{{ i18n "bgSwitchLabel" }}"
-        data-announce="{{ i18n "bgSwitchAnnounce" }}"></script>
+        data-announce="{{ i18n "bgSwitchAnnounce" }}"
+        data-dyn-label="{{ i18n "bgDynLabel" }}"
+        data-dyn-announce="{{ i18n "bgDynAnnounce" }}"
+        data-dyn-off="{{ i18n "bgDynOff" }}"
+        data-dyn-off-note="{{ i18n "bgDynOffNote" }}"></script>
+{{- end }}
 {{- end }}
 
 {{- /* 阅读进度条 + 目录高亮：只在真正走单页模板的页面上加载（与 giscus 的判据同源：
