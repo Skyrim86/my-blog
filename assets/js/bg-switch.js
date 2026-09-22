@@ -9,11 +9,13 @@
 // 两条轴之间**没有任何交叉写入** —— 点壁纸按钮不碰动态，点动态按钮不碰壁纸（2026-09-22 晚第二版
 // 的口径。前一版让「点壁纸时顺带关掉动态」，那是拿一次隐式状态改写去换「按钮看起来有反应」，
 // 与「两根轴分开」自相矛盾：静态侧的动作改写了动态侧的状态，访客点一次壁纸就丢了他开着的那套
-// 动态）。代价与对策：动态开着时点壁纸，画面上不会变（画布盖着它，那一张图这次也没下载），
-// 所以 → ①按钮的 aria-label / title 立刻更新成新的套名（悬停看得到）；
+// 动态）。代价与对策：动态开着时点壁纸，画面上不会变（画布盖着它），所以 →
+//           ①按钮的 aria-label / title 立刻更新成新的套名（悬停看得到）；
 //           ②播报里带一句「动态背景正开着，先关掉才看得到这张壁纸」（文案 bgStaticHiddenNote）；
-//           ③动态开着时不预取壁纸（prefetchNext 直接返回），省掉那次看不见的下载。
-// 想「立刻看到」的路径是明摆着的：点一下动态按钮把它关掉，壁纸就是你刚选的那张。
+//           ③动态开着时**照样把壁纸预取好**（2026-09-22 晚第三版）：关掉动态要落到的就是它，预取让
+//             那一刻不必现下现解码（慢网实测：预取过 280 ms 见底，没预取 874 ms 顶到上限、图还晚到；
+//             代价 ~265 KB，见 lab/结果/bg-shader-contrast/check-prefetch.py）。
+// 想「立刻看到」的路径是明摆着的：点一下动态按钮把它关掉，壁纸就是你刚选的那张，而且已经就绪。
 //
 // 事实源仍然是 <html data-bg="..."> 一个属性：静态套写静态 id，动态开写动态 id（形如
 // `__dyn-xxx`，前缀由模板给）。所以：
@@ -176,9 +178,13 @@
   }
 
   /* ---------- 空闲预取 ----------
-     只预取「当前主题 + 下一套静态套」那一张：两套 × 两主题共 4 张全取，就把「省一次等待」
-     变成了「多下几百 KB」。动态背景没有文件可预取。主题切换（明暗按钮改的也是 data-theme）
-     后由 MutationObserver 重新预取。 */
+     取「当前主题 ×（下一套静态套，动态开着时再加**当前**这一套）」：两套 × 两主题共 4 张全取，
+     就把「省一次等待」变成了「多下几百 KB」，所以主题那一维交给 MutationObserver 重新预取。
+
+     动态开着时**照样预取**（2026-09-22 晚第三版）：那两张就是「关掉动态」与「再点一次壁纸」
+     要落到的那张 —— 此刻看不见，却立刻要用。第二版为了省那一次看不见的下载直接返回，代价是
+     关掉动态时现下现解码，而那段等待正是切换里最贵的一段（DECODE_MAX_MS 600 ms 就是留给它的）。
+     省流量 / 慢网 / 后台标签页三条守卫照旧（canPrefetch）。动态套自己没有文件可预取。 */
   var prefetched = {};
 
   function canPrefetch() {
@@ -197,23 +203,26 @@
 
   function prefetchNext() {
     if (!canPrefetch()) return;
-    // 动态背景开着就别预取壁纸：那一张现在看不见（生成 CSS 把 --bg-image-* 置成 none），
-    // 预取等于纯花掉一百多 KB。关掉动态后（commit → onIdle(prefetchNext)）再补。
-    if (dynId) return;
     // 后台标签页不预取：访客没在看，先别花他的流量；等他切回来（visibilitychange）再补上
     if (document.visibilityState === 'hidden') return;
     var theme = themeKey();
-    var id = nextStaticId();
-    var url = urlOf(id, theme);
-    if (!url) return;
-    var key = id + '|' + theme;
-    if (prefetched[key]) return;
-    prefetched[key] = true;
-    var img = new Image();
-    img.decoding = 'async';
-    img.src = url;
-    // decode 一下：只下载不解码的话，切换那一帧仍要现解码（一百多 KB 的图足够掉一帧）
-    if (img.decode) img.decode().catch(function () { /* 预取失败无所谓，切换时照旧按需加载 */ });
+    // 动态开着时连**当前**那张一起取：关掉动态要落到的就是它（不是「下一套」）。
+    var want = dynId ? [staticId, nextStaticId()] : [nextStaticId()];
+    for (var i = 0; i < want.length; i++) {
+      var id = want[i];
+      var url = urlOf(id, theme);
+      if (!url) continue;
+      var key = id + '|' + theme;
+      if (prefetched[key]) continue;
+      prefetched[key] = true;
+      var img = new Image();
+      img.decoding = 'async';
+      // 低优先级：别跟首屏关键资源抢带宽（Chromium 102+ 支持，其它浏览器忽略）
+      if ('fetchPriority' in img) img.fetchPriority = 'low';
+      img.src = url;
+      // decode 一下：只下载不解码的话，切换那一帧仍要现解码（一百多 KB 的图足够掉一帧）
+      if (img.decode) img.decode().catch(function () { /* 预取失败无所谓，切换时照旧按需加载 */ });
+    }
   }
 
   function onIdle(fn) {

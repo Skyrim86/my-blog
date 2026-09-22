@@ -399,6 +399,9 @@ sparkle / 只开 holo / 只开 cliff / 只开 halo 各拍一张同一角度同�
 
 - **对比度脚本的「底色众数」要先剔掉笔画像素**（2026-09-22 晚改的判据，`lab/结果/bg-shader-contrast/analyze-contrast.py`）：短而密的 CJK 标题（「最近更新」四个字、16px）笔画能占矩形面积 **30%+**，不剔的话众数就是**文字色本身** → 对比度恒等 1.00，看着像不合格；而它只在「背景与文字色的量化桶相邻」时才翻车 —— 换一套背景就换一个结论（夜樱那版凭空多出一个假阳性，极光那版报绿）。脚本现在同时给 `mode_min`（旧口径）与 `mode_far_min`（剔笔画后再取众数，**判据用这个**）。看到「众数恰好等于文字色」的格子先怀疑这一条，别去改蒙版。判据口径变了，旧数据的 `mode_min` 与新字段不可直接比
 
+- **CDP 的 `Network.emulateNetworkConditions` 不会改 `navigator.connection.effectiveType`**（2026-09-22 晚量预取时踩到）：挂 512 kbit/s 节流后页内读到的仍是 `4g`，于是 `canPrefetch()` 的慢网守卫不触发 —— 想验那条守卫只能靠真机弱网或 `saveData`，别把「节流下没预取」当成守卫生效的证据（我第一次就是被自己的假设带跑的，见 `lab/结果/bg-shader-contrast/check-prefetch.py` 的文件头）。
+- **量「切换要多快」别拿「属性什么时候变」当读数**（同一处）：`bg-switch.js` 里那次交叉淡入是刻意的 250 ms（`FADE_MS`），所以「点击 → 壁纸落到 `body::before`」永远有个 ~280 ms 的地板。比地板还小的数说明量错了地方；要看清图带来的差，得把对照放在**慢网**下量（本地回环下预取与不预取只差几毫秒 —— 本地没有带宽代价，那不是反例）。
+
 ## 4. 工具与脚本
 
 - **`hugo list all` 是页面 URL 的权威来源**（`path,slug,title,date,…,permalink,kind,section`）。任何需要「这一页最终 URL 是什么」的地方都应该问它，不要自己实现 slugify + permalinks + `pathToLower`（管理页原先的第二份实现已删除）。解析它输出的两个坑：**标题里可能有逗号**（不能按逗号朴素切分）；**顶层页面的 `section` 是空字符串**。**例外**：content adapter 生成的页面（`/library/<大类>/`、`/library/<大类>/<细分>/`，见 docs/features.md ㉒）不在它输出里——它们没有对应的 content 文件，`.File` 也是 nil（碰 `.File.Dir` 会直接报错），要拿 URL 只能在模板里自己拼
