@@ -317,11 +317,12 @@ document.documentElement.setAttribute("data-bg",w)})()</script>
         data-dyn="{{ $dynJs | jsonify }}"
         data-default="{{ $staticDefaultId }}"
         data-label="{{ i18n "bgSwitchLabel" }}"
+        data-label-dyn-on="{{ i18n "bgSwitchLabelDynOn" }}"
         data-announce="{{ i18n "bgSwitchAnnounce" }}"
         data-dyn-label="{{ i18n "bgDynLabel" }}"
         data-dyn-announce="{{ i18n "bgDynAnnounce" }}"
         data-dyn-off="{{ i18n "bgDynOff" }}"
-        data-static-hidden-note="{{ i18n "bgStaticHiddenNote" }}"
+        data-dyn-off-note="{{ i18n "bgDynOffNote" }}"
         data-dyn-unavailable="{{ i18n "bgDynUnavailable" }}"></script>
 {{- end }}
 {{- end }}

@@ -5,21 +5,24 @@
 // 动态，得点着循环数圈，而且数到哪一套完全看上一次停在哪。现在：
 //   · #bg-switch  静态壁纸循环        → localStorage['pref-bg']（原有键，语义收窄为「静态套」）
 //   · #bg-dyn     动态背景：关→套1→套2→…→关 → localStorage['pref-bg-dyn']（空串 = 关）
-// 两个键**互相独立**：关掉动态背景回到的是你自己选的那张壁纸，不是默认套。
-// 两条轴之间**没有任何交叉写入** —— 点壁纸按钮不碰动态，点动态按钮不碰壁纸（2026-09-22 晚第二版
-// 的口径。前一版让「点壁纸时顺带关掉动态」，那是拿一次隐式状态改写去换「按钮看起来有反应」，
-// 与「两根轴分开」自相矛盾：静态侧的动作改写了动态侧的状态，访客点一次壁纸就丢了他开着的那套
-// 动态）。代价与对策：动态开着时点壁纸，画面上不会变（画布盖着它），所以 →
-//           ①按钮的 aria-label / title 立刻更新成新的套名（悬停看得到）；
-//           ②播报里带一句「动态背景正开着，先关掉才看得到这张壁纸」（文案 bgStaticHiddenNote）；
-//           ③ **不预取**（2026-09-22 晚第四版）：动态开着时，静态壁纸一张都不在空闲期下 —— 那是
-//             「两根轴叠在一起」唯一还剩的地方（同一时刻两张背景都在浏览器里：一张在画、一张在
-//             缓存里等着解码）。这正是同一个 URL 在别的轴上白下的那 164 KB（浅色）/ 270 KB（深色）
-//             加两次解码位图。改由**意图预热**接手：访客悬停/聚焦/按下任一个背景按钮时，才把
-//             「这一下点下去会落到的那张」取好（warmStaticIntent / warmDynIntent）。
-//             鼠标与键盘够用；触屏没有悬停，按下去那一刻才开始，慢网上会等 —— 这笔账与「空转
-//             一整页的流量」相比是划算的，四个跑法的数字见 lab/结果/bg-shader-contrast/check-prefetch.py。
-// 想「立刻看到」的路径是明摆着的：点一下动态按钮把它关掉，壁纸就是你刚选的那张，而且已经就绪。
+// 两个键**互相独立**（各存各的、互不覆盖），但**同一时刻只显示一套**：点壁纸会**把动态关掉**，
+// 开动态则壁纸从画面上消失（生成 CSS 把 --bg-image-* 置成 none，那张图这次连下都不下）。
+// 这是 2026-09-22 晚**第五版**的口径，用户的原话是「静态壁纸和动态壁纸是独立的，点了静态动态
+// 就消失，反之亦然」。前三版的来回记在这里，免得下次又绕一圈：
+//   · 一版：一个按钮循环里混着动态套（「换壁纸」和「开关动态」在同一根轴上，数到哪套看运气）；
+//   · 二版：拆成两个按钮，但「点壁纸时顺带关掉动态」—— 被指出是拿隐式状态改写换「按钮有反应」；
+//   · 三版：两根轴**零交叉写入**，于是动态开着时点壁纸画面完全不变，只靠按钮名 + 播报提示
+//            「关掉动态才能看到」。用户的实际期待不是这个 —— 他要的是「一点就换过去」；
+//   · 四版：拆开「空闲预取」与「意图预热」（那条与互斥无关，保留）；
+//   · 五版（当前）：互斥。点壁纸按钮 = 关掉动态 + 显示按钮上写着的那张（**第一次点不换套**：
+//            一次点击只做一件事，再点才轮到下一张）。点动态按钮 = 壁纸退场、偏好留着 ——
+//            所以把它关掉回到的仍是你自己选的那张，不是默认套。
+// 因此 `pref-bg` 的语义是「动态关掉之后要回到的那张」，而屏幕上是哪一套仍然只由
+// <html data-bg> 一个属性决定（静态套写静态 id，动态开写动态 id，形如 `__dyn-xxx`）。
+// 动态开着时**空闲期不预取静态壁纸**（第四版留下的口径：同一时刻只让一张背景占着下载与
+// 解码位图），改由**意图预热**接手 —— 悬停/聚焦/按下任一个背景按钮时才取「点下去会落到的那张」
+// （warmStaticIntent / warmDynIntent）。鼠标与键盘够用；触屏没有悬停，按下去那一刻才开始。
+// 四个跑法的数字见 lab/结果/bg-shader-contrast/check-prefetch.py。
 //
 // 事实源仍然是 <html data-bg="..."> 一个属性：静态套写静态 id，动态开写动态 id（形如
 // `__dyn-xxx`，前缀由模板给）。所以：
@@ -59,6 +62,9 @@
   var staticDefault = script.dataset.default || ids[0] || '';
   var dynOffName = script.dataset.dynOff || '—';
   var labelTpl = script.dataset.label || '{name}';
+  // 动态开着时壁纸按钮那一下**不换套**（只把动态收起来），按钮名得说清楚，否则像坏了：
+  // 「切换壁纸（点一下会关掉动态背景）：当前 城市」。
+  var labelDynOnTpl = script.dataset.labelDynOn || labelTpl;
   var announceTpl = script.dataset.announce || '{name}';
   var dynLabelTpl = script.dataset.dynLabel || '{name}';
   var dynAnnounceTpl = script.dataset.dynAnnounce || '{name}';
@@ -102,6 +108,7 @@
   // 挂在 <body> 末尾而不是按钮旁边 —— 放进 .logo-switches 会参与那一行的 flex 布局
   // （主题的 `.logo-switches > *` 会给它 min-height 与 inline-flex）。
   var live = document.createElement('span');
+  live.id = 'bg-live';                 // 给回归测一个确定的抓手（页面上还有别处也用 role=status 播报）
   live.className = 'sr-only';
   live.setAttribute('role', 'status');
   live.setAttribute('aria-live', 'polite');
@@ -160,17 +167,14 @@
     btn.setAttribute('title', text);
   }
 
-  var hiddenNoteTpl = script.dataset.staticHiddenNote || '';
-
-  /* noteHidden：这次点的是壁纸按钮，而动态背景正开着 —— 壁纸偏好已经改了，但**看不到**
-     （画布盖着它；而且生成 CSS 把 --bg-image-* 置成了 none，那一张图这次连下都没下）。
-     两根轴互不改对方的状态，所以这里只播报事实，不替访客把动态关掉。 */
-  function syncStatic(announce, noteHidden) {
+  /* note：这次点的是壁纸按钮，而**刚才**动态背景开着 —— 这一下顺带把它关了（两条轴互斥，
+     文件头第五版）。不说这一句，读屏用户只会听到「壁纸已切换到 X」，不知道画面为什么整个变了。 */
+  function syncStatic(announce, note) {
     var name = nameOfStatic(staticId);
-    label(btnStatic, fill(labelTpl, name));
+    label(btnStatic, fill(dynId ? labelDynOnTpl : labelTpl, name));
     if (announce) {
       var t = fill(announceTpl, name);
-      if (noteHidden) t += '，' + hiddenNoteTpl;
+      if (note) t += dynOffNote;
       live.textContent = t;
     }
   }
@@ -379,6 +383,7 @@
   /* ---------- 落定（唯一改属性的地方） ---------- */
   // st = {static: <静态套 id>, dyn: <动态套 id 或 ''>}；from 说明是哪个按钮点的，只播报那一边。
   function commit(st, from) {
+    var dynWas = dynId;                 // 点之前动态开着没有：决定播报里要不要说「已关掉动态背景」
     staticId = st.static;
     dynId = st.dyn;
     root.setAttribute('data-bg', dynId || staticId);
@@ -389,9 +394,8 @@
       localStorage.setItem('pref-bg', staticId);
       localStorage.setItem('pref-bg-dyn', dynId);
     } catch (e) { /* 忽略 */ }
-    // 点了壁纸按钮而动态正开着：偏好改了、画面上却什么都没有。要说出来（读屏用户只听到
-    // 「壁纸已切换到 X」会以为坏了），但**不**顺带把动态关掉 —— 两根轴各管各的。
-    syncStatic(from === 'static', staticId && !!dynId);
+    // 点了壁纸按钮而动态刚才开着：这一下把它关掉了，播报里要带上（第五版）。
+    syncStatic(from === 'static', from === 'static' && !!dynWas);
     syncDyn(from === 'dyn');
   }
 
@@ -427,8 +431,10 @@
     btnStatic.addEventListener('pointerdown', warmStaticIntent);
     btnStatic.addEventListener('click', function () {
       dropGhost(true);   // 连点：上一层的淡出立刻收掉，不叠层
-      // **只动静态侧**：动态背景开着就让它开着（文件头那条「两根轴互不相干」）。
-      go({ static: nextStaticId(), dyn: dynId }, 'static');
+      // **互斥**：这一下点下去，动态背景必须消失（文件头第五版）。
+      // 动态开着时**不换套** —— 按钮上写着哪张就显示哪张，一次点击只做一件事（再点才轮到下一张）；
+      // 动态本来就关着时照旧循环下一套。
+      go({ static: dynId ? staticId : nextStaticId(), dyn: '' }, 'static');
     });
   }
 

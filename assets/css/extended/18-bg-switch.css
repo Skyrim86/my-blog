@@ -5,7 +5,7 @@
    套的清单在 hugo.toml 的 [params.appearance].presets（静态，有图）与 .shaders（动态，WebGL）。
    2026-09-22 晚把两者拆开的：此前动态背景是 presets 里的一「套」，与静态壁纸挤在同一个循环
    按钮上、共用一份偏好 —— 想固定看某张壁纸又想偶尔开一下动态，得点着循环数圈。现在两个按钮、
-   两份 localStorage（pref-bg / pref-bg-dyn），两条轴之间**没有任何交叉写入**（点壁纸不碰动态）。
+   两份 localStorage（pref-bg / pref-bg-dyn），但**同一时刻只显示一套**：点壁纸会关掉动态（互斥，见 bg-switch.js 文件头第五版）。
    取舍、动态开着时点壁纸的三处反馈、兜底路径优先换回访客自己那张的理由，都写在 bg-switch.js
    的文件头与 docs/features.md ⑫。
 
