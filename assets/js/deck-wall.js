@@ -660,6 +660,31 @@
       window.homeDeck.openAt(parseInt(btn.getAttribute('data-i'), 10), btn);
     });
 
+    /* ---------- 意图预取：指针/键盘焦点停在某一格上 200 ms，就先把这一张的 xl + 深度图取回来 ----------
+       这一页的卡片墙自己只带 272/412/544（`sizes` 206px），而点开弹层要的是 xl（760）+ 深度图，
+       合计约 64 KB —— 原来一张都不预取（2026-09-22 之前的注释写着「他可能一张都不点开」，那是对的：
+       一进页面就为 63 张卡各下 64 KB 是灾难）。悬停**加 200 ms 停留**才取，是这两者之间的中点：
+       指针扫过不算意图，停住了才算。键盘用户在 focusin 上走同一条路。 */
+    var intentTimer = null;
+    function warmTile(el) {
+      var idx = parseInt(el.getAttribute('data-i'), 10);
+      if (!window.homeDeck || !window.homeDeck.prefetchAt || isNaN(idx)) return;
+      // 只取**停住的这一张**（xl + 深度图，约 64 KB）：他还没点，多取一张就是白下。
+      // 后面那几张由弹层自己管 —— 打开时会按「这一张先、后两张随后」的顺序补上（见 home-deck.js）。
+      window.homeDeck.prefetchAt(idx, 1, true);
+    }
+    function armTile(e) {
+      var el = e.target && e.target.closest ? e.target.closest('.deck-tile') : null;
+      if (!el || !grid.contains(el)) return;
+      if (intentTimer) window.clearTimeout(intentTimer);
+      intentTimer = window.setTimeout(function () { intentTimer = null; warmTile(el); }, 200);
+    }
+    grid.addEventListener('pointerover', armTile);
+    grid.addEventListener('focusin', armTile);
+    grid.addEventListener('pointerleave', function () {
+      if (intentTimer) { window.clearTimeout(intentTimer); intentTimer = null; }
+    });
+
     /* ---------- 键盘：网格漫游（roving tabindex）----------
        整面墙只有一格在 tab 序列里（进墙一次 Tab），进来之后用方向键走。不这么做的话
        63 张卡就是 63 次 Tab —— 本站别的列表都没有这么长。 */

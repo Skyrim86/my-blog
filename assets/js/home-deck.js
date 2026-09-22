@@ -203,6 +203,11 @@
   nav.appendChild(zoomBtn);
   if (carousel) deck.appendChild(nav);
 
+  /* 意图预取：指针停在 ⤢ 或卡面上 200 ms，就先把**这一张**的 xl + 深度图取回来 ——
+     打开弹层要等的就是这两张（约 64 KB）。2026-09-22 晚加，见 prefetchAt 的注释。 */
+  onIntent(zoomBtn, function () { prefetchAt(i, 1, true); });
+  onIntent(card, function () { prefetchAt(i, 1, true); });
+
   /* ---------- 弹层（看大图 + 名字 / 系列 / 序号 / 出处） ----------
      大图用**已有的 2x 产物**（544px 宽，卡在页内只有 272）—— 页内 272 → 弹层 430 已经是 1.6 倍，
      不额外出一档「大图」产物：那要给每张卡多生成一个 ~720px 的文件，三十多张就是 1.3 MB 左右，
@@ -225,6 +230,7 @@
   panel.className = 'home-deck-dialog-panel';
 
   var bigImg = document.createElement('img');
+  var fillSeq = 0;                 // fillDialog 的序号：晚到的 xl 不许盖住后一张卡的低清
   bigImg.setAttribute('draggable', 'false');
   bigImg.alt = '';
 
@@ -327,12 +333,35 @@
 
   backdrop.addEventListener('click', closeDialog);
 
+  /* 「先上哪一张」不能猜档：首页那张卡在 2x 屏下的是 544（`l`）、1x 屏下的是 272（`s`），
+     而收藏库那一页的格子 `sizes: 206px` 配 272w/412w/544w，2x 屏下的是 **412** —— 猜错就是
+     现下一次，等于没省。所以取**页内那张 <img> 的 currentSrc**：它就是浏览器真下过的那张，
+     必然在缓存里（点开弹层的人刚才还在看它）。 */
+  function lowTierOf(item) {
+    var el = lastOpener;
+    var img = null;
+    if (el) img = (el.tagName === 'IMG') ? el : (el.querySelector ? el.querySelector('img') : null);
+    if (!img && card) img = card.querySelector('img');
+    if (img && img.currentSrc) return img.currentSrc;
+    return item.l || item.s || item.xl || '';
+  }
+
   function fillDialog(item) {
     if (!item) return;
     // 平面大图用 xl（760px）那一档：台面 2026-09-21 放大到 600px 之后，544px 的 2x 会被拉到
     // 1.9 倍（2x 屏上更糊），而这张图是「没有 WebGL 时」访客唯一能看到的东西。
     // 它不进 srcset，所以列表页不会因为这一档变重（账见 docs/features.md ㊳）。
-    bigImg.src = item.xl || item.l || item.s;
+    // **低清先上**（2026-09-22 晚）：先摆页内那一档（`l`/`s`，几乎总在缓存里），xl 到了再换。
+    // 这条只在没 WebGL 的机器上看得见（有 WebGL 时这张图是 hidden 的），但那时它是唯一画面 ——
+    // 不给它渐进，访客看到的就是「按了 › 之后先空一段」。token 防晚到的 xl 落在后一张卡上。
+    var tok = ++fillSeq;
+    var low = lowTierOf(item);
+    bigImg.src = low || item.xl || '';
+    if (item.xl && item.xl !== low) {
+      var up = new Image();
+      up.onload = function () { if (tok === fillSeq) bigImg.src = item.xl; };
+      up.src = item.xl;
+    }
     // xl 的真实宽度 = 760（1x 那张 272 的 2.79 倍）；拿不到就退回按 2x 估
     bigImg.width = Math.round((item.w || 0) * 2.79) || 760;
     bigImg.height = Math.round((item.h || 0) * 2.79) || 1064;
@@ -357,13 +386,17 @@
       creditText.hidden = true;
     }
     dlg.setAttribute('aria-label', dialogTpl.replace('{label}', item.label || ''));
+    // **顺序要紧**（2026-09-22 晚实测）：先把**这一张**的 xl + 深度图排进队列，等这两张就绪后再去
+    // 预取后两张。四张一起排会把「打开弹层」从 2.2 s 拖到 3.2 s —— 本地是 HTTP/1.1 单连接，
+    // `fetchPriority: low` 在这种连接上不改变排队顺序，于是这一张被后两张堵住。
+    Promise.all([warm(item.xl, true), warm(item.d, true)]).then(function () { prefetch(2, true); });
     if (viewer) {
       viewer.setItem({
         // `xl` 这一档**只给 3D 查看器用**（760×1064，不生进 srcset）。2026-09-21 之前这里
         // 漏了它 —— 于是 card-3d.js 里 `next.xl || next.l || next.s` 每次都回退到 544 宽
         // 的 l 档，760 档那 63 张 2.4 MB 从头到尾没有任何页面加载过：既是「卡面糊」的
         // 头号根因，也让那份产物白白占着体积（见 docs/traps.md 的「静默回退」一节）。
-        s: item.s, l: item.l, xl: item.xl || '', d: item.d || '',
+        s: item.s, l: item.l, xl: item.xl || '', d: item.d || '', low: low,
         label: item.label || '', series: item.series || '', style: item.style || 'foil',
         rank: item.rank || 'collector', rankLabel: item.rankLabel || '',
         indexText: pad(i + 1) + ' / ' + pad(items.length),
@@ -470,18 +503,66 @@
     }
   });
 
-  /* ---------- 预取后两张：换过去时图已在缓存 ----------
-     卡片墙也走这条路：在弹层里按 → 时下一张已经在缓存里（一次最多两张、按 URL 记账，不会
-     把 63 张全抓下来）。 */
-  var prefetched = {};
-  function prefetch() {
-    for (var k = 1; k <= 2; k++) {
+  /* ---------- 预取 ----------
+     取「接下来真要用的那一档」，取完就 decode()。三处用法（2026-09-22 晚加的②③）：
+       ① 首页轮播：后两张的**页内档**，按 DPR 选 —— 2x 屏取 544（`l`）、1x 屏取 272（`s`）。
+          此前无脑取 `l`：在 1x 屏上浏览器按 srcset 走的是 `s`，于是那一次预取等于白下。
+       ② 弹层开着时：后两张的 xl（760）+ 深度图 —— 那才是弹层里按「›」要等的东西（每张约 64 KB）。
+       ③ 意图预取（`prefetchAt`，收藏库与首页的 ⤢ 按钮在悬停/聚焦时叫）：先停 200 ms 再取，
+          匆匆划过的指针不该让访客为一张他根本不点的卡下载 60 KB。
+     按 URL 记账（不是按套 id）：一次最多几张，不会把 63 张全抓下来。 */
+  var prefetched = {};                       // url → 该张就绪的 promise（同一张不重复下载）
+  function warm(url, cors) {
+    if (!url) return Promise.resolve();
+    if (prefetched[url]) return prefetched[url];
+    var im = new Image();
+    // xl 与深度图按 card-3d.js 的 loadImage 那样带 crossOrigin —— 否则 GL 那条路还要重下一次
+    if (cors) im.crossOrigin = 'anonymous';
+    im.decoding = 'async';
+    if ('fetchPriority' in im) im.fetchPriority = 'low';   // 别跟首屏关键资源抢带宽
+    var pr = new Promise(function (res) {
+      // decode 一下：只下载不解码的话，切换那一帧仍要现解码（一百多 KB 的图足够掉一帧）
+      im.onload = function () { if (im.decode) im.decode().then(res, res); else res(); };
+      im.onerror = function () { res(); };                 // 预取失败无所谓，切换时照旧按需加载
+    });
+    prefetched[url] = pr;
+    im.src = url;
+    return pr;
+  }
+
+  function pageTier(it) {
+    return (window.devicePixelRatio || 1) >= 2 ? (it.l || it.s) : it.s;
+  }
+
+  function prefetch(n, withXL) {
+    for (var k = 1; k <= (n || 2); k++) {
       var it = items[(i + k) % items.length];
-      if (!it || prefetched[it.s]) continue;
-      prefetched[it.s] = true;
-      var im = new Image();
-      im.src = it.l || it.s;                    // 预取 2x：高分屏换过去就是清楚的
+      if (!it) continue;
+      warm(pageTier(it));
+      if (withXL) { warm(it.xl, true); warm(it.d, true); }
     }
+  }
+
+  /* 意图预取：从第 idx 张起取 n 张的 **xl + 深度图**。页内那一档不取 —— 指针停在哪张卡上，
+     那一张的页内图早就下过了（他要看的是弹层里那张 760）。 */
+  function prefetchAt(idx, n, withXL) {
+    for (var k = 0; k < (n || 1); k++) {
+      var it = items[(idx + k) % items.length];
+      if (!it) continue;
+      if (withXL) { warm(it.xl, true); warm(it.d, true); }
+    }
+  }
+
+  /* 悬停/聚焦后**停 200 ms 再预取**：匆匆划过的指针不该触发下载。 */
+  function onIntent(el, fn) {
+    if (!el) return;
+    var t = null;
+    var arm = function () { if (!t) t = window.setTimeout(function () { t = null; fn(); }, 200); };
+    var drop = function () { if (t) { window.clearTimeout(t); t = null; } };
+    el.addEventListener('pointerenter', arm);
+    el.addEventListener('focus', arm);
+    el.addEventListener('pointerleave', drop);
+    el.addEventListener('blur', drop);
   }
 
   function apply(j) {
@@ -669,6 +750,10 @@
        时间卡的「今日一卡」必须用它、而不是自己再解析一遍 data-deck：那是**按下标**调 openAt 的，
        池子不一致的表现是「点微卡没反应」—— 下标越界被 openAt 里的边界判断挡掉，不报任何错。 */
     items: items,
+    /* 意图预取（deck-wall.js 的悬停/聚焦会叫它）：把第 idx 张起 n 张的页内档取回来，
+       withXL 时连 xl + 深度图 —— 收藏库那一页的卡片墙自己不带 xl，点开弹层才要，
+       所以「指针停在哪张上」是这一页唯一可靠的预取信号（见 prefetchAt 的注释）。 */
+    prefetchAt: prefetchAt,
     openAt: function (index, opener) {
       if (typeof index !== 'number' || index < 0 || index >= items.length) return false;
       i = index;

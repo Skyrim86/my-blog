@@ -402,6 +402,10 @@ sparkle / 只开 holo / 只开 cliff / 只开 halo 各拍一张同一角度同�
 - **CDP 的 `Network.emulateNetworkConditions` 不会改 `navigator.connection.effectiveType`**（2026-09-22 晚量预取时踩到）：挂 512 kbit/s 节流后页内读到的仍是 `4g`，于是 `canPrefetch()` 的慢网守卫不触发 —— 想验那条守卫只能靠真机弱网或 `saveData`，别把「节流下没预取」当成守卫生效的证据（我第一次就是被自己的假设带跑的，见 `lab/结果/bg-shader-contrast/check-prefetch.py` 的文件头）。
 - **量「切换要多快」别拿「属性什么时候变」当读数**（同一处）：`bg-switch.js` 里那次交叉淡入是刻意的 250 ms（`FADE_MS`），所以「点击 → 壁纸落到 `body::before`」永远有个 ~280 ms 的地板。比地板还小的数说明量错了地方；要看清图带来的差，得把对照放在**慢网**下量（本地回环下预取与不预取只差几毫秒 —— 本地没有带宽代价，那不是反例）。
 
+- **`img.currentSrc` 在 `src` 一赋值的瞬间就变**（2026-09-22 晚量卡片时踩到）：那时图还一个字都没到。拿「currentSrc 变了」当「图就绪」的判据会得出**比资源到货还早**的读数（第一次跑就被它骗了：报 374 ms，而那张图 1999 ms 才下完）。要判「画面可用」就等 `load` 事件 + `img.decode()`，或者干脆等业务自己的信号（卡片那边是 `card3d.stats().faceSwaps` 自增 —— 见 `lab/结果/deck-perf/check-cardflow.py`）。
+- **Blink 的内存图片缓存跨导航存活，`Network.clearBrowserCache` 清不掉它**：同一个浏览器进程里连着跑几档测量，上一档下过的图下一档直接命中缓存，读数掉到个位数毫秒 —— **量的是缓存，不是预取**。每档必须单起一个浏览器进程（脚本里的 `--only`）。
+- **同一张图，`crossOrigin='anonymous'` 与不带它的请求不是同一个缓存条目**：`card-3d.js` 走 GL 时用 `crossOrigin`（要 texImage2D），而弹层里那张 `<img>` 不带 —— 于是同一张 xl 在本地服务上被下了两遍（本地 `http.server` 没有 `Cache-Control`，无法用 HTTP 缓存兜住第二种模式）。线上有强缓存所以只是多一次查表，但**在本地读到「预取过了还要再下一遍」时先怀疑这一条**，别急着改预取。
+
 ## 4. 工具与脚本
 
 - **`hugo list all` 是页面 URL 的权威来源**（`path,slug,title,date,…,permalink,kind,section`）。任何需要「这一页最终 URL 是什么」的地方都应该问它，不要自己实现 slugify + permalinks + `pathToLower`（管理页原先的第二份实现已删除）。解析它输出的两个坑：**标题里可能有逗号**（不能按逗号朴素切分）；**顶层页面的 `section` 是空字符串**。**例外**：content adapter 生成的页面（`/library/<大类>/`、`/library/<大类>/<细分>/`，见 docs/features.md ㉒）不在它输出里——它们没有对应的 content 文件，`.File` 也是 nil（碰 `.File.Dir` 会直接报错），要拿 URL 只能在模板里自己拼

@@ -961,6 +961,10 @@
   var canvas = null, host = null, deckEl = null;
   var item = null;
   var texFace = null, texBack = null, texDepth = null;
+  var faceSeq = 0;                   // setItem 的序号：晚到的图不许盖住后来居上的那一张
+  // 卡面贴图被换掉过几次（低清一次、xl 一次）。给 lab 的读数用：等它自增 = 「画面换人了」，
+  // 比等某张图下完更贴近访客感知 —— 低清先上之后，这两件事不再是同一时刻（见 setItem 的注释）。
+  var faceSwaps = 0;
   var texFaceW = 0, texFaceH = 0;    // 卡面纹理的像素尺寸（锐化的邻域步长要用它）   // texDepth = { tex, w, h }
   var backCanvas = null, backKey = '';
   var proj = mat4(), view = mat4(), model = mat4(), rot = mat4(), rot2 = mat4();
@@ -1589,10 +1593,30 @@
       // 517px 宽、2x 屏上就是 1034 个物理像素，而 544px 那档是给页内 272px 的卡用的 ——
       // 拿它撑 600px 台面会被放大到近两倍，糊得看得见。xl 只在这条路上加载（不生进 srcset），
       // 所以收藏库那一页的访客不会因此多下一个字节，只有真打开弹层的人下这一张。
+      //
+      // **低清先上**（2026-09-22 晚）：`l`/`s` 就是这张卡在页内显示的那张，多半已经在缓存里，
+      // 上传它几乎不耗时。先换它，切换的一刻画面立刻换人，不必等 760 那一档下完才动 ——
+      // 这是「切换流畅」的真正来源；预取只是让它更快。xl 到了再换一次，观感是「先变过来、再变锐」。
+      // `faceSeq` 防「低清后到、把后来居上的 xl 盖回去」，也防上一张的 xl 落在这一张上。
+      var seq = ++faceSeq;
+      // `next.low` 是页内那张真正下过的档（首页 l/s、收藏库 412）—— 不猜档，见 home-deck.js 的 lowTierOf
+      var low = next.low || next.l || next.s;
+      if (low && next.xl && low !== next.xl) {
+        jobs.push(loadImage(low).then(function (im) {
+          if (seq !== faceSeq) return;
+          if (texFace) GL.gl.deleteTexture(texFace);
+          texFace = makeTex(im);
+          texFaceW = im.naturalWidth; texFaceH = im.naturalHeight;
+          faceSwaps++;
+          kick();
+        }).catch(function () { /* 低清失败无所谓：xl 那条路还在 */ }));
+      }
       jobs.push(loadImage(next.xl || next.l || next.s).then(function (im) {
+        if (seq !== faceSeq) return;
         if (texFace) GL.gl.deleteTexture(texFace);
         texFace = makeTex(im);
         texFaceW = im.naturalWidth; texFaceH = im.naturalHeight;
+        faceSwaps++;
       }).catch(function (err) {
         console.error('[card3d] 卡面图读取失败：' + (err && err.message));
       }));
@@ -1648,7 +1672,7 @@
     // 给 lab/工具/shots.py 的读数：断言「转到位了 / 画面非空 / 空闲时真的停了 / 各档效果真的不同」
     stats: function () {
       return {
-        supported: api.supported, running: !!raf, frames: frames,
+        supported: api.supported, running: !!raf, frames: frames, faceSwaps: faceSwaps,
         yaw: +yaw.toFixed(3), pitch: +pitch.toFixed(3), base: +baseYaw.toFixed(3),
         face: faceOf(baseYaw),
         pom: GL ? GL.pom : 0, relief: !!texDepth, pinned: pinned,
