@@ -306,7 +306,10 @@ catch(e){}
 document.documentElement.setAttribute("data-bg",w)})()</script>
 {{- /* 两个按钮由同一个文件接线（bg-switch.js）：数据同源、交叉淡入只有一份实现，
        静态与动态两侧的 id 集合也是同一处解析的。**shader 必须排在它前面** ——
-       bg-switch.js 只在 window.__bg.ok 为真时才建动态按钮。 */ -}}
+       bg-switch.js 只在 window.__bg.ok 为真时才建动态按钮。后面这个 ok 是**乐观**语义
+       （2026-09-22 晚第四版：引擎改成惰性挂载，静态壁纸的访客不为它付一个 GL 上下文），
+       除了 reduced-motion 能在挂载前就判死，其余「跑不了」都要等挂载失败才知道 ——
+       那一刻 bg-shader.js 派发 bg:dyn-unavailable，切换脚本据此撤掉按钮。 */ -}}
 {{- if or (gt (len $presets) 1) $dynIds }}
 {{- $bgSwitch := resources.Get "js/bg-switch.js" | minify | fingerprint }}
 <script defer src="{{ $bgSwitch.RelPermalink }}" integrity="{{ $bgSwitch.Data.Integrity }}" crossorigin="anonymous"
@@ -318,7 +321,8 @@ document.documentElement.setAttribute("data-bg",w)})()</script>
         data-dyn-label="{{ i18n "bgDynLabel" }}"
         data-dyn-announce="{{ i18n "bgDynAnnounce" }}"
         data-dyn-off="{{ i18n "bgDynOff" }}"
-        data-static-hidden-note="{{ i18n "bgStaticHiddenNote" }}"></script>
+        data-static-hidden-note="{{ i18n "bgStaticHiddenNote" }}"
+        data-dyn-unavailable="{{ i18n "bgDynUnavailable" }}"></script>
 {{- end }}
 {{- end }}
 

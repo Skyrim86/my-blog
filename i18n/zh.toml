@@ -500,6 +500,11 @@ other = "动态背景：{name}"
 [bgDynOff]
 other = "关闭"
 
+# 动态引擎在真正挂载时才发现跑不了（无 WebGL / 那套的着色器编译不过）：bg-shader.js 会把背景换回
+# 静态套并派发 bg:dyn-unavailable，切换脚本撤掉按钮后播报这一句。{name} = 换回的那张壁纸名。
+[bgDynUnavailable]
+other = "此设备跑不了动态背景，壁纸已回到 {name}"
+
 # ---------- 列表排序与标签筛选（见 assets/js/list-tools.js） ----------
 # JS 不能调 i18n，这些文案由 extend_head.html 经 <script> 的 data-* 传给脚本
 [listToolsSort]

@@ -31,9 +31,14 @@
  *   换回哪一套**静态**套（否则那一套没图、shader 又没跑，页面就是「没有背景」）；优先换回访客自己
  *   选过的那张（localStorage['pref-bg']），够不着才用 `fallback` —— 两个按钮的偏好互相独立，
  *   兜回构建期默认套等于把静态侧的选择悄悄改掉。
- * 对外：`window.__bg = {ok, why, refresh(), start(), stop(), stats(), canvas}`。
- *   `refresh()` 读 data-bg 决定跑谁（切换脚本改完属性后调它）；`start()/stop()` 是给
- *   弹层暂停用的（home-deck.js 开弹层时 stop、关闭时 start）。
+ * 对外：`window.__bg = {ok, why, refresh(), prepare(), start(), stop(), stats(), canvas}`（`mounted` 看 `stats()`）。
+ *   `refresh()` 读 data-bg 决定跑谁（切换脚本改完属性后调它）；`prepare()` 是**意图挂载**
+ *   （切换脚本在访客悬停/聚焦/按下动态按钮时调，见下）；`start()/stop()` 是给弹层暂停用的
+ *   （home-deck.js 开弹层时 stop、关闭时 start）。
+ *   **2026-09-22 晚第四版起改为惰性挂载**：canvas 与 GL 上下文只在真要跑动态背景（或访客够到了
+ *   动态按钮）时才建，切回静态套时连上下文一起撤 —— 静态壁纸的访客不为动态背景付任何东西。
+ *   随之 `ok` 变成**乐观**语义：true = 还没发现跑不了；真跑不了（挂载/编译失败）会在那一刻
+ *   派发 `bg:dyn-unavailable` 让切换脚本撤掉按钮。
  *   `stats()` 里 cpuMs 是主线程侧 drawArrays 的累计耗时、gpu 是 GPU 计时器分布（有 webgl2 时）。
  */
 (function () {
@@ -283,23 +288,85 @@
   };
 
   whenRoot(function () {
-    var canvas = document.createElement('canvas');
-    canvas.id = CANVAS_ID;
-    canvas.setAttribute('aria-hidden', 'true');
-    canvas.style.cssText =
-      'position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:block;' +
-      'opacity:1;transition:opacity 250ms ease';
-    document.documentElement.insertBefore(canvas, document.documentElement.firstChild);
+    /* ---------- 挂载 / 卸载（2026-09-22 晚第四版：改成惰性） ----------
+       为什么改：静态壁纸的访客不该为动态背景付任何东西 —— 一个常驻的 <canvas> 加一个常驻的
+       WebGL 上下文是要花钱的（本机实测 getContext 首次 28 ms、其后 8~15 ms，另加一块显存），
+       而旧版在 whenRoot 里无条件建，于是「一根轴开着、另一根轴的引擎也挂着」。
 
-    var glOpts = {
-      alpha: false, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false
-    };
-    // gpuQuery 走 WebGL2：只有 webgl2 上下文能开 EXT_disjoint_timer_query_webgl2，
-    // 那是**直接量这一帧 shader 占了多少 GPU 时间**的唯一手段（否则只能靠过载外推）。
-    var gl = O.gpuQuery ? canvas.getContext('webgl2', glOpts) : null;
-    var isGL2 = !!gl;
-    if (!gl) gl = canvas.getContext('webgl', glOpts);
-    if (!gl) { canvas.remove(); standDown(); window.__bg = { ok: false, why: 'no-webgl' }; return; }
+       现在只有两种情形会挂：① data-bg 就是某个动态套（首屏动态默认、或访客存过动态偏好）；
+       ② 访客**够到了动态按钮** —— 悬停 / 聚焦 / 按下（bg-switch.js 的 warmDynIntent 会调 prepare()）。
+       切回静态套时连上下文一起撤：unmount() 里 remove() + WEBGL_lose_context（否则上下文要等 GC
+       才放，移动端的上下文额度是按个数算的）。重新挂载的代价（8~15 ms 建上下文 + 1.5 ms 编译）
+       落在交叉淡入那 250 ms 里，量不出来。
+
+       失败路径与旧版一致，只是发生得晚：挂载失败（无 WebGL）或某一套的 GLSL 编译失败 →
+       把 data-bg 换回静态套 + 派发 `bg:dyn-unavailable`。切换脚本据此撤掉那个按钮并播报一句，
+       所以不会留下「点了没反应」的控件。`window.__bg.ok` 的语义随之变成**乐观**的：
+       true = 这台机器上还没发现跑不了（reduced-motion 仍直接给 false），真正的判据要看挂载结果。*/
+
+    var canvas = null, gl = null, isGL2 = false, TQ = null, cache = {}, mounted = false;
+    var cur = null;        // 正在生效的那一项（含 scale/fps/id）
+    var lastKind = null;   // 上一套跑的是哪个 kind：kind 变了要压一下画布（切套的「跳」）
+    var paused = false;    // 弹层暂停（home-deck 调的 stop()），与「不在动态套」是两件事
+    var frames = 0, raf = 0, t0 = 0, lastStop = null, lastDraw = 0, cpuMs = 0, draws = 0;
+    var pending = [], gpu = [];   // 每帧一个 GPU 计时 query，池里轮转
+
+    function mount() {
+      if (mounted) return true;
+      var cv = document.createElement('canvas');
+      cv.id = CANVAS_ID;
+      cv.setAttribute('aria-hidden', 'true');
+      cv.style.cssText =
+        'position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:block;' +
+        'opacity:1;transition:opacity 250ms ease';
+      document.documentElement.insertBefore(cv, document.documentElement.firstChild);
+
+      var glOpts = {
+        alpha: false, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false
+      };
+      // gpuQuery 走 WebGL2：只有 webgl2 上下文能开 EXT_disjoint_timer_query_webgl2，
+      // 那是**直接量这一帧 shader 占了多少 GPU 时间**的唯一手段（否则只能靠过载外推）。
+      var g2 = O.gpuQuery ? cv.getContext('webgl2', glOpts) : null;
+      var g = g2 || cv.getContext('webgl', glOpts);
+      if (!g) { cv.remove(); return false; }
+
+      canvas = cv; gl = g; isGL2 = !!g2; cache = {};
+      TQ = (isGL2 && gl.getExtension('EXT_disjoint_timer_query_webgl2')) || null;
+      pending = []; gpu = [];
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+      mounted = true;
+      if (window.__bg) window.__bg.canvas = cv;
+      return true;
+    }
+
+    function unmount() {
+      stopRaf();
+      if (canvas) {
+        try {
+          var lose = gl && gl.getExtension('WEBGL_lose_context');
+          if (lose) lose.loseContext();     // 显式还掉，别等 GC —— 移动端的上下文额度按个数算
+        } catch (e) { /* 拿不到扩展也无所谓，remove 之后它照样会被回收 */ }
+        canvas.remove();
+      }
+      canvas = null; gl = null; isGL2 = false; TQ = null; cache = {};
+      cur = null; lastKind = null; mounted = false;
+      if (window.__bg) window.__bg.canvas = null;
+    }
+
+    // 挂载或编译失败：撤掉引擎、把 data-bg 换回静态套、告诉切换脚本「这条轴用不了」。
+    function fail(why) {
+      unmount();
+      standDown();
+      if (window.__bg) { window.__bg.ok = false; window.__bg.why = why; }
+      try {
+        document.dispatchEvent(new CustomEvent('bg:dyn-unavailable', { detail: { why: why } }));
+      } catch (e) { /* 老浏览器没有 CustomEvent 构造器：按钮留着，功能不受影响 */ }
+    }
 
     var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
 
@@ -308,11 +375,6 @@
       if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
       return s;
     }
-
-    var cache = {};       // 'kind|oct' → {key, prog, uRes, uT, uLight}
-    var cur = null;       // 正在生效的那一项（含 scale/fps/id）
-    var lastKind = null;  // 上一套跑的是哪个 kind：kind 变了要压一下画布（切套的「跳」）
-    var paused = false;   // 弹层暂停（home-deck 调的 stop()），与「不在动态套」是两件事
 
     function build(kind, oct) {
       var src = KINDS[kind];
@@ -333,21 +395,12 @@
       return it;
     }
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-
     // 主题：站点把主题写在 <html data-theme="…">，没写就是默认主题（深色）。
     function lightNow() {
       var a = document.documentElement.getAttribute('data-theme');
       return a === 'light' ? 1 : 0;
     }
 
-    var frames = 0, raf = 0, t0 = 0, lastStop = null, lastDraw = 0, cpuMs = 0, draws = 0;
-    // GPU 侧计时：每帧一个 query 对象，池里轮转；结果要等 GPU 回读，所以读的是「已完成」的那些。
-    var TQ = (isGL2 && gl.getExtension('EXT_disjoint_timer_query_webgl2')) || null;
-    var pending = [], gpu = [];
     function pollQueries() {
       if (!TQ) return;
       if (gl.getParameter(TQ.GPU_DISJOINT_EXT)) {            // 时钟错乱（切 GPU/降频）：这一批采样全丢
@@ -375,6 +428,7 @@
     }
 
     function size() {
+      if (!mounted) return;
       var scale = cur ? cur.scale : 1;
       var dpr = Math.min(window.devicePixelRatio || 1, 2) * scale;
       var w = Math.max(2, Math.round(canvas.clientWidth * dpr));
@@ -401,6 +455,7 @@
     }
     function loop(t) {
       raf = 0;
+      if (!mounted || !cur) return;
       if (!t0) t0 = t;
       if (!cur.fps || t - lastDraw >= 1000 / cur.fps - 1) { draw(t); lastDraw = t; }
       frames++;
@@ -441,29 +496,33 @@
       if (!paused && !document.hidden) { t0 = 0; if (!raf) raf = requestAnimationFrame(loop); }
     }
 
-    function deactivate() {
-      stopRaf();
-      lastKind = null;
-      // 画布在壁纸层之下：停下来之后留着最后一帧没有意义（壁纸不透明时看不见，壁纸缺图时就露馅），
-      // 直接撤掉显示层。
-      canvas.style.display = 'none';
-    }
-
     /* 唯一的状态入口：读 data-bg 决定跑谁。切换脚本改完属性调它；这里不猜任何意图。 */
     function refresh() {
       var id = document.documentElement.getAttribute('data-bg');
       var cfg = dynCfg(id);
-      if (!cfg) { deactivate(); return; }
+      // 静态套：动态这一侧一件东西都不留（画布、上下文、编译好的 program 全撤）。
+      if (!cfg) { unmount(); return; }
+      if (!mounted && !mount()) { fail('no-webgl'); return; }
       if (!cur || cur.id !== id) {
         try {
           activate(id, cfg);
-        } catch (e) {                       // 某一套的 GLSL 编译失败：整支引擎退场，壁纸回来
-          canvas.remove(); standDown();
-          window.__bg = { ok: false, why: 'glsl', err: String(e) };
+        } catch (e) {                             // 某一套的 GLSL 编译失败：整支引擎退场，壁纸回来
+          fail('glsl');
+          if (window.__bg) window.__bg.err = String(e);
         }
         return;
       }
       if (!paused && !document.hidden) { t0 = 0; if (!raf) raf = requestAnimationFrame(loop); }
+    }
+
+    /* 意图挂载（bg-switch.js 在访客悬停/聚焦/按下动态按钮时调）：先把上下文与画布备好，
+       这样点下去那一瞬不花挂载的钱；跑不了的话现在就知道，按钮会在点之前消失。
+       不激活 —— 屏幕上跑哪一套仍由 data-bg 说了算（见「不猜意图」那条）。 */
+    function prepare() {
+      if (mounted || !window.__bg || !window.__bg.ok) return;
+      if (!mount()) { fail('no-webgl'); return; }
+      var id = document.documentElement.getAttribute('data-bg');
+      if (dynCfg(id)) refresh();
     }
 
     // 页面不可见就停 rAF：不给后台标签页白烧 GPU。切回来由 refresh 的思路重挂（停止不算暂停）。
@@ -474,22 +533,28 @@
     window.addEventListener('resize', function () { if (cur) size(); });
 
     window.__bg = {
+      // ok 是**乐观**语义：true = 还没发现这台机器跑不了（真正的判据是挂载结果）。
+      // 只有 reduced-motion 能做到「挂载前就知道」。
       ok: true,
-      canvas: canvas,
+      why: 'lazy',
+      canvas: null,          // 挂载时填、unmount 置空（mounted 的实时值看 stats().mounted）
       refresh: refresh,
+      prepare: prepare,
       stop: stop,
       start: start,
       standDown: standDown,
       stats: function () {
-        // kind/oct/scale/fps 只在**当前 data-bg 就是这一套**时给值。切回静态壁纸后 cur 仍然指着
-        // 上一次编译好的那套（程序缓存在 cache 里，撤不掉），照直报会让「现在跑的是谁」读错 ——
-        // 联调时被这个骗过一次：探针说 kind=anime，页面其实在看壁纸。想查缓存里留着谁看 loaded。
+        // kind/oct/scale/fps 只在**当前 data-bg 就是这一套**时给值。切回静态壁纸后 cur 已经清掉
+        // （unmount 会把 program 缓存一起丢），照直报会让「现在跑的是谁」读错 ——
+        // 联调时被这个骗过一次：探针说 kind=anime，页面其实在看壁纸。
         var want = dynCfg(document.documentElement.getAttribute('data-bg')) ? cur : null;
         return {
           ok: true, frames: frames, draws: draws, running: !!raf, paused: paused,
+          mounted: mounted, why: window.__bg.why,
           cpuMs: Math.round(cpuMs * 10) / 10,
           msPerDraw: draws ? Math.round(cpuMs / draws * 1000) / 1000 : null,
-          cw: canvas.width, ch: canvas.height, css: [canvas.clientWidth, canvas.clientHeight],
+          cw: canvas ? canvas.width : 0, ch: canvas ? canvas.height : 0,
+          css: canvas ? [canvas.clientWidth, canvas.clientHeight] : null,
           dpr: window.devicePixelRatio || 1,
           kind: want ? want.kind : null, loaded: cur ? cur.kind : null,
           oct: want ? want.oct : null, scale: want ? want.scale : null, fps: want ? want.fps : null,
@@ -502,7 +567,7 @@
       }
     };
 
-    // 首屏：模板已经把 data-bg 写好了（含访客存的偏好），这里照它决定跑不跑。
+    // 首屏：模板已经把 data-bg 写好了（含访客存的偏好），这里照它决定挂不挂、跑不跑。
     refresh();
   });
-})();
+  })();

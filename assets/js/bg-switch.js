@@ -12,9 +12,13 @@
 // 动态）。代价与对策：动态开着时点壁纸，画面上不会变（画布盖着它），所以 →
 //           ①按钮的 aria-label / title 立刻更新成新的套名（悬停看得到）；
 //           ②播报里带一句「动态背景正开着，先关掉才看得到这张壁纸」（文案 bgStaticHiddenNote）；
-//           ③动态开着时**照样把壁纸预取好**（2026-09-22 晚第三版）：关掉动态要落到的就是它，预取让
-//             那一刻不必现下现解码（慢网实测：预取过 280 ms 见底，没预取 874 ms 顶到上限、图还晚到；
-//             代价 ~265 KB，见 lab/结果/bg-shader-contrast/check-prefetch.py）。
+//           ③ **不预取**（2026-09-22 晚第四版）：动态开着时，静态壁纸一张都不在空闲期下 —— 那是
+//             「两根轴叠在一起」唯一还剩的地方（同一时刻两张背景都在浏览器里：一张在画、一张在
+//             缓存里等着解码）。这正是同一个 URL 在别的轴上白下的那 164 KB（浅色）/ 270 KB（深色）
+//             加两次解码位图。改由**意图预热**接手：访客悬停/聚焦/按下任一个背景按钮时，才把
+//             「这一下点下去会落到的那张」取好（warmStaticIntent / warmDynIntent）。
+//             鼠标与键盘够用；触屏没有悬停，按下去那一刻才开始，慢网上会等 —— 这笔账与「空转
+//             一整页的流量」相比是划算的，四个跑法的数字见 lab/结果/bg-shader-contrast/check-prefetch.py。
 // 想「立刻看到」的路径是明摆着的：点一下动态按钮把它关掉，壁纸就是你刚选的那张，而且已经就绪。
 //
 // 事实源仍然是 <html data-bg="..."> 一个属性：静态套写静态 id，动态开写动态 id（形如
@@ -177,13 +181,14 @@
     if (announce) live.textContent = fill(dynAnnounceTpl, name);
   }
 
-  /* ---------- 空闲预取 ----------
-     取「当前主题 ×（下一套静态套，动态开着时再加**当前**这一套）」：两套 × 两主题共 4 张全取，
-     就把「省一次等待」变成了「多下几百 KB」，所以主题那一维交给 MutationObserver 重新预取。
+  /* ---------- 预取：沿**当前这条轴**，且只在访客有动作时 ----------
+     取「当前主题 × 要落地的那一张」。两套 × 两主题共 4 张全取，就把「省一次等待」变成了
+     「多下几百 KB」，所以主题那一维交给 MutationObserver 重新预取。
 
-     动态开着时**照样预取**（2026-09-22 晚第三版）：那两张就是「关掉动态」与「再点一次壁纸」
-     要落到的那张 —— 此刻看不见，却立刻要用。第二版为了省那一次看不见的下载直接返回，代价是
-     关掉动态时现下现解码，而那段等待正是切换里最贵的一段（DECODE_MAX_MS 600 ms 就是留给它的）。
+     2026-09-22 晚第四版把「空闲期」与「意图」分开：
+       · prefetchIdle()  空闲期只取**同轴**的下一套壁纸；动态开着就什么都不取
+                         （跨轴的空闲预取 = 两根轴同时占着下载与解码位图，文件头 ③）。
+       · warm*Intent()   访客够到按钮时才跨轴取 —— 那一下点下去要落到哪张，是能算出来的。
      省流量 / 慢网 / 后台标签页三条守卫照旧（canPrefetch）。动态套自己没有文件可预取。 */
   var prefetched = {};
 
@@ -201,13 +206,11 @@
     return ids[(i < 0 ? 0 : i + 1) % ids.length];
   }
 
-  function prefetchNext() {
+  function warm(want) {
     if (!canPrefetch()) return;
     // 后台标签页不预取：访客没在看，先别花他的流量；等他切回来（visibilitychange）再补上
     if (document.visibilityState === 'hidden') return;
     var theme = themeKey();
-    // 动态开着时连**当前**那张一起取：关掉动态要落到的就是它（不是「下一套」）。
-    var want = dynId ? [staticId, nextStaticId()] : [nextStaticId()];
     for (var i = 0; i < want.length; i++) {
       var id = want[i];
       var url = urlOf(id, theme);
@@ -223,6 +226,27 @@
       // decode 一下：只下载不解码的话，切换那一帧仍要现解码（一百多 KB 的图足够掉一帧）
       if (img.decode) img.decode().catch(function () { /* 预取失败无所谓，切换时照旧按需加载 */ });
     }
+  }
+
+  function prefetchIdle() {
+    if (dynId) return;                 // 动态开着：静态壁纸一张都不下（文件头 ③）
+    warm([nextStaticId()]);
+  }
+
+  // 壁纸按钮：这一下点下去落到「下一套」。
+  function warmStaticIntent() {
+    warm([nextStaticId()]);
+  }
+
+  // 动态按钮：点下去可能是换套、也可能是**关**（停在最后一套时）；只有「关」才需要壁纸。
+  // 顺手让引擎把上下文备好 —— bg-shader.js 惰性挂载，悬停时就挂好，点下去那一刻不花挂载的钱；
+  // 真跑不了的话现在就会知道（它派发 bg:dyn-unavailable，按钮在点之前就消失）。
+  function warmDynIntent() {
+    if (window.__bg && window.__bg.prepare) window.__bg.prepare();
+    var i = dynIds.indexOf(dynId);
+    if (i < 0) return;                     // 动态没开：这一下点下去是「开」，落地不是壁纸
+    if (i + 1 < dynIds.length) return;     // 还有下一套：点下去是换套，落地也不是壁纸
+    warm([staticId]);                      // 停在最后一档：点下去就是「关」，落地是当前那张壁纸
   }
 
   function onIdle(fn) {
@@ -295,7 +319,7 @@
      接缝为 0。不这么做的话撤 ghost 那一瞬会从「无蒙版的图」跳到「带蒙版的图」。 */
   function fadeInWallpaper(url, st, from) {
     var mine = makeGhost('url("' + url + '")');
-    if (!mine) { commit(st, from); onIdle(prefetchNext); return; }
+    if (!mine) { commit(st, from); onIdle(prefetchIdle); return; }
     mine.style.opacity = '0';
     void mine.offsetHeight;                                  // 给下面的过渡确立起始值
     mine.style.opacity = '1';
@@ -312,7 +336,7 @@
       mine.remove();
       if (ghost === mine) ghost = null;
       if (ghostTimer) { window.clearTimeout(ghostTimer); ghostTimer = null; }
-      onIdle(prefetchNext);
+      onIdle(prefetchIdle);
     };
     mine.addEventListener('transitionend', finish);
     // 兜底同上：过渡被中断时也要落定，否则 data-bg 会一直不换（页面停在旧背景上）
@@ -376,11 +400,11 @@
   //   静态 → 静态：淡出旧栈；静态 → 动态：淡出旧栈；动态 → 静态：从上淡入新壁纸；
   //   动态 → 动态：没有图可淡，画布自己在换程序时压一下（bg-shader.js 里）。
   function go(st, from) {
-    if (reduced()) { commit(st, from); onIdle(prefetchNext); return; }
+    if (reduced()) { commit(st, from); onIdle(prefetchIdle); return; }
     var url = st.dyn ? '' : urlOf(st.static, themeKey());
     if (hasImage()) {
       var mine = makeGhost(null);
-      if (!mine) { commit(st, from); onIdle(prefetchNext); return; }
+      if (!mine) { commit(st, from); onIdle(prefetchIdle); return; }
       // ghost 此刻已经盖住旧图（画面与点击前一致），所以这段等目标图就绪的时间里不会露底色
       decodeThen(url, function () {
         // 连点：这期间另一次切换已经把这一层收掉/换掉了，就交给那一次去收尾
@@ -388,18 +412,19 @@
         commit(st, from);
         void mine.offsetHeight;   // 强制一次样式计算，给下面的过渡确立起始值
         dropGhost(false);
-        onIdle(prefetchNext);
+        onIdle(prefetchIdle);
       });
       return;
     }
-    if (!url) { commit(st, from); onIdle(prefetchNext); return; }
+    if (!url) { commit(st, from); onIdle(prefetchIdle); return; }
     decodeThen(url, function () { fadeInWallpaper(url, st, from); });
   }
 
   if (btnStatic) {
-    // 悬停/聚焦就先预取：比点击早一步，多数情况下点下去时图已经就绪。
-    btnStatic.addEventListener('pointerenter', prefetchNext);
-    btnStatic.addEventListener('focus', prefetchNext);
+    // 悬停/聚焦/按下就先预取：比点击早一步，多数情况下点下去时图已经就绪。
+    btnStatic.addEventListener('pointerenter', warmStaticIntent);
+    btnStatic.addEventListener('focus', warmStaticIntent);
+    btnStatic.addEventListener('pointerdown', warmStaticIntent);
     btnStatic.addEventListener('click', function () {
       dropGhost(true);   // 连点：上一层的淡出立刻收掉，不叠层
       // **只动静态侧**：动态背景开着就让它开着（文件头那条「两根轴互不相干」）。
@@ -408,6 +433,10 @@
   }
 
   if (btnDyn) {
+    // 意图：悬停/聚焦/按下时把引擎挂好、把「关掉之后要落到的壁纸」取好（warmDynIntent）。
+    btnDyn.addEventListener('pointerenter', warmDynIntent);
+    btnDyn.addEventListener('focus', warmDynIntent);
+    btnDyn.addEventListener('pointerdown', warmDynIntent);
     btnDyn.addEventListener('click', function () {
       dropGhost(true);
       var i = dynIds.indexOf(dynId);
@@ -416,16 +445,31 @@
     });
   }
 
+  /* 动态引擎在**真正挂载**时才发现跑不了（惰性挂载：静态壁纸的访客不为它付一个 GL 上下文），
+     那一刻 bg-shader.js 已经把 data-bg 换回静态套，并派发这个事件。这里收尾：撤掉那个按钮、
+     对齐静态侧、把偏好落成「关」（它确实没跑起来，留着会让下次刷新又试一遍），并播报原因。
+     不做这件事就会留下一个「点了没反应」的控件 —— 那比没有更糟（见上面建按钮那段）。 */
+  document.addEventListener('bg:dyn-unavailable', function () {
+    dyns = []; dynIds = [];
+    dynId = '';
+    var now = root.getAttribute('data-bg');
+    if (ids.indexOf(now) >= 0) staticId = now;    // standDown 换回的是**他存的那张**
+    if (btnDyn) { btnDyn.remove(); btnDyn = null; }
+    try { localStorage.setItem('pref-bg-dyn', ''); } catch (e) { /* 存不进去不影响这次收尾 */ }
+    syncStatic(false);
+    live.textContent = fill(script.dataset.dynUnavailable || '{name}', nameOfStatic(staticId));
+  });
+
   // 明暗按钮改的是 data-theme —— 换了主题，「下一套那一张」就换成另一张图了。
   if (window.MutationObserver) {
-    new MutationObserver(function () { onIdle(prefetchNext); })
+    new MutationObserver(function () { onIdle(prefetchIdle); })
       .observe(root, { attributes: true, attributeFilter: ['data-theme'] });
   }
 
-  if (document.readyState === 'complete') onIdle(prefetchNext);
-  else window.addEventListener('load', function () { onIdle(prefetchNext); });
+  if (document.readyState === 'complete') onIdle(prefetchIdle);
+  else window.addEventListener('load', function () { onIdle(prefetchIdle); });
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') onIdle(prefetchNext);
+    if (document.visibilityState === 'visible') onIdle(prefetchIdle);
   });
 
   syncStatic(false);
