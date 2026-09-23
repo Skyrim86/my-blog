@@ -81,7 +81,7 @@
                    2026-09-22 实测（docs/exp-cards.md）：改前 5 张玻璃卡各多下一张 544 档，白扔约 160 KB。
                    DPR1 下 <img> 走 272、这里仍会取一次 412（约 20 KB × 5 张），换 DPR2 上的零额外。 */}}
             <span class="home-card home-card--{{ $it.style }} home-card-rank--{{ $it.rank }}"
-                  style="--art: url('{{ $it.t }}'){{ with $it.tint }}; --tile-base: {{ . }}{{ end }}">
+                  style="--art: url('{{ $it.t }}'){{ with $it.tint }}; --tile-base: {{ . }}{{ end }}{{ with $it.ring }}; --ring-ink: {{ . | safe.CSS }}{{ end }}">
                 <img draggable="false" src="{{ $it.s }}"
                     srcset="{{ $it.s }} 272w, {{ $it.t }} 412w, {{ $it.l }} 544w"
                     sizes="(max-width: 767px) 44vw, 206px"

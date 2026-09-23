@@ -53,7 +53,7 @@
      按收藏渲染（与 JS 侧 `it.rank || 'collector'` 一条口径），而不是没有边框。
      **这个令牌名不能改**：09-home.css 的「今日一卡」微卡与 home-clock.html 都读 var(--cframe)，
      它俩不是 .home-card 的后代、拿不到下面的基础声明，改了名它们会**静默**丢掉框色。 */
-  --cframe: linear-gradient(150deg, #e8eaef, #9aa0ab 26%, #f7f8fb 50%, #878d99 74%, #d5d8de);
+  --cframe: linear-gradient(150deg, #eceef4, #a4aab4 26%, #f6faff 50%, #8c93a0 74%, #d9dde4);
   /* 名牌底：**必须够厚**。它压在任何一张画上，而卡面里浅色的很多（白裙、书桌那张整个是浅色），
      .58 的半透明底在浅画出会被抬到 129 左右的灰，白字压上去只有 ~2.6:1（实测截图取样）。
      改成从上到下加深的渐变（上 .62 → 下 .92），底边那一行一定站得住。 */
@@ -189,6 +189,11 @@
   --rank-orn: 0;
   --rank-ring-op: .85;
   --rank-ring: rgba(255, 255, 255, .34);
+  /* 画面内衬线的**补线墨色**：随卡面明度自适应（2026-09-23）。模板按这张画的主色亮度算出来 ——
+     亮卡给一层暗墨、暗卡给 transparent。理由：固定的白 .34 叠在卡面上，在 L76 的暗卡上亮 61、
+     在 L227 的亮卡上只亮 9.5（实测，差 6 倍），于是「同一套框」在明暗两端的读数根本不是一回事。
+     默认 transparent：拿不到主色时（漏挂、微卡）保持原来那条白线，不引入新观感。 */
+  --ring-ink: transparent;
   --rank-mark-size: 15px;
   --rank-mark-fill: rgba(169, 174, 185, .95);
   /* 徽章形状：**圆点用 border-radius 画**（clip-path: none + 半径 50%），其余五档用 polygon()。
@@ -219,7 +224,13 @@
      半透明，所以从下面透上来的仍是本档的颜色（等级管材料、风格管质感，两条轴在这里各出一层）。 */
   background-image: var(--cframe-finish, none), var(--cframe);
   background-color: rgba(20, 18, 25, .35);
-  box-shadow: var(--shadow-card);
+  /* **物理卡边**（2026-09-23）：左上 1px 受光、右下 1px 背光 —— 六档共用的「卡纸厚度」。
+     它刻意不表达等级（等级归 --cframe 材质与框宽），只保证一眼扫过时每张卡的轮廓是**同一种结构**：
+     固定配方在明暗两端会读成两种东西，而「厚度」是人造物体的恒常线索。 */
+  box-shadow:
+    var(--shadow-card),
+    inset 1px 1px 0 rgba(255, 255, 255, .42),
+    inset -1px -1px 0 rgba(12, 10, 16, .26);
   cursor: pointer;
   transition: opacity .2s ease, transform .2s ease, box-shadow .25s ease;
 }
@@ -252,6 +263,8 @@
   opacity: var(--rank-ring-op, 0);
   box-shadow:
     inset 0 0 0 1px var(--rank-ring, rgba(255, 255, 255, .34)),
+    /* 自适应补线（亮卡才有值，见 --ring-ink）：让这条内衬线在明暗两端读成同一件事 */
+    inset 0 0 0 1px var(--ring-ink, transparent),
     inset 0 2px 6px -3px rgba(8, 6, 12, .5),
     inset 0 -1px 3px -2px rgba(255, 255, 255, .3);
 }
@@ -1272,7 +1285,7 @@ a.home-deck-dialog-credit:hover {
                                 `.home-card` 里、继承不到基础值 —— 少了这一条，最低档的色标会退回
                                 `--rank-mark-fill`（近白），浅色主题下读成「没有颜色」。与上面那两条
                                 重复的令牌同一个理由：六档要是一张**完整的**表。 */
-                             --cframe: linear-gradient(150deg, #e8eaef, #9aa0ab 26%, #f7f8fb 50%, #878d99 74%, #d5d8de); }
+                             --cframe: linear-gradient(150deg, #eceef4, #a4aab4 26%, #f6faff 50%, #8c93a0 74%, #d9dde4); }
 .home-card-rank--rare      { --rank-frame: 2px;   --rank-mat: 7px;  --rank-band: 1px; --rank-band-a: .22; --rank-line: rgba(30, 54, 42, .34); --rank-craft: .55;
                              --rank-foil: .12; --rank-orn: 0;   --rank-ring-op: .7;
                              --rank-ring: rgba(214, 246, 224, .40);
@@ -1281,7 +1294,7 @@ a.home-deck-dialog-credit:hover {
                                 真曲线的凹度是解析的，手改坐标改不出这个形状，也改不坏它。 */
                              --rank-mark: var(--mark-astroid);
                              --rank-mark-radius: 0;
-                             --cframe: linear-gradient(150deg, #dff2e4, #5f9c74 26%, #f2fbf4 50%, #3f7554 74%, #a8ceb5); }
+                             --cframe: linear-gradient(150deg, #def3e5, #5fa273 26%, #f2fbf5 50%, #427f57 74%, #9fcfb0); }
 .home-card-rank--epic      { --rank-frame: 2px;   --rank-mat: 4px;  --rank-band: 8px; --rank-band-a: .30; --rank-line: rgba(236, 246, 255, .58); --rank-craft: .75;
                              --rank-foil: .30; --rank-orn: .20; --rank-ring-op: .55;
                              --rank-ring: rgba(214, 232, 255, .42);
@@ -1291,7 +1304,7 @@ a.home-deck-dialog-credit:hover {
                                 自交形状填反的表现是「徽记缺一半」且不报错）。 */
                              --rank-mark: var(--mark-lemniscate);
                              --rank-mark-radius: 0;
-                             --cframe: linear-gradient(150deg, #d9e7f8, #6386b8 26%, #eff7ff 50%, #3f6191 74%, #aec6e2);
+                             --cframe: linear-gradient(150deg, #c4d8f1, #5c779a 26%, #e7f1fb 50%, #40577b 74%, #99afc9);
                              /* 角花换曲线（史诗：8px 上唯一还看得出的差别是「边是凹的」）。角花只被 mask 成 6~11px，所以这里换的是
                                 「轮廓家族」而不是花瓣数 —— 见 tools/cards/make-ornaments.py 里那一节的开头。 */
                              --fret-corner: var(--tex-fret-notch); }
@@ -1302,7 +1315,7 @@ a.home-deck-dialog-credit:hover {
                              /* 内摆线 R/r = 5：五角星花，尖朝**里**收 —— 「藏」这个字落在了形状上 */
                              --rank-mark: var(--mark-hypocycloid5);
                              --rank-mark-radius: 0;
-                             --cframe: linear-gradient(150deg, #e4dbf4, #7558a8 26%, #f4eeff 50%, #503578 74%, #bca5db);
+                             --cframe: linear-gradient(150deg, #dfcef9, #6340ac 26%, #f3ecff 50%, #42277b 74%, #ac96db);
                              /* 角花换曲线（秘藏：8.5px —— 玫瑰线在这一档只剩「边上有起伏」）。角花只被 mask 成 6~11px，所以这里换的是
                                 「轮廓家族」而不是花瓣数 —— 见 tools/cards/make-ornaments.py 里那一节的开头。 */
                              --fret-corner: var(--tex-fret-rosedisc); }
@@ -1313,7 +1326,7 @@ a.home-deck-dialog-credit:hover {
                              /* 玫瑰线 r = cos 5θ：五瓣。奇 k 的 r 以 π 为周期，所以走一遍 π 就画全五瓣 */
                              --rank-mark: var(--mark-rose5);
                              --rank-mark-radius: 0;
-                             --cframe: linear-gradient(150deg, #dcb96e, #6b5120 22%, #f8e6ac 48%, #46340f 72%, #c8a258);
+                             --cframe: linear-gradient(150deg, #dab87a, #5f4514 22%, #f7ebc8 48%, #342608 72%, #be9b53);
                              /* 角花换曲线（传世：9.5px，六档里最宽的环厚，所以放最「有齿」的那条）。角花只被 mask 成 6~11px，所以这里换的是
                                 「轮廓家族」而不是花瓣数 —— 见 tools/cards/make-ornaments.py 里那一节的开头。 */
                              --fret-corner: var(--tex-fret-gearring); }
@@ -1323,7 +1336,7 @@ a.home-deck-dialog-credit:hover {
                              --rank-mark-size: 15px; --rank-mark-fill: rgba(169, 174, 185, .95);
                              --rank-mark: none;                    --rank-mark-radius: 50%;
                              /* 与 collector 同一条理由：显形前它就是收藏那一档，框色也照抄基础值 */
-                             --cframe: linear-gradient(150deg, #e8eaef, #9aa0ab 26%, #f7f8fb 50%, #878d99 74%, #d5d8de); }
+                             --cframe: linear-gradient(150deg, #eceef4, #a4aab4 26%, #f6faff 50%, #8c93a0 74%, #d9dde4); }
 .home-card-rank--miracle.is-revealed {
   /* 显形后只换**角饰**（棱角碎星 = 专属徽章那一路），边框的结构仍是顶档那一套 ——
      这正是「所有卡共用一套边框语言、靠收放表达档位」的意思。 */

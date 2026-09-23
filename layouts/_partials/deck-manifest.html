@@ -98,6 +98,20 @@
           —— 于是「63 张里那一张是隐藏档」不再被这一页的**文字**泄底。 */}}
 {{- $tint := "" }}
 {{- with $img.Colors }}{{ $tint = printf "%v" (index . 0) }}{{ end }}
+{{- /* 画面内衬线的补线墨色：按这张画**主色**的亮度分支（主色亮度与实测卡面亮度的相关 r = 0.87，
+       阈值取 160 是因为主色系统性比卡面亮约 18）。亮卡给暗墨、暗卡给 transparent ——
+       见 21-card-deck.css 的 --ring-ink。解析失败（主色不是 6 位十六进制）时留空，CSS 退回白线。 */}}
+{{- $ringInk := "" }}
+{{- with $tint }}
+  {{- $h := strings.TrimPrefix "#" . }}
+  {{- if eq (len $h) 6 }}
+    {{- $r := int (printf "0x%s" (substr $h 0 2)) }}
+    {{- $g := int (printf "0x%s" (substr $h 2 2)) }}
+    {{- $b := int (printf "0x%s" (substr $h 4 2)) }}
+    {{- $lum := div (add (add (mul $r 2126) (mul $g 7152)) (mul $b 722)) 10000 }}
+    {{- $ringInk = cond (ge $lum 160) "rgba(14, 13, 18, .22)" "transparent" }}
+  {{- end }}
+{{- end }}
 {{- $rankWall := cond (eq $rank "miracle") "collector" $rank }}
 {{- $items = $items | append (dict
     "s" $small.RelPermalink "l" $large.RelPermalink "xl" $xl.RelPermalink "t" $thumb.RelPermalink
@@ -124,7 +138,7 @@
         "collector" (i18n "deckRankCollector") "rare" (i18n "deckRankRare")
         "epic" (i18n "deckRankEpic") "arcane" (i18n "deckRankArcane")
         "legend" (i18n "deckRankLegend") "miracle" (i18n "deckRankMiracle")) $rank)
-    "tint" $tint
+    "tint" $tint "ring" $ringInk
     "credit" (.credit | default "") "url" (.credit_url | default "") ) }}
 {{- else }}
 {{- warnf "data/home-cards.yaml 里的 %q 在 assets/ 下找不到（先跑 tools/cards/make-cards.py），这一张跳过" .image }}

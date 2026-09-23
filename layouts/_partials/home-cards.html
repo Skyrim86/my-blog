@@ -48,7 +48,7 @@
      data-credit="{{ i18n "deckCredit" }}" data-dialog="{{ i18n "deckDialogLabel" }}"
      data-flip="{{ i18n "deckFlip" }}" data-flip-back="{{ i18n "deckFlipBack" }}"
      data-rotate="{{ i18n "deckRotate" }}" data-gl-fail="{{ i18n "deckGlFail" }}">
-    <div class="home-card home-card--{{ $first.style }} home-card-rank--{{ $first.rank }}" style="--art: url('{{ $first.l }}')">
+    <div class="home-card home-card--{{ $first.style }} home-card-rank--{{ $first.rank }}" style="--art: url('{{ $first.l }}'){{ with $first.ring }}; --ring-ink: {{ . | safe.CSS }}{{ end }}">
         {{- /* fetchpriority=high 是给它一个「先下」的提示：这是首屏唯一的卡面，也是 LCP 候选。
                JS 首帧会换到「今天的第一张」，属性留在元素上，换过去那张照样吃这个优先级。
                decoding=async 让解码别占住主线程 —— 它正好是视口内最大的一块画。 */}}
