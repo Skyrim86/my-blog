@@ -17,7 +17,7 @@ import re
 import subprocess
 import sys
 
-CARD_CSS = 'assets/css/extended/21-card-deck.css'
+CARD_CSS = 'assets/css/decks/21-card-deck.css'
 CARD_3D = 'assets/js/card-3d.js'
 CARDS_YAML = 'data/home-cards.yaml'
 I18N = 'i18n/zh.toml'

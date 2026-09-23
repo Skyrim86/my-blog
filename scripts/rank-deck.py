@@ -42,7 +42,7 @@ SCORES = os.path.join(ROOT, "data", "rank-scores.json")
 SHEET = os.path.join(ROOT, os.pardir, "lab", "shots", "rank-pick", "sheet.png")
 
 # 六档，从低到高。`cn` 用于报告与接触表（面向访客的中文名在 i18n/zh.toml），`hex` 是该档的框色
-# —— 与 assets/css/extended/21-card-deck.css 的 `.home-card-rank--*` 是一套，改色要两处一起改。
+# —— 与 assets/css/decks/21-card-deck.css 的 `.home-card-rank--*` 是一套，改色要两处一起改。
 TIERS = [
     ("collector", "收藏", "#b9bec7"),
     ("rare", "珍稀", "#84b795"),

@@ -24,7 +24,7 @@ import { join, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const MANIFEST = join('data', 'home-cards.yaml');
-const CSS = join('assets', 'css', 'extended', '21-card-deck.css');
+const CSS = join('assets', 'css', 'decks', '21-card-deck.css');
 const I18N = join('i18n', 'zh.toml');
 const FACES_DIR = join('assets', 'images', 'cards');
 // 3D 查看器用的浮雕高度图（灰阶、与卡面同尺寸），由 tools/cards/make-depth.py 出。
@@ -113,7 +113,7 @@ const css = readFileSync(CSS, 'utf8');
    仍然是「卡面风格」那一段的一部分，下面 ①③⑥ 三条纪律与 knownStyles 都要把它算进来 ——
    否则删掉手写块的那一刻，这几种工艺就悄悄脱离守卫了（漏 --fret-line、写了 --cframe 都不再报错，
    而这正是这个仓库最怕的那种静默失效）。 */
-const GEN_CSS = join('assets', 'css', 'extended', '21-card-styles.css');
+const GEN_CSS = join('assets', 'css', 'decks', '21-card-styles.css');
 const genCss = existsSync(GEN_CSS) ? readFileSync(GEN_CSS, 'utf8') : '';
 const cssAll = genCss ? `${css}\n${genCss}` : css;
 
@@ -471,11 +471,11 @@ for (const r of cssRanks) {
 }
 
 /* ⑤ 生成的纹样令牌（雪花 / 裂缝 / 星屑 / 珐琅格 / 雕花边栏 / 角花 / 宝石）
-   它们在 assets/css/extended/20-card-ornaments.css 里，由 tools/cards/make-ornaments.py 生成。
+   它们在 assets/css/decks/20-card-ornaments.css 里，由 tools/cards/make-ornaments.py 生成。
    引用了不存在的令牌 = **静默失效**：mask 取不到图，那一层什么都不画（页面上只是「这一档没有
    那个纹样」，构建、控制台全绿）。所以两个方向都核：用到的必须存在、生成物里的最好都用上。 */
 {
-  const ORN = join('assets', 'css', 'extended', '20-card-ornaments.css');
+  const ORN = join('assets', 'css', 'decks', '20-card-ornaments.css');
   if (!existsSync(ORN)) {
     failures.push(
       `✗ 找不到 ${ORN} —— 卡面纹样令牌都在那里（雪花 / 裂缝 / 星屑 / 珐琅格 / 雕花框零件）。` +
@@ -843,7 +843,7 @@ if (!existsSync(CARD3D)) {
 /* ---------- ⑧ 参数化的工艺：数据 → 生成物（2026-09-21 加，样板见 docs/exp-craft.md）----------
 
    data/card-styles.yaml 是「已参数化工艺」的单一事实源（样板里是 nacre / silk），
-   tools/cards/render-styles.mjs 读它出两样东西：assets/css/extended/21-card-styles.css、
+   tools/cards/render-styles.mjs 读它出两样东西：assets/css/decks/21-card-styles.css、
    以及 card-3d.js 的 STYLE_3D 里那几行。两条纪律：
 
      · **数据与生成物必须逐字一致**：手改生成物、或改了 YAML 忘了重跑渲染器 —— 都在这里拦下。

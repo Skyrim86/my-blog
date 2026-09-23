@@ -19,7 +19,7 @@
 #               holo-prism 星芒全息 / glass 玻璃 / gold 金边 / kintsugi 金继 /
 #               filigree 雕花金 / enamel 珐琅彩 / silver 烫银 / aurora 极光
 #           2026-09-21 加了后四种（珍珠母贝 / 绸缎 / 烫银 / 极光），十二 → 十六种。
-#           加一种工艺要同时动五处：这个清单、assets/css/extended/21-card-deck.css 的
+#           加一种工艺要同时动五处：这个清单、assets/css/decks/21-card-deck.css 的
 #           `.home-card--<名>` 块、assets/js/card-3d.js 的 STYLE_3D、i18n 的 deckStyle<名>、
 #           以及 deck-manifest.html 里的 styleLabel 与 $styleTier 两张表 —— check-deck.mjs
 #           的守卫会逐条核，漏一处就报（漏 STYLE_3D 的那种最阴：首页看着是雕花金、
@@ -48,7 +48,7 @@
 #             collector 收藏 / rare 珍稀 / epic 史诗 / arcane 秘藏 / legend 传世 / miracle 奇迹（隐藏）
 #           等级管**材料与档位**（框的材质底色 = 六档色阶、框宽、画面内缩、工艺强度、徽章形状），
 #           风格管**纹样与质感**，两轴正交；观感由卡面令牌与 3D 卡边按等级切换。见
-#           assets/css/extended/21-card-deck.css 的「等级」一节与 docs/features.md 的六档阶梯那一节。
+#           assets/css/decks/21-card-deck.css 的「等级」一节与 docs/features.md 的六档阶梯那一节。
 #           当前分布（check-deck.mjs 每次会打印一遍）：收藏 24 / 珍稀 13 / 史诗 11 / 秘藏 8 /
 #           传世 6 / 奇迹 1 = 63。
 #           2026-09-20 首版四档**按可量化的依据**定级：卡面细节量（文件字节 + 画面梯度）+ 源图分辨率，

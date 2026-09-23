@@ -8,7 +8,7 @@
 //
 // 设计口径（为什么这么做、代价多大，见 docs/exp-craft.md）：
 //
-//   · **产物分两种写法**。CSS 单出一个生成文件（assets/css/extended/21-card-styles.css）——
+//   · **产物分两种写法**。CSS 单出一个生成文件（assets/css/decks/21-card-styles.css）——
 //     与 tools/cards/make-ornaments.py 的 20-card-ornaments.css 同一条规矩：生成物与手写物
 //     不混在一个文件里，「哪些能手改」不靠记忆。文件名的 21- 前缀保证它排在手写的
 //     21-card-deck.css **之后**（主题按数字序合并，见 themes/PaperMod/layouts/_partials/head.html
@@ -32,7 +32,7 @@ import { dirname, join } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const DATA_YAML = join(ROOT, 'data', 'card-styles.yaml');
-export const CSS_OUT = join(ROOT, 'assets', 'css', 'extended', '21-card-styles.css');
+export const CSS_OUT = join(ROOT, 'assets', 'css', 'decks', '21-card-styles.css');
 export const CARD3D_JS = join(ROOT, 'assets', 'js', 'card-3d.js');
 
 // STYLE_3D 那一段的两个锚点（生成块的插入点与 check-deck.mjs 的解析区间一致）

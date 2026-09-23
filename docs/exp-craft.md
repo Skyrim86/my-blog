@@ -8,7 +8,7 @@
 
 **参数化可行，且像素代价为零。** 两种工艺（silk / nacre）已从手写 CSS 块改成
 `data/card-styles.yaml` 里的参数条目 + 生成器（`tools/cards/render-styles.mjs`）输出的
-`assets/css/extended/21-card-styles.css`，`card-3d.js` 的 `STYLE_3D` 那一行也由生成器重写。
+`assets/css/decks/21-card-styles.css`，`card-3d.js` 的 `STYLE_3D` 那一行也由生成器重写。
 
 ## 判读用的三件套证据
 

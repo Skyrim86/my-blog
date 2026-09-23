@@ -19,7 +19,7 @@
 1. **永远不要整份复制主题模板来覆盖**（如 copy `single.html`）。PaperMod 提供的 hook（覆盖 `layouts/_partials/` 下同名文件即生效）：`extend_head.html`（`<head>` 末尾，加 CSS/JS）、`extend_footer.html`（footer 末尾）、`extend_post_content.html`（正文之后）、`comments.html`（评论区整体替换）。其他 partial（`post_meta.html` 等）也可覆盖，但优先找 hook
 2. 新建自定义 partial 一律放 `layouts/_partials/`（带下划线），不要用旧的 `layouts/partials/` 或 `layouts/_default/`
 3. **JS 一律放 `assets/js/*.js`**，由 `extend_head.html` 用 `resources.Get | minify | fingerprint` 接线外链；不要往模板里写内联 `<script>`（无法 lint、无压缩、内联 defer 无效）。脚本按 defer 语义编写：执行时 DOM 已就绪
-4. **自定义 CSS 放 `assets/css/extended/`**，一个职责一个文件，用 `01-`/`02-`/… 数字前缀控制合并顺序（主题会 Concat + minify 成单文件）；模板中不要写 `<style>`
+4. **自定义 CSS 放 `assets/css/extended/`**，一个职责一个文件，用 `01-`/`02-`/… 数字前缀控制合并顺序（主题会 Concat + minify 成单文件）；模板中不要写 `<style>`。**只服务少数页面的那部分放 `assets/css/decks/`（首页 + 收藏库）或 `assets/css/home/`（只有首页）**，由 `extend_head.html` 条件外链 —— 这两个目录里的文件**别再挪回 extended/**（挪回去等于每页又吃一遍），谁会用到由「页面真的渲染出哪些类」决定，`scripts/check-css-split.mjs` 拿产物对账
 5. **面向访客的 UI 文案放 `i18n/zh.toml`**，模板用 `{{ i18n "key" }}`，不要在模板里硬编码中文。**JS 里的文案**让脚本读自己 `<script>` 标签的 `data-*` 属性（模板侧用 `i18n` 填值），`terms-filter.js` 就是这么做的
 6. **配置一律进 `hugo.toml`**，模板里通过 `site.Params.xxx` 读取，不要在模板中硬编码
 7. 暗色适配用 **`[data-theme="dark"]`**，写 `.dark` 是无效的
@@ -1295,7 +1295,7 @@ frostcrack」在注释里写着是普通，两档的清单里却漏了它 ——
 读起来「手画的」是收尖 + 抖动 + 侧枝渐短这三件事，样条那点平滑在那个尺寸看不见；而裂缝、冰裂
 在真实里本来就是两三个折点一段的**棱角**线（平滑反而不像）。
 
-**产品**：`assets/css/extended/20-card-ornaments.css`（**生成物，入库、不要手改**；文件名以 20- 开头，
+**产品**：`assets/css/decks/20-card-ornaments.css`（**生成物，入库、不要手改**；文件名以 20- 开头，
 主题按数字序合并，排在 21- 之前）。**19 个令牌**：三朵雪花、裂缝网、星屑场、珐琅格；雕花框零件（边栏瓦片横/竖、
 角花五件 —— 圆花心 / 棱角碎星 / 凹角 / 玫瑰盘 / 齿轮环、宝石）；六条数学曲线徽记（星形线 / 双纽线 / 内摆线 / 玫瑰线 / 蝴蝶，
 走 clip-path 不走 mask）。2026-09-21 删掉两套没人消费的边栏瓦片（`--tex-fret-rule`/`-v` 与 `--tex-fret-crack`/`-v`，
@@ -1708,7 +1708,7 @@ v3 不画线的斜向碎纹带（「碎」得更彻底，但线没了、分段�
 
 改前的病：一种「卡面工艺」散在**五处**手写代码里 —— ① `data/home-cards.yaml` 的 `style:`、② `21-card-deck.css` 的 `.home-card--<名>` 块、③ `card-3d.js` 的 `STYLE_3D`、④ i18n 的 `deckStyle<名>`、⑤ `deck-manifest.html` 的 `styleLabel` / `$styleTier`。16 种合计**同步面 271 行**（≈17 行/种），漏一处全是**静默**失效 —— 漏 `STYLE_3D` 最阴：首页看着是雕花金、转起来是普通全息，而这两种视图永远不会同时出现在一屏里。
 
-改后 ②③ 变成**生成的**：`data/card-styles.yaml` 是工艺参数的单一事实源，`node tools/cards/render-styles.mjs --write` 出 `assets/css/extended/21-card-styles.css` 并就地重写 `card-3d.js` 的 `STYLE_3D` 托管行；`scripts/check-deck.mjs` 拿产物与参数表**逐字对拍**（不一致即阻断）。
+改后 ②③ 变成**生成的**：`data/card-styles.yaml` 是工艺参数的单一事实源，`node tools/cards/render-styles.mjs --write` 出 `assets/css/decks/21-card-styles.css` 并就地重写 `card-3d.js` 的 `STYLE_3D` 托管行；`scripts/check-deck.mjs` 拿产物与参数表**逐字对拍**（不一致即阻断）。
 
 **范围 15 种**（13 种主块 + 样板 nacre / silk）。没进表的：
 
@@ -1813,6 +1813,39 @@ node scripts/check-deck.mjs                    # 全套（CI / push-blog / 体�
 本次**没有动**任何东西，可做的按收益排（详见 `docs/pending.md`）：主样式按页拆包（阅读页 61% 从未匹配，`21-card-deck` 120 KB + `20-card-ornaments` 53 KB 只有首页与收藏库真用）；壁纸在 `<head>` 按已定主题 preload（现在由 CSS 解析后才发起）；壁纸重编码（1600×900 日间 96.8 / 夜间 137.3 KB，窄屏只露约 26% 宽）；M1 三页拆页；`/collection/` 卡片图加 410px 档（64 张格子 205 px × DPR2 正好，现在整页滚完 DPR1 下 901 KB、DPR2 下 1710 KB）。
 
 仓库卫生：仓库根多了个 `d/`（26 MB，`.gitignore` 第 9 行已排除，早前某次会话把 MSYS 绝对路径当相对路径写出来的产物），可删。
+
+### 2026-09-23 追加十：主样式按页拆包（已落地）
+
+量法：改前用 `git worktree add --detach ../lab/工作树/before-csssplit HEAD` 单独构建一份基线产物，与改后的 `public/` 各起一个静态副本（`../lab/工具/serve_public.py 8791|8792`），字节用 `gzip -6` 量生产构建产物。
+
+**改了什么**：主样式原来是「`css/core` + `css/common` + `css/extended/*`」串成的一张表（**每页都吃**）。其中两组只在个别页面出现：卡片组的工艺/雕花/令牌（`20-card-ornaments` / `21-card-deck` / `21-card-styles`）与首页专属版面（`09-home` / `23-splash`）。把它们从 `extended/` 挪到 `css/decks/` 与 `css/home/`，由 `extend_head.html` 按 `.IsHome` / `.Section == "collection"` 条件外链。
+
+| 产物 | 改前 | 改后 |
+|---|---|---|
+| 主表（每页） | 174,249 B raw / **36,934 B gz** | 62,994 B / **13,415 B gz**（−63.7%） |
+| `decks.css`（首页 + 收藏库） | 含在主表里 | 98,357 B / 21,032 B gz |
+| `home.css`（只有首页） | 含在主表里 | 12,881 B / 3,234 B gz |
+
+| 页型 | 改前 gz | 改后 gz | 差 |
+|---|---|---|---|
+| 阅读页（`/courses/regression-analysis/chapter-01/notes/`） | 36,934 B | 13,415 B | **−23.5 KB（−64%）** |
+| `/collection/` | 36,934 B | 34,447 B（两张） | −2.5 KB |
+| 首页 | 36,934 B | 37,681 B（三张） | +747 B，多两个请求（有指纹、缓存住） |
+
+**拆分依据是静态核对出来的，不是估的**：扫构建产物里每个页面的类名，渲染出 `home-card*` / `deck-*` 的页面**只有 2 个**（首页、`/collection/`），`home-*` 与 `.deck-splash` 只有首页。接线由新增的 `scripts/check-css-split.mjs`（阻断，CI / `push-blog.sh` / 体检面板三处）拿产物对账：带卡片类的页面必须带 `decks` 表、其余页面一张都不许多带、主表里不许再出现 `.home-card` / `.deck-` / `.deck-splash` 的选择器（后一条防的是「有人把文件挪回 `extended/`」）。三种缺陷注入都验过会报：抽掉某页的链接 / 主表里塞回一条 `.home-card` / 干净页硬塞链接。
+
+**没有视觉回归**（逐节点计算样式对拍）：新写的 `../lab/工具/stylesig.py` 在 1680×900 下逐节点取 `getComputedStyle`（64 个长属性 + 全部自定义属性），按 DOM 结构对齐后比改前/改后两份产物，动画先冻结：
+
+| 页面 | 比对节点 | 计算样式真差异 |
+|---|---|---|
+| 首页 | 341 | 0（另有 7 个节点是时钟秒值，噪声） |
+| `/collection/` | 1267 | 0 |
+| `/courses/` | 166 | 0 |
+| M1 notes（全站最重页） | 26,871 | 0 |
+
+噪声基线是同一份产物跑两遍：首页 3 个节点（时钟 `--p` 进度）、`/collection/` 0 个。唯一的结构性变化是**非卡片页的根上少了 28 个自定义属性**（`--cardback-*` / `--deckstage-*` / `--tex-*` / `--mark-*` / `--fret-angle`，它们定义在被移出的文件里）—— 消费者只有 `card-3d.js`，而它只在首页与收藏库加载（实测 2 个页面），没有孤儿。
+
+**代价**：改 CSS 前要先想「谁会渲染出这些类」，放错目录的表现是那一页少一段样式（不报错）；首页多两个请求。这条与「主题 Concat 的单表」是两回事，别把新目录当成主题的 `extended/` 用。
 
 ### 2026-09-22 追加九：收藏库卡片墙加 412 档（已落地）
 

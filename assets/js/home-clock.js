@@ -1,7 +1,7 @@
 /* 首页右栏的时间卡：把当前时间、「今天/今年已过多少」、本月打卡月历与「今日一卡」写进 .home-clock。
  *
  * 由 extend_head.html 只在首页加载。结构在 layouts/_partials/home-clock.html，
- * 样式在 assets/css/extended/09-home.css 的「首页时间卡」一节。
+ * 样式在 assets/css/home/09-home.css 的「首页时间卡」一节。
  *
  * 六条边界：
  * 1. **面板出厂是隐藏的**（模板上带 `data-pending="1"`），第一帧填好内容才摘掉 ——

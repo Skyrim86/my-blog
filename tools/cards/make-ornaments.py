@@ -5,7 +5,7 @@
 用法（与 tools/cards/ 那几个脚本同一个解释器）：
     C:/Users/15350/miniconda3/envs/ml/python.exe tools/cards/make-ornaments.py
 
-产物（**生成物，入库；不要手改**）：`assets/css/extended/20-card-ornaments.css`
+产物（**生成物，入库；不要手改**）：`assets/css/decks/20-card-ornaments.css`
 —— 一个只装自定义属性的令牌文件，里面的每个令牌都是一张 data-URI 的 SVG。
 为什么单出一个**生成**的 CSS 文件：手写的 21-card-deck.css 里已经有一堆纹样令牌，
 而这一批是脚本产出的（几百个坐标点）、且改了生成规则就该整体重出 —— 混在一个文件里
@@ -50,7 +50,7 @@ import random
 from urllib.parse import quote
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-OUT = os.path.join(ROOT, "assets", "css", "extended", "20-card-ornaments.css")
+OUT = os.path.join(ROOT, "assets", "css", "decks", "20-card-ornaments.css")
 
 
 # ---------------------------------------------------------------- 基础：平滑与变宽轮廓

@@ -9,6 +9,30 @@
 {{- $vt := resources.Get "css/view-transition.css" | fingerprint }}
 <link rel="stylesheet" href="{{ $vt.RelPermalink }}" integrity="{{ $vt.Data.Integrity }}" crossorigin="anonymous">
 
+{{- /* 按页拆包（2026-09-23）：主样式表是「css/core + css/common + css/extended/*」串成的一张 170 KB
+       （raw）/ 36 KB（gzip）的大表，**每页都吃**。但其中有两组只在个别页面出现：
+
+        · assets/css/decks/  —— 卡片组的工艺/雕花/等级令牌（170 KB 源），只有**首页**（卡片组）
+          与**收藏库**（/collection/ 的卡片墙）会渲染出 `.home-card` / `.deck-*` 类；
+        · assets/css/home/   —— 首页专属版面（09-home）与入站揭幕（23-splash），只有首页用。
+
+       两份都从这里发 <link>（本 partial 在主题 head 的最后，所以它们排在那张大表之后）。
+       判据是**版面事实**而不是内容 front matter：.IsHome 与 .Section == "collection" 就是全部
+       会渲染卡片的页面；`scripts/check-css-split.mjs` 拿构建产物对账（谁带卡片类就得带这张表、
+       干净的阅读页一张都不许带），加页面时忘接线会当场失败。
+
+       注意：这两组里的文件**不能再挪回 extended/**（挪回去就等于每页又吃一遍）；放哪一组由
+       「谁会渲染出它的类」决定，不是由文件名决定。 */ -}}
+{{- $wantsDecks := or .IsHome (eq .Section "collection") }}
+{{- if $wantsDecks }}
+{{- $decks := (resources.Match "css/decks/*.css") | resources.Concat "assets/css/decks.css" | resources.Minify | fingerprint }}
+<link rel="stylesheet" href="{{ $decks.RelPermalink }}" integrity="{{ $decks.Data.Integrity }}" crossorigin="anonymous">
+{{- end }}
+{{- if .IsHome }}
+{{- $homeCSS := (resources.Match "css/home/*.css") | resources.Concat "assets/css/home.css" | resources.Minify | fingerprint }}
+<link rel="stylesheet" href="{{ $homeCSS.RelPermalink }}" integrity="{{ $homeCSS.Data.Integrity }}" crossorigin="anonymous">
+{{- end }}
+
 {{- /* 404 页：主题模板无条件输出 index,follow，这里补一条更严格的 noindex（不复制主题模板） */ -}}
 {{- if eq .Kind "404" }}
 <meta name="robots" content="noindex">

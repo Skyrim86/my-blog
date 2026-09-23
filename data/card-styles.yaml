@@ -2,7 +2,7 @@
 #
 # 背景：一种「卡面工艺」此前散在**五处**手写代码里 ——
 #   ① data/home-cards.yaml 的 `style:` 字段（哪张卡用哪种工艺）
-#   ② assets/css/extended/21-card-deck.css 的 `.home-card--<名>` 块（工艺本体，十几到几十行）
+#   ② assets/css/decks/21-card-deck.css 的 `.home-card--<名>` 块（工艺本体，十几到几十行）
 #   ③ assets/js/card-3d.js 的 STYLE_3D（弹层里那张 3D 卡的同名工艺参数，一行）
 #   ④ i18n/zh.toml 的 `[deckStyle<名>]`（工艺的中文名）
 #   ⑤ layouts/_partials/deck-manifest.html 的 styleLabel 与 $styleTier 两张表
@@ -10,7 +10,7 @@
 #
 # 这份文件把 ②③ 变成**生成的**：跑
 #     node tools/cards/render-styles.mjs --write
-# 它会读这里、写出 assets/css/extended/21-card-styles.css，并把 ③ 的那一行重写进 card-3d.js。
+# 它会读这里、写出 assets/css/decks/21-card-styles.css，并把 ③ 的那一行重写进 card-3d.js。
 # `node scripts/check-deck.mjs` 会核对产物与这份文件是否一致（不一致 = 阻断）——
 # 所以**下面这几种工艺的参数行不要再手改**：手改过的会被生成器覆盖，且首先会被 check-deck 拦下。
 #

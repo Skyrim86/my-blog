@@ -287,6 +287,16 @@ if [ -n "$dirty" ]; then
     printf '%s\n' "$ln_log" | head -1 | sed 's/^/  /'
   fi
 
+  if [ -f scripts/check-css-split.mjs ]; then
+    echo "▸ CSS 按页拆包核对"
+    if ! cs_log="$(node scripts/check-css-split.mjs 2>&1)"; then
+      printf '%s\n' "$cs_log" | sed 's/^/  /'
+      echo "✗ 拆包接线与产物不一致，已中止（未提交、未推送）。"
+      exit 1
+    fi
+    printf '%s\n' "$cs_log" | sed -n '/▸/,$p' | sed 's/^/  /'
+  fi
+
   # 体积预算：成功时只留 3 行结论，超标时打全表（含最重页面 Top 10）便于定位。
   if [ -f scripts/report-size.sh ]; then
     echo "▸ 体积预算"

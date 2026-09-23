@@ -161,6 +161,16 @@ const ITEMS = [
     hint: '扫 public/ 里的 href，查站内目标与锚点是否存在',
   },
   {
+    id: 'css-split',
+    label: 'CSS 拆包',
+    runtime: 'node',
+    argv: ['scripts/check-css-split.mjs'],
+    fast: false,
+    blocking: true,
+    needsBuild: true,
+    hint: '带卡片类的页面是否都接上了卡片表、其余页面有没有白吃',
+  },
+  {
     id: 'size',
     label: '体积预算',
     runtime: 'bash',

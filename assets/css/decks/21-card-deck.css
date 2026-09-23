@@ -89,7 +89,7 @@
   --grain-fine: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'140'%20height%3D'140'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'1.6'%20numOctaves%3D'2'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.35'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.10'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
   --grain-fiber: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20width%3D'200'%20height%3D'200'%3E%3Cfilter%20id%3D'g'%20color-interpolation-filters%3D'sRGB'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'0.02%201.1'%20numOctaves%3D'3'%20stitchTiles%3D'stitch'/%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'/%3E%3CfeGaussianBlur%20stdDeviation%3D'0.5'/%3E%3CfeComponentTransfer%3E%3CfeFuncA%20type%3D'linear'%20slope%3D'0.18'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20filter%3D'url(%23g)'/%3E%3C/svg%3E");
   /* 纹样令牌（雪花 / 裂缝 / 星屑 / 珐琅格 / 雕花边栏 / 角花 / 宝石）现在都在
-     assets/css/extended/20-card-ornaments.css 里 —— **那个文件是生成的**
+     assets/css/decks/20-card-ornaments.css 里 —— **那个文件是生成的**
      （tools/cards/make-ornaments.py），不要手改、也不要搬回来：它们是有机形状，
      由「宽度沿脊柱变化」的轮廓生成，改参数要整批重出。上面那三条 grain 是手写的
      feTurbulence 噪声，留在原处。 */
@@ -1221,14 +1221,14 @@ a.home-deck-dialog-credit:hover {
    全部只用 --coverlay 那一叠渐变 + --cblend 表达，不动版式、不新增图片。 */
 
 /* 珍珠母贝（nacre）—— **已参数化**：这一块现在由 data/card-styles.yaml 生成，产物在
-   assets/css/extended/21-card-styles.css（tools/cards/render-styles.mjs --write）。
+   assets/css/decks/21-card-styles.css（tools/cards/render-styles.mjs --write）。
    在这里手加回来 = 同一个类出现两处，check-deck.mjs 会拦下（工艺的说明写在 YAML 的 note 里）。 */
 
 /* 烫银：与烫金是**同一套结构**（两条高光 + 拉丝 + 压深四边），只把色相换到冷端。
    银比金难做：明度差一大，暗部一拍就脏，所以压深比 gold 浅一档（.26 对 .34）。 */
 /* silver 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* 绸缎（silk）—— **已参数化**：同上一处，块由 data/card-styles.yaml 生成到
-   assets/css/extended/21-card-styles.css。 */
+   assets/css/decks/21-card-styles.css。 */
 
 /* 极光：**高层大气发光** —— 斜向的绿紫光带，边缘比中心亮（发光层的厚度）。
    用 screen（只加亮不加暗）：底图暗的地方才看得见它，这与「夜」的语义一致。 */

@@ -31,7 +31,7 @@ my-blog/
 │   ├── project-section.md     #   分层项目子项目（section，刻意不写 tags）
 │   └── project-doc.md         #   分层项目文档（regular page，math 默认 true）
 ├── assets/                    # 走 Hugo 资源管线（会被 minify/fingerprint/Resize）
-│   ├── css/extended/          #   自定义 CSS，主题自动 Concat + minify，**按文件名字典序**合并
+│   ├── css/extended/          #   自定义 CSS，主题自动 Concat + minify，**按文件名字典序**合并（每页都吃）
 │   │   ├── 00-theme.css       #     设计令牌（配色/圆角/阴影）+ 站点背景图层 + 压背景文字的底衬
 │   │   ├── 01-cards.css       #     文章列表卡片
 │   │   ├── 02-typography.css  #     中文排版
@@ -41,7 +41,6 @@ my-blog/
 │   │   ├── 06-terms-filter.css#     词条筛选框
 │   │   ├── 07-related.css     #     相关内容区块
 │   │   ├── 08-reader.css      #     阅读进度条 + 目录当前项 + 正文卡片 + 代码块标题条
-│   │   ├── 09-home.css        #     首页头像光环 / 快捷入口 / 站点规模 / 时间卡 / 最近更新 / 两栏布局
 │   │   ├── 10-nav.css         #     窄屏导航折叠（配合 assets/js/nav-toggle.js）
 │   │   ├── 11-toolbox.css     #     数学工具卡片墙 + 正文引用弹窗
 │   │   ├── 12-toc-rail.css    #     单页左侧跟随目录
@@ -52,14 +51,18 @@ my-blog/
 │   │   ├── 17-a11y.css        #     跳过导航链接 + .sr-only（见 features.md 第 4 节的第 7 处覆盖）
 │   │   ├── 18-bg-switch.css   #     顶栏背景套切换按钮（配合 assets/js/bg-switch.js，见 ⑫）
 │   │   ├── 19-nav-px.css      #     导航栏像素小人的盒子（图由 tools/icons/make-icons.py 生成，见第 6 节）
-│   │   ├── 20-card-ornaments.css # **生成物**：卡面纹样令牌（data-URI SVG，由 tools/cards/make-ornaments.py 产出，不要手改）
 │   │   ├── 20-theme-fade.css  #     明暗切换的过渡（施加时机在 assets/js/theme-fade.js）
-│   │   ├── 21-card-deck.css   #     首页卡片组 + 收藏库卡片墙 + 3D 弹层（21 之后的编号见下）
 │   │   ├── 22-reveal.css      #     滚动出现动画（配对脚本：assets/js/reveal.js）
-│   │   ├── 23-splash.css      #     入站揭幕遮罩（结构在 _partials/deck-splash.html，退场在 home-deck.js）
 │   │   ├── 26-lightbox.css    #     正文图片灯箱（配对脚本：assets/js/lightbox.js）
 │   │   └── 27-bento.css       #     关于页的拼贴 Bento（模板 _shortcodes/bento.html，数据 data/about-bento.yaml）
-│   ├── css/view-transition.css  # 切页转场（原生 View Transitions）。**不压缩、单独外链**，刻意不放进 extended/
+│   ├── css/decks/             #   **只有首页与收藏库**加载（extend_head.html 按页条件外链，见 features.md 追加十）
+│   │   ├── 20-card-ornaments.css # **生成物**：卡面纹样令牌（data-URI SVG，由 tools/cards/make-ornaments.py 产出，不要手改）
+│   │   ├── 21-card-deck.css   #     首页卡片组 + 收藏库卡片墙 + 3D 弹层
+│   │   └── 21-card-styles.css #     **生成物**：data/card-styles.yaml 出的工艺令牌（tools/cards/render-styles.mjs）
+│   ├── css/home/              #   **只有首页**加载（同上；09-home 与 23-splash 的类只出现在首页）
+│   │   ├── 09-home.css        #     首页头像光环 / 快捷入口 / 站点规模 / 时间卡 / 最近更新 / 两栏布局
+│   │   └── 23-splash.css      #     入站揭幕遮罩（结构在 _partials/deck-splash.html，退场在 home-deck.js）
+│   ├── css/view-transition.css  # 切页转场（原生 View Transitions）。**不压缩、单独外链**，刻意不放进 extended/、decks/、home/
 │   ├── fonts/                 #   自托管字体：rose-clock.woff2（首页时钟数字子集）+ LICENSE + 子集做法的 README
 │   ├── images/
 │   │   ├── avatar.jpg         #   首页头像（**必须放 assets/**，否则 120×120 被静默忽略）
@@ -189,6 +192,7 @@ my-blog/
 │   ├── check-tags.sh          # 只警告：标签词表比对
 │   ├── check-katex-pairing.sh # 阻断：KaTeX 样式与 Hugo 内嵌版本是否配对
 │   ├── check-links.mjs        # 阻断：站内链接与锚点（同站绝对链接也在内）
+│   ├── check-css-split.mjs    # 阻断：按页拆包的接线与产物是否一致（谁带卡片类就得带卡片表）
 │   ├── check-seo.mjs          # 只警告：sitemap / robots / 首页 meta / RSS / 页面 JSON-LD 的产物体检
 │   ├── check-editor-schema.mjs# 只警告：archetypes 与管理页字段表的漂移
 │   ├── check-consistency.mjs  # 阻断：三处校验清单 / 阻断口径 / 时区 / front matter 键表的漂移
@@ -224,7 +228,7 @@ my-blog/
 │   ├── fetch-sources.py       #   按清单把源立绘下载到 sources/（只跑一次，不参与出图）
 │   ├── make-cards.py          #   按 data/home-cards.yaml 出 63 张卡面 → assets/images/cards/*.webp
 │   ├── make-depth.py          #   同一批卡的浮雕高度图 → assets/images/cards/depth/
-│   ├── make-ornaments.py      #   卡面纹样令牌 → assets/css/extended/20-card-ornaments.css（**生成物，不要手改**）
+│   ├── make-ornaments.py      #   卡面纹样令牌 → assets/css/decks/20-card-ornaments.css（**生成物，不要手改**）
 │   ├── sources/               #   55 张源立绘（清单里用到的那批 + 备用的）
 │   └── requirements-depth.txt #   高度图那条线的额外依赖
 ├── tools/course-import/       # 课程项目 → 博客内容 + 数学卡（import_course.py，**生成产物不要手改**）
@@ -475,7 +479,7 @@ python tools/icons/make-icons.py --check         # 比对 static/ 与 assets/ima
 | HTML 合计 | 17783 KB | — | 占整站 72%；已删掉 JSON-LD 里的正文副本（见下） |
 | 图片合计 | 6529 KB | — | 占整站 26%：63 张卡的 3 档派生图 5.9 MB + 深度图 0.6 MB + 背景/看板娘/封面（见下） |
 | JS 合计 | 112 KB | — | 18 个脚本，已经很小 |
-| CSS 合计 | 199 KB | — | 主包（26 个 extended 文件 Concat + minify）约 168.5 KB + 自托管 KaTeX 22.8 KB，其余是零星小包。2026-09-21 加四种工艺后 21-card-deck.css 117.1 → 120.0 KB、加入站揭幕后 23-splash.css 约 3.1 KB |
+| CSS 合计 | 199 KB | — | 主包（26 个 extended 文件 Concat + minify）约 168.5 KB + 自托管 KaTeX 22.8 KB，其余是零星小包。2026-09-21 加四种工艺后 21-card-deck.css 117.1 → 120.0 KB、加入站揭幕后 23-splash.css 约 3.1 KB。**2026-09-23 按页拆包**：主包只剩 24 个文件（61.5 KB raw / 13.1 KB gz），卡片组 `css/decks/*`（96.1 KB / 20.5 KB gz）与首页专属 `css/home/*`（12.6 KB / 3.1 KB gz）改成条件外链 —— 见 features.md 第 6 节追加十 |
 | 搜索索引 | 48 KB | — | 预算 56 KB，余量 14% |
 
 **2026-09-18 做过一次真实瘦身**：删掉 JSON-LD 里 BlogPosting 的 `articleBody`（把整篇正文复制进 `<head>`，见 features.md ㉟）与左侧看板娘。整站 gzip 3260 → 2934 KB，最重一页 gzip 108 → 75 KB。这是本章唯一一次「测出问题并动手」的例子——其余都是测量后确认无需改动。
