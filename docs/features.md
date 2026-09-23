@@ -1847,6 +1847,8 @@ node scripts/check-deck.mjs                    # 全套（CI / push-blog / 体�
 
 **代价**：改 CSS 前要先想「谁会渲染出这些类」，放错目录的表现是那一页少一段样式（不报错）；首页多两个请求。这条与「主题 Concat 的单表」是两回事，别把新目录当成主题的 `extended/` 用。
 
+**线上对账（部署后复核）**：首页加载 `stylesheet.eee628b1….css` + `decks.min.db88fe20….css` + `home.min.be594939….css`、`/collection/` 加载前两张、阅读页只有主表，三张都 200。主表线上 62,994 B 与本地逐字节一致；`decks` 线上 98,278 B vs 本地 98,357 B（差 79 B —— 去掉 CR 后内容逐字节相同：`20-card-ornaments.css` / `21-card-styles.css` 是生成物，Windows 工作副本写的 CRLF 被 git 归一成 LF，CI 检出拿到的是 LF 版）。与追加八那条「本地 174,710 / 线上 174,642，差 68 B（构建环境差异）」是同一个现象，产物指纹因此本地与线上不同名，但**字节口径的结论不变**。
+
 ### 2026-09-22 追加九：收藏库卡片墙加 412 档（已落地）
 
 量法：`wallmeasure.py`（`--url …/collection/ --dpr 1|2`，同一台机、冷缓存、滚完整页，从 CDP 的资源表按卡名归集解码字节），前后两轮各跑一次；仪器与全部量测数据在 `../lab/结果/cards-412/`，实验现场见 `../lab/exp-2026-09-21-architecture-experiments.md`，报告 `docs/exp-cards.md`。
