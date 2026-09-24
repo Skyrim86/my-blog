@@ -87,7 +87,7 @@
   --cfilter: none;
 }
 
-/* emboss：凸印压痕（emboss）：**纸白压印，只改光不改色** —— 左上受光、右下落影，再给主体一圈接触阴影。那圈阴影是它与珠光纸在 205px 下分得开的那一笔（brief §八「两者的视觉签名在小尺寸下要不同」）。深度图派生的受力图（lab/工具/bevelmap.py 出的两张灰图：受光走 soft-light、脊线镜面走 screen）还没接进来，当前用软光影近似 —— 接进来时把这两层换成图，混合方式不变。
+/* emboss：凸印压痕（emboss）：**纸白压印，只改光不改色** —— 左上受光、右下落影，再给主体一圈接触阴影。那圈阴影是它与珠光纸在 205px 下分得开的那一笔（brief §八「两者的视觉签名在小尺寸下要不同」）。深度图派生的受力图**已接进来**（2026-09-25）：`tools/cards/make-emboss.py` 由深度图算高度场梯度出两张灰图（受光走 soft-light、脊线镜面走 screen），挂在 `.home-card-bump` / `::after` 上，见 21-card-deck.css；下面 print 里那两条 135deg 的光影**保留**（它们是整张的朝向感，与沿起伏走的受力图不是一回事）。
    生成产物 —— 由 data/card-styles.yaml 出（tools/cards/render-styles.mjs）。不要手改。 */
 .home-card--emboss {
   --fret-line: rgba(247, 243, 235, .92);

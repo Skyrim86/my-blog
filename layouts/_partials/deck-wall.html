@@ -86,7 +86,7 @@
                    2026-09-22 实测（docs/exp-cards.md）：改前 5 张玻璃卡各多下一张 544 档，白扔约 160 KB。
                    DPR1 下 <img> 走 272、这里仍会取一次 412（约 20 KB × 5 张），换 DPR2 上的零额外。 */}}
             <span class="home-card home-card--{{ $it.style }} home-card-rank--{{ $it.rank }}"
-                  style="--art: url('{{ $it.t }}'){{ with $it.tint }}; --tile-base: {{ . }}{{ end }}{{ with $it.ring }}; --ring-ink: {{ . | safe.CSS }}{{ end }}">
+                  style="--art: url('{{ $it.t }}'){{ with $it.tint }}; --tile-base: {{ . }}{{ end }}{{ with $it.ring }}; --ring-ink: {{ . | safe.CSS }}{{ end }}{{ with $it.bumpLit }}; --bump-lit: url('{{ . }}'){{ end }}{{ with $it.bumpSpec }}; --bump-spec: url('{{ . }}'){{ end }}">
                 <img draggable="false" src="{{ $it.s }}"
                     srcset="{{ $it.s }} 272w, {{ $it.t }} 412w, {{ $it.l }} 544w"
                     sizes="(max-width: 767px) 44vw, 206px"
@@ -95,6 +95,10 @@
                 {{- /* 玻璃的厚度层 / 金继的釉面反光：与首页同一支 span，CSS 里只给那两种风格显形
                        （玻璃那一支会把画作再铺两遍，一页 7 张玻璃 = 多 14 次全卡绘制，见 ㊿ 的账） */}}
                 <span class="home-card-lens" aria-hidden="true"></span>
+                {{- /* 凸印的受力图两张灰图（2026-09-25）：只有 emboss 那 7 张带这个变量，
+                       别的工艺 background-image: none、这一支等于不存在 —— 见 21-card-deck.css
+                       的 .home-card-bump。位置在画面之上、内衬线之下。 */}}
+                <span class="home-card-bump" aria-hidden="true"></span>
                 {{- /* 画面内衬线（低档清楚、高档归零）—— 与首页同一支 span */}}
                 <span class="home-card-mat" aria-hidden="true"></span>
                 {{- /* 框饰三件（2026-09-24 等级层）：框内缘等级色带 + n-ink 自然花纹 + 四角卷草角。

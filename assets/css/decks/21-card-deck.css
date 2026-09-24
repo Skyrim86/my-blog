@@ -923,6 +923,45 @@ a.home-deck-dialog-credit:hover {
   display: none;
 }
 
+/* ---------- 凸印压痕的**受力图**（2026-09-25 接进来，此前是软光影近似） ----------
+
+   数据侧在 data/card-styles.yaml 的 emboss 条目里就写好了：「深度图派生的受力图……
+   接进来时把这两层换成图，混合方式不变」。现在那两张图是 tools/cards/make-emboss.py
+   由深度图算高度场梯度出的，为什么这样算见 brief §八 第 1 条（拿原画当掩膜会把人洗成白模）。
+
+   **两个元素**是因为两种混合不一样，一层不可能同时 soft-light 与 screen：
+     · --bump-lit  → soft-light：只改光不改色，压痕沿人物自身的起伏走
+     · --bump-spec → screen   ：只亮脊线
+   两个变量只在 `style: emboss` 的那 7 张上由模板内联给（见 deck-manifest.html 的
+   bumpLit / bumpSpec），别的工艺 background-image: none —— 这一支对它们等于不存在。
+
+   z-index 1：在画面之上、框饰（色带 2）之下；混合关在卡内，靠 .home-card 的 isolation: isolate
+   （同一族的 color-dodge 当年就是栽在「去混身后的壁纸」上，见文件头第 1 条）。
+   图在 assets/images/cards/emboss/，412px 宽（2x 屏够用）合计 155 KB。
+
+   两版才做对，记一笔：第一版的受光图用 `np.clip(0.5 + (lam - median) * 2.1)` —— 两端硬裁出
+   6.6% 贴 255 的像素，soft-light 拿纯白去混的结果是**整张覆一层白膜**（3× 判读原话「覆白膜，
+   不像纸面压印」，只给 3/10）。正解是「平地为中性」（e = lam - L.z，见 make-emboss.py 的
+   bump()）加 tanh 软饱和。判读分数：修好后 7/10（GAIN 1.6）→ 7.5/10（GAIN 2.2，采用）。 */
+.home-card-bump {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: var(--bump-lit, none);
+  background-size: 100% 100%;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+.home-card-bump::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--bump-spec, none);
+  background-size: 100% 100%;
+  mix-blend-mode: screen;
+}
+
 /* ---------- 2026-09-24：工艺从十六种收敛到八种，这里撤掉了已汰除工艺的结构残留 ----------
 
    八种工艺的**材质参数**（印纹层、框质感、名牌底色、3D 着色参数）全在 data/card-styles.yaml，

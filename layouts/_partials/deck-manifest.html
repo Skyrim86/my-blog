@@ -57,6 +57,17 @@
 {{- $durl := "" }}
 {{- with $depth }}{{ $durl = (. | fingerprint).RelPermalink }}
 {{- else }}{{ warnf "深度图 %q 不在（跑 tools/cards/make-depth.py）——这张卡在 3D 查看器里会是平的" $dpath }}{{ end }}
+{{- /* 凸印受力图（2026-09-25）：只有 `style: emboss` 的那 7 张出图（tools/cards/make-emboss.py，
+       由深度图算高度场梯度）。两张图、两种混合：受光图走 soft-light（改光不改色）、脊线镜面图
+       走 screen（亮脊线）—— 混合方式写在 21-card-deck.css 的 .home-card-bump 里，这里只给 URL。
+       **其余工艺本来就没有这张图，缺席是常态**，所以这块不 warn（与上面的深度图不同：
+       那个每张都该有，缺了是漏跑脚本；这张只有 emboss 会有）。 */}}
+{{- $blit := "" }}{{ $bspec := "" }}
+{{- if eq .style "emboss" }}
+{{- $broot := strings.TrimSuffix (path.Ext .image) (path.Base .image) }}
+{{- with resources.Get (printf "images/cards/emboss/%s-lit.webp" $broot) }}{{ $blit = (. | fingerprint).RelPermalink }}{{ end }}
+{{- with resources.Get (printf "images/cards/emboss/%s-spec.webp" $broot) }}{{ $bspec = (. | fingerprint).RelPermalink }}{{ end }}
+{{- end }}
 {{- /* 等级的中文名那张表（rankLabel）与等级一样是六档：与 i18n 的 deckRank*、CSS 的
       .home-card-rank--*、card-3d.js 的 RANK_3D、check-deck.mjs 的 RANKS 是同一份清单 ——
       这里少一条的表现是卡片墙那格显示「系列 · 」后面空一截（不报错），所以 check-deck.mjs
@@ -121,6 +132,7 @@
     "s" $small.RelPermalink "l" $large.RelPermalink "xl" $xl.RelPermalink "t" $thumb.RelPermalink
     "w" $small.Width "h" $small.Height
     "d" $durl
+    "bumpLit" $blit "bumpSpec" $bspec
     "label" (.name | default .series) "series" .series "style" $style
     "styleLabel" (index (dict
         "foil" (i18n "deckStyleFoil") "holo-prism" (i18n "deckStyleHoloPrism")
