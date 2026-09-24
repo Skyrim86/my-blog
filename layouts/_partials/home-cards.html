@@ -68,22 +68,33 @@
               它画在 .home-card-lens 之上，所以玻璃的折射不会把它盖掉 —— 这条线是「画框里有画」
               与「画面铺满」两个状态之间在缩略图上唯一看得见的分界。 */}}
         <span class="home-card-mat" aria-hidden="true"></span>
-        {{- /* 雕花框（进阶工艺专属）：暗色边栏底 + 金色雕花线 + 四角角花，宝石在 .home-card-rank::after。
-              普通工艺的卡上这一层 opacity 为 0（--craft-ornate），所以它一直挂在 DOM 里也不花钱。 */}}
-        <span class="home-card-fret" aria-hidden="true"></span>
-        {{- /* 等级层：整卡覆膜 + 四角纹章。见 21-card-deck.css 的「等级」一节 */}}
+        {{- /* 框饰三件（2026-09-24 等级层）：框内缘等级色带 + n-ink 自然花纹 + 四角卷草角。
+              六档共用同一条几何（同宽、同角饰），只有色带的色相与厚度按 --rank-sw 递增 ——
+              见 21-card-deck.css 的「等级层」那一节，值与定稿样张逐字一致。 */}}
+        <span class="home-card-strip" aria-hidden="true"></span>
+        <span class="home-card-motif" aria-hidden="true"></span>
+        <span class="home-card-corners" aria-hidden="true"></span>
+        {{- /* 等级层：整卡覆膜（画上的那层虹彩），压在框饰之下。见 21-card-deck.css 的「等级层」一节 */}}
         <span class="home-card-rank" aria-hidden="true"></span>
-        {{- /* 底部**信息带**：名字（最大）→ 系列（次之）→ 卡号（最小）+ 稀有度徽章（形状编码）。
-              四级层级刻意用三种字号排出来，徽章进这条带而不是压在画上 —— 见 21-card-deck.css
-              里 `.home-card-plate .home-card-mark` 那条的对比度说明（浅色画上压浅色徽章只有 ~1.5:1）。
+        {{- /* 底部**信息带**：名字（最大）→ 系列（次之）→ 卡号（最小）。
+              三级层级刻意用三种字号排出来。**等级标不在这一条带里**（2026-09-24 等级层：
+              等级标移到卡背，正面只由框内缘色带与材质色阶表达等级）。
               系列与名字相同时（清单里没写 name 的那几张，label 退回系列名）不重复显示。 */}}
         <span class="home-card-plate">
             <span class="home-card-label">{{ $first.label }}</span>
             <span class="home-card-foot">
                 {{- if ne $first.series $first.label }}<span class="home-card-series">{{ $first.series }}</span>{{ end }}
                 <span class="home-card-index">01 / {{ printf "%02d" $shown }}</span>
-                <span class="home-card-mark" aria-hidden="true"></span>
             </span>
+        </span>
+        {{- /* 卡背（统一黑底反光背 + 居中等级标 + 档位名）：正面不再放等级标，等级标移到卡背。
+              挂 .is-flipped 才翻过来（现在没有脚本会加这个类 —— 仓库里真正的翻面走三维查看器的
+              画布卡背，那条路在 card-3d.js 里）；档位名用 rankWallLabel，隐藏档在显形前显示
+              「收藏」，与卡片墙那格下方同一个口径（翻过来也不漏底）。 */}}
+        <span class="home-card-back" aria-hidden="true">
+            <span class="home-card-backfield"></span>
+            <span class="home-card-backmark"></span>
+            <span class="home-card-backname">{{ $first.rankWallLabel }}</span>
         </span>
     </div>
 </div>

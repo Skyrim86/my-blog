@@ -93,15 +93,25 @@
                 {{- /* 玻璃的厚度层 / 金继的釉面反光：与首页同一支 span，CSS 里只给那两种风格显形
                        （玻璃那一支会把画作再铺两遍，一页 7 张玻璃 = 多 14 次全卡绘制，见 ㊿ 的账） */}}
                 <span class="home-card-lens" aria-hidden="true"></span>
-                {{- /* 画面的内衬线（低档清楚、高档归零）—— 与首页同一支 span */}}
+                {{- /* 画面内衬线（低档清楚、高档归零）—— 与首页同一支 span */}}
                 <span class="home-card-mat" aria-hidden="true"></span>
-                {{- /* 雕花框（秘藏及以上显形，普通工艺那几张上 opacity 也是 0）—— 与首页同一支 span */}}
-                <span class="home-card-fret" aria-hidden="true"></span>
+                {{- /* 框饰三件（2026-09-24 等级层）：框内缘等级色带 + n-ink 自然花纹 + 四角卷草角。
+                       六档共用同一条几何，只有色带的色相与厚度按档递增 —— 见 21-card-deck.css
+                       的「等级层」那一节。与首页同一支 span。 */}}
+                <span class="home-card-strip" aria-hidden="true"></span>
+                <span class="home-card-motif" aria-hidden="true"></span>
+                <span class="home-card-corners" aria-hidden="true"></span>
                 <span class="home-card-rank" aria-hidden="true"></span>
-                {{- /* 稀有度徽章：卡片墙**没有名牌**（名字在格子下方那条 cap 里，见上面第 3 条），
-                       所以徽章贴画面右下角（.home-card-mark 的默认位置）。等级的形状与颜色由
-                       CSS 的 rank 类给，这里只放一个空 span —— 与首页那支是同一个组件。 */}}
-                <span class="home-card-mark" aria-hidden="true"></span>
+                {{- /* 卡背（统一黑底反光背 + 居中等级标 + 档位名）：正面不再放等级标（2026-09-24
+                       等级层），等级标移到卡背的居中位置。挂 .is-flipped 才翻过来 —— 现在没有
+                       脚本会加这个类（仓库里真正的翻面走三维查看器的画布卡背，那条路在
+                       card-3d.js 里），所以这一支是「已落地的静态卡背 + 一个类名钩子」。
+                       档位名用 rankWallLabel：隐藏档在显形前显示「收藏」，与下面 cap 那条同口径。 */}}
+                <span class="home-card-back" aria-hidden="true">
+                    <span class="home-card-backfield"></span>
+                    <span class="home-card-backmark"></span>
+                    <span class="home-card-backname">{{ $it.rankWallLabel }}</span>
+                </span>
             </span>
             <span class="deck-tile-cap">
                 {{- /* 序号（`#07`）+ 名字 + 「系列 · 等级」。斗大的序号是这一格的身份证：与首页名牌、
