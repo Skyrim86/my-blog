@@ -97,7 +97,7 @@
   src: tools/backgrounds/source-ayaka-veil.jpg
   crop: figure
   series: 绫华
-  name: 花信
+  name: 花簪
   style: filigree
   rank: legend
   credit: twitter wani_Dile
@@ -151,7 +151,7 @@
   src: tools/cards/sources/ayaka-11.webp
   crop: figure
   series: 绫华
-  name: 樱堤
+  name: 樱琴
   style: silk
   rank: collector
   credit: safebooru 4843454
@@ -188,7 +188,7 @@
   src: tools/cards/sources/ayaka-18.webp
   crop: figure
   series: 绫华
-  name: 午后
+  name: 晨食
   style: washi
   rank: rare
   credit: safebooru 4012375
@@ -221,37 +221,6 @@
   credit: safebooru 4573787
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4573787
 # ---- 绫华补的 6 张（2026-09-20）：这 6 张源图上一轮就压好放在 sources/ 里、一直没进清单 ----
-- image: images/cards/ayaka-12.webp
-  src: tools/cards/sources/ayaka-12.webp
-  crop: figure
-  series: 绫华
-  name: 素裙
-  style: yukika
-  rank: collector
-  credit: safebooru 4608952
-  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4608952
-- image: images/cards/ayaka-15.webp          # 注意：这张的**源图是 ayaka-15.webp**
-  src: tools/cards/sources/ayaka-15.webp      # （上一轮 ayaka-15 这个产物名指的是 ayaka-23 那张，
-  # 手量分数窗：源图是 700×448 的横构图，figure 会退成「整幅缩进 + 上下两条空带」（五分之二
-  # 是空的）。窗取她的脸与肩这一段（5:7 后约 320×448），1x 档仍是降采样；代价是源图只有 448 高，
-  # 2x 档（544）要放大 1.7 倍 —— 高分屏上会略软，这是这张源图本身的余量不够（见 fetch-sources.py
-  # 里「长边 700」那条口径）。
-  crop: [0.50, 0.0, 0.95, 1.0]
-  series: 绫华
-  name: 樱簪
-  style: enamel
-  rank: rare
-  credit: safebooru 4702242
-  credit_url: https://safebooru.org/index.php?page=post&s=view&id=4702242
-- image: images/cards/ayaka-19.webp
-  src: tools/cards/sources/ayaka-19.webp
-  crop: figure
-  series: 绫华
-  name: 学园
-  style: silk
-  rank: rare
-  credit: safebooru 3993400
-  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3993400
 - image: images/cards/ayaka-22.webp
   src: tools/cards/sources/ayaka-22.webp
   crop: figure
@@ -319,7 +288,7 @@
   src: tools/cards/sources/kafka-01.webp
   crop: figure
   series: 卡夫卡
-  name: 猎星
+  name: 观星
   style: starnight
   rank: collector
   credit: safebooru 4601052
@@ -328,7 +297,7 @@
   src: tools/cards/sources/kafka-02.webp
   crop: figure
   series: 卡夫卡
-  name: 夜行
+  name: 夜思
   style: starnight
   rank: collector
   credit: safebooru 4596259
@@ -355,7 +324,7 @@
   src: tools/cards/sources/kafka-05.webp
   crop: figure
   series: 卡夫卡
-  name: 回响
+  name: 待发
   style: aurora
   rank: epic
   credit: safebooru 4018682
@@ -386,7 +355,7 @@
 - image: images/cards/emilia-01.webp
   src: tools/cards/sources/emilia-01.webp
   series: 艾米莉亚
-  name: 银霜
+  name: 夜翎
   style: filigree
   rank: legend
   credit: safebooru 2948619
@@ -394,7 +363,7 @@
 - image: images/cards/emilia-02.webp
   src: tools/cards/sources/emilia-02.webp
   series: 艾米莉亚
-  name: 冰晶
+  name: 紫绫
   style: enamel
   rank: collector
   credit: safebooru 3193715
@@ -402,7 +371,7 @@
 - image: images/cards/emilia-03.webp
   src: tools/cards/sources/emilia-03.webp
   series: 艾米莉亚
-  name: 雪原
+  name: 初醒
   style: frostcrack
   rank: rare
   credit: safebooru 3370906
@@ -410,7 +379,7 @@
 - image: images/cards/emilia-04.webp
   src: tools/cards/sources/emilia-04.webp
   series: 艾米莉亚
-  name: 花冠
+  name: 嫁衣
   style: enamel
   rank: collector
   credit: safebooru 3295664
@@ -418,7 +387,7 @@
 - image: images/cards/emilia-05.webp
   src: tools/cards/sources/emilia-05.webp
   series: 艾米莉亚
-  name: 月影
+  name: 芳辰
   style: aurora
   rank: arcane
   credit: safebooru 3285846
@@ -426,7 +395,7 @@
 - image: images/cards/emilia-06.webp
   src: tools/cards/sources/emilia-06.webp
   series: 艾米莉亚
-  name: 银铃
+  name: 星眸
   style: foil
   rank: rare
   credit: safebooru 3220250
@@ -434,7 +403,7 @@
 - image: images/cards/emilia-07.webp
   src: tools/cards/sources/emilia-07.webp
   series: 艾米莉亚
-  name: 薄冰
+  name: 花冠
   style: glass
   rank: legend
   credit: safebooru 3145481
@@ -442,7 +411,7 @@
 - image: images/cards/emilia-08.webp
   src: tools/cards/sources/emilia-08.webp
   series: 艾米莉亚
-  name: 白蔷
+  name: 霓裳
   style: yukika
   rank: collector
   credit: safebooru 2776515
@@ -450,7 +419,7 @@
 - image: images/cards/emilia-09.webp
   src: tools/cards/sources/emilia-09.webp
   series: 艾米莉亚
-  name: 霜羽
+  name: 轻絮
   style: yukika
   rank: rare
   credit: safebooru 2757756
@@ -458,7 +427,7 @@
 - image: images/cards/emilia-10.webp
   src: tools/cards/sources/emilia-10.webp
   series: 艾米莉亚
-  name: 冬芽
+  name: 女侍
   style: gold
   rank: arcane
   credit: safebooru 2349791
@@ -466,7 +435,7 @@
 - image: images/cards/emilia-11.webp
   src: tools/cards/sources/emilia-11.webp
   series: 艾米莉亚
-  name: 静水
+  name: 惊鸿
   style: nacre
   rank: collector
   credit: safebooru 3629666
@@ -474,23 +443,15 @@
 - image: images/cards/emilia-12.webp
   src: tools/cards/sources/emilia-12.webp
   series: 艾米莉亚
-  name: 银绢
+  name: 猫兜
   style: silver
   rank: collector
   credit: safebooru 4195947
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4195947
-- image: images/cards/emilia-13.webp
-  src: tools/cards/sources/emilia-13.webp
-  series: 艾米莉亚
-  name: 冰纹
-  style: frostcrack
-  rank: rare
-  credit: safebooru 3985983
-  credit_url: https://safebooru.org/index.php?page=post&s=view&id=3985983
 - image: images/cards/emilia-14.webp
   src: tools/cards/sources/emilia-14.webp
   series: 艾米莉亚
-  name: 幽兰
+  name: 狐耳
   style: kintsugi
   rank: collector
   credit: safebooru 3978940
@@ -498,7 +459,7 @@
 - image: images/cards/emilia-15.webp
   src: tools/cards/sources/emilia-15.webp
   series: 艾米莉亚
-  name: 雪松
+  name: 青萝
   style: frostcrack
   rank: collector
   credit: safebooru 3954029
@@ -506,7 +467,7 @@
 - image: images/cards/emilia-16.webp
   src: tools/cards/sources/emilia-16.webp
   series: 艾米莉亚
-  name: 初霜
+  name: 春眠
   style: silver
   rank: collector
   credit: safebooru 3849608
@@ -514,7 +475,7 @@
 - image: images/cards/emilia-17.webp
   src: tools/cards/sources/emilia-17.webp
   series: 艾米莉亚
-  name: 银纱
+  name: 朱领
   style: foil
   rank: collector
   credit: safebooru 3748589
@@ -522,7 +483,7 @@
 - image: images/cards/emilia-18.webp
   src: tools/cards/sources/emilia-18.webp
   series: 艾米莉亚
-  name: 冰湖
+  name: 蝶澜
   style: gold
   rank: epic
   credit: safebooru 3744471
@@ -530,7 +491,7 @@
 - image: images/cards/emilia-19.webp
   src: tools/cards/sources/emilia-19.webp
   series: 艾米莉亚
-  name: 雪铃
+  name: 玫露
   style: frostcrack
   rank: rare
   credit: safebooru 3711031
@@ -538,7 +499,7 @@
 - image: images/cards/emilia-20.webp
   src: tools/cards/sources/emilia-20.webp
   series: 艾米莉亚
-  name: 霜枝
+  name: 墨褶
   style: gold
   rank: collector
   credit: safebooru 3392378
@@ -546,7 +507,7 @@
 - image: images/cards/emilia-21.webp
   src: tools/cards/sources/emilia-21.webp
   series: 艾米莉亚
-  name: 银月
+  name: 云梦
   style: silver
   rank: collector
   credit: safebooru 3367232
@@ -554,7 +515,7 @@
 - image: images/cards/emilia-22.webp
   src: tools/cards/sources/emilia-22.webp
   series: 艾米莉亚
-  name: 冰凌
+  name: 桃夭
   style: nacre
   rank: collector
   credit: safebooru 3176237
@@ -578,27 +539,11 @@
 - image: images/cards/emilia-25.webp
   src: tools/cards/sources/emilia-25.webp
   series: 艾米莉亚
-  name: 雪羽
+  name: 花织
   style: yukika
   rank: epic
   credit: safebooru 2837256
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2837256
-- image: images/cards/emilia-26.webp
-  src: tools/cards/sources/emilia-26.webp
-  series: 艾米莉亚
-  name: 银漪
-  style: gold
-  rank: rare
-  credit: safebooru 2825122
-  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2825122
-- image: images/cards/emilia-27.webp
-  src: tools/cards/sources/emilia-27.webp
-  series: 艾米莉亚
-  name: 冷香
-  style: glass
-  rank: rare
-  credit: safebooru 2803842
-  credit_url: https://safebooru.org/index.php?page=post&s=view&id=2803842
 - image: images/cards/miku-01.webp
   src: tools/cards/sources/miku-01.webp
   series: 初音未来

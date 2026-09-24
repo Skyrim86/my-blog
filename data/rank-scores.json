@@ -43,7 +43,7 @@
   {
    "image": "images/cards/ayaka-veil.webp",
    "series": "绫华",
-   "name": "花信",
+   "name": "花簪",
    "style": "kintsugi",
    "rank": "legend",
    "suggested": "legend",
@@ -115,7 +115,7 @@
   {
    "image": "images/cards/ayaka-11.webp",
    "series": "绫华",
-   "name": "樱堤",
+   "name": "樱琴",
    "style": "washi",
    "rank": "collector",
    "suggested": "collector",
@@ -163,7 +163,7 @@
   {
    "image": "images/cards/ayaka-18.webp",
    "series": "绫华",
-   "name": "午后",
+   "name": "晨食",
    "style": "washi",
    "rank": "collector",
    "suggested": "rare",
@@ -207,42 +207,6 @@
    "bytes": 0.8871,
    "src_px": 0.129,
    "score": 70.32
-  },
-  {
-   "image": "images/cards/ayaka-12.webp",
-   "series": "绫华",
-   "name": "素裙",
-   "style": "yukika",
-   "rank": "collector",
-   "suggested": "collector",
-   "grad": 0.0645,
-   "bytes": 0.0161,
-   "src_px": 0.0161,
-   "score": 4.03
-  },
-  {
-   "image": "images/cards/ayaka-15.webp",
-   "series": "绫华",
-   "name": "樱簪",
-   "style": "yukika",
-   "rank": "collector",
-   "suggested": "rare",
-   "grad": 0.3871,
-   "bytes": 0.2419,
-   "src_px": 0.8871,
-   "score": 44.35
-  },
-  {
-   "image": "images/cards/ayaka-19.webp",
-   "series": "绫华",
-   "name": "学园",
-   "style": "washi",
-   "rank": "collector",
-   "suggested": "rare",
-   "grad": 0.6774,
-   "bytes": 0.3065,
-   "src_px": 0.1129,
-   "score": 45.32
   },
   {
    "image": "images/cards/ayaka-22.webp",
@@ -319,7 +283,7 @@
   {
    "image": "images/cards/kafka-01.webp",
    "series": "卡夫卡",
-   "name": "猎星",
+   "name": "观星",
    "style": "kintsugi",
    "rank": "collector",
    "suggested": "collector",
@@ -331,7 +295,7 @@
   {
    "image": "images/cards/kafka-02.webp",
    "series": "卡夫卡",
-   "name": "夜行",
+   "name": "夜思",
    "style": "ink",
    "rank": "collector",
    "suggested": "collector",
@@ -367,7 +331,7 @@
   {
    "image": "images/cards/kafka-05.webp",
    "series": "卡夫卡",
-   "name": "回响",
+   "name": "待发",
    "style": "glass",
    "rank": "epic",
    "suggested": "epic",
@@ -403,7 +367,7 @@
   {
    "image": "images/cards/emilia-01.webp",
    "series": "艾米莉亚",
-   "name": "银霜",
+   "name": "夜翎",
    "style": "kintsugi",
    "rank": "legend",
    "suggested": "legend",
@@ -415,7 +379,7 @@
   {
    "image": "images/cards/emilia-02.webp",
    "series": "艾米莉亚",
-   "name": "冰晶",
+   "name": "紫绫",
    "style": "gold",
    "rank": "collector",
    "suggested": "collector",
@@ -427,7 +391,7 @@
   {
    "image": "images/cards/emilia-03.webp",
    "series": "艾米莉亚",
-   "name": "雪原",
+   "name": "初醒",
    "style": "washi",
    "rank": "collector",
    "suggested": "rare",
@@ -439,7 +403,7 @@
   {
    "image": "images/cards/emilia-04.webp",
    "series": "艾米莉亚",
-   "name": "花冠",
+   "name": "嫁衣",
    "style": "gold",
    "rank": "collector",
    "suggested": "collector",
@@ -451,7 +415,7 @@
   {
    "image": "images/cards/emilia-05.webp",
    "series": "艾米莉亚",
-   "name": "月影",
+   "name": "芳辰",
    "style": "washi",
    "rank": "epic",
    "suggested": "arcane",
@@ -463,7 +427,7 @@
   {
    "image": "images/cards/emilia-06.webp",
    "series": "艾米莉亚",
-   "name": "银铃",
+   "name": "星眸",
    "style": "gold",
    "rank": "collector",
    "suggested": "rare",
@@ -475,7 +439,7 @@
   {
    "image": "images/cards/emilia-07.webp",
    "series": "艾米莉亚",
-   "name": "薄冰",
+   "name": "花冠",
    "style": "washi",
    "rank": "legend",
    "suggested": "legend",
@@ -487,7 +451,7 @@
   {
    "image": "images/cards/emilia-08.webp",
    "series": "艾米莉亚",
-   "name": "白蔷",
+   "name": "霓裳",
    "style": "yukika",
    "rank": "collector",
    "suggested": "collector",
@@ -499,7 +463,7 @@
   {
    "image": "images/cards/emilia-09.webp",
    "series": "艾米莉亚",
-   "name": "霜羽",
+   "name": "轻絮",
    "style": "washi",
    "rank": "collector",
    "suggested": "rare",
@@ -511,7 +475,7 @@
   {
    "image": "images/cards/emilia-10.webp",
    "series": "艾米莉亚",
-   "name": "冬芽",
+   "name": "女侍",
    "style": "gold",
    "rank": "epic",
    "suggested": "arcane",
@@ -523,7 +487,7 @@
   {
    "image": "images/cards/emilia-11.webp",
    "series": "艾米莉亚",
-   "name": "静水",
+   "name": "惊鸿",
    "style": "washi",
    "rank": "collector",
    "suggested": "collector",
@@ -535,7 +499,7 @@
   {
    "image": "images/cards/emilia-12.webp",
    "series": "艾米莉亚",
-   "name": "银绢",
+   "name": "猫兜",
    "style": "gold",
    "rank": "collector",
    "suggested": "collector",
@@ -545,21 +509,9 @@
    "score": 13.23
   },
   {
-   "image": "images/cards/emilia-13.webp",
-   "series": "艾米莉亚",
-   "name": "冰纹",
-   "style": "washi",
-   "rank": "collector",
-   "suggested": "rare",
-   "grad": 0.5806,
-   "bytes": 0.4355,
-   "src_px": 0.6774,
-   "score": 55.65
-  },
-  {
    "image": "images/cards/emilia-14.webp",
    "series": "艾米莉亚",
-   "name": "幽兰",
+   "name": "狐耳",
    "style": "gold",
    "rank": "collector",
    "suggested": "collector",
@@ -571,7 +523,7 @@
   {
    "image": "images/cards/emilia-15.webp",
    "series": "艾米莉亚",
-   "name": "雪松",
+   "name": "青萝",
    "style": "washi",
    "rank": "collector",
    "suggested": "collector",
@@ -583,7 +535,7 @@
   {
    "image": "images/cards/emilia-16.webp",
    "series": "艾米莉亚",
-   "name": "初霜",
+   "name": "春眠",
    "style": "gold",
    "rank": "collector",
    "suggested": "collector",
@@ -595,7 +547,7 @@
   {
    "image": "images/cards/emilia-17.webp",
    "series": "艾米莉亚",
-   "name": "银纱",
+   "name": "朱领",
    "style": "washi",
    "rank": "collector",
    "suggested": "collector",
@@ -607,7 +559,7 @@
   {
    "image": "images/cards/emilia-18.webp",
    "series": "艾米莉亚",
-   "name": "冰湖",
+   "name": "蝶澜",
    "style": "gold",
    "rank": "epic",
    "suggested": "epic",
@@ -619,7 +571,7 @@
   {
    "image": "images/cards/emilia-19.webp",
    "series": "艾米莉亚",
-   "name": "雪铃",
+   "name": "玫露",
    "style": "washi",
    "rank": "collector",
    "suggested": "rare",
@@ -631,7 +583,7 @@
   {
    "image": "images/cards/emilia-20.webp",
    "series": "艾米莉亚",
-   "name": "霜枝",
+   "name": "墨褶",
    "style": "gold",
    "rank": "collector",
    "suggested": "collector",
@@ -643,7 +595,7 @@
   {
    "image": "images/cards/emilia-21.webp",
    "series": "艾米莉亚",
-   "name": "银月",
+   "name": "云梦",
    "style": "glass",
    "rank": "collector",
    "suggested": "collector",
@@ -655,7 +607,7 @@
   {
    "image": "images/cards/emilia-22.webp",
    "series": "艾米莉亚",
-   "name": "冰凌",
+   "name": "桃夭",
    "style": "gold",
    "rank": "collector",
    "suggested": "collector",
@@ -691,7 +643,7 @@
   {
    "image": "images/cards/emilia-25.webp",
    "series": "艾米莉亚",
-   "name": "雪羽",
+   "name": "花织",
    "style": "washi",
    "rank": "epic",
    "suggested": "epic",
@@ -699,30 +651,6 @@
    "bytes": 0.7097,
    "src_px": 0.4274,
    "score": 66.13
-  },
-  {
-   "image": "images/cards/emilia-26.webp",
-   "series": "艾米莉亚",
-   "name": "银漪",
-   "style": "gold",
-   "rank": "collector",
-   "suggested": "rare",
-   "grad": 0.4032,
-   "bytes": 0.5323,
-   "src_px": 0.7742,
-   "score": 51.61
-  },
-  {
-   "image": "images/cards/emilia-27.webp",
-   "series": "艾米莉亚",
-   "name": "冷香",
-   "style": "glass",
-   "rank": "collector",
-   "suggested": "rare",
-   "grad": 0.9516,
-   "bytes": 0.5645,
-   "src_px": 0.4274,
-   "score": 73.06
   },
   {
    "image": "images/cards/miku-01.webp",

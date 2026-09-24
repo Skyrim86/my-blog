@@ -74,7 +74,7 @@ my-blog/
 │   │   ├── bg-daylight-girl.webp # 背景套「黑长直少女」的浅色主题（见 ⑫）
 │   │   ├── bg-daylight-sky.webp  # 浅色主题备选背景（程序生成，当前未使用，见 ⑫）
 │   │   ├── bg-velvet-night.webp  # 深色主题备选背景（程序生成，当前未使用，见 ⑫）
-│   │   ├── cards/             #   卡面生成物：63 张 <角色>-<编号>.webp（tools/cards/make-cards.py）
+│   │   ├── cards/             #   卡面生成物：57 张 <角色>-<编号>.webp（tools/cards/make-cards.py）
 │   │   │   └── depth/         #   同一批卡的浮雕高度图（tools/cards/make-depth.py，3D 查看器读它）
 │   │   ├── nav/               #   导航栏像素小人 ×8（生成产物：tools/icons/make-icons.py，见第 6 节）
 │   │   └── covers/            #   列表卡片封面（生成产物：tools/covers/make-covers.py）
@@ -100,7 +100,7 @@ my-blog/
 ├── content/                   # 站点内容（详见 docs/content.md）
 │   ├── about.md  search.md                       # archives.md 已于 2026-09-15 删除（见第 3 节）
 │   ├── categories/ tags/ series/ _index.md   # 三套分类法的总览页标题
-│   ├── collection/            # 收藏库总览页（layout: collection）—— /collection/ 一页铺 63 张收藏卡，见 ㊿
+│   ├── collection/            # 收藏库总览页（layout: collection）—— /collection/ 一页铺 57 张收藏卡，见 ㊿
 │   ├── courses/<课程>/        # _index.md 主页 + <chapter-0N>/（notes|homework|lab 材料页）+ toolbox/（卡片页）
 │   ├── library/               # 数学库的三级目录页（**不是文件**：content/library/_content.gotmpl 按分支表现算生成）
 │   ├── cs/                    # CS 库索引的同名三级结构（页面由 scripts/gen-cards.mjs 生成）
@@ -172,7 +172,7 @@ my-blog/
 │       ├── deck-splash.html   #   首页入站揭幕遮罩（只在 .IsHome 时由 baseof.html 挂载；退场不依赖 JS）
 │       ├── deck-manifest.html #   卡片清单 → 条目切片（渲染与 JS 共用的那一份数据）
 │       ├── deck-filters.html  #   卡片的手绘感滤镜（**必须内联**：data-URI filter 在 WebKit 上不可靠）
-│       ├── deck-wall.html     #   收藏库的卡片墙（63 张一次铺开，见 ㊿）
+│       ├── deck-wall.html     #   收藏库的卡片墙（57 张一次铺开，见 ㊿）
 │       ├── lib-config.html    #   按 URL 第一段认出是哪个库，回表取配置 / 数据 / 分支表
 │       ├── toolbox-wall.html  #   卡片墙：主卡 + 挂在它下面的附属结论 = 一家子一个格子
 │       ├── toolbox-card.html  #   单张卡的渲染
@@ -226,7 +226,7 @@ my-blog/
 │   └── source-lady-slice.webp #   「夜城 + 提灯少女」那版的切片（**图与生成函数 2026-09-21 已删**，切片留着：它是卡片出处清单里的一项，见 features.md ⑫）
 ├── tools/cards/               # 卡面生成（不参与 Hugo 构建；依赖见 tools/requirements.txt）
 │   ├── fetch-sources.py       #   按清单把源立绘下载到 sources/（只跑一次，不参与出图）
-│   ├── make-cards.py          #   按 data/home-cards.yaml 出 63 张卡面 → assets/images/cards/*.webp
+│   ├── make-cards.py          #   按 data/home-cards.yaml 出 57 张卡面 → assets/images/cards/*.webp
 │   ├── make-depth.py          #   同一批卡的浮雕高度图 → assets/images/cards/depth/
 │   ├── make-ornaments.py      #   卡面纹样令牌 → assets/css/decks/20-card-ornaments.css（**生成物，不要手改**）
 │   ├── sources/               #   55 张源立绘（清单里用到的那批 + 备用的）
