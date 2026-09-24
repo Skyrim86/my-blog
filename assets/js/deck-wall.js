@@ -770,6 +770,10 @@
         if (!tile) return;
         var meta = tile.querySelector('.deck-tile-meta');
         if (meta) meta.textContent = [it.series, it.rankLabel].filter(Boolean).join(' · ');
+        /* 卡背那行档位名也是服务端按 rankWallLabel 渲染的（显形前写「收藏」），
+           与上面 meta 同口径一起换成真名 —— 否则翻到卡背还是「收藏」。 */
+        var backName = tile.querySelector('.home-card-backname');
+        if (backName) backName.textContent = it.rankLabel || '';
         tile.classList.add('is-revealed');
         srStatus.textContent = attr('reveal', '{label}：{rank}')
           .replace('{label}', it.label || d.label || '')
