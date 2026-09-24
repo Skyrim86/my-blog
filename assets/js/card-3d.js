@@ -180,10 +180,10 @@
     arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.50, back: 3, shadow: 0.82, sweep: 0.68,
                  steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.028, bgPar: 0.012,
                  wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.00, coneC: 0.45, holoC: 0.60, disp: 0.12, sharp: 0.18 },
-    legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 2.40, back: 4, shadow: 1.00, sweep: 0.85,
+    legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 1.90, back: 4, shadow: 1.00, sweep: 0.85,
                  steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
                  wall: 0.70, cast: 0.65, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82, disp: 0.26, sharp: 0.24 },
-    miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 2.90, back: 5, shadow: 1.15, sweep: 1.00,
+    miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 2.20, back: 5, shadow: 1.15, sweep: 1.00,
                  steps: 24, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030,
                  wall: 1.00, cast: 1.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00, disp: 0.35, sharp: 0.30 },
   };
