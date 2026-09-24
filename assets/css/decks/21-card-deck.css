@@ -94,7 +94,7 @@
      由「宽度沿脊柱变化」的轮廓生成，改参数要整批重出。上面那三条 grain 是手写的
      feTurbulence 噪声，留在原处。 */
   /* 手抖滤镜：卡面的纹样全是 CSS 画的直线（铅条、扇骨、裂纹、经纬…），272px 下是「尺子画的」。
-     挂上这个 SVG 位移滤镜（内联在 home-cards.html 里，约 300 字节）之后，十四种风格的直线一起
+     挂上这个 SVG 位移滤镜（内联在 home-cards.html 里，约 300 字节）之后，八种风格的直线一起
      变成手绘的那点不平整 —— 一处生效。**滤镜 id 拼错是静默失效**，所以 check-deck 会核 id。
      用 `filter`（不是 backdrop）——它只作用于这一层自己的绘制，不会把身下的画作也一起抖。 */
   --cfilter: none;
@@ -349,7 +349,7 @@
   inset: 0;
   /* 线的**颜色**归工艺（它是材质，不是结构）—— 用户 2026-09-21 选的口径。
      边框的**结构**（带宽、角饰显隐、淡入）仍归等级，所以同档一样厚、而颜色能看出工艺。
-     十二种工艺各给一条，金只出现在金边 / 金继 / 雕花金 / 珐琅彩四种上。 */
+     八种工艺各给一条，金只出现在烫金箔（goldfoil）这一种上。 */
   /* 八层：上边栏平铺、下边栏平铺、左边栏平铺、右边栏平铺、四个角花。尺寸与位置都从
      --fret-w / --fret-off 算，所以装饰永远待在边框环里，一个像素都不压到插画上。 */
   background: var(--fret-line, var(--rank-line, rgba(255, 252, 244, .92)));
@@ -1061,196 +1061,36 @@ a.home-deck-dialog-credit:hover {
    与全息（foil）的分工：foil 是**条纹型**衍射（一条条彩虹带随角度移），星芒是**放射型**
    （一圈圈色环从中心推出去，像宝可梦卡的「宇宙闪」）。悬停时整层转一点，读作「把卡在光里转了个角度」。 */
 /* holo-prism 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 金边：**暗底 + 一条窄高光 + 拉丝**。2026-09-21 重做（用户：「金边的线条生硬」）。
-   上一版是一条又宽又亮的黄渐变 + 两个描金角 —— 发闷、发硬的根因是**物理搞反了**：金属是导体，
-   它的颜色活在**镜面反射**里（测出来的金色高光约 #ffd891），漫反射几乎为零。所以正确的画法是
-   「暗的、低饱和的底 + 一条**窄**而亮的高光」，而不是「一大片黄」。
-   第二处是「拉丝」：各向异性 —— 高光要**沿一个方向拉长**（Filament 的 anisotropy 那条），
-   所以底子上有一层沿 96° 的细密丝纹，而且它的明暗是**软停**（写 1px 硬停就是纱窗，
-   见文件顶部第 2 条规矩），并挂手抖滤镜（第 3 条：直线纹样一律挂 --cfilter）。 */
-/* gold 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 和纸：**各向异性**纤维（横向的长丝）+ 两团纸浆的云斑。
-   上一版是 90°/0° 等距十字 —— 那是织布，不是纸：纸的纤维只朝一个方向，而且有长有短。 */
-/* washi 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 墨：底部压深 + 一道飞白 + 纸颗粒（原来那 2px/6px 的横向细纹在 272px 下只是瑕疵，去掉了） */
-/* ink 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 玻璃：**四件套**（倒角 + 柔和高光 + 边缘折射 + 假厚度）。
-   上一版只有「一道斜渐变 + 1px 内环 + 半张磨砂」，零立体线索。真玻璃的深度感来自四件事，
-   这里逐件做：① 倒角 —— 左上受光、右下背光的分层 inset 阴影（不占盒尺寸）；② 高光 —— 三个软椭圆
-   的径向渐变（不再是硬光带）；③ 边缘折射 —— 底边一道 1px 亮线与一圈玻璃边；④ **厚度** —— 装饰
-   子元素 `.home-card-lens` 把画作（`--art`）再铺一遍、放大错位模糊后**只在边缘露出**，模拟厚玻璃
-   把画面折过去的那一圈。磨砂仍然只做下半张（上半张通透，脸才看得清）。 */
-/* glass 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-.home-card--glass::before {
-  backdrop-filter: blur(2.5px) saturate(112%);
-  -webkit-backdrop-filter: blur(2.5px) saturate(112%);
-}
-
-.home-card--glass::after {
-  /* 镜面高光**不能挂在 ::before 上**：那一层带着「磨砂只做下半张」的 mask，高光会被一起压到下半张，
-     于是卡变成「上平下发白」。挪到不挂 mask 的 ::after 上，光才落在该在的位置（光从上面来）。
-     代价是玻璃这一种没有换卡扫光 —— 它自己的高光已经够了（金继也这么换掉了扫光）。 */
-  background-image:
-    /* 窗玻璃反光：一道宽的斜亮带（玻璃最像玻璃的那一笔，比高光点更管用） */
-    linear-gradient(112deg, rgba(255, 255, 255, 0) 26%, rgba(255, 255, 255, .09) 40%, rgba(255, 255, 255, 0) 52%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, .05) 70%, rgba(255, 255, 255, 0) 82%),
-    radial-gradient(40% 17% at 28% 10%, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 78%),
-    radial-gradient(24% 12% at 78% 85%, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0) 80%),
-    linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, 0) 22%);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
-  background-position: 0 0, 0 0, 0 0, 0 0;
-  mix-blend-mode: screen;
-  /* 玻璃的工艺就是这几层（倒角、高光、折射、厚度），所以它们也吃等级倍率：
-     收藏档只剩一层很淡的光，传世档才是那块厚玻璃。 */
-  opacity: var(--rank-craft, 1);
-}
-
 /* 玻璃的厚度层：默认不显示（只有玻璃这一种卡用它），所以关掉 JS 的首屏也是对的 */
 .home-card-lens {
   display: none;
 }
 
-.home-card--glass .home-card-lens {
-  display: block;
-  position: absolute;
-  inset: var(--cart-inset);
-  border-radius: var(--cart-r);
-  background-image: var(--art);
-  background-size: cover;
-  background-position: center;
-  /* 放大 + 错位 = 玻璃把画面折过去的位移；模糊 = 屈光；提亮 = 玻璃本身的透过率 */
-  transform: scale(1.04) translateY(1px);
-  filter: blur(1.8px) saturate(1.06);
-  /* 只在边缘露出：中间整块挖掉（那部分是真正的画面，由 <img> 负责） */
-  mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 54%, #000 92%);
-  -webkit-mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 54%, #000 92%);
-  opacity: calc(.42 * var(--rank-craft, 1));
-  pointer-events: none;
-}
+/* ---------- 2026-09-24：工艺从十六种收敛到八种，这里撤掉了已汰除工艺的结构残留 ----------
 
-/* 边缘那一圈折得更狠（厚玻璃的边把画面折得最厉害），再叠一层**色散** —— 玻璃边缘会把白光散成
-   青/品红两色，这一笔是「厚玻璃」最容易被认出来的细节。两层都被父级的 mask 裁在边缘那一圈里。 */
-.home-card--glass .home-card-lens::before {
-  content: "";
-  position: absolute;
-  inset: -8%;
-  background-image: var(--art);
-  background-size: cover;
-  background-position: center;
-  transform: scale(1.11);
-  filter: blur(4.5px) saturate(1.1);
-  mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 80%, #000 100%);
-  -webkit-mask-image: radial-gradient(80% 76% at 50% 46%, transparent 0 80%, #000 100%);
-  opacity: calc(.45 * var(--rank-craft, 1));
-}
+   八种工艺的**材质参数**（印纹层、框质感、名牌底色、3D 着色参数）全在 data/card-styles.yaml，
+   产物是 assets/css/decks/21-card-styles.css 与 card-3d.js 的 STYLE_3D —— 改工艺改 YAML，
+   再跑 node tools/cards/render-styles.mjs --write。这一节只留**结构件**：
+   · `foil` 的 `:hover::before` 与 `holo-prism` 的 `::before` / `:hover::before`
+     （悬停的位移与旋转，版式性质，不属于材质参数）；
+   · `.home-card-lens` 的兜底 `display: none`（模板仍会渲染这个装饰元素，八种工艺都不用它）。
 
-.home-card--glass .home-card-lens::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  corner-shape: inherit;
-  box-shadow:
-    inset 0 0 8px 1px rgba(130, 205, 255, .3),
-    inset 0 0 3px 0 rgba(255, 150, 205, .26);
-  mix-blend-mode: screen;
-  opacity: calc(.9 * var(--rank-craft, 1));
-}
-
-/* 雪华：**十二朵准对称枝晶**铺成一片，2026-09-21 重做（用户：「线条生硬」）。
-   上一版是九朵手工写的雪花脚本，根因是那套「等宽描边画直线段 + 完美镜像」—— 等宽就是尺子画的。
-   现在这十二朵来自生成器（tools/cards/make-ornaments.py）：每枝**向尖端收细到 0**、侧枝越靠
-   枝尖越短、同一枝两侧**不镜像**、六枝之间还有 ±2° 的抖动 —— 那四条才是「真雪花」的几何。
-   一朵雪花只有 3 KB、三朵共用一个令牌组，而**排布留在 CSS 里**（改疏密不用重跑生成器）：
-   十二层 mask，各自给 size 与 position，全是**手工点过位置**的 —— 中央那一竖条留空给人物
-   （规矩 1：纹样不许盖住主体），所以位置都压在左右两条边与上下两端。
-   尺寸那两列是配对的：卡是 5:7，要让雪花是**正方形**（不然花瓣被拉长），
-   高度百分比必须等于宽度百分比 × 5/7。 */
-/* yukika 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 金继：黑底 + 一张**裂缝网**。2026-09-21 重做（用户：「金继的线条生硬」）。
-   上一版是 5 条手工写的固定折线、在 4 个固定线宽（7.5/3.2/2.0/1.1）上重复，**彼此没有一处交叉** ——
-   等宽叠等宽，读作「画上去的金丝」。真金继是**裂缝的开口**里填了漆与金粉，所以几何是：
-   向两端收细、**在分叉处变宽**（宽度汇聚）、子缝比母缝更细更短、密度在一个起点附近更大。
-   这四条全在生成器里（tools/cards/make-ornaments.py 的 crack_net），令牌仍是 `--tex-crack`。
-   **混合模式用 normal 而不是 screen**：金色裂缝在浅色画上（木刀那张）用 screen 会完全消失（实测）。 */
-/* kintsugi 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 金继的「缝」要有厚度：一侧受光、一侧落影。金缝本身在 ::before（颜色由渐变给、形状由 mask 给），
-   而**暗侧必须放在另一层** —— mask 会把 ::before 上所有背景层一起裁掉，暗侧放进去就跟着变成金的了。
-   ::after 已经不挂 mask（暗角在那儿），把暗侧再加一层、一起 multiply 压暗即可。
-   **暗侧复用同一张裂缝图、只把位置错开 1.3px**：那正是旧版 --tex-crack-shade 那张令牌干的事
-   （它内部就是同一份几何加了个 translate），而独立出一张 3 KB 的令牌纯属浪费 —— 生成器那边已删。 */
-.home-card--kintsugi::after {
-  background-image:
-    var(--tex-crack),
-    radial-gradient(126% 96% at 50% 46%, transparent 42%, rgba(4, 3, 7, .45) 100%);
-  background-size: 100% 100%, 100% 100%;
-  background-position: 1.3px 1.6px, 0 0;
-  mix-blend-mode: multiply;
-  opacity: calc(.85 * var(--rank-craft, 1));
-}
-
-/* 釉面反光：借装饰层 `.home-card-lens`（玻璃用它做厚度折射）。陶瓷是上过釉的，一道宽而柔的斜光
-   就把它从「一张暗卡」变成「一块上釉的陶片」。 */
-.home-card--kintsugi .home-card-lens {
-  display: block;
-  position: absolute;
-  inset: var(--cart-inset);
-  border-radius: var(--cart-r);
-  background-image: linear-gradient(116deg, rgba(255, 246, 226, 0) 18%, rgba(255, 246, 226, .16) 38%, rgba(255, 246, 226, 0) 56%);
-  mask-image: none;
-  -webkit-mask-image: none;
-  transform: none;
-  filter: none;
-  mix-blend-mode: screen;
-  opacity: calc(.9 * var(--rank-craft, 1));
-  pointer-events: none;
-}
-
-/* ============================================
-   ---------- 2026-09-21 新加的四种工艺 ----------
-   用户「可以添加一些工艺」时圈的四种。前两种属**进阶**（多层 / 有雕花框与宝石），
-   后两种属**普通**（一层印纹）。四种的纹样都来自 tools/cards/make-ornaments.py。
-   ============================================ */
-
-/* 雕花金（参考图那种）：深底 + 细金线雕花框 + 角上镶琥珀宝石。
-   它是这一批里最贴参考图的一张 —— 但**卡面本身是素的**（参考图上人物之外没有花纹）：
-   繁复全在边框上，这也是「工艺克制」那条的落地（全卡闪到看不清插画就失败了）。 */
-/* filigree 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 珐琅彩：金线分格 + 宝石块（景泰蓝/教堂彩窗）。
-   格子是实心的 mask（见生成器里 cloison 的说明），涂上四块宝石色；**缝里露出来的是卡自己的
-   框色** —— 等级给的是金属色阶，所以缝在高档是金线、在低档是银灰线，金线不必另画一层。 */
-/* enamel 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
+   跟着这一次一起删掉的（它们只有玻璃/金继两种在用，那两种已并进珠光纸与墨染/烫金箔）：
+   玻璃的四件套（倒角 inset、::after 镜面高光、`.home-card-lens` 厚度折射 + 边缘色散）与
+   金继的裂缝暗侧（`::after` 的 multiply 层）与釉面反光（`.home-card-lens` 的斜光）——
+   工艺收敛的判据见 docs/card-redesign-brief.md §八/§十六/§十八，逐张映射见 data/home-cards.yaml。 */
 /* 星屑夜天：深蓝紫的框 + 一层疏密不匀的星点与流星痕。
    **不遮画面**：mask 就是星点本身，所以印上去的只有星星，插画原样透出来 ——
    「夜天」那半由框的深蓝紫叠层给。 */
 /* starnight 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 冰裂纹：**无色的裂** —— 与金继共用同一张裂缝网，只是材质换成冷白（没有金、没有漆）。
-   缝是「亮」的（冰面裂开处反光），所以用 --coverlay 的冷白印上去，而不是压暗。 */
-/* frostcrack 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* ---------- 四张新工艺（2026-09-21 加，十二 → 十六种）----------
-
-   判据只有一条：**每种工艺要有一个别的工艺没有的物理机制**，不能只是换色。
-   已有的十二种里，全息是周期性衍射、和纸是各向异性纤维、金继是裂纹补金、霜裂是晶体开裂 ——
-   下面这四种各自对应一个之前没用到过的机制：薄膜干涉 / 金属双高光（冷色相）/ 织物经向丝光 / 高层大气发光。
-   全部只用 --coverlay 那一叠渐变 + --cblend 表达，不动版式、不新增图片。 */
-
-/* 珍珠母贝（nacre）—— **已参数化**：这一块现在由 data/card-styles.yaml 生成，产物在
-   assets/css/decks/21-card-styles.css（tools/cards/render-styles.mjs --write）。
-   在这里手加回来 = 同一个类出现两处，check-deck.mjs 会拦下（工艺的说明写在 YAML 的 note 里）。 */
-
 /* 烫银：与烫金是**同一套结构**（两条高光 + 拉丝 + 压深四边），只把色相换到冷端。
-   银比金难做：明度差一大，暗部一拍就脏，所以压深比 gold 浅一档（.26 对 .34）。 */
+   银比金难做：明度差一大，暗部一拍就脏，所以压深比烫金（goldfoil）浅一档（.26 对 .34）。 */
 /* silver 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
-/* 绸缎（silk）—— **已参数化**：同上一处，块由 data/card-styles.yaml 生成到
-   assets/css/decks/21-card-styles.css。 */
-
-/* 极光：**高层大气发光** —— 斜向的绿紫光带，边缘比中心亮（发光层的厚度）。
-   用 screen（只加亮不加暗）：底图暗的地方才看得见它，这与「夜」的语义一致。 */
-/* aurora 的令牌已参数化 —— 值在 data/card-styles.yaml，产物见 21-card-styles.css。改这一块请改 YAML 再跑 node tools/cards/render-styles.mjs --write。 */
 /* ---------- 等级：六档阶梯，只改一组令牌，不动版式 ----------
 
    等级（rank）与纹样（style）是**正交**的两件事：等级管材料与档位，纹样管卡面上的图案。
-   所以这里只声明一组 `--rank-*` 令牌、由六个 rank 类各自赋值，**不写「16 风格 × 6 等级」
-   那 96 种组合** —— 组合爆炸正是这个文件当初膨胀的原因。
+   所以这里只声明一组 `--rank-*` 令牌、由六个 rank 类各自赋值，**不写「8 风格 × 6 等级」
+   那 48 种组合** —— 组合爆炸正是这个文件当初膨胀的原因。
 
    六档：收藏 → 珍稀 → 史诗 → 秘藏 → 传世 → 奇迹（隐藏）。两个新档（珍稀/秘藏）是
    2026-09-21 加的，成员由 scripts/rank-deck.py 按客观分位切（见那个脚本的头部）。
@@ -1439,26 +1279,20 @@ a.home-deck-dialog-credit:hover {
 
 /* ---------- 深色主题：**逐条给值，不要一条通吃** ----------
 
-   默认那条是给 foil / frost 这类「往上加亮」的风格的：深底上提亮很猛，不压整张卡会白掉。
-   而 washi / kintsugi / uchiwa 这类 `normal` + 半透明材料的，在深色下本来正常，压了反而没质感。
+   默认那条是给 foil 这类「往上加亮」的风格的：深底上提亮很猛，不压整张卡会白掉。
+   而正常混合 + 半透明材料的那几种（如烫银）在深色下本来正常，压了反而没质感。
    早先一条 `.home-card { --coverlay-op: .18 }` 把哥特的铅条玻璃压没了（实测），所以这里逐条给值。
    **新增风格必须补一条**，否则它在深色下要么白掉、要么整层消失。 */
 :root[data-theme="dark"] .home-card { --coverlay-op: .6; }
 :root[data-theme="dark"] .home-card--holo-prism { --coverlay-op: .75; }
-:root[data-theme="dark"] .home-card--gold { --coverlay-op: .6; }
-:root[data-theme="dark"] .home-card--washi { --coverlay-op: 1; }
-:root[data-theme="dark"] .home-card--ink { --coverlay-op: .6; }
-:root[data-theme="dark"] .home-card--glass { --coverlay-op: 1; }
-:root[data-theme="dark"] .home-card--yukika { --coverlay-op: .85; }
-:root[data-theme="dark"] .home-card--kintsugi { --coverlay-op: .95; }
-/* 2026-09-21 新加的四种（规矩 6：**新增风格必须补一条**，否则它在深色下要么白掉、要么整层消失）。
-   前三种是 `normal` + 半透明材料，深色下本来正常，只微调；冰裂是冷白印上去的，深色下要压住，
-   不然整张卡发白发亮。 */
-:root[data-theme="dark"] .home-card--filigree { --coverlay-op: 1; }
-:root[data-theme="dark"] .home-card--enamel { --coverlay-op: .85; }
 :root[data-theme="dark"] .home-card--starnight { --coverlay-op: .75; }
-:root[data-theme="dark"] .home-card--frostcrack { --coverlay-op: .75; }
-
+/* 2026-09-24 收敛后新做的四种（规矩 6：**新增风格必须补一条**）。压的两条是「往上加亮」的
+   纸面（凸印的 soft-light 受光、珠光的暖白），深底上不压会整张卡发白；烫金箔与墨染是深材料，
+   与 gold / ink 那两条同值。 */
+:root[data-theme="dark"] .home-card--emboss { --coverlay-op: .75; }
+:root[data-theme="dark"] .home-card--pearl { --coverlay-op: .8; }
+:root[data-theme="dark"] .home-card--goldfoil { --coverlay-op: .6; }
+:root[data-theme="dark"] .home-card--inkwash { --coverlay-op: .6; }
 /* ---------- 减少动态：不轮播（JS 侧直接跳过）、不做淡入淡出与扫光 ---------- */
 @media (prefers-reduced-motion: reduce) {
   .home-card,

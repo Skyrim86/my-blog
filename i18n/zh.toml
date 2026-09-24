@@ -250,10 +250,18 @@ other = "传世"
 [deckRankMiracle]
 other = "奇迹"
 
-# 收藏库（/collection/，见 docs/features.md ㊿）—— 十二种工艺的**中文名**。
+# 收藏库（/collection/，见 docs/features.md ㊿）—— 工艺的**中文名**。
 # 这是全站第一次给「工艺」起对外名字：此前 style 只有代码名（foil / washi / kintsugi…），
 # 中文叫法只出现在 21-card-deck.css 的注释与文档里，卡片墙的筛选项需要真名字。
 # 取的就是 CSS 注释里那套叫法（全息 / 星芒全息 / 金边 / 玻璃 / 墨 / 和纸 / 雪华 / 金继）。
+#
+# 2026-09-24：工艺层从十六种**收敛到八种**（保留四种光系 + 新做四种印刷系，见
+# data/card-styles.yaml 文件头与 docs/card-redesign-brief.md §八/§十六/§十八）。
+# 下面八个是**现役**的：foil 全息 / holo-prism 星芒全息 / silver 烫银 / starnight 星屑 /
+# emboss 凸印压痕 / pearl 珠光纸 / goldfoil 烫金箔 / inkwash 墨染 —— 新增的四个词条在下半段。
+# 已汰除的十种（金边 / 玻璃 / 墨 / 和纸 / 雪华 / 金继 / 雕花金 / 珐琅彩 / 冰裂 / 珍珠母贝 /
+# 绸缎 / 极光）的词条**留着不删**：它们不在任何检查面上（check-deck.mjs 的 I18N_KEYS 只核
+# 现役那八个），而 docs/ 里的旧文档、21-card-deck.css 的注释都还在用这些中文叫法对读。
 [deckStyleFoil]
 other = "全息"
 
@@ -290,6 +298,22 @@ other = "珐琅彩"
 [deckStyleStarnight]
 other = "星屑"
 
+# 2026-09-24 新做的四种印刷系（工艺层的四个新代码名，见 data/card-styles.yaml）。
+# 名字取 brief §十六 那套叫法；分档：凸印压痕与珠光纸是**普通**（单层印纹），
+# 烫金箔是**进阶**（多层材料）。分档的唯一定义处仍是 deck-manifest.html 的 $styleTier 表。
+[deckStyleEmboss]
+other = "凸印压痕"
+
+[deckStylePearl]
+other = "珠光纸"
+
+[deckStyleGoldfoil]
+other = "烫金箔"
+
+[deckStyleInkwash]
+other = "墨染"
+
+# ↓ 以下十条是**已汰除**的工艺（2026-09-24 收敛时留下的旧词条，见本段开头的说明）。
 [deckStyleFrostcrack]
 other = "冰裂"
 

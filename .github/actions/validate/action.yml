@@ -53,6 +53,14 @@ runs:
       shell: bash
       run: node scripts/check-cards.mjs
 
+    # 工艺 × 卡面明度那条守卫（check-deck.mjs 的 ⑨）要**现算**每张卡面的明度，
+    # 算法与阈值在 scripts/deck-edit.py 里（用 Pillow）—— ubuntu 镜像不保证带 Pillow，
+    # 所以这里显式装一次。不装的话 check-deck.mjs 会明确报「找不到装了 Pillow 的 Python」拦下，
+    # 不会静默跳过那一条（那正是这个仓库最怕的失败方式）。
+    - name: 装 Pillow（check-deck 的工艺 × 明度守卫要用）
+      shell: bash
+      run: python3 -m pip install --quiet --disable-pip-version-check pillow
+
     # 首页卡片组的清单（data/home-cards.yaml）不变量：阻断。它和上面那条管的不是一套卡 ——
     # 这条只管首页 hero 底部那副牌。清单是那副牌的**单一事实源**，但此前没有任何脚本读它：
     # style 拼错会静默退回全息 foil、crop 拼错会静默改成整幅硬裁、src/产物路径写错会让模板

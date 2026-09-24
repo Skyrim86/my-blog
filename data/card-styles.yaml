@@ -1,23 +1,44 @@
-# 卡片工艺的参数表 —— **已参数化工艺的单一事实源**（2026-09-21 起的样板，见 docs/exp-craft.md）
+# 卡片工艺的参数表 —— **工艺定义的单一事实源**（2026-09-21 起的样板，见 docs/exp-craft.md）
 #
-# 背景：一种「卡面工艺」此前散在**五处**手写代码里 ——
-#   ① data/home-cards.yaml 的 `style:` 字段（哪张卡用哪种工艺）
-#   ② assets/css/decks/21-card-deck.css 的 `.home-card--<名>` 块（工艺本体，十几到几十行）
-#   ③ assets/js/card-3d.js 的 STYLE_3D（弹层里那张 3D 卡的同名工艺参数，一行）
-#   ④ i18n/zh.toml 的 `[deckStyle<名>]`（工艺的中文名）
-#   ⑤ layouts/_partials/deck-manifest.html 的 styleLabel 与 $styleTier 两张表
-# 于是「加一种工艺」要动五处，漏一处的表现全是**静默**的（卡面没纹样 / 转起来是箔膜 / 筛选条里没有中文名）。
+# 2026-09-24：工艺从**十六种收敛到八种**（用户拍定，依据是 docs/card-redesign-brief.md 的
+# §八 样张实测、§十六 工艺 × 卡面适配表、§十八 三档规则）。八种分两族：
+#   · 光系（保留的四种）：holo-prism 星芒全息 / foil 全息 / silver 烫银 / starnight 星屑
+#   · 印刷系（新做的四种）：emboss 凸印压痕 / pearl 珠光纸 / goldfoil 烫金箔 / inkwash 墨染
+#   汰掉的十种（washi 和纸 / yukika 雪华 / frostcrack 冰裂 / nacre 珍珠母贝 / silk 绸缎 /
+#   glass 玻璃 / kintsugi 金继 / filigree 雕花金 / enamel 珐琅彩 / aurora 极光）按**观感方向**
+#   逐张并进上面八种，映射逐张记在 data/home-cards.yaml 的组注释里。为什么收：十六种里有一半
+#   在 272px 的卡面上与近亲分不开（同一原子配方的变体），而每多一种就多一套浅色/深色主题的维护面。
 #
-# 这份文件把 ②③ 变成**生成的**：跑
+# **foil 是特例**：它没有主块 —— `.home-card` 的基础声明本身就是全息的观感（见
+# assets/css/decks/21-card-deck.css 文件尾那条说明），所以它不在下面的 styles 表里，
+# 但它是合法的 style 值（清单里 5 张）。
+#
+# 一种工艺散在**五处**：① data/home-cards.yaml 的 style 字段 ② assets/css/decks/21-card-deck.css
+# 的 `.home-card--<名>` 块 ③ assets/js/card-3d.js 的 STYLE_3D ④ i18n/zh.toml 的 `[deckStyle<名>]`
+# ⑤ layouts/_partials/deck-manifest.html 的 styleLabel 与 $styleTier 两张表。
+# 这份文件把 ②③ 变成**生成的**：
 #     node tools/cards/render-styles.mjs --write
-# 它会读这里、写出 assets/css/decks/21-card-styles.css，并把 ③ 的那一行重写进 card-3d.js。
-# `node scripts/check-deck.mjs` 会核对产物与这份文件是否一致（不一致 = 阻断）——
+# 它读这里、写出 assets/css/decks/21-card-styles.css，并把 ③ 的那些行重写进 card-3d.js。
+# `node scripts/check-deck.mjs` 会核对产物与这份文件是否逐字一致（不一致 = 阻断）——
 # 所以**下面这几种工艺的参数行不要再手改**：手改过的会被生成器覆盖，且首先会被 check-deck 拦下。
 #
-# ④⑤ 目前**没有**参数化（还是手写）：中文名归 i18n（AGENTS 规则 7：面向访客的文案放 i18n/zh.toml），
+# ④⑤ 仍**没有**参数化（还是手写）：中文名归 i18n（AGENTS 规则 7：面向访客的文案放 i18n/zh.toml），
 # 两张分类表在模板里。labelKey / tier 两个字段就是为了「将来把 ⑤ 也接过来」先留的位
 # —— 现在它们在 check-deck 里与模板那两张表**对拍**（写岔了报错），这样表还在模板里也不会读岔。
 #
+# **工艺与等级正交**：工艺只管纹样材质，等级只管结构（带宽 / 角饰 / 材质底色 --cframe）。
+# 工艺能写的只有 --cframe-finish，写 --cframe 会把等级色阶整片盖掉（21-card-deck.css 第 6 条规矩）。
+#
+# **工艺 × 卡面明度**（brief §十八）：卡面明度分三档，每档各有一个「允许工艺」集合：
+#   亮 ≥185 → 凸印 / 珠光 / 烫银 / 烫金 / 全息
+#   中 140~185 → 上面的 + 星芒全息
+#   暗 <140 → 凸印 / 烫金 / 全息 / 星芒全息 / 星屑 / 墨染
+# 这条规则的**唯一一份实现**是 scripts/deck-edit.py 的 CRAFT_RULE（管理页的收藏库面板与
+# check-deck.mjs 的守卫都从那里读）—— 别在这份文件、也别在别的脚本里再抄一份。
+# 明度由脚本**现算**（卡面灰度均值，缩到 60×84 再取均值），不写死进清单：换图后自动重算。
+# 要破例就在 data/home-cards.yaml 里显式写 `craft_exempt: true`，守卫放行但会把豁免打出来。
+#
+# 字段（一种工艺一组）：
 # 字段（一种工艺一组）：
 #   labelKey   ④ 的中文名词条名。check-deck 核它在 i18n 里存在、且与 ⑤ 的 styleLabel 一致
 #   tier       ⑤ 的分档（basic 纸面 + 单层印纹 / advanced 多层材料）。check-deck 核它与 $styleTier 一致
@@ -49,524 +70,11 @@ version: 1
 
 styles:
 
-  # ---------------------------------------------------------------- 珍珠母贝
-  nacre:
-    labelKey: deckStyleNacre
-    tier: basic
-    note: 珍珠母贝：薄膜干涉的虹彩 —— 大块缓变、只在掠角出彩（与全息的周期性衍射区分开），所以一根 repeating 条纹都不放。
-    fretLine: rgba(244, 250, 255, .90)
-    gemColor: "#cfe8e6"
-    finish:
-      kind: linear
-      direction: 140deg
-      stops:
-        - color: rgba(238, 247, 252, .50)
-        - at: "46%"
-          color: rgba(206, 228, 236, .28)
-        - color: rgba(246, 234, 246, .42)
-    plate:
-      kind: linear
-      direction: to top
-      stops:
-        - color: rgba(16, 26, 32, .93)
-        - color: rgba(16, 26, 32, .62)
-    plateSolid: rgba(16, 26, 32, .88)
-    plateText: "#eef6fa"
-    plateAccent: "#a8d8dc"
-    blend: soft-light
-    opacity: "1"
-    filter: none
-    print:
-      - kind: linear
-        direction: 118deg
-        stops:
-          - at: "30%"
-            color: rgba(255, 214, 236, 0)
-          - at: "42%"
-            color: rgba(255, 214, 236, .42)
-          - at: "50%"
-            color: rgba(198, 236, 255, .44)
-          - at: "58%"
-            color: rgba(214, 255, 232, .38)
-          - at: "70%"
-            color: rgba(255, 214, 236, 0)
-      - kind: linear
-        direction: 72deg
-        stops:
-          - at: "34%"
-            color: rgba(198, 236, 255, 0)
-          - at: "48%"
-            color: rgba(226, 214, 255, .34)
-          - at: "60%"
-            color: rgba(255, 240, 214, .32)
-          - at: "74%"
-            color: rgba(198, 236, 255, 0)
-      - kind: radial
-        size: 120% 90%
-        at: 42% 38%
-        stops:
-          - color: rgba(255, 255, 255, .18)
-          - at: "62%"
-            color: rgba(255, 255, 255, 0)
-      - kind: token
-        ref: "--grain"
-    threeD:
-      foil: "0.22"
-      scale: "1.9"
-      tint: "[0.94, 0.98, 1.00]"
-      spec: "0.72"
-      relief: "1.00"
-      sparkle: "1.15"
-      edge: "[0.90, 0.94, 0.97]"
-
-  # ---------------------------------------------------------------- 绸缎
-  silk:
-    labelKey: deckStyleSilk
-    tier: basic
-    note: 绸缎：经向丝光 —— 缎面只沿经线反光，所以是一束束竖向软高光带；周期取 6/11/23/37 等互质数避免等距（等距竖条在 272px 下会读成条形码）。
-    fretLine: rgba(255, 246, 240, .92)
-    gemColor: "#e6c8c8"
-    finish:
-      kind: linear
-      direction: 140deg
-      stops:
-        - color: rgba(255, 246, 240, .48)
-        - at: "48%"
-          color: rgba(226, 202, 198, .26)
-        - color: rgba(255, 248, 244, .42)
-    plate:
-      kind: linear
-      direction: to top
-      stops:
-        - color: rgba(38, 22, 26, .93)
-        - color: rgba(38, 22, 26, .62)
-    plateSolid: rgba(38, 22, 26, .88)
-    plateText: "#fdf0ee"
-    plateAccent: "#e8a8a4"
-    blend: overlay
-    opacity: ".7"
-    filter: none
-    print:
-      - kind: repeating-linear
-        direction: 94deg
-        stops:
-          - at: 0 6px
-            color: rgba(255, 250, 246, 0)
-          - at: 11px 17px
-            color: rgba(255, 250, 246, .12)
-          - at: 23px 30px
-            color: rgba(120, 78, 74, .15)
-          - at: 37px 52px
-            color: rgba(255, 250, 246, 0)
-      - kind: linear
-        direction: 102deg
-        stops:
-          - at: "44%"
-            color: rgba(255, 255, 255, 0)
-          - at: "52%"
-            color: rgba(255, 250, 246, .30)
-          - at: "62%"
-            color: rgba(255, 255, 255, 0)
-      - kind: radial
-        size: 120% 92%
-        at: 46% 40%
-        stops:
-          - color: rgba(255, 240, 236, .14)
-          - at: "64%"
-            color: rgba(255, 240, 236, 0)
-      - kind: token
-        ref: "--grain-fine"
-    threeD:
-      foil: "0.20"
-      scale: "1.2"
-      tint: "[1.00, 0.96, 0.94]"
-      spec: "0.62"
-      relief: "0.90"
-      sparkle: "0.85"
-      edge: "[0.93, 0.89, 0.86]"
-  # ---------------------------------------------------------------- deckStyleAurora
-  aurora:
-    labelKey: "deckStyleAurora"
-    tier: "advanced"
-    note: "极光：**高层大气发光** —— 斜向的绿紫光带，边缘比中心亮（发光层的厚度）。"
-    fretLine: "rgba(206, 255, 238, .92)"
-    gemColor: "#7fe0c0"
-    finish:
-      kind: linear
-      direction: "140deg"
-      stops:
-        - color: "rgba(214, 255, 240, .44)"
-        - color: "rgba(140, 200, 190, .26)"
-          at: "46%"
-        - color: "rgba(224, 240, 255, .40)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(8, 20, 24, .94)"
-        - color: "rgba(8, 20, 24, .64)"
-    plateSolid: "rgba(8, 20, 24, .9)"
-    plateText: "#e6fbf6"
-    plateAccent: "#8fe8cc"
-    blend: "overlay"
-    opacity: ".95"
-    filter: "none"
-    print:
-      - kind: linear
-        direction: "128deg"
-        stops:
-          - color: "rgba(120, 255, 210, 0)"
-            at: "26%"
-          - color: "rgba(120, 255, 210, .44)"
-            at: "40%"
-          - color: "rgba(150, 130, 255, .38)"
-            at: "52%"
-          - color: "rgba(120, 220, 255, .34)"
-            at: "62%"
-          - color: "rgba(120, 255, 210, 0)"
-            at: "76%"
-      - kind: linear
-        direction: "64deg"
-        stops:
-          - color: "rgba(160, 140, 255, 0)"
-            at: "32%"
-          - color: "rgba(140, 200, 255, .34)"
-            at: "48%"
-          - color: "rgba(160, 140, 255, 0)"
-            at: "66%"
-      - kind: radial
-        size: "120% 100%"
-        at: "50% 30%"
-        stops:
-          - color: "rgba(180, 255, 226, .16)"
-          - color: "rgba(180, 255, 226, 0)"
-            at: "60%"
-      - kind: token
-        ref: "--grain"
-    threeD:
-      foil: "0.58"
-      scale: "3.8"
-      tint: "[0.82, 1.00, 0.94]"
-      spec: "0.55"
-      relief: "1.05"
-      sparkle: "1.28"
-      edge: "[0.72, 0.90, 0.84]"
-
-  # ---------------------------------------------------------------- deckStyleEnamel
-  enamel:
-    labelKey: "deckStyleEnamel"
-    tier: "advanced"
-    note: "珐琅彩：金线分格 + 宝石块（景泰蓝/教堂彩窗）。"
-    fretLine: "#f2e3b0"
-    gemColor: "#7f9ce6"
-    finish:
-      kind: linear
-      direction: "140deg"
-      stops:
-        - color: "rgba(255, 246, 214, .42)"
-        - color: "rgba(196, 158, 68, .30)"
-          at: "52%"
-        - color: "rgba(255, 240, 196, .36)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(16, 14, 26, .94)"
-        - color: "rgba(16, 14, 26, .68)"
-    plateSolid: "rgba(16, 14, 26, .9)"
-    plateText: "#f2f0fb"
-    plateAccent: "#cdc2f0"
-    blend: "normal"
-    opacity: ".72"
-    mask:
-      - kind: token
-        ref: "--tex-cloison"
-    maskSize: "100% 100%"
-    maskRepeat: "no-repeat"
-    filter: "none"
-    print:
-      - kind: radial
-        size: "42% 30%"
-        at: "24% 22%"
-        stops:
-          - color: "rgba(92, 172, 216, .92)"
-          - color: "rgba(92, 172, 216, 0)"
-            at: "100%"
-      - kind: radial
-        size: "38% 26%"
-        at: "76% 38%"
-        stops:
-          - color: "rgba(126, 96, 194, .88)"
-          - color: "rgba(126, 96, 194, 0)"
-            at: "100%"
-      - kind: radial
-        size: "34% 24%"
-        at: "38% 72%"
-        stops:
-          - color: "rgba(198, 92, 132, .86)"
-          - color: "rgba(198, 92, 132, 0)"
-            at: "100%"
-      - kind: radial
-        size: "30% 22%"
-        at: "82% 80%"
-        stops:
-          - color: "rgba(84, 178, 140, .84)"
-          - color: "rgba(84, 178, 140, 0)"
-            at: "100%"
-      - kind: token
-        ref: "--grain-fine"
-    threeD:
-      foil: "0.30"
-      scale: "2.6"
-      tint: "[0.96, 0.92, 1.00]"
-      spec: "0.95"
-      relief: "1.10"
-      sparkle: "1.00"
-      edge: "[0.80, 0.74, 0.44]"
-
-  # ---------------------------------------------------------------- deckStyleFiligree
-  filigree:
-    labelKey: "deckStyleFiligree"
-    tier: "advanced"
-    note: "雕花金（参考图那种）：深底 + 细金线雕花框 + 角上镶琥珀宝石。"
-    fretLine: "#e9ca86"
-    gemColor: "#f0b96a"
-    finish:
-      kind: linear
-      direction: "140deg"
-      stops:
-        - color: "rgba(198, 162, 94, .38)"
-        - color: "rgba(58, 44, 22, .46)"
-          at: "52%"
-        - color: "rgba(152, 120, 64, .34)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(20, 15, 8, .95)"
-        - color: "rgba(20, 15, 8, .72)"
-    plateSolid: "rgba(20, 15, 8, .92)"
-    plateText: "#f8ecd4"
-    plateAccent: "#e6c68a"
-    blend: "normal"
-    opacity: ".78"
-    filter: "none"
-    print:
-      - kind: linear
-        direction: "158deg"
-        stops:
-          - color: "rgba(46, 36, 20, .55)"
-          - color: "rgba(20, 15, 9, .62)"
-            at: "52%"
-          - color: "rgba(38, 29, 16, .55)"
-      - kind: radial
-        size: "120% 88%"
-        at: "50% 40%"
-        stops:
-          - color: "rgba(255, 224, 160, .16)"
-          - color: "rgba(255, 224, 160, 0)"
-            at: "72%"
-      - kind: token
-        ref: "--grain-fine"
-    threeD:
-      foil: "0.40"
-      scale: "2.0"
-      tint: "[1.00, 0.86, 0.58]"
-      spec: "0.85"
-      relief: "1.05"
-      sparkle: "1.00"
-      edge: "[0.86, 0.70, 0.36]"
-
-  # ---------------------------------------------------------------- deckStyleFrostcrack
-  frostcrack:
-    labelKey: "deckStyleFrostcrack"
-    tier: "basic"
-    note: "冰裂纹：**无色的裂** —— 与金继共用同一张裂缝网，只是材质换成冷白（没有金、没有漆）。"
-    fretLine: "rgba(236, 248, 255, .95)"
-    finish:
-      kind: linear
-      direction: "140deg"
-      stops:
-        - color: "rgba(226, 240, 252, .40)"
-        - color: "rgba(148, 178, 204, .30)"
-          at: "52%"
-        - color: "rgba(240, 248, 255, .38)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(14, 24, 36, .93)"
-        - color: "rgba(14, 24, 36, .66)"
-    plateSolid: "rgba(14, 24, 36, .9)"
-    plateText: "#eef6ff"
-    plateAccent: "#cfe4f5"
-    blend: "normal"
-    opacity: ".46"
-    mask:
-      - kind: token
-        ref: "--tex-crack"
-    filter: "url(#deck-rough-crack)"
-    print:
-      - kind: linear
-        direction: "150deg"
-        stops:
-          - color: "rgba(238, 248, 255, .96)"
-          - color: "rgba(186, 212, 234, .88)"
-            at: "48%"
-          - color: "rgba(228, 242, 252, .94)"
-      - kind: token
-        ref: "--grain-fine"
-    threeD:
-      foil: "0.22"
-      scale: "3.0"
-      tint: "[0.90, 0.96, 1.00]"
-      spec: "0.60"
-      relief: "1.05"
-      sparkle: "1.00"
-      edge: "[0.86, 0.92, 0.98]"
-
-  # ---------------------------------------------------------------- deckStyleGlass
-  glass:
-    labelKey: "deckStyleGlass"
-    tier: "advanced"
-    note: "玻璃：**四件套**（倒角 + 柔和高光 + 边缘折射 + 假厚度）。"
-    fretLine: "rgba(238, 248, 255, .90)"
-    gemColor: "#cfe6ff"
-    finish:
-      kind: linear
-      direction: "150deg"
-      stops:
-        - color: "rgba(255, 255, 255, .50)"
-        - color: "rgba(214, 236, 255, .22)"
-          at: "42%"
-        - color: "rgba(255, 255, 255, .42)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(14, 22, 32, .9)"
-        - color: "rgba(14, 22, 32, .55)"
-    plateSolid: "rgba(14, 22, 32, .86)"
-    plateText: "#f2f8ff"
-    plateAccent: "#cfe6ff"
-    blend: "normal"
-    opacity: "1"
-    mask:
-      - kind: linear
-        direction: "to bottom"
-        stops:
-          - color: "transparent"
-            at: "0 44%"
-          - color: "#000"
-            at: "74%"
-    filter: "none"
-    boxShadow: "var(--shadow-card), inset 1px 1px 0 rgba(255, 255, 255, .6), inset -1px -1px 0 rgba(0, 0, 0, .3), inset 0 0 0 1px rgba(255, 255, 255, .34), inset 0 -3px 2px -2px rgba(255, 255, 255, .6), inset 0 16px 28px -22px rgba(255, 255, 255, .5), inset 0 12px 20px -18px rgba(0, 0, 0, .5)"
-    print:
-      - kind: linear
-        direction: "to bottom"
-        stops:
-          - color: "rgba(255, 255, 255, 0)"
-            at: "44%"
-          - color: "rgba(255, 255, 255, .07)"
-            at: "74%"
-    threeD:
-      foil: "0.12"
-      scale: "1.1"
-      tint: "[0.80, 0.90, 1.00]"
-      spec: "1.20"
-      relief: "1.10"
-      sparkle: "1.00"
-      edge: "[0.88, 0.93, 0.98]"
-
-  # ---------------------------------------------------------------- deckStyleGold
-  gold:
-    labelKey: "deckStyleGold"
-    tier: "advanced"
-    note: "金边：**暗底 + 一条窄高光 + 拉丝**。"
-    fretLine: "#f0d9a0"
-    gemColor: "#ffd891"
-    finish:
-      kind: linear
-      direction: "140deg"
-      stops:
-        - color: "rgba(255, 246, 213, .52)"
-        - color: "rgba(231, 205, 126, .26)"
-          at: "16%"
-        - color: "rgba(201, 162, 39, .30)"
-          at: "32%"
-        - color: "rgba(255, 248, 221, .46)"
-          at: "50%"
-        - color: "rgba(184, 153, 31, .28)"
-          at: "66%"
-        - color: "rgba(168, 121, 26, .30)"
-          at: "84%"
-        - color: "rgba(255, 238, 184, .42)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(30, 21, 6, .93)"
-        - color: "rgba(30, 21, 6, .62)"
-    plateSolid: "rgba(30, 21, 6, .88)"
-    plateText: "#fbeecb"
-    plateAccent: "#e8cf8f"
-    blend: "overlay"
-    opacity: ".85"
-    filter: "url(#deck-rough)"
-    print:
-      - kind: linear
-        direction: "112deg"
-        stops:
-          - color: "rgba(255, 240, 200, 0)"
-            at: "40%"
-          - color: "rgba(255, 236, 186, .26)"
-            at: "45.5%"
-          - color: "rgba(255, 249, 228, .62)"
-            at: "48.5%"
-          - color: "rgba(255, 236, 186, .24)"
-            at: "51.5%"
-          - color: "rgba(255, 240, 200, 0)"
-            at: "58%"
-      - kind: linear
-        direction: "112deg"
-        stops:
-          - color: "rgba(255, 236, 186, 0)"
-            at: "63%"
-          - color: "rgba(255, 244, 205, .30)"
-            at: "66%"
-          - color: "rgba(255, 240, 200, 0)"
-            at: "70%"
-      - kind: repeating-linear
-        direction: "96deg"
-        stops:
-          - color: "rgba(255, 236, 186, 0)"
-            at: "0 1.7px"
-          - color: "rgba(255, 236, 186, .15)"
-            at: "2.5px 3.4px"
-          - color: "rgba(120, 86, 20, .13)"
-            at: "4.6px 5.5px"
-          - color: "rgba(255, 236, 186, 0)"
-            at: "6.7px 9.4px"
-      - kind: radial
-        size: "126% 96%"
-        at: "50% 46%"
-        stops:
-          - color: "rgba(60, 40, 6, 0)"
-            at: "46%"
-          - color: "rgba(40, 26, 4, .34)"
-            at: "100%"
-      - kind: token
-        ref: "--grain-fine"
-    threeD:
-      foil: "0.34"
-      scale: "1.5"
-      tint: "[1.00, 0.84, 0.45]"
-      spec: "0.90"
-      relief: "0.90"
-      sparkle: "1.00"
-      edge: "[0.90, 0.75, 0.40]"
+  # ================================================================ 光系（保留的四种）
+  # foil 不在这个表里：它的「主块」就是 .home-card 的基础声明本身（见文件头）。
 
   # ---------------------------------------------------------------- deckStyleHoloPrism
+
   holo-prism:
     labelKey: "deckStyleHoloPrism"
     tier: "advanced"
@@ -664,106 +172,6 @@ styles:
       edge: "[0.95, 0.93, 0.88]"
 
   # ---------------------------------------------------------------- deckStyleInk
-  ink:
-    labelKey: "deckStyleInk"
-    tier: "basic"
-    note: "墨：底部压深 + 一道飞白 + 纸颗粒（原来那 2px/6px 的横向细纹在 272px 下只是瑕疵，去掉了）"
-    fretLine: "rgba(196, 200, 214, .85)"
-    finish:
-      kind: linear
-      direction: "140deg"
-      stops:
-        - color: "rgba(59, 53, 67, .42)"
-        - color: "rgba(20, 17, 25, .50)"
-          at: "55%"
-        - color: "rgba(75, 68, 82, .38)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(8, 7, 11, .94)"
-        - color: "rgba(8, 7, 11, .68)"
-    plateSolid: "rgba(8, 7, 11, .9)"
-    plateText: "#efe8f0"
-    plateAccent: "var(--accent)"
-    blend: "overlay"
-    opacity: ".65"
-    filter: "none"
-    print:
-      - kind: linear
-        direction: "0deg"
-        stops:
-          - color: "rgba(0, 0, 0, .34)"
-          - color: "rgba(0, 0, 0, 0)"
-            at: "54%"
-      - kind: linear
-        direction: "122deg"
-        stops:
-          - color: "rgba(255, 255, 255, 0)"
-            at: "56%"
-          - color: "rgba(255, 255, 255, .10)"
-            at: "68%"
-          - color: "rgba(255, 255, 255, 0)"
-            at: "80%"
-      - kind: token
-        ref: "--grain"
-    threeD:
-      foil: "0.18"
-      scale: "1.9"
-      tint: "[0.70, 0.70, 0.82]"
-      spec: "0.35"
-      relief: "1.00"
-      sparkle: "1.00"
-      edge: "[0.28, 0.28, 0.34]"
-
-  # ---------------------------------------------------------------- deckStyleKintsugi
-  kintsugi:
-    labelKey: "deckStyleKintsugi"
-    tier: "advanced"
-    note: "金继：黑底 + 一张**裂缝网**。"
-    fretLine: "#e5b96a"
-    gemColor: "#b98a3e"
-    finish:
-      kind: linear
-      direction: "140deg"
-      stops:
-        - color: "rgba(74, 64, 72, .40)"
-        - color: "rgba(22, 19, 26, .48)"
-          at: "52%"
-        - color: "rgba(61, 54, 64, .36)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(10, 8, 12, .94)"
-        - color: "rgba(10, 8, 12, .7)"
-    plateSolid: "rgba(10, 8, 12, .9)"
-    plateText: "#f6efe4"
-    plateAccent: "#e5b96a"
-    blend: "normal"
-    opacity: ".9"
-    mask:
-      - kind: token
-        ref: "--tex-crack"
-    filter: "url(#deck-rough-crack)"
-    print:
-      - kind: linear
-        direction: "150deg"
-        stops:
-          - color: "rgba(228, 180, 96, .95)"
-          - color: "rgba(252, 228, 164, .9)"
-            at: "44%"
-          - color: "rgba(206, 158, 76, .95)"
-      - kind: token
-        ref: "--grain-fine"
-    threeD:
-      foil: "0.62"
-      scale: "2.7"
-      tint: "[1.00, 0.82, 0.40]"
-      spec: "0.70"
-      relief: "1.00"
-      sparkle: "1.00"
-      edge: "[0.22, 0.20, 0.20]"
 
   # ---------------------------------------------------------------- deckStyleSilver
   silver:
@@ -854,6 +262,8 @@ styles:
       edge: "[0.88, 0.91, 0.95]"
 
   # ---------------------------------------------------------------- deckStyleStarnight
+
+  # ---------------------------------------------------------------- deckStyleStarnight
   starnight:
     labelKey: "deckStyleStarnight"
     tier: "basic"
@@ -904,135 +314,306 @@ styles:
       edge: "[0.30, 0.34, 0.66]"
 
   # ---------------------------------------------------------------- deckStyleWashi
-  washi:
-    labelKey: "deckStyleWashi"
-    tier: "basic"
-    note: "和纸：**各向异性**纤维（横向的长丝）+ 两团纸浆的云斑。"
-    fretLine: "rgba(246, 236, 220, .92)"
-    finish:
-      kind: linear
-      direction: "140deg"
-      stops:
-        - color: "rgba(244, 236, 220, .46)"
-        - color: "rgba(216, 201, 178, .26)"
-          at: "52%"
-        - color: "rgba(250, 244, 232, .40)"
-    plate:
-      kind: linear
-      direction: "to top"
-      stops:
-        - color: "rgba(48, 35, 25, .92)"
-        - color: "rgba(48, 35, 25, .6)"
-    plateSolid: "rgba(48, 35, 25, .87)"
-    plateText: "#fdf7ec"
-    plateAccent: "#e2b9a4"
-    blend: "multiply"
-    opacity: "1"
-    mask:
-      - kind: radial
-        size: "58% 46%"
-        at: "50% 40%"
-        stops:
-          - color: "transparent"
-            at: "0 40%"
-          - color: "#000"
-            at: "82%"
-    filter: "none"
-    print:
-      - kind: token
-        ref: "--grain-fiber"
-      - kind: radial
-        size: "62% 36%"
-        at: "30% 24%"
-        stops:
-          - color: "rgba(186, 140, 108, .18)"
-          - color: "rgba(186, 140, 108, 0)"
-            at: "100%"
-      - kind: radial
-        size: "54% 32%"
-        at: "74% 70%"
-        stops:
-          - color: "rgba(150, 120, 90, .16)"
-          - color: "rgba(150, 120, 90, 0)"
-            at: "100%"
-      - kind: token
-        ref: "--grain"
-    threeD:
-      foil: "0.14"
-      scale: "1.3"
-      tint: "[1.00, 0.96, 0.86]"
-      spec: "0.25"
-      relief: "0.85"
-      sparkle: "1.00"
-      edge: "[0.94, 0.91, 0.83]"
 
-  # ---------------------------------------------------------------- deckStyleYukika
-  yukika:
-    labelKey: "deckStyleYukika"
+  # ================================================================ 印刷系（2026-09-24 新做的四种）
+  # 依据 brief §十六 的适配表：凸印与珠光只/主要在亮卡上好看，烫金与墨染在暗卡上是主场
+  # （烫金在亮中也可用）。这条信息与 scripts/deck-edit.py 的 CRAFT_RULE 必须一致。
+
+  # ---------------------------------------------------------------- deckStyleEmboss
+  emboss:
+    labelKey: "deckStyleEmboss"
     tier: "basic"
-    note: "雪华：**十二朵准对称枝晶**铺成一片，2026-09-21 重做（用户：「线条生硬」）。"
-    fretLine: "rgba(228, 244, 255, .92)"
+    note: "凸印压痕（emboss）：**纸白压印，只改光不改色** —— 左上受光、右下落影，再给主体一圈接触阴影。那圈阴影是它与珠光纸在 205px 下分得开的那一笔（brief §八「两者的视觉签名在小尺寸下要不同」）。深度图派生的受力图（lab/工具/bevelmap.py 出的两张灰图：受光走 soft-light、脊线镜面走 screen）还没接进来，当前用软光影近似 —— 接进来时把这两层换成图，混合方式不变。"
+    fretLine: "rgba(247, 243, 235, .92)"
+    gemColor: "#e6e0d2"
     finish:
       kind: linear
       direction: "140deg"
       stops:
-        - color: "rgba(244, 252, 255, .46)"
-        - color: "rgba(168, 212, 238, .24)"
-          at: "46%"
-        - color: "rgba(255, 255, 255, .40)"
+        - color: "rgba(250, 248, 243, .40)"
+        - color: "rgba(226, 220, 208, .22)"
+          at: "52%"
+        - color: "rgba(255, 253, 248, .34)"
     plate:
       kind: linear
       direction: "to top"
       stops:
-        - color: "rgba(12, 28, 44, .93)"
-        - color: "rgba(12, 28, 44, .68)"
-    plateSolid: "rgba(12, 28, 44, .9)"
-    plateText: "#eef8ff"
-    plateAccent: "#cde9ff"
-    blend: "normal"
-    opacity: ".62"
-    mask:
-      - kind: token
-        ref: "--tex-flake1"
-      - kind: token
-        ref: "--tex-flake2"
-      - kind: token
-        ref: "--tex-flake3"
-      - kind: token
-        ref: "--tex-flake1"
-      - kind: token
-        ref: "--tex-flake2"
-      - kind: token
-        ref: "--tex-flake3"
-      - kind: token
-        ref: "--tex-flake1"
-      - kind: token
-        ref: "--tex-flake2"
-      - kind: token
-        ref: "--tex-flake3"
-      - kind: token
-        ref: "--tex-flake1"
-      - kind: token
-        ref: "--tex-flake2"
-      - kind: token
-        ref: "--tex-flake3"
-    maskSize: "26% 18.6%, 20% 14.3%, 15% 10.7%, 22% 15.7%, 13% 9.3%, 18% 12.9%, 16% 11.4%, 24% 17.1%, 14% 10%, 21% 15%, 17% 12.1%, 19% 13.6%"
-    maskPosition: "1% 2%, 58% 0%, 82% 10%, 0% 12%, 88% 30%, 2% 30%, 86% 48%, 0% 52%, 88% 64%, 2% 70%, 74% 80%, 18% 84%"
-    maskRepeat: "no-repeat"
+        - color: "rgba(56, 52, 45, .92)"
+        - color: "rgba(56, 52, 45, .62)"
+    plateSolid: "rgba(56, 52, 45, .88)"
+    plateText: "#f8f4ea"
+    plateAccent: "#cec5b2"
+    blend: "soft-light"
+    opacity: "1"
     filter: "url(#deck-rough)"
     print:
       - kind: linear
-        direction: "150deg"
+        direction: "135deg"
         stops:
-          - color: "rgba(92, 138, 190, .95)"
-          - color: "rgba(140, 186, 226, .9)"
-            at: "48%"
-          - color: "rgba(78, 122, 172, .95)"
+          - color: "rgba(255, 255, 255, .46)"
+            at: "0%"
+          - color: "rgba(255, 255, 255, 0)"
+            at: "54%"
+      - kind: linear
+        direction: "135deg"
+        stops:
+          - color: "rgba(0, 0, 0, 0)"
+            at: "46%"
+          - color: "rgba(0, 0, 0, .40)"
+            at: "100%"
+      - kind: radial
+        size: "128% 98%"
+        at: "50% 46%"
+        stops:
+          - color: "rgba(24, 18, 10, 0)"
+            at: "52%"
+          - color: "rgba(24, 18, 10, .30)"
+            at: "100%"
+      - kind: radial
+        size: "120% 92%"
+        at: "36% 30%"
+        stops:
+          - color: "rgba(255, 255, 255, .30)"
+          - color: "rgba(255, 255, 255, 0)"
+            at: "58%"
+      - kind: token
+        ref: "--grain"
     threeD:
-      foil: "0.44"
-      scale: "3.1"
-      tint: "[0.85, 0.95, 1.00]"
-      spec: "0.55"
-      relief: "1.00"
+      foil: "0.08"
+      scale: "1.2"
+      tint: "[1.00, 0.99, 0.96]"
+      spec: "0.30"
+      relief: "1.30"
+      sparkle: "0.30"
+      edge: "[0.93, 0.91, 0.87]"
+
+  # ---------------------------------------------------------------- deckStylePearl
+  pearl:
+    labelKey: "deckStylePearl"
+    tier: "basic"
+    note: "珠光纸（pearl）：暖白底 + **各向异性**的细密丝光（只朝一个方向，不是织布）+ 一道宽而柔的珠光扫光 + 纸纹颗粒。整体**偏暖** —— 这正是它在 205px 下与凸印压痕分得开的那一笔（brief §八）。"
+    fretLine: "rgba(252, 246, 234, .92)"
+    gemColor: "#f2e2c6"
+    finish:
+      kind: linear
+      direction: "140deg"
+      stops:
+        - color: "rgba(255, 251, 243, .46)"
+        - color: "rgba(238, 222, 196, .26)"
+          at: "52%"
+        - color: "rgba(255, 248, 236, .40)"
+    plate:
+      kind: linear
+      direction: "to top"
+      stops:
+        - color: "rgba(46, 38, 28, .92)"
+        - color: "rgba(46, 38, 28, .62)"
+    plateSolid: "rgba(46, 38, 28, .88)"
+    plateText: "#fdf7ec"
+    plateAccent: "#e6cfa8"
+    blend: "soft-light"
+    opacity: "1"
+    filter: "none"
+    print:
+      - kind: linear
+        direction: "108deg"
+        stops:
+          - color: "rgba(255, 246, 228, 0)"
+            at: "22%"
+          - color: "rgba(255, 246, 230, .26)"
+            at: "44%"
+          - color: "rgba(255, 252, 244, .34)"
+            at: "52%"
+          - color: "rgba(248, 232, 206, .22)"
+            at: "62%"
+          - color: "rgba(255, 246, 228, 0)"
+            at: "80%"
+      - kind: repeating-linear
+        direction: "92deg"
+        stops:
+          - color: "rgba(255, 248, 236, 0)"
+            at: "0 2.4px"
+          - color: "rgba(255, 246, 228, .13)"
+            at: "3.1px 4.2px"
+          - color: "rgba(214, 190, 158, .10)"
+            at: "5.3px 6.4px"
+          - color: "rgba(255, 248, 236, 0)"
+            at: "7.6px 10.2px"
+      - kind: linear
+        direction: "88deg"
+        stops:
+          - color: "rgba(255, 252, 244, 0)"
+            at: "30%"
+          - color: "rgba(255, 252, 244, .20)"
+            at: "46%"
+          - color: "rgba(255, 252, 244, 0)"
+            at: "64%"
+      - kind: radial
+        size: "120% 90%"
+        at: "44% 34%"
+        stops:
+          - color: "rgba(255, 255, 255, .20)"
+          - color: "rgba(255, 255, 255, 0)"
+            at: "64%"
+      - kind: token
+        ref: "--grain"
+    threeD:
+      foil: "0.26"
+      scale: "1.8"
+      tint: "[1.00, 0.97, 0.92]"
+      spec: "0.78"
+      relief: "0.85"
       sparkle: "1.05"
-      edge: "[0.91, 0.95, 1.00]"
+      edge: "[0.95, 0.92, 0.86]"
+
+  # ---------------------------------------------------------------- deckStyleGoldfoil
+  goldfoil:
+    labelKey: "deckStyleGoldfoil"
+    tier: "advanced"
+    note: "烫金箔（goldfoil）：**金属感来自渐变本身**（brief §八.2 的实测结论）—— 暗底 + 一条窄高光 + 一道斜向镜面扫光 + 96° 拉丝，色相落在暖金端。云纹 SVG（lab 的烫金云纹）还没接进来；接进来时把渐变烘进它的 stroke，别退回「渐变层 + mask」那套（那样在小尺寸下会脏）。"
+    fretLine: "#f0d9a0"
+    gemColor: "#ffd891"
+    finish:
+      kind: linear
+      direction: "140deg"
+      stops:
+        - color: "rgba(255, 246, 213, .52)"
+        - color: "rgba(231, 205, 126, .26)"
+          at: "16%"
+        - color: "rgba(201, 162, 39, .30)"
+          at: "32%"
+        - color: "rgba(255, 248, 221, .46)"
+          at: "50%"
+        - color: "rgba(184, 153, 31, .28)"
+          at: "66%"
+        - color: "rgba(168, 121, 26, .30)"
+          at: "84%"
+        - color: "rgba(255, 238, 184, .42)"
+    plate:
+      kind: linear
+      direction: "to top"
+      stops:
+        - color: "rgba(30, 21, 6, .93)"
+        - color: "rgba(30, 21, 6, .62)"
+    plateSolid: "rgba(30, 21, 6, .88)"
+    plateText: "#fbeecb"
+    plateAccent: "#e8cf8f"
+    blend: "overlay"
+    opacity: ".85"
+    filter: "url(#deck-rough)"
+    print:
+      - kind: linear
+        direction: "112deg"
+        stops:
+          - color: "rgba(255, 240, 200, 0)"
+            at: "40%"
+          - color: "rgba(255, 236, 186, .26)"
+            at: "45.5%"
+          - color: "rgba(255, 249, 228, .62)"
+            at: "48.5%"
+          - color: "rgba(255, 236, 186, .24)"
+            at: "51.5%"
+          - color: "rgba(255, 240, 200, 0)"
+            at: "58%"
+      - kind: linear
+        direction: "112deg"
+        stops:
+          - color: "rgba(255, 236, 186, 0)"
+            at: "63%"
+          - color: "rgba(255, 244, 205, .30)"
+            at: "66%"
+          - color: "rgba(255, 240, 200, 0)"
+            at: "70%"
+      - kind: repeating-linear
+        direction: "96deg"
+        stops:
+          - color: "rgba(255, 236, 186, 0)"
+            at: "0 1.7px"
+          - color: "rgba(255, 236, 186, .15)"
+            at: "2.5px 3.4px"
+          - color: "rgba(120, 86, 20, .13)"
+            at: "4.6px 5.5px"
+          - color: "rgba(255, 236, 186, 0)"
+            at: "6.7px 9.4px"
+      - kind: radial
+        size: "126% 96%"
+        at: "50% 46%"
+        stops:
+          - color: "rgba(60, 40, 6, 0)"
+            at: "46%"
+          - color: "rgba(40, 26, 4, .34)"
+            at: "100%"
+      - kind: token
+        ref: "--grain-fine"
+    threeD:
+      foil: "0.34"
+      scale: "1.5"
+      tint: "[1.00, 0.84, 0.45]"
+      spec: "0.90"
+      relief: "0.90"
+      sparkle: "1.00"
+      edge: "[0.90, 0.75, 0.40]"
+
+  # ---------------------------------------------------------------- deckStyleHoloPrism
+
+  # ---------------------------------------------------------------- deckStyleInkwash
+  inkwash:
+    labelKey: "deckStyleInkwash"
+    tier: "basic"
+    note: "墨染（inkwash）：**水墨晕染** —— 底部压深 + 一滴浓淡不匀的晕（新加的径向层）+ 一道飞白 + 纸颗粒。冷灰黑、亚光；**只适合暗卡面**（亮卡上读成漏墨，brief §十六）。"
+    fretLine: "rgba(196, 200, 214, .85)"
+    finish:
+      kind: linear
+      direction: "140deg"
+      stops:
+        - color: "rgba(59, 53, 67, .42)"
+        - color: "rgba(20, 17, 25, .50)"
+          at: "55%"
+        - color: "rgba(75, 68, 82, .38)"
+    plate:
+      kind: linear
+      direction: "to top"
+      stops:
+        - color: "rgba(8, 7, 11, .94)"
+        - color: "rgba(8, 7, 11, .68)"
+    plateSolid: "rgba(8, 7, 11, .9)"
+    plateText: "#efe8f0"
+    plateAccent: "var(--accent)"
+    blend: "overlay"
+    opacity: ".65"
+    filter: "none"
+    print:
+      - kind: linear
+        direction: "0deg"
+        stops:
+          - color: "rgba(0, 0, 0, .34)"
+          - color: "rgba(0, 0, 0, 0)"
+            at: "54%"
+      - kind: radial
+        size: "150% 106%"
+        at: "36% 78%"
+        stops:
+          - color: "rgba(6, 6, 10, .38)"
+          - color: "rgba(6, 6, 10, 0)"
+            at: "62%"
+      - kind: linear
+        direction: "122deg"
+        stops:
+          - color: "rgba(255, 255, 255, 0)"
+            at: "56%"
+          - color: "rgba(255, 255, 255, .10)"
+            at: "68%"
+          - color: "rgba(255, 255, 255, 0)"
+            at: "80%"
+      - kind: token
+        ref: "--grain"
+    threeD:
+      foil: "0.18"
+      scale: "1.9"
+      tint: "[0.70, 0.70, 0.82]"
+      spec: "0.35"
+      relief: "1.00"
+      sparkle: "1.00"
+      edge: "[0.28, 0.28, 0.34]"
+
+  # ---------------------------------------------------------------- deckStyleKintsugi

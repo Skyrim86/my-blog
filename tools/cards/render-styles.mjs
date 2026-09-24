@@ -13,14 +13,15 @@
 //     不混在一个文件里，「哪些能手改」不靠记忆。文件名的 21- 前缀保证它排在手写的
 //     21-card-deck.css **之后**（主题按数字序合并，见 themes/PaperMod/layouts/_partials/head.html
 //     的 resources.Match）—— 工艺块与基类 `.home-card` 的优先级相同，靠顺序取胜。
-//   · **card-3d.js 不另出文件**：STYLE_3D 是一张 16 行的表，抽 15 行到别的文件需要在运行时
-//     合并（多一个 <script>、多一个全局名、多一层加载顺序），换不来任何好处。所以那些行
-//     **就地重写**：生成块统一插到表头（`var STYLE_3D = {`）之后，前面加一条哨兵注释；
+//   · **card-3d.js 不另出文件**：STYLE_3D 是一张 8 行的表（foil + 下面这 7 种），抽出来到别的
+//     文件需要在运行时合并（多一个 <script>、多一个全局名、多一层加载顺序），换不来任何好处。
+//     所以那些行**就地重写**：生成块统一插到表头（`var STYLE_3D = {`）之后，前面加一条哨兵注释；
 //     改一行的效果就是重新生成。手改过的那种行会被生成器覆盖，且首先会被 check-deck.mjs 拦下。
-//   · **模型只吃「令牌层」，结构层仍手写**：13 种工艺的主块已全部搬进来（2026-09-22），
-//     剩下的伪元素（.home-card--glass::before）、后代（.home-card--kintsugi .home-card-lens）与
-//     深色主题覆写**留在 21-card-deck.css** —— 那是几何与主题，不是材质参数。foil 是特例：
-//     它没有主块（`.home-card` 的基础声明本身就是全息），所以不在表里。
+//   · **模型只吃「令牌层」，结构层仍手写**：2026-09-24 工艺收敛到八种后，七种的主块都由这份
+//     YAML 生成（foil 是特例：它没有主块 —— `.home-card` 的基础声明本身就是全息）。
+//     留在 21-card-deck.css 的只剩**结构件**：holo-prism 的 ::before / :hover::before（悬停位移，
+//     版式性质）、`.home-card-lens` 的兜底 display:none、以及深色主题那几条 --coverlay-op 覆写
+//     —— 那是几何与主题，不是材质参数。
 //   · 逐字复现旧值：YAML 里的标量一律按**字符串**收（与 scripts/check-deck.mjs 读
 //     data/home-cards.yaml 的「只做行解析、不引 yaml 依赖」同一套做法）。所以 STYLE_3D 里
 //     `0.20` 这种写法在生成物里仍是 `0.20`，不是 `0.2` —— 迁移那一版的 diff 才能按行读。
@@ -284,7 +285,9 @@ export function renderCss(styles, eol = '\r\n') {
     '/* 生成的卡面工艺块 —— **不要手改**（改 data/card-styles.yaml 后跑 node tools/cards/render-styles.mjs --write）。',
     '',
     `   现在由数据驱动的工艺（${names.length} 种）：${names.join(' / ')}。`,
-    '   其余工艺仍是 21-card-deck.css 里的手写块 —— 两种形式在同一个类上只能存在一处（check-deck.mjs 会核）。',
+    '   剩下那一种 foil 是特例：它没有主块（`.home-card` 的基础声明本身就是全息），所以不在这张表里；',
+    '   21-card-deck.css 里只剩工艺的**结构件**（holo-prism 的悬停位移、`.home-card-lens` 兜底、',
+    '   深色主题的 --coverlay-op 覆写）—— 两种形式在同一个类上只能存在一处（check-deck.mjs 会核）。',
     '',
     '   这个文件为什么单出、为什么排在 21-card-deck.css 之后（靠顺序压过基类 .home-card 的默认令牌）、',
     '   以及参数模型的字段表与代价，见 docs/exp-craft.md 与 tools/cards/render-styles.mjs 的文件头。 */',

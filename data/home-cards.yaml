@@ -11,37 +11,31 @@
 #   flat    垫底渐变（[上, 下] 两个 RGB）：给透明源图，或 figure 取景装不下时手定底色；
 #           不写则用源图四角的实测底色
 #   series  系列名；name = 这张卡自己的名字（名牌显示 name + 系列副标）
-#   style   卡面风格（**现役十六种**，全是 CSS 画的，不烘进图里）。写的是代码名，分两档：
-#             · 普通工艺（纸面 + 单层印纹，8 种）：
-#               foil 全息 / washi 和纸 / ink 墨 / yukika 雪华 / starnight 星屑 / frostcrack 冰裂 /
-#               nacre 珍珠母贝 / silk 绸缎
-#             · 进阶工艺（多层材料，8 种）：
-#               holo-prism 星芒全息 / glass 玻璃 / gold 金边 / kintsugi 金继 /
-#               filigree 雕花金 / enamel 珐琅彩 / silver 烫银 / aurora 极光
-#           2026-09-21 加了后四种（珍珠母贝 / 绸缎 / 烫银 / 极光），十二 → 十六种。
-#           加一种工艺要同时动五处：这个清单、assets/css/decks/21-card-deck.css 的
-#           `.home-card--<名>` 块、assets/js/card-3d.js 的 STYLE_3D、i18n 的 deckStyle<名>、
-#           以及 deck-manifest.html 里的 styleLabel 与 $styleTier 两张表 —— check-deck.mjs
-#           的守卫会逐条核，漏一处就报（漏 STYLE_3D 的那种最阴：首页看着是雕花金、
-#           转起来是普通全息，两种视图永远不同屏）。
+#   style   卡面风格（**现役八种**，全是 CSS 画的，不烘进图里）。写的是代码名，分两档：
+#             · 普通工艺（纸面 + 单层印纹，5 种）：foil 全息 / starnight 星屑 /
+#               emboss 凸印压痕 / pearl 珠光纸 / inkwash 墨染
+#             · 进阶工艺（多层材料，3 种）：holo-prism 星芒全息 / silver 烫银 / goldfoil 烫金箔
+#           2026-09-24 从**十六种收敛到八种**（用户拍定，依据 docs/card-redesign-brief.md 的
+#           §八 样张实测 / §十六 工艺 × 卡面适配表 / §十八 三档规则）：保留四种光系，新做四种
+#           印刷系，汰掉的十种逐张并入 —— 映射见本文件下面那段组注释。
+#           加一种工艺要同时动五处：这个清单、data/card-styles.yaml（参数表 —— 跑
+#           node tools/cards/render-styles.mjs --write 出 21-card-styles.css 与 card-3d.js 的
+#           STYLE_3D）、assets/css/decks/21-card-deck.css 里那种工艺的结构件（伪元素 / 后代 /
+#           深色覆写，只有玻璃与金继有）、i18n 的 deckStyle<名>、以及 deck-manifest.html 里的
+#           styleLabel 与 $styleTier 两张表 —— check-deck.mjs 的守卫会逐条核，漏一处就报
+#           （漏 STYLE_3D 的那种最阴：首页看着是烫金箔、转起来是普通全息，两种视图永远不同屏）。
 #           分档口径取「能从代码里数出来」的那个（普通只有一层、进阶要多层叠加）。
 #           **两档是纯分类口径**：它不管边框（边框归等级 —— 带宽 / 角饰 / 淡入都由
 #           .home-card-rank--* 给），也不管那副「雕花框」显不显形（那也看等级，秘藏及以上才显）。
 #           它驱动的是**收藏库筛选条的分组**：普通 / 进阶两个子排 + 可点的组标签。
 #           **哪一种算哪一档的唯一定义处是 layouts/_partials/deck-manifest.html 的 $styleTier 表**，
-#           这里只是同一份口径的说明 —— 2026-09-21 之前这里漏了 frostcrack（它只在别处的注释里
-#           被写成「普通」），页面上一点看不出来，是 check-deck.mjs 的守卫数出来的。
-#           **filigree / enamel / starnight / frostcrack 是 2026-09-21 新加的**，当天就按
-#           「名字与气质对得上」分给了 18 张卡（**只改 style、不动 rank**，所以六档分布没变）：
-#           冰裂 6 张（霜华/雪舞/糖霜/雪原/冰纹/雪松）、星屑 5 张（夜间/夜行/猎星/月影/雨幕）、
-#           雕花金 4 张（花信/星夜/银霜/电波，原先是金继）、珐琅彩 3 张（初始之音/旋律/琉璃音）。
-#           2026-09-20 从十六种精简而来（十六种里其实只有四个原子配方，同一配方的变体在
-#           272px 下看不出差别，而每多一种就多一份明暗两套的维护面；CSS 因此从 67 KB 降到 54 KB）。
-#           被砍的按族挪到最接近的保留项：holo-gold→foil（同构，只差色相）、frost/sakura→yukika、
-#           gothic→kintsugi、asanoha/uchiwa→washi、seigaiha→glass、nishiki→gold，pixel 直接删除。
-#           理由与被砍清单见 docs/features.md ㊵。
+#           这里只是同一份口径的说明。
+#           **工艺 × 卡面明度**（brief §十八）：亮 ≥185 / 中 140~185 / 暗 <140 三档各有一个
+#           「允许工艺」集合，规则的**唯一一份实现**是 scripts/deck-edit.py 的 CRAFT_RULE
+#           （管理页的收藏库面板与 check-deck.mjs 的守卫都从那里读）；明度由脚本**现算**、
+#           不写死进本文件（换图后自动重算）。要破例就写 `craft_exempt: true`，守卫放行但会打出来。
 #           **写错会静默退回兜底的 foil** —— scripts/check-deck.mjs 会拿 CSS 里的类名核出来。
-#           注意风格**只管纹样与质感**：框的材料由等级定（六档色阶），所以「金边」这个风格名
+#           注意风格**只管纹样与质感**：框的材料由等级定（六档色阶），所以「烫金箔」这个风格名
 #           在收藏档看到的是灰框 + 一层金质感的叠层，不是金框。两轴的分工见 rank 那一段。
 #   rank    等级（**必填**，漏了会静默变收藏 —— 所以 check-deck.mjs 会拦）。
 #           **六档**（2026-09-21 从四档扩到六档，加了 rare 珍稀 / arcane 秘藏），从低到高：
@@ -62,16 +56,44 @@
 #           同理）；**官方立绘与站点自己的看板娘没有可点的出处**，那两张就留空 —— 别硬编一个主页
 #           链接上去，那等于指错地方。
 
-# ---- 2026-09-21 工艺再分配：**每种工艺至少 3 张**，单种最多 8 ----
-# 为什么要动：旧分配是「金边 14 / 和纸 13」对「墨 1 / 星芒全息 1」——而收藏库（/collection/）
-# 那面墙存在的理由就是「一眼看出这八张不是同一种卡」，分布偏成那样这条理由就不成立。
-# **只改 style、不动 rank、不重出图**（工艺全是 CSS 画的，见下面那段说明），零成本重排。
-# 口径：名字与气质对得上 —— 玄袖/夜宴 → 墨，银铃/银绢/银纱/银月 → 全息，
-#   樱簪/花冠/花礼/冰晶 → 珐琅彩，幽兰 → 金继，电波/琉璃音 → 星芒全息，
-#   薄冰/静水/冰凌 → 玻璃，霜羽/雪羽 → 雪华，雪铃 → 冰裂。
-# 改前：gold 14 / washi 13 / glass 6 / frostcrack 6 / yukika 6 / starnight 5 /
-#       filigree 4 / enamel 3 / foil 2 / kintsugi 2 / ink 1 / holo-prism 1
-# 改后：glass 8 / frostcrack 7 / yukika 7 / enamel 6 / foil 6 / gold 6 / washi 6 /
+# ---- 2026-09-24 工艺收敛：十六 → 八，逐张映射（**只改 style，不动 rank、不重出图**）----
+# 依据 brief §八 / §十六 / §十八：每张卡按**观感方向**并到最近的保留项，且必须落在它明度档的
+# 允许集合里（三档规则见 scripts/deck-edit.py 的 CRAFT_RULE，check-deck.mjs 的守卫会核）。
+# 括号里是卡面明度（brief §十八 的现算值，换图后会变）。
+#
+# 旧工艺 → 新工艺（卡名）：
+#   全息 foil（不变）：甲刃、夏荫、星眸、朱领
+#   星芒全息 holo-prism（不变）：绯光、电波、琉璃音
+#   烫银 silver（不变）：猫兜、春眠、云梦
+#   星屑 starnight（不变）：夜间
+#   星屑 starnight → 星芒全息：观星（180）、夜思（146）
+#   玻璃 glass → 珠光纸 pearl：木刀、闲坐、流水、花冠
+#   和纸 washi → 珠光纸 pearl：书案、蝶羽、晨食
+#   珍珠母贝 nacre → 珠光纸 pearl：白鹭、惊鸿、桃夭
+#   绸缎 silk → 珠光纸 pearl：樱琴、白露
+#   冰裂 frostcrack → 烫银 silver：霜华、雪舞、糖霜、初醒、青萝、玫露
+#   雪华 yukika → 凸印压痕 emboss：日间、霓裳、轻絮、寒蕊、花织
+#   墨 ink → 凸印压痕 emboss：墨羽、玄袖
+#   墨 ink → 墨染 inkwash：夜宴
+#   金边 gold → 烫金箔 goldfoil：大小姐、女侍、蝶澜、墨褶
+#   雕花金 filigree → 烫金箔 goldfoil：花簪；→ 星屑 starnight：星夜（127）；→ 墨染 inkwash：夜翎（97）
+#   珐琅彩 enamel → 烫金箔 goldfoil：花礼、紫绫、嫁衣、初始之音、旋律
+#   金继 kintsugi → 烫金箔 goldfoil：独奏（173）、狐耳（221）；→ 墨染 inkwash：提灯（92）
+#   极光 aurora → 星芒全息 holo-prism：待发（78）；→ 星屑 starnight：雨幕（64）；→ 全息 foil：芳辰（217）
+#
+# 五处不是「同一族原样搬过去」、而是**按明度档退到最近的允许项**（记下来，别当成写错）：
+#   · 墨：它本身该并进墨染，但墨染只适合暗卡面（亮卡上读成漏墨，brief §十六）；玄袖（208）与
+#     墨羽（164）是亮/中卡面，退到凸印压痕 —— 同属「只改光不改色」的哑光纸感。
+#   · 雕花金：长着细金线的那张（花簪 200）并进烫金箔；夜翎（97）与星夜（127）都并进暗档里更贴
+#     画面的那个（墨染 / 星屑）。
+#   · 金继 = 黑底 + 金缝，拆成两半：金缝那半给烫金箔（独奏 173、狐耳 221），黑底那半给墨染（提灯 92）。
+#   · 极光：光带 → 星芒全息（待发 78）；雨幕（64）给星屑 —— 它 2026-09-21 之前本来就是星屑，
+#     而流星痕与雨幕同形；芳辰（217）是亮卡，星芒全息不在亮档的集合里，退到全息。
+#   · 星屑（保留项）原有 3 张，其中观星（180）与夜思（146）是**中档卡面**，而星屑只适合暗卡 ——
+#     这正是 brief §十八 体检里那两张违规：改成星芒全息（同族、中档允许），违规归零。
+#
+# 改后八种的张数（每种 ≥3，最多种 12）：pearl 12 / goldfoil 12 / silver 9 / emboss 7 /
+#   holo-prism 6 / foil 5 / starnight 3 / inkwash 3 = 57。
 #       starnight 5 / ink 3 / holo-prism 3 / kintsugi 3 / filigree 3
 
 # ---- 绫华：名字按画面取（她的意象是白鹭、霜、扇、樱、舞，名字都往这上面靠）----
@@ -80,7 +102,7 @@
   crop: [0.29, 0.0, 0.77, 1.0]          # 手量：自动取景把横过来的刀也算进内容，人被缩到很小
   series: 绫华
   name: 木刀
-  style: glass
+  style: pearl
   rank: collector
   credit: pixiv 98079154
   credit_url: https://www.pixiv.net/artworks/98079154
@@ -89,7 +111,7 @@
   crop: figure
   series: 绫华
   name: 墨羽
-  style: ink
+  style: emboss
   rank: miracle
   credit: pixiv 91546278
   credit_url: https://www.pixiv.net/artworks/91546278
@@ -98,7 +120,7 @@
   crop: figure
   series: 绫华
   name: 花簪
-  style: filigree
+  style: goldfoil
   rank: legend
   credit: twitter wani_Dile
   credit_url: https://twitter.com/wani_Dile
@@ -108,7 +130,7 @@
   flat: [[244, 241, 249], [220, 214, 234]]   # 透明源图：显式给底色（脚本也会按 alpha 采四角）
   series: 绫华
   name: 书案
-  style: washi
+  style: pearl
   rank: legend
   credit: 官方春季立绘 Springbloom Missive
 - image: images/cards/ayaka-03.webp
@@ -116,7 +138,7 @@
   crop: figure
   series: 绫华
   name: 霜华
-  style: frostcrack
+  style: silver
   rank: legend
   credit: safebooru 4194498
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4194498
@@ -125,7 +147,7 @@
   crop: figure
   series: 绫华
   name: 白鹭
-  style: nacre
+  style: pearl
   rank: collector
   credit: safebooru 5815913
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5815913
@@ -134,7 +156,7 @@
   crop: figure
   series: 绫华
   name: 星夜
-  style: filigree
+  style: starnight
   rank: arcane
   credit: safebooru 4806294
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4806294
@@ -143,7 +165,7 @@
   crop: figure
   series: 绫华
   name: 玄袖
-  style: ink
+  style: emboss
   rank: rare
   credit: safebooru 6134135
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=6134135
@@ -152,7 +174,7 @@
   crop: figure
   series: 绫华
   name: 樱琴
-  style: silk
+  style: pearl
   rank: collector
   credit: safebooru 4843454
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4843454
@@ -170,7 +192,7 @@
   crop: figure
   series: 绫华
   name: 蝶羽
-  style: washi
+  style: pearl
   rank: arcane
   credit: safebooru 5359394
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5359394
@@ -180,7 +202,7 @@
   pad: 1.3
   series: 绫华
   name: 闲坐
-  style: glass
+  style: pearl
   rank: epic
   credit: safebooru 4021132
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4021132
@@ -189,7 +211,7 @@
   crop: figure
   series: 绫华
   name: 晨食
-  style: washi
+  style: pearl
   rank: rare
   credit: safebooru 4012375
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4012375
@@ -198,7 +220,7 @@
   crop: figure
   series: 绫华
   name: 雪舞
-  style: frostcrack
+  style: silver
   rank: collector
   credit: safebooru 3987957
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3987957
@@ -207,7 +229,7 @@
   crop: figure
   series: 绫华
   name: 流水
-  style: glass
+  style: pearl
   rank: rare
   credit: safebooru 5700504
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5700504
@@ -226,7 +248,7 @@
   crop: figure
   series: 绫华
   name: 花礼
-  style: enamel
+  style: goldfoil
   rank: arcane
   credit: safebooru 5672112
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5672112
@@ -235,7 +257,7 @@
   crop: figure
   series: 绫华
   name: 糖霜
-  style: frostcrack
+  style: silver
   rank: arcane
   credit: safebooru 4498197
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4498197
@@ -246,7 +268,7 @@
   crop: [0.50, 0.02, 0.92, 0.96]        # 人物在横向 66% 处（见 features.md ⑫ 的取景说明）
   series: 黑长直少女
   name: 日间
-  style: yukika
+  style: emboss
   rank: epic
   credit: pixiv 87155937（壁纸套·日间）
   credit_url: https://www.pixiv.net/artworks/87155937
@@ -265,7 +287,7 @@
   flat: [[248, 245, 250], [222, 216, 232]]
   series: 黑长直少女
   name: 大小姐
-  style: gold
+  style: goldfoil
   rank: collector
   credit: 站点看板娘（source-ojou-chibi.png，非商用同人）
 - image: images/cards/girl-lantern.webp
@@ -273,7 +295,7 @@
   crop: figure
   series: 黑长直少女
   name: 提灯
-  style: kintsugi
+  style: inkwash
   rank: collector
   credit: wallhaven 6lwmy7（夜城合成版的人物切片，方案已撤回、素材留着）
   credit_url: https://wallhaven.cc/w/6lwmy7
@@ -289,7 +311,7 @@
   crop: figure
   series: 卡夫卡
   name: 观星
-  style: starnight
+  style: holo-prism
   rank: collector
   credit: safebooru 4601052
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4601052
@@ -298,7 +320,7 @@
   crop: figure
   series: 卡夫卡
   name: 夜思
-  style: starnight
+  style: holo-prism
   rank: collector
   credit: safebooru 4596259
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4596259
@@ -307,7 +329,7 @@
   crop: figure
   series: 卡夫卡
   name: 独奏
-  style: kintsugi
+  style: goldfoil
   rank: epic
   credit: safebooru 4396840
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4396840
@@ -316,7 +338,7 @@
   crop: figure
   series: 卡夫卡
   name: 夜宴
-  style: ink
+  style: inkwash
   rank: collector
   credit: safebooru 4050848
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4050848
@@ -325,7 +347,7 @@
   crop: figure
   series: 卡夫卡
   name: 待发
-  style: aurora
+  style: holo-prism
   rank: epic
   credit: safebooru 4018682
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4018682
@@ -334,7 +356,7 @@
   crop: figure
   series: 卡夫卡
   name: 雨幕
-  style: aurora
+  style: starnight
   rank: rare
   credit: safebooru 4092477
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4092477
@@ -356,7 +378,7 @@
   src: tools/cards/sources/emilia-01.webp
   series: 艾米莉亚
   name: 夜翎
-  style: filigree
+  style: inkwash
   rank: legend
   credit: safebooru 2948619
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2948619
@@ -364,7 +386,7 @@
   src: tools/cards/sources/emilia-02.webp
   series: 艾米莉亚
   name: 紫绫
-  style: enamel
+  style: goldfoil
   rank: collector
   credit: safebooru 3193715
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3193715
@@ -372,7 +394,7 @@
   src: tools/cards/sources/emilia-03.webp
   series: 艾米莉亚
   name: 初醒
-  style: frostcrack
+  style: silver
   rank: rare
   credit: safebooru 3370906
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3370906
@@ -380,7 +402,7 @@
   src: tools/cards/sources/emilia-04.webp
   series: 艾米莉亚
   name: 嫁衣
-  style: enamel
+  style: goldfoil
   rank: collector
   credit: safebooru 3295664
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3295664
@@ -388,7 +410,7 @@
   src: tools/cards/sources/emilia-05.webp
   series: 艾米莉亚
   name: 芳辰
-  style: aurora
+  style: foil
   rank: arcane
   credit: safebooru 3285846
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3285846
@@ -404,7 +426,7 @@
   src: tools/cards/sources/emilia-07.webp
   series: 艾米莉亚
   name: 花冠
-  style: glass
+  style: pearl
   rank: legend
   credit: safebooru 3145481
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3145481
@@ -412,7 +434,7 @@
   src: tools/cards/sources/emilia-08.webp
   series: 艾米莉亚
   name: 霓裳
-  style: yukika
+  style: emboss
   rank: collector
   credit: safebooru 2776515
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2776515
@@ -420,7 +442,7 @@
   src: tools/cards/sources/emilia-09.webp
   series: 艾米莉亚
   name: 轻絮
-  style: yukika
+  style: emboss
   rank: rare
   credit: safebooru 2757756
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2757756
@@ -428,7 +450,7 @@
   src: tools/cards/sources/emilia-10.webp
   series: 艾米莉亚
   name: 女侍
-  style: gold
+  style: goldfoil
   rank: arcane
   credit: safebooru 2349791
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2349791
@@ -436,7 +458,7 @@
   src: tools/cards/sources/emilia-11.webp
   series: 艾米莉亚
   name: 惊鸿
-  style: nacre
+  style: pearl
   rank: collector
   credit: safebooru 3629666
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3629666
@@ -452,7 +474,7 @@
   src: tools/cards/sources/emilia-14.webp
   series: 艾米莉亚
   name: 狐耳
-  style: kintsugi
+  style: goldfoil
   rank: collector
   credit: safebooru 3978940
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3978940
@@ -460,7 +482,7 @@
   src: tools/cards/sources/emilia-15.webp
   series: 艾米莉亚
   name: 青萝
-  style: frostcrack
+  style: silver
   rank: collector
   credit: safebooru 3954029
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3954029
@@ -484,7 +506,7 @@
   src: tools/cards/sources/emilia-18.webp
   series: 艾米莉亚
   name: 蝶澜
-  style: gold
+  style: goldfoil
   rank: epic
   credit: safebooru 3744471
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3744471
@@ -492,7 +514,7 @@
   src: tools/cards/sources/emilia-19.webp
   series: 艾米莉亚
   name: 玫露
-  style: frostcrack
+  style: silver
   rank: rare
   credit: safebooru 3711031
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3711031
@@ -500,7 +522,7 @@
   src: tools/cards/sources/emilia-20.webp
   series: 艾米莉亚
   name: 墨褶
-  style: gold
+  style: goldfoil
   rank: collector
   credit: safebooru 3392378
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3392378
@@ -516,7 +538,7 @@
   src: tools/cards/sources/emilia-22.webp
   series: 艾米莉亚
   name: 桃夭
-  style: nacre
+  style: pearl
   rank: collector
   credit: safebooru 3176237
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3176237
@@ -524,7 +546,7 @@
   src: tools/cards/sources/emilia-23.webp
   series: 艾米莉亚
   name: 白露
-  style: silk
+  style: pearl
   rank: collector
   credit: safebooru 2881553
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2881553
@@ -532,7 +554,7 @@
   src: tools/cards/sources/emilia-24.webp
   series: 艾米莉亚
   name: 寒蕊
-  style: yukika
+  style: emboss
   rank: collector
   credit: safebooru 2855461
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2855461
@@ -540,7 +562,7 @@
   src: tools/cards/sources/emilia-25.webp
   series: 艾米莉亚
   name: 花织
-  style: yukika
+  style: emboss
   rank: epic
   credit: safebooru 2837256
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2837256
@@ -548,7 +570,7 @@
   src: tools/cards/sources/miku-01.webp
   series: 初音未来
   name: 初始之音
-  style: enamel
+  style: goldfoil
   rank: epic
   credit: safebooru 1869610
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=1869610
@@ -556,7 +578,7 @@
   src: tools/cards/sources/miku-02.webp
   series: 初音未来
   name: 旋律
-  style: enamel
+  style: goldfoil
   rank: arcane
   credit: safebooru 1485416
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=1485416

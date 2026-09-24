@@ -76,11 +76,9 @@
      ① CSS 里的每种风格都在这张表里且只出现一次；② 这张表的两个键与 deck-wall.js 的
      TIER_ORDER 对得上（对不上 = 分组整片塌成一组，同样不报错）。 */}}
 {{- $styleTier := dict
-    "foil" "basic" "washi" "basic" "ink" "basic"
-    "yukika" "basic" "starnight" "basic" "frostcrack" "basic"
-    "holo-prism" "advanced" "glass" "advanced" "gold" "advanced"
-    "kintsugi" "advanced" "filigree" "advanced" "enamel" "advanced"
-    "nacre" "basic" "silk" "basic" "silver" "advanced" "aurora" "advanced" }}
+    "foil" "basic" "starnight" "basic" "emboss" "basic"
+    "pearl" "basic" "inkwash" "basic"
+    "holo-prism" "advanced" "silver" "advanced" "goldfoil" "advanced" }}
 {{- $rank := .rank | default "collector" }}
 {{- /* 卡片墙用的两样东西在这里一次算好 —— **注释不能写进下面那个 dict 的括号里**
        （Go 模板的注释是独立动作，出现在表达式中间会报 `unexpected "{" in operand`，
@@ -120,13 +118,9 @@
     "label" (.name | default .series) "series" .series "style" $style
     "styleLabel" (index (dict
         "foil" (i18n "deckStyleFoil") "holo-prism" (i18n "deckStyleHoloPrism")
-        "gold" (i18n "deckStyleGold") "glass" (i18n "deckStyleGlass")
-        "ink" (i18n "deckStyleInk") "washi" (i18n "deckStyleWashi")
-        "yukika" (i18n "deckStyleYukika") "kintsugi" (i18n "deckStyleKintsugi")
-        "filigree" (i18n "deckStyleFiligree") "enamel" (i18n "deckStyleEnamel")
-        "starnight" (i18n "deckStyleStarnight") "frostcrack" (i18n "deckStyleFrostcrack")
-        "nacre" (i18n "deckStyleNacre") "silver" (i18n "deckStyleSilver")
-        "silk" (i18n "deckStyleSilk") "aurora" (i18n "deckStyleAurora")) $style)
+        "silver" (i18n "deckStyleSilver") "starnight" (i18n "deckStyleStarnight")
+        "emboss" (i18n "deckStyleEmboss") "pearl" (i18n "deckStylePearl")
+        "goldfoil" (i18n "deckStyleGoldfoil") "inkwash" (i18n "deckStyleInkwash")) $style)
     "styleTier" (index $styleTier $style)
     "rank" $rank
     "rankWall" $rankWall

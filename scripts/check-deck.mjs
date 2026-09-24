@@ -22,6 +22,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const MANIFEST = join('data', 'home-cards.yaml');
 const CSS = join('assets', 'css', 'decks', '21-card-deck.css');
@@ -35,14 +36,15 @@ const DEPTH_DIR = join(FACES_DIR, 'depth');
 const depthOf = (image) => join(DEPTH_DIR, basename(image));
 
 // 卡片组要用的词条：文案走 data-* 从模板传给 JS（JS 调不到 i18n），少一条就只剩兜底模板。
-// 后半批是收藏库（/collection/）的卡片墙要用的：十六种工艺的中文名 + 筛选条与格子按钮名。
+// 后半批是收藏库（/collection/）的卡片墙要用的：**现役八种工艺**的中文名 + 筛选条与格子按钮名。
+// 2026-09-24 工艺收敛（十六 → 八）时同步过这一行：汰除的十种词条仍留在 i18n/zh.toml 里（供旧文档
+// 对读），但**不再登记**在这里 —— 这一栏的判据是「现役工艺必须有中文名」，不是「词条不能多」。
 // 筛选条那几条里**没有「全部」**：三排都能多选，取消靠再点一次，整排清空走 deckFilterClear。
 const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClose', 'deckCredit',
   'deckDialogLabel', 'deckFlip', 'deckFlipBack', 'deckRotate', 'deckGlFail',
   'deckRankCollector', 'deckRankRare', 'deckRankEpic', 'deckRankArcane', 'deckRankLegend', 'deckRankMiracle',
-  'deckStyleFoil', 'deckStyleHoloPrism', 'deckStyleGold', 'deckStyleGlass',
-  'deckStyleInk', 'deckStyleWashi', 'deckStyleYukika', 'deckStyleKintsugi',
-  'deckStyleFiligree', 'deckStyleEnamel', 'deckStyleStarnight', 'deckStyleFrostcrack',
+  'deckStyleFoil', 'deckStyleHoloPrism', 'deckStyleSilver', 'deckStyleStarnight',
+  'deckStyleEmboss', 'deckStylePearl', 'deckStyleGoldfoil', 'deckStyleInkwash',
   'deckFilterLabel', 'deckFilterSeries', 'deckFilterStyle', 'deckFilterRank',
   'deckFilterTierBasic', 'deckFilterTierAdvanced', 'deckFilterTierHint',
   'deckFilterCount', 'deckFilterClear', 'deckFilterEmpty', 'deckOpenCard',
@@ -874,9 +876,9 @@ if (!existsSync(CARD3D)) {
 
     // ① 手写块与生成块不许并存。
     // 判据是「**恰好是主块**」（行首 .home-card--<名> {）而不是「出现过」：伪元素
-    // （.home-card--glass::before）、后代（.home-card--glass .home-card-lens）与深色主题覆写
-    // （:root[data-theme="dark"] .home-card--glass { --coverlay-op }）都是结构层/主题层，
-    // 与参数化的令牌块**本来就该并存** —— 按「出现过」判会在这 11 种工艺上误报。
+    // （.home-card--holo-prism::before）、后代与深色主题覆写（:root[data-theme="dark"] .home-card--X
+    // { --coverlay-op }）都是结构层/主题层，与参数化的令牌块**本来就该并存** ——
+    // 按「出现过」判会在这几种上误报。
     const handwritten = new Set(
       [...css.matchAll(/^[.]home-card--([a-z0-9-]+)[ \t]*\{/gm)].map((m) => m[1])
     );
@@ -926,6 +928,104 @@ if (!existsSync(CARD3D)) {
     notes.push(
       `· 参数化的工艺 ${names.length} 种（${names.join(' / ')}）：CSS 块与 STYLE_3D 行都由 ${DATA_STYLES} 出，已核与生成物逐字一致`
     );
+  }
+}
+
+/* ---------- ⑨ 工艺 × 卡面明度（2026-09-24 加；规则与实测见 docs/card-redesign-brief.md §十八）----------
+
+   卡面明度分三档，各档有一个「允许工艺」集合（亮 ≥185 / 中 140~185 / 暗 <140）。这条规则的
+   **唯一一份实现**是 scripts/deck-edit.py 的 CRAFT_RULE —— 管理页的收藏库面板也读它。
+   这里**不抄第二份**（抄一份 = 迟早两份不一样，而症状是「面板说没事、墙上那张是脏的」），
+   两条腿都踩在同一处：
+
+     · **一致性（纯 Node，永远跑）**：从 deck-edit.py 的源码里解析 CRAFT_RULE / CRAFT_CODES，
+       与工艺表（data/card-styles.yaml 那几种 + foil 这个特例）对拍 —— 两边认得的代码名必须
+       **恰好相等**。少一个 = 新加的工艺落在判定表之外、永远不体检；多一个 = 判定表还留着
+       已汰除的代码（收敛时漏删）。
+     · **体检（Python + Pillow）**：明度**现算**（卡面灰度均值，缩到 60×84 再取均值），
+       不写死进清单 —— 换图后自动重算。算法、阈值、建议工艺都在 deck-edit.py 里，这里只跑它、
+       读它 `list --json` 的输出。所以要一个装了 Pillow 的 Python（scripts/deck-edit.py 与
+       管理页本来就要求同一个；CI 在 .github/actions/validate/action.yml 里先装 pillow）。
+
+   为什么值得逐张现算：乱配的表现不是报错，而是 205px 上「脏 / 糊 / 像坏了」（brief §十六 那张
+   实测表），构建与控制台全绿、只是难看 —— 正是这个仓库最怕的那类失败。
+   要破例（例如暗卡偏要珠光）就在清单里写 `craft_exempt: true`：守卫放行，但每次都把名字打出来。 */
+{
+  const DECK_EDIT = join('scripts', 'deck-edit.py');
+  const pySrc = existsSync(DECK_EDIT) ? readFileSync(DECK_EDIT, 'utf8') : '';
+  const mRule = /CRAFT_RULE\s*=\s*\[([\s\S]*?)\n\]/.exec(pySrc);
+  const mCodes = /CRAFT_CODES\s*=\s*\{([\s\S]*?)\n\}/.exec(pySrc);
+  const stylesMod = await import(pathToFileURL(join('tools', 'cards', 'render-styles.mjs')).href);
+  const tableCodes = new Set([...Object.keys(stylesMod.loadStyles()), 'foil']);
+  if (!mRule || !mCodes) {
+    failures.push(
+      `✗ 从 ${DECK_EDIT} 里解析不出 CRAFT_RULE / CRAFT_CODES —— 「工艺 × 明度」这条守卫会**静默失效**，` +
+        `请同步那个脚本与这里的正则（它们必须是同一份规则，见本节说明）`
+    );
+  } else {
+    const bands = [...mRule[1].matchAll(/\(\s*"([a-z]+)"\s*,\s*"([^"]+)"\s*,\s*(None|\d+)\s*,\s*(None|\d+)\s*,\s*\[([^\]]*)\]/g)]
+      .map((m) => ({ key: m[1], label: m[2], lo: m[3] === 'None' ? null : Number(m[3]), hi: m[4] === 'None' ? null : Number(m[4]), crafts: [...m[5].matchAll(/"([^"]+)"/g)].map((x) => x[1]) }));
+    const groups = [...mCodes[1].matchAll(/"([^"]+)"\s*:\s*\[([^\]]*)\]/g)]
+      .map((m) => ({ craft: m[1], codes: [...m[2].matchAll(/"([^"]+)"/g)].map((x) => x[1]) }));
+    const ruleCodes = new Set(groups.flatMap((g) => g.codes));
+    const named = groups.map((g) => g.craft);
+    if (bands.length !== 3) {
+      failures.push(`✗ ${DECK_EDIT} 的明度档不是三档（解析出 ${bands.length} 档）—— 守卫的判据与表结构脱节了`);
+    }
+    const inBands = new Set(bands.flatMap((b) => b.crafts));
+    const notInBands = named.filter((c) => !inBands.has(c));
+    if (notInBands.length) failures.push(`✗ ${DECK_EDIT} 里这些工艺没被任何明度档收下：${notInBands.join(' / ')} —— 它们落在三档之外，永远不会被判违规`);
+    const ghosts = [...inBands].filter((c) => !named.includes(c));
+    if (ghosts.length) failures.push(`✗ ${DECK_EDIT} 的三档表里有 CRAFT_CODES 不认得的工艺名：${ghosts.join(' / ')} —— 名字写岔了就等于漏判`);
+    const noCode = [...tableCodes].filter((c) => !ruleCodes.has(c)).sort();
+    if (noCode.length) failures.push(`✗ 这些工艺代码不在 ${DECK_EDIT} 的判定表里：${noCode.join(' / ')} —— 它们的明度档**永远不会被体检**（加一种工艺要同时进那张表）`);
+    const codeGhosts = groups.map((g) => g.codes[0]).filter((c) => !tableCodes.has(c)).sort();
+    if (codeGhosts.length) failures.push(`✗ ${DECK_EDIT} 的判定表还认得工艺表里已经没有的代码：${codeGhosts.join(' / ')} —— 收敛时漏删（先删这里、再删别处，否则那份「允许集合」会一直列着它）`);
+    const unjudged = [...usedStyles].filter((s) => !ruleCodes.has(s)).sort();
+    if (unjudged.length) failures.push(`✗ ${MANIFEST} 里这些 style 不在判定表里：${unjudged.join(' / ')} —— 它们的明度档是白填的`);
+    /* 体检：跑 deck-edit.py（明度那半边的唯一实现），读它的 JSON。 */
+    const PY = [process.env.DECK_PYTHON, process.env.ADMIN_PYTHON, 'python', 'python3', 'py'].filter(Boolean);
+    let py = null;
+    for (const cand of PY) {
+      const probe = spawnSync(cand, ['-c', 'import PIL, numpy'], { encoding: 'utf8' });
+      if (!probe.error && probe.status === 0) { py = cand; break; }
+    }
+    if (!py) {
+      failures.push(
+        `✗ 找不到「装了 Pillow 的 Python」，跑不了「工艺 × 明度」体检 —— 明度必须现算（与 ${DECK_EDIT} 同一套算法）。` +
+          `装一下：python -m pip install pillow；或用 DECK_PYTHON / ADMIN_PYTHON 指定解释器`
+      );
+    } else {
+      const run = spawnSync(py, [DECK_EDIT, 'list', '--json'], {
+        cwd: process.cwd(), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+        env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' },
+      });
+      let data = null;
+      if (run.status !== 0) {
+        failures.push(`✗ ${DECK_EDIT} list --json 跑不起来（${py} 退出码 ${run.status}）：${String(run.stderr || '').trim().split('\n').slice(-2).join(' / ')}`);
+      } else {
+        try { data = JSON.parse(run.stdout); } catch { data = null; }
+        if (!data) failures.push(`✗ 读不懂 ${DECK_EDIT} list --json 的输出 —— 那个脚本的 JSON 形状变了？这条守卫会失效，请同步`);
+      }
+      if (data) {
+        const s = data.summary || {};
+        const byBand = s.byBand || {};
+        const bad = (data.cards || []).filter((c) => c.violation);
+        for (const c of bad) {
+          failures.push(
+            `✗ 「${c.name}」（${c.series}，明度 ${c.L} = ${c.bandLabel}档）挂着 ${c.style}（${c.styleLabel}）—— ` +
+              `这一档允许的是 ${(c.allowed || []).map((a) => a.label).join(' / ')}；建议换成 ${c.recommendCraft}（${c.recommended}）` +
+              `。要保留现状就在 ${MANIFEST} 那一张上写 craft_exempt: true`
+          );
+        }
+        const exempt = (data.cards || []).filter((c) => c.exempt);
+        notes.push(
+          `· 工艺 × 明度：${s.total ?? data.count} 张卡面**现算**明度（亮 ${byBand['亮'] ?? 0} / 中 ${byBand['中'] ?? 0} / 暗 ${byBand['暗'] ?? 0}），` +
+            `三档允许集合取自 ${DECK_EDIT} 的 CRAFT_RULE —— ${bad.length ? `有 ${bad.length} 张越档` : '逐张都落在自己那档的允许集合里'}` +
+            (exempt.length ? `；显式豁免 ${exempt.length} 张（craft_exempt）：${exempt.map((c) => c.name).join(' / ')}` : '')
+        );
+      }
+    }
   }
 }
 
