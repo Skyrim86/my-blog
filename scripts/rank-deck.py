@@ -18,9 +18,14 @@
 三项各自取**百分位**（0~1）再按权重合成，所以分数是**相对**的：它只说「这张比那张细」，
 不含绝对门槛。加卡、换图之后重跑，阶梯仍然连续。
 
-分档口径：**只在原来的档内部切**（收藏 37 → 收藏/珍稀，史诗 19 → 史诗/秘藏），
-传世 6 与奇迹 1 **一律不动** —— 那 7 张是按设计挑的，重排会把「隐藏等级」这类语义弄乱。
-切的张数是常量（见 TARGETS），改它就是改分布。
+分档口径（2026-09-25 改）：**只在原来的档内部切**中段四档，传世 6 与奇迹 1 **一律不动** ——
+那 7 张是按设计挑的，重排会把「隐藏等级」这类语义弄乱。
+
+切法不再按常量张数。旧版是「收藏里切 13 张、史诗里切 8 张」，一次 `--apply` 会把分布压成
+**珍稀最多、史诗只剩 3 张**，与「六档是视觉骨架」相反；2026-09-25 实测 21/57 张不符、且方向
+单一（全往上），说明那把尺子系统性偏高。现在只认两种「明显」：组内分数的**最大间隔**
+（自然断点）以上才算升档候选，且每档最多 `CAP` 张。**rank 的最终裁决权仍在人** ——
+这个脚本回答的是「哪张比哪张细」，不是「哪张该是哪一档」。
 
 产物：
     data/rank-scores.json            三项子分 + 合成分 + 当前档 + 建议档（入库，可复核）
@@ -59,10 +64,13 @@ HEX = {t[0]: t[2] for t in TIERS}
 def rgb(hex_color):
     return tuple(int(hex_color[i:i + 2], 16) for i in (1, 3, 5))
 
-# 只在原档内部切：收藏 37 张里**分数最高的 13 张**升为珍稀；史诗 19 张里最高的 8 张升为秘藏。
-# 切完是 收藏24 / 珍稀13 / 史诗11 / 秘藏8 / 传世6 / 奇迹1 = 63。
-# 张数用常量而不是百分比：百分比会随加卡漂移，而「珍稀留几张」是设计决定，不该被数据量带着走。
-TARGETS = {"collector": ("rare", 13), "epic": ("arcane", 8)}
+# 只在原档内部切，且只切中段四档（收藏/珍稀、史诗/秘藏）——传世与奇迹是按设计挑的，不重排。
+# 旧的常量口径（收藏 37 张里切 13 张、史诗 19 张里切 8 张）已废：实测它会给出 21 张差异、
+# 方向全是往上，且 apply 后分布变成「珍稀最多、史诗只剩 3 张」。现在见 assign()：
+# 最大间隔当断点 + 每档最多 CAP 张。**「哪张该是哪一档」由人定，脚本只报「哪张比哪张细」。**
+# 升档的源档 → 目标档；切法与上限见 assign()。改 CAP 就是改「一次最多动几张」。
+TARGETS = {"collector": "rare", "epic": "arcane"}
+CAP = 3
 
 # 三项权重。画面梯度占一半：它是「细节量」最直接的代理量；字节是它的同族但更糙（编码噪声、
 # 大片渐变也占字节）；源图分辨率是天花板，只在官方大图上抬分，故最轻。
@@ -134,12 +142,18 @@ def score_all(cards):
 
 
 def assign(cards, scores):
-    """先按原档分组，再在组内按分数降序切。返回建议档列表（与 cards 同序）。"""
+    """先按原档分组，再在组内找**最大间隔**当断点：断点以上的才算升档候选，且最多 CAP 张。
+    返回建议档列表（与 cards 同序）。"""
     suggested = [c["rank"] for c in cards]
-    for src_rank, (dest, n_take) in TARGETS.items():
+    for src_rank, dest in TARGETS.items():
         idx = [i for i, c in enumerate(cards) if c["rank"] == src_rank]
         idx.sort(key=lambda i: (-scores[i]["score"], i))
-        for i in idx[:n_take]:
+        if len(idx) < 4:
+            continue                      # 组太短就找不出「断点」——不动比乱动好
+        gaps = [(scores[idx[a]]["score"] - scores[idx[a + 1]]["score"], a)
+                for a in range(len(idx) - 1)]
+        cut = max(gaps, key=lambda g: (g[0], -g[1]))[1]   # 并列时取靠前的那个断点
+        for i in idx[:min(cut + 1, CAP)]:
             suggested[i] = dest
     return suggested
 
@@ -305,7 +319,7 @@ def main():
         json.dump({
             "note": "由 scripts/rank-deck.py 生成；三项子分是百分位，score 是加权合成（0~100）。",
             "weights": WEIGHTS,
-            "targets": {k: {"to": v[0], "take": v[1]} for k, v in TARGETS.items()},
+            "targets": {k: {"to": v, "cap": CAP} for k, v in TARGETS.items()},
             "cards": [{"image": c["image"], "series": c["series"], "name": c.get("name", ""),
                        "style": c["style"], "rank": c["rank"], "suggested": sg,
                        **{k: round(v, 4) for k, v in s.items()}}
