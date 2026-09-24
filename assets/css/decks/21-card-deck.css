@@ -216,9 +216,11 @@
   --craft-gem-color: #6fcaa0;
 
   /* 雕花框那套零件（--tex-fret-h/v/corner/gem 与它们的位置令牌）2026-09-24 整副撤掉了 ——
-     见上面「正面不再有等级标，也不再有雕花框」那一段。下面 `--fret-line` 与 `--craft-gem-color`
-     是它留下的**死令牌**（`--fret-line` 的权威声明在 21-card-styles.css，那一份由
-     data/card-styles.yaml 生成，本轮不在改动面里）：下一轮清纹样令牌时与 --tex-fret-* 一起收。 */
+     见上面「正面不再有等级标，也不再有雕花框」那一段。生成器里那批 `--tex-fret-*` 令牌
+     已在 2026-09-25 按名字清掉（雪花 / 裂缝 / 珐琅格线三组一起）。下面 `--fret-line` 与
+     `--craft-gem-color` 仍是**死令牌**：它们的权威声明在 21-card-styles.css（由
+     data/card-styles.yaml 生成），而且 render-styles.mjs / guard-inject.py / check-deck.mjs
+     都按名字引用它们 —— 要收得连着那三处一起改，另开一轮。 */
 
   /* ---------- 等级令牌的默认值 = 最低档「收藏」那一套 ----------
 
@@ -325,8 +327,9 @@
       边栏那条**会绕框走的亮带**没有丢 —— 挪到色带上了，见「边框的动效层」那一条。
 
    留下的死引用：rank 类里的 `--rank-band` / `--rank-line` / `--rank-orn` 仍按档给值
-   （check-deck ⑥ 强制每档声明前两条），但**已经没有消费者** —— 下一轮清纹样令牌
-   （tools/cards/make-ornaments.py 那批 --tex-fret-*）时可以一起收。 */
+   （check-deck ⑥ 强制每档声明前两条），但**已经没有消费者** —— 要收得连 check-deck.mjs
+   那条守卫一起改（它会拦）。
+   （生成器那批 `--tex-fret-*` 与雪花 / 裂缝 / 珐琅格线已在 2026-09-25 清掉。） */
 
 /* 稀有度徽章：卡面右下角**固定位置** —— 2026-09-24 起正面不再使用（等级标移到卡背）。
    规则整条删掉而不是留着：留着的表现是「模板里删了 span、CSS 还在等它」，

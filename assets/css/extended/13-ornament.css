@@ -28,8 +28,8 @@
    但那条线没了、分段感变弱，在截图里也比另两版淡）。
 
    **形状用 mask 而不是背景图**：mask 只取 alpha，所以颜色留在 CSS 里 ——
-   冰晶跟着 --accent 走，换主题不用换素材（与 21-card-deck.css 那套
-   --tex-crack / --tex-flake 是同一手法）。data URI 里的 SVG 用单引号、外面套双引号，
+   冰晶跟着 --accent 走，换主题不用换素材（与 `--tex-starfield` 那张是同一手法）。
+   data URI 里的 SVG 用单引号、外面套双引号，
    `#` 不需要转义（这里没有颜色值，描边是 black —— mask 要的就是不透明）。 */
 .post-content hr {
   border: 0;

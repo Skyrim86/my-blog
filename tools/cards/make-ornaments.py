@@ -1,6 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""卡面纹样的生成器：把「等宽描边画直线」换成**有粗细变化的填充轮廓**，并产出雕花框那套零件。
+"""卡面纹样的生成器：产出**变宽轮廓**的纹样令牌与数学曲线徽记。
+
+## 现在这一批是什么（2026-09-25 清过一次）
+
+只剩两类：**星屑夜天**（`--tex-starfield`，一张 mask 图）与**六档的数学曲线徽记**
+（`--mark-*`，五个 `polygon()`；最低档的圆走 `border-radius: 50%`，不进这个文件）。
+
+清掉的 13 个令牌（`--tex-flake1..3` / `--tex-crack` / `--tex-cloison` / `--tex-fret-*`）
+在 2026-09-24 的等级层重做后全部失去了消费者：等级层把「框」统一成一副几何（花纹走 `--pat-*`、
+色带走 `--rank-strip`），雕花框那套零件整副撤掉。**清除是按名字删的，所以删完必须重跑一次
+并把令牌名单与原名单 diff**（`git diff --stat` 看不出删错没删错）。
+
+## 下面三节是已删实现的历史记录（讲的是雪花 / 裂缝 / 雕花框）
+
+留着是因为它们解释了 `band()`（变宽轮廓）为什么存在 —— 星屑的流星仍走它。
+
+把「等宽描边画直线」换成**有粗细变化的填充轮廓**，并产出雕花框那套零件。
 
 用法（与 tools/cards/ 那几个脚本同一个解释器）：
     C:/Users/15350/miniconda3/envs/ml/python.exe tools/cards/make-ornaments.py
@@ -122,293 +138,6 @@ def circle(cx, cy, r, dec=1):
 
 # ---------------------------------------------------------------- 有机纹样
 
-def flake(seed, size=44.0):
-    """一朵**真雪花**：六枝准对称的枝晶。
-
-    与旧版的三处不同（都是上面第 1、2 条规则的落地）：
-      · 每一枝与每一条侧枝都是**变宽轮廓**，末梢收到 0（旧版是等宽直线段的六向星号）；
-      · 侧枝**越靠枝尖越短**，且同一枝两侧**各自独立**（不镜像）—— 真实生长里两侧互不相干；
-      · 递归**只分两级**（不再有三级芽）：真雪花是「only slightly fractal」，越分越像机器。
-    `size` 取 44 是为了**坐标都是两位数**（1 单位 = 1px，见 band 的字节账），
-    放大到卡面上要多大由 CSS 的 mask-size 决定。
-    """
-    rng = random.Random(seed)
-    parts = []
-    for a in range(6):
-        ang = a * math.pi / 3 + rng.uniform(-0.035, 0.035)          # 准对称：枝间轴线也会偏
-        ln = size * rng.uniform(0.80, 0.98)
-        tipx, tipy = math.cos(ang) * ln, math.sin(ang) * ln
-        # 主枝：三个脊柱点（根 / 中 / 尖），中段略微外弓，避免笔直
-        bow = rng.uniform(-0.06, 0.06)
-        mid = (math.cos(ang + bow) * ln * 0.5, math.sin(ang + bow) * ln * 0.5)
-        parts.append(band([(0, 0), mid, (tipx, tipy)], size * 0.125, 0.0, taper=0.8))
-        # 侧枝：两侧独立取「位置 + 长度」，越靠枝尖越短
-        for side in (-1, 1):
-            for f in sorted(rng.uniform(0.3, 0.92) for _ in range(3)):
-                bl = ln * (1.0 - f) * rng.uniform(0.45, 0.65)
-                ba = ang + side * math.radians(60 + rng.uniform(-8, 8))
-                bx, by = math.cos(ang) * ln * f, math.sin(ang) * ln * f
-                parts.append(band([(bx, by),
-                                   (bx + math.cos(ba) * bl, by + math.sin(ba) * bl)],
-                                  size * 0.058, 0.0, taper=0.9))
-    return parts
-
-
-def crack_net(seed, w=272.0, h=381.0, starts=4, depth=2, w0=3.0):
-    """一张**裂缝网**：从一个（或几个）起点生长，逐级分叉、越分越细。
-
-    与旧版金继的差别就是「裂缝」这件事本身：旧版是 5 条固定折线在 4 个固定线宽上重复、
-    彼此**没有一处交叉**；真裂缝是**层级网络** —— 分叉处宽度汇聚（子缝从母缝当前的宽度
-    按比例继承，所以接口处自然比两边都宽）、子缝更细更短、密度在起点附近最大。
-    分叉角取 ±48~70°（干裂纹的交叉角趋向 120°，arXiv 2609.11048）。
-
-    **宽度按卡面真实像素给**（`w0=3.0`）：这张图的 viewBox 就是卡面尺寸（272×381）、不缩放。
-    第一版按 `min(w,h)*0.03 ≈ 8px` 给根宽，整张图成了一团八像素宽的楔形（像闪电不像裂缝）；
-    第二版收到 2.6px 又太淡、`starts=3` 太稀（218×305 上只在左下角一小丛，读作「一根小树枝」）。
-    现在是 6 条起、`taper=1.15`（主缝在前三分之二保持宽度、末端才收），才铺得满一张卡。
-
-    步数多、每步短（`step ≈ 15px`）才会走成曲折的裂；步长太大就成了一条直楔子。
-    分叉概率与深度刻意压住（0.45 / depth 2）：`0.55 / depth 3` 会生出两百多条带、令牌 40 KB 起，
-    而 272px 上根本看不出多出来的那些细枝。
-    """
-    rng = random.Random(seed)
-    parts = []
-
-    def grow(x, y, ang, width, length, d):
-        pts = [(x, y)]
-        steps = rng.randint(6, 9)
-        step = length / steps
-        for _ in range(steps):
-            cx, cy = pts[-1]
-            if d > 0 and rng.random() < 0.45:
-                ba = ang + rng.choice((-1, 1)) * math.radians(rng.uniform(48, 70))
-                grow(cx, cy, ba, width * 0.72, length * rng.uniform(0.6, 0.9), d - 1)
-            ang += rng.uniform(-0.55, 0.55)          # 裂缝是**棱角**的，转得比藤蔓急
-            pts.append((cx + math.cos(ang) * step, cy + math.sin(ang) * step))
-        parts.append(band(pts, width, 0.0, taper=1.15))
-
-    for _ in range(starts):
-        # 起点落在画面边缘附近（裂缝从边上来、或在画面里一个「落点」）
-        if rng.random() < 0.5:
-            sx, sy = rng.choice((0.0, w)), rng.uniform(0.1, 0.9) * h
-        else:
-            sx, sy = rng.uniform(0.15, 0.85) * w, rng.uniform(0.1, 0.9) * h
-        grow(sx, sy, rng.uniform(0, 2 * math.pi), w0 * rng.uniform(0.75, 1.15),
-             min(w, h) * rng.uniform(0.5, 0.8), depth)
-    return parts
-
-
-def scroll(seed, size=64.0, lines=3):
-    """卷草（雕花金/雕花框的有机线条）：每条是一根**变宽的卷曲藤**，不是等宽圆环。
-
-    做法：沿一段螺旋取脊柱点，宽度从粗到细收到 0 —— 真卷草的末梢也是收尖的，
-    这正是它比「一串圆环」耐看的原因。
-    """
-    rng = random.Random(seed)
-    parts = []
-    for i in range(lines):
-        cx = rng.uniform(0.2, 0.8) * size
-        cy = rng.uniform(0.2, 0.8) * size
-        r0 = size * rng.uniform(0.10, 0.16)
-        turns = rng.uniform(1.1, 1.7)
-        pts = []
-        n = 14
-        for k in range(n):
-            t = k / (n - 1)
-            a = t * turns * 2 * math.pi
-            r = r0 * (1.0 + 0.55 * t)          # 越卷越开
-            pts.append((cx + math.cos(a) * r, cy + math.sin(a) * r))
-        parts.append(band(pts, size * 0.045, 0.0, taper=1.0, per_seg=3))
-    return parts
-
-
-# ---------------------------------------------------------------- 雕花框零件（等宽**是对的**）
-
-def fret_rail(seed, tile=48.0, band_h=20.0):
-    """雕花边栏的一格瓦片（横排；竖向的由 `rot90()` 转出来，不再写第二套生成逻辑）。
-
-    这一件**用等宽 stroke**：真鎏金画框的边栏、缠枝、双线本来就是等宽线，等宽在这里是对的
-    （「生硬」那条只针对雪、裂缝这类有机形状）。
-
-    **尺寸按 1:1 的真实像素设计**（瓦片 48×20、笔画 1.0~1.6px，卡面上不缩放）：第一版把瓦片
-    设计成 56×20 却在对照图里被拉到 320px 宽（放大 5.7 倍），笔画粗成一片 —— 那次是**看的方法**
-    错了，但结论一样：这套零件必须按它真正显示的尺寸设计，否则「细线」在放大后全是块面。
-
-    一格之内：上下两条边线（横贯整格，保证平铺无缝）、一条正弦缠枝（取**整数个周期**，
-    两端的 y 与斜率才接得上）、波峰波谷各挂一个小卷与一个小点（疏密不匀，但左右成对）。
-    """
-    rng = random.Random(seed)
-    mid = band_h / 2
-    amp = 3.0
-    strokes = []
-    for yy in (1.0, band_h - 1.0):
-        strokes.append((f"M0 {yy:.0f}H{tile:.0f}", 1.4))
-    n = 13
-    sp = [(k / (n - 1) * tile,
-           mid + math.sin(k / (n - 1) * 2 * math.pi) * amp) for k in range(n)]
-    strokes.append(("M" + "L".join(f"{x:.0f} {y:.1f}" for x, y in sp), 1.6))
-    for k in range(2):
-        t = (k + 0.5) / 2
-        x, y = t * tile, mid + math.sin(t * 2 * math.pi) * amp
-        up = 1 if math.cos(t * 2 * math.pi) > 0 else -1
-        r = rng.uniform(1.7, 2.2)
-        strokes.append((circle(x + 1.8, y + up * 3.0, r), 1.1))
-        strokes.append((f"M{x - 2.4:.0f} {y:.0f}c-1.2 {-1.2 * up:.0f} -2.4 {-1.8 * up:.0f} "
-                        f"-3.2 {-0.5 * up:.0f}", 1.0))
-        strokes.append((f"M{x + 5.5:.0f} {mid:.0f}a0.7 0.7 0 1 0 1.4 0a0.7 0.7 0 1 0 -1.4 0", 1.0))
-    return "".join(f'<path d="{d}" stroke="#fff" fill="none" stroke-width="{sw}"/>'
-                   for d, sw in strokes)
-
-
-def corner_shard(seed, size=26.0):
-    """**棱角碎星款**角花：给星芒全息用 —— 它的性格是放射与棱面，不该戴一朵圆花。
-
-    两枚交叉的梭形（四角星）+ 中心一个小棱面 + 四个斜向小棱片，全用等宽 stroke 与直线，
-    **故意不做圆**：这一款与圆花心的区别就是「有棱」。
-    """
-    c = size / 2
-    out = []
-    for a0 in (0.0, math.pi / 2):
-        pts = []
-        for k in range(4):
-            a = a0 + k * math.pi / 2
-            r = size * (0.47 if k % 2 == 0 else 0.16)
-            pts.append((c + math.cos(a) * r, c + math.sin(a) * r))
-        out.append(f'<path d="M{"L".join(f"{x:.1f} {y:.1f}" for x, y in pts)}Z" fill="#fff"/>')
-    out.append(f'<path d="{circle(c, c, size * 0.115, 1)}" fill="#fff"/>')
-    for k in range(4):
-        a = math.pi / 4 + k * math.pi / 2
-        px, py = c + math.cos(a) * size * 0.30, c + math.sin(a) * size * 0.30
-        out.append(f'<path d="M{px:.1f} {py:.1f}l{math.cos(a) * 3.4:.1f} {math.sin(a) * 3.4:.1f}" '
-                   f'stroke="#fff" stroke-width="1.4" fill="none"/>')
-    return "".join(out)
-
-
-def rot90(body, w, h):
-    """把一张瓦片整体转 90°（给竖向边栏用）。返回 (body, 新的宽, 新的高)。"""
-    return f'<g transform="translate({h:.0f} 0) rotate(90)">{body}</g>', h, w
-
-
-# ============================================================
-# 曲线角花（2026-09-21 第三轮）
-# ============================================================
-#
-# **这一层必须先说清楚尺寸**：`--fret-corner` 会被 mask 成 `--fret-w × --fret-w`，而它是
-# 「卡边到画面」那段环厚（= max(--rank-mat, --rank-band)），六档实测 6px（史诗）/ 9px（珍稀、
-# 秘藏）/ 11px（传世）/ 12px（收藏、奇迹）。**6px 上画不出花瓣** —— 那不是曲线不够真，
-# 是像素不够。所以这一层能改的只是形状的**家族**：
-#   圆盘（现在的圆花心）→ 凹口（星形线）→ 带齿的环（外摆线）
-# 三者在大尺寸下是三条完全不同的曲线，缩到 6~11px 之后剩下的是「有没有角」「边是不是凹的」
-# 「外缘有没有齿」这三种可分辨的差别。验收就按这个口径看（lab/结果/deck9/corner.py），
-# 不假装能读出五瓣。
-
-
-def _curve_pts(fn, scale, c):
-    """把曲线函数给的点集平移到角花瓦片的中心并缩放（角花是 1:1 的 26px 小图）。"""
-    pts = fn()
-    return [(c + x * scale, c + y * scale) for x, y in pts]
-
-
-def corner_astroid_notch(size=26.0):
-    """角花·**凹角**：星形线 x = cos³t, y = sin³t 直接当轮廓（四尖、边向内凹）。
-
-    与圆花心的差别就是「边是凹的」—— 缩到 6px 之后，这个差别仍然看得出来（圆盘 vs 凹边梭形），
-    这是曲线在这么小的尺寸上还能保住的少数性质之一。角心留一个小圆孔，给宝石层透气。"""
-    c = size / 2
-    pts = _curve_pts(lambda: curve_astroid(n=48), size * 0.47, c)
-    d = "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts) + "Z"
-    return (f'<path d="{d}" fill="#fff"/>'
-            + f'<path d="{circle(c, c, size * 0.10, 1)} {circle(c, c, size * 0.045, 1)}" '
-              f'fill="#fff" fill-rule="evenodd"/>')
-
-
-def corner_rose_disc(size=26.0, k=5):
-    """角花·**玫瑰盘**：玫瑰线 r = cos kθ 当轮廓（k = 5，五瓣）。
-
-    9px 下五瓣缩成「边上有点起伏的圆盘」—— 比纯圆盘多一点信息，但不指望能数出瓣数。"""
-    c = size / 2
-    pts = _curve_pts(lambda: curve_rose(k=k, n=64), size * 0.47, c)
-    d = "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts) + "Z"
-    return (f'<path d="{d}" fill="#fff"/>'
-            + f'<path d="{circle(c, c, size * 0.13, 1)}" fill="#fff"/>')
-
-
-def corner_epicycloid_ring(size=26.0, ratio=5):
-    """角花·**齿轮环**：外缘是外摆线 R/r = 5（尖朝外），内缘是圆 —— evenodd 出一个带齿的环。
-
-    传世那一档的环厚是 11px，是六档里最宽的，所以把最「有齿」的那条曲线放在这里：
-    11px 下能看出外缘不是圆的。"""
-    c = size / 2
-    outer = _curve_pts(lambda: curve_epicycloid(ratio=ratio, n=72), size * 0.47, c)
-    d = "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in outer) + "Z"
-    return (f'<path d="{d} {circle(c, c, size * 0.30, 0)}" fill="#fff" fill-rule="evenodd"/>'
-            + f'<path d="{circle(c, c, size * 0.38, 0)}" fill="none" stroke="#fff" '
-              f'stroke-width="1.0"/>')
-
-
-def corner_boss(seed, size=26.0):
-    """角花：一枚圆形花心 + 四片叶 + 外圈。宝石坐在中心（宝石由另一层画）。
-
-    等宽 stroke + 一个 evenodd 的圆环 —— 这是**画框**的语言，不是有机纹样。
-    尺寸同样按 1:1 给（26px，约卡宽的 1/10，与参考图里角花的比例相当）；笔画 0.9~1.3px。
-    """
-    rng = random.Random(seed)
-    c = size / 2
-    out = [
-        # 外圈（evenodd 的环）+ 内圈：两层细线的「双线」感
-        f'<path d="{circle(c, c, size * 0.46, 0)} {circle(c, c, size * 0.40, 0)}" fill="#fff" fill-rule="evenodd"/>',
-        f'<path d="{circle(c, c, size * 0.29, 0)}" fill="none" stroke="#fff" stroke-width="1.0"/>',
-    ]
-    for k in range(4):
-        a = k * math.pi / 2 + math.pi / 4
-        px, py = c + math.cos(a) * size * 0.235, c + math.sin(a) * size * 0.235
-        out.append(f'<ellipse cx="{px:.1f}" cy="{py:.1f}" rx="{size * 0.045:.1f}" '
-                   f'ry="{size * 0.085:.1f}" transform="rotate({math.degrees(a):.0f} {px:.1f} {py:.1f})" fill="#fff"/>')
-    # 四角的小点：疏密不匀（同一个角花上也不等距）
-    for k in range(5):
-        a = rng.uniform(0, 2 * math.pi)
-        r = size * rng.uniform(0.33, 0.43)
-        out.append(f'<circle cx="{c + math.cos(a) * r:.1f}" cy="{c + math.sin(a) * r:.1f}" '
-                   f'r="{size * 0.026:.1f}" fill="#fff"/>')
-    return "".join(out)
-
-
-def gem(seed=7, size=9.0):
-    """宝石：六边明亮式切工的**轮廓 + 切面线**。轮廓给形状，切面线给「有刻面」的那点暗示。"""
-    c = size / 2
-    pts = [(c + math.cos(math.pi / 3 * k - math.pi / 2) * c * 0.94,
-            c + math.sin(math.pi / 3 * k - math.pi / 2) * c * 0.94) for k in range(6)]
-    outer = "M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts) + "Z"
-    inner = "M" + "L".join(f"{c + (x - c) * 0.5:.1f} {c + (y - c) * 0.5:.1f}" for x, y in pts) + "Z"
-    facets = "".join(f'M{x:.1f} {y:.1f}L{c + (x - c) * 0.5:.1f} {c + (y - c) * 0.5:.1f}'
-                     for x, y in pts)
-    return (f'<path d="{inner}" fill="#fff"/>'
-            f'<path d="{facets}" stroke="#fff" stroke-width="0.5" fill="none"/>'
-            f'<path d="{outer}" stroke="#fff" stroke-width="0.8" fill="none"/>')
-
-
-def cloison(seed, tile=30.0, w=272.0, h=381.0):
-    """珐琅彩的**格子**：一张铺满卡面的六边形格子，每个格子**实心**、彼此留 1.4px 的缝 ——
-    缝就是那条金线（掐丝）。
-
-    为什么是实心格子而不是格线：这个令牌当 mask 用，而 mask 上**有 alpha 的地方才会被上色**。
-    第一版画的是六边形的**边**（stroke），于是被上色的是线、格子是空的 —— 正好反了：
-    珐琅彩要的是「宝石色填在格子里、金线在缝上」。改成实心格子之后，格子被涂上多色渐变，
-    缝里露出来的是卡自己的框色（等级给的金属色阶），金线于是自然出现、而且跟着档位变。
-
-    做成**整卡一张**（不平铺）是为了躲开接缝：六边形网格要在瓦片边界上对齐，得把 tile 与
-    每行的偏移都算准，而这里只要一张静态图。
-    """
-    hh = tile * math.sqrt(3) / 2
-    out = []
-    for r in range(-1, int(h / hh) + 2):
-        for k in range(-1, int(w / tile) + 2):
-            cx = k * tile + (tile / 2 if r % 2 else 0)
-            cy = r * hh
-            pts = [(cx + math.cos(math.pi / 3 * i) * (tile * 0.5 - 1.4),
-                    cy + math.sin(math.pi / 3 * i) * (tile * 0.5 - 1.4)) for i in range(6)]
-            out.append('M' + 'L'.join(f"{x:.0f} {y:.0f}" for x, y in pts) + 'Z')
-    return f'<path d="{"".join(out)}" fill="#fff"/>'
 
 
 def starfield(seed, w=272.0, h=381.0, n=26):
@@ -578,44 +307,10 @@ def main():
         u = uri(body, w, h, viewbox)
         toks.append((name, u, note))
 
-    # —— 有机纹样（变宽轮廓）——
-    # 雪花出**三朵**、各自成一个令牌，由 CSS 用多张 mask 层、不同大小与位置铺成一张卡面：
-    # 那样「九朵疏密不匀」的排布留在 CSS 里（改排布不用重跑生成器），而每朵的坐标都很小。
-    for i, seed in enumerate((11, 23, 37)):
-        add(f"--tex-flake{i + 1}",
-            "".join(f'<path d="{d}" fill="#fff"/>' for d in flake(seed, 44.0)),
-            88, 88,
-            f"雪花 {i + 1}（六枝准对称、枝梢收到 0、侧枝越靠尖越短且两侧不镜像、只分两级）",
-            viewbox="-44 -44 88 88")
-    add("--tex-crack",
-        "".join(f'<path d="{d}" fill="#fff"/>' for d in crack_net(101)),
-        272, 381, "金继/冰裂的裂缝网（根宽 2.6px、分叉处宽度汇聚、子缝 0.72 倍宽）",
-        viewbox="0 0 272 381")
-    # 暗侧不再单独出一张：那和上面是**同一份几何**，旧版靠 CSS 里把同一张图偏移 1.3px 压暗，
-    # 生成两份就是白花几 KB。CSS 侧继续用 background-position 错位。
+    # —— 星屑夜天（这一批里唯一的 mask 图）——
     add("--tex-starfield", starfield(83), 272, 381,
         "星屑夜天（星点大小差 4 倍、亮度三档、另加 3 道收尖的流星）", viewbox="0 0 272 381")
-    add("--tex-cloison", cloison(19, tile=30.0), 272, 381,
-        "珐琅格线（铺满卡面的六边形掐丝，等宽笔触；颜色由底下的多色渐变给）", viewbox="0 0 272 381")
 
-    # —— 雕花框零件（等宽是对的）——
-    rail = fret_rail(43, tile=48.0, band_h=20.0)
-    add("--tex-fret-h", rail, 48, 20,
-        "雕花边栏瓦片·横（上下双线 + 正弦缠枝 + 小卷与小点；1:1 尺寸、可平铺）")
-    body, vw, vh = rot90(rail, 48, 20)
-    add("--tex-fret-v", body, vw, vh, "雕花边栏瓦片·竖（横向那格的 90° 版本）")
-    add("--tex-fret-corner", corner_boss(71), 26, 26,
-        "角花·圆花心（双圈 + 四叶 + 疏密不匀的点；中心留给宝石）—— 雕花金/金边/玻璃/金继/珐琅彩")
-    add("--tex-fret-shard", corner_shard(89), 26, 26,
-        "角花·棱角碎星（交叉梭形 + 棱片，故意不做圆）—— 给星芒全息：它的性格是放射与棱面")
-    # —— 曲线角花（三条曲线各自的「轮廓家族」；尺寸说明见上面那一节）——
-    add("--tex-fret-notch", corner_astroid_notch(), 26, 26,
-        "角花·凹角（星形线 cos³t/sin³t 直接当轮廓）—— 给史诗：边向内凹，6px 下与圆盘仍分得开")
-    add("--tex-fret-rosedisc", corner_rose_disc(), 26, 26,
-        "角花·玫瑰盘（玫瑰线 r = cos 5θ）—— 给秘藏：9px 下是「边上有点起伏的盘」")
-    add("--tex-fret-gearring", corner_epicycloid_ring(), 26, 26,
-        "角花·齿轮环（外摆线 R/r = 5，外缘带齿、内缘是圆）—— 给传世：11px 下看得出外缘不是圆的")
-    add("--tex-fret-gem", gem(7, 9.0), 9, 9, "宝石（六边明亮式：轮廓 + 切面线）")
 
     # —— 数学曲线徽记（clip-path，不是 mask：它们是**实心**形状，直接当裁剪路径用）——
     # 令牌是 CSS 值（polygon），不是 data-URI，所以不能走 add()（那个包的是 url(...)）。这里单出一组。

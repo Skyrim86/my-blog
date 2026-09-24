@@ -50,8 +50,8 @@
 #   plateSolid --cplate-solid（取不到渐变时的实底）  plateText / plateAccent：名牌文字与强调色
 #   blend      --cblend：印纹层与画作的混合方式
 #   opacity    --coverlay-op：印纹层不透明度（深色主题那几条覆写在 21-card-deck.css 的「深色主题」段）
-#   mask       --coverlay-mask：印纹层的遮罩，**可以是多层**（数组；yukika 就是十二片 var(--tex-flake*)），
-#              与 print 同构；不给 = 全卡都显
+#   mask       --coverlay-mask：印纹层的遮罩，**可以是多层**（数组，与 print 同构；目前
+#              只有星屑那一档用，`ref: "--tex-starfield"`），不给 = 全卡都显
 #   maskSize / maskPosition / maskRepeat  --cmask-size / --cmask-position / --cmask-repeat（标量）
 #   filter     --cfilter：none 或 url(#<id>)，id 必须在 layouts/_partials/deck-filters.html 里
 #   boxShadow  玻璃那种「材质长在盒模型上」的部分（倒角/边缘折射/体积光），原样透传，写在 --cfilter 之后
