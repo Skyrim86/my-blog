@@ -180,7 +180,7 @@ async function restartPreview(quiet = false) {
 
 // ---------------- tab 切换 ----------------
 
-const TABS = ['create', 'edit', 'publish', 'cards', 'check'];
+const TABS = ['create', 'edit', 'publish', 'deck', 'cards', 'check'];
 
 $('tabs').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-tab]');
@@ -201,6 +201,7 @@ function activateTab(name, { silent = false } = {}) {
     loadCi();
   }
   if (name === 'cards') loadCards();
+  if (name === 'deck') loadDeck();
   if (name === 'check') loadCheckItems();
 }
 
@@ -2246,6 +2247,9 @@ const PALETTE_ACTIONS = [
   { label: '新建：切到表单并聚焦第一个字段', run: () => { activateTab('create'); focusCreateForm(); } },
   { label: '去「编辑」', run: () => activateTab('edit') },
   { label: '去「发布」', run: () => activateTab('publish') },
+  { label: '去「收藏库」', run: () => activateTab('deck') },
+  { label: '收藏库：重新加载（重算卡面明度）', run: () => { activateTab('deck'); loadDeck(true).catch(() => {}); } },
+  { label: '收藏库：跑定级差异（rank-deck.py --check）', run: () => { activateTab('deck'); $('deck-rank-check').click(); } },
   { label: '去「体检」', run: () => activateTab('check') },
   { label: '跑一次快检', run: () => { activateTab('check'); runChecks('fast'); } },
   { label: '刷新预览', run: () => $('preview-reload').click() },
@@ -2727,6 +2731,13 @@ function initShortcuts() {
       }
       return;
     }
+    // Ctrl/Cmd+Shift+D：去收藏库并重算明度（明度是现算的，重出卡面后要看新的就得重拉）
+    if (mod && ev.shiftKey && ev.key.toLowerCase() === 'd') {
+      ev.preventDefault();
+      activateTab('deck');
+      loadDeck(true).catch(() => {});
+      return;
+    }
     if (ev.key === 'Escape' && palette.open) paletteClose();
   });
   // 有未保存改动时拦一下：这个界面的保存按钮不显眼，误关一次就等于白写
@@ -2737,6 +2748,386 @@ function initShortcuts() {
     ev.preventDefault();
     ev.returnValue = '';
   });
+}
+
+// ---------------- 收藏库（首页卡片墙的清单 data/home-cards.yaml）----------------
+//
+// 与下面那个「卡片库」不是一回事：那个是知识库（数学库 / CS 库）的卡片，走 tools/wiki-publish/cards.py；
+// 这个是首页收藏卡。**界面不算任何规则**：卡面明度（L）、该明度允许的工艺集合、违规判定与推荐值、
+// 以及清单的读写全在 scripts/deck-edit.py 里（§十八 的三档表在那里是唯一一份实现，界面重算必然漂移）。
+//
+// 写盘走「先预演、再落盘」两步：改动包成 ops → POST /api/deck/plan（脚本 --dry-run，回 unified diff）
+// → 人看过 diff → POST /api/deck/apply。两个路由的差别只有 --dry-run 一个参数，预览与实际不会不一致。
+const DECK_STORE = { data: null, sel: null, plan: null, armed: null };
+
+function deckCard(no) {
+  return (DECK_STORE.data?.cards ?? []).find((c) => c.no === Number(no)) ?? null;
+}
+
+function deckFaceUrl(c) {
+  if (!c?.hasFace || !c.face) return '';
+  // ?v=<产物 mtime>：重出卡面后 URL 就变了，不会被浏览器那 300 秒的缓存挡住
+  return `/api/deck/face?image=${encodeURIComponent(c.face)}&v=${c.faceMtime}`;
+}
+
+// 要一眼看见的两类：违规（工艺与明度档冲突，该改）与不判定（这个工艺还没并进 §十八 的 8 种口径）
+function deckNeedsEye(c) {
+  return Boolean(c.violation) || !c.judged;
+}
+
+function deckChip(c) {
+  if (c.violation) return '<span class="chip warn" title="这张卡的工艺不在这档明度允许的集合里">违规</span>';
+  if (c.exempt) return '<span class="chip" title="清单里写了 craft_exempt: true —— 有意破例">豁免</span>';
+  if (!c.judged) return '<span class="chip" title="这个工艺不在 §十八 的八种口径里（工艺正从 16 种收到 8 种），不判定">不判定</span>';
+  return '<span class="chip ok">ok</span>';
+}
+
+function deckBandText(c) {
+  if (c.L == null) return c.note ? `明度 —（${esc(c.note)}）` : '明度 —';
+  return `明度 <b>${c.L}</b>（${esc(c.bandLabel || c.band)}）`;
+}
+
+function renderDeckList() {
+  const holder = $('deck-list');
+  const data = DECK_STORE.data;
+  if (!data || !holder) return;
+  const q = ($('deck-q').value || '').trim().toLowerCase();
+  const badOnly = $('deck-bad-only').checked;
+  const items = (data.cards || []).filter((c) => {
+    if (badOnly && !deckNeedsEye(c)) return false;
+    if (!q) return true;
+    return [c.name, c.series, c.rank, c.rankLabel, c.style, c.styleLabel, c.band, String(c.no)]
+      .join(' ').toLowerCase().includes(q);
+  });
+  const s = data.summary || {};
+  const band = s.byBand || {};
+  $('deck-summary').textContent =
+    `共 ${data.count} 张（显示 ${items.length} 张）；明度 亮 ${band['亮'] ?? 0} / 中 ${band['中'] ?? 0} / 暗 ${band['暗'] ?? 0}；` +
+    `违规 ${s.violations ?? 0} 张，豁免 ${s.exempt ?? 0} 张，未纳入 §十八 口径 ${s.unjudged ?? 0} 张` +
+    (data.lightness && !data.lightness.ok ? `；⚠ 明度体检不可用：${data.lightness.error}` : '');
+
+  if (!items.length) {
+    holder.innerHTML = '<div class="list-empty">没有匹配的卡片</div>';
+    return;
+  }
+  let html = '';
+  let series = null;
+  for (const c of items) {
+    if (c.series !== series) {
+      series = c.series;
+      html += `<div class="list-group">${esc(series || '（无系列）')}</div>`;
+    }
+    const face = deckFaceUrl(c);
+    html +=
+      `<button type="button" class="list-row deck-row${DECK_STORE.sel === c.no ? ' on' : ''}" data-deck-no="${c.no}">` +
+      (face
+        ? `<img class="deck-thumb" src="${face}" alt="" loading="lazy">`
+        : '<span class="deck-thumb deck-thumb-empty" title="卡面产物不在"></span>') +
+      `<span class="deck-row-body">` +
+      `<span class="card-row-title">${c.no}. ${esc(c.name || '（无名）')}${c.craftExempt ? ' ·craft_exempt' : ''}</span>` +
+      `<span class="card-row-meta">` +
+      `<span class="chip">${esc(c.styleLabel || c.style || '—')}</span>` +
+      `<span class="chip">${esc(c.rankLabel || c.rank)}</span>` +
+      `<span class="chip deck-l">L ${c.L == null ? '—' : c.L}</span>` +
+      deckChip(c) +
+      `</span></span></button>`;
+  }
+  holder.innerHTML = html;
+}
+
+async function loadDeck(force = false) {
+  if (DECK_STORE.data && !force) {
+    renderDeckList();
+    return;
+  }
+  $('deck-summary').textContent = '正在读取清单并现算明度…';
+  try {
+    const data = await api.get('/api/deck/list');
+    if (!Array.isArray(data.cards)) throw new Error(data.error || '收藏库脚本没有返回卡片');
+    DECK_STORE.data = data;
+    renderDeckList();
+    renderDeckDetail();
+  } catch (err) {
+    $('deck-summary').textContent = `✗ ${err.message}`;
+    $('deck-list').innerHTML = '';
+  }
+}
+
+// 详情面板：改名字 / 系列 / 等级 / 工艺 + 排序 + 删除 + 预演与落盘。
+// 「该档允许的工艺」那些 chip 直接可点 —— 点了就填进工艺下拉，和「一键改成推荐值」是同一条路。
+function renderDeckDetail() {
+  const box = $('deck-detail');
+  if (!box) return;
+  const c = deckCard(DECK_STORE.sel);
+  const data = DECK_STORE.data;
+  if (!c || !data) {
+    box.innerHTML = '<span class="muted">从左边点一张卡。</span>';
+    return;
+  }
+  const face = deckFaceUrl(c);
+  const styles = (data.styles || [])
+    .map((s) => `<option value="${esc(s.code)}"${s.code === c.style ? ' selected' : ''}>${esc(s.label)}（${esc(s.code)}）</option>`)
+    .join('');
+  // 当前工艺不在「仓库里存在的工艺」表里时也要能显示出来，否则下拉会静默跳到第一项
+  const styleExtra = styles.includes(`value="${esc(c.style)}"`)
+    ? ''
+    : `<option value="${esc(c.style)}" selected>${esc(c.styleLabel || c.style)}（清单里写的，仓库里没这个代码）</option>`;
+  const ranks = (data.ranks || [])
+    .map((r) => `<option value="${esc(r.code)}"${r.code === c.rank ? ' selected' : ''}>${esc(r.label)}（${esc(r.code)}）</option>`)
+    .join('');
+  const allowed = (c.allowed || [])
+    .map((a) =>
+      a.available
+        ? `<button type="button" class="chip deck-allowed-chip" data-deck-style="${esc(a.code)}" title="点了就把它填进下面的工艺">${esc(a.craft)}</button>`
+        : `<span class="chip deck-off" title="这档允许，但仓库里还没有这个工艺的代码（等工艺收口）">${esc(a.craft)}·未实现</span>`)
+    .join('');
+  const recommend = c.violation && c.recommended
+    ? `<button type="button" class="ghost tiny" id="deck-rec">一键改成「${esc(c.recommendCraft || c.recommended)}」</button>`
+    : '';
+
+  box.innerHTML =
+    `<div class="card-head">` +
+    `<strong>${c.no} / ${data.count}　${esc(c.name || '（无名）')}</strong>${deckChip(c)}` +
+    `<span class="muted">${esc(c.image || '（清单里没有 image）')}</span>` +
+    `</div>` +
+    `<div class="deck-face-row">` +
+    (face ? `<img class="deck-face" src="${face}" alt="">` : '<span class="muted">卡面产物不在</span>') +
+    `<div class="deck-face-info">` +
+    `<div>${deckBandText(c)}</div>` +
+    `<div class="deck-allowed"><span class="muted">该档允许：</span>${allowed || '<span class="muted">—</span>'}</div>` +
+    (c.violation
+      ? `<div class="deck-bad">现在挂的是「${esc(c.styleLabel || c.style)}」，不在这档允许的集合里。${recommend}</div>`
+      : c.judged
+        ? '<div class="muted">工艺与明度档一致。</div>'
+        : `<div class="muted">${esc(c.note || '这个工艺不判定')}</div>`) +
+    (c.src ? `<div class="muted deck-src">源图：${esc(c.src)}${c.credit ? ' · ' + esc(c.credit) : ''}</div>` : '') +
+    `</div></div>` +
+    `<div class="card-form">` +
+    `<label for="deck-f-name">名字</label><input type="text" id="deck-f-name" value="${esc(c.name)}">` +
+    `<label for="deck-f-series">系列</label><input type="text" id="deck-f-series" value="${esc(c.series)}">` +
+    `<label for="deck-f-rank">等级<span class="hint">六档：收藏 / 珍稀 / 史诗 / 秘藏 / 传世 / 奇迹</span></label>` +
+    `<select id="deck-f-rank">${ranks}</select>` +
+    `<label for="deck-f-style">工艺<span class="hint">代码名以生成的 21-card-styles.css 与 render-styles.mjs 为准</span></label>` +
+    `<select id="deck-f-style">${styleExtra}${styles}</select>` +
+    `</div>` +
+    `<div class="actions">` +
+    `<button type="button" class="primary tiny" id="deck-plan">预演改动（不写盘）</button>` +
+    `<button type="button" class="primary tiny" id="deck-apply" disabled>写盘</button>` +
+    `<button type="button" class="ghost tiny" id="deck-up">上移</button>` +
+    `<button type="button" class="ghost tiny" id="deck-down">下移</button>` +
+    `<button type="button" class="ghost tiny danger" id="deck-del">删除这张卡</button>` +
+    `</div>` +
+    `<pre id="deck-diff" class="diff" hidden></pre>`;
+  if (DECK_STORE.plan && DECK_STORE.plan.name === c.name) showDeckDiff(DECK_STORE.plan);
+}
+
+
+// 改动 → ops。**只有真动过的字段才进 ops**：提交一条「跟原来一样」的 update 会白写一次盘，
+// 而且 diff 里看不出改了什么。
+function deckFormOps(c) {
+  const fields = {};
+  const name = $('deck-f-name').value.trim();
+  const series = $('deck-f-series').value.trim();
+  const rank = $('deck-f-rank').value;
+  const style = $('deck-f-style').value;
+  if (name && name !== c.name) fields.name = name;
+  if (series !== c.series) fields.series = series;
+  if (rank !== c.rank) fields.rank = rank;
+  if (style !== c.style) fields.style = style;
+  return Object.keys(fields).length ? [{ type: 'update', index: c.no, fields }] : [];
+}
+
+function showDeckDiff(plan) {
+  const pre = $('deck-diff');
+  if (!pre) return;
+  const lines = [];
+  // 头部要说清这一版到底落盘了没有：预演与写盘共用这个面板，标错就等于骗人
+  lines.push(`${plan.written ? '已写盘' : '预演（没有写盘）'}：${plan.label}`);
+  if (plan.changed && plan.changed.length) lines.push(`改动：${plan.changed.join('；')}`);
+  for (const r of plan.results || []) lines.push(`· ${r.detail}`);
+  if (plan.selfcheck) lines.push(`自检：${plan.selfcheck}`);
+  lines.push('');
+  lines.push(plan.diff || '（没有差异）');
+  pre.hidden = false;
+  pre.textContent = lines.join('\n');
+}
+
+// 预演与落盘的唯一差别是打哪个路由（服务端也只是加不加 --dry-run），所以两边共用一个函数：
+// 「预览过的东西」与「真写的东西」是同一份 ops，不可能对不上。
+async function deckRun(ops, label, apply) {
+  const data = DECK_STORE.data;
+  const body = { ops, expectCount: data?.count };
+  const res = apply
+    ? await api.send('POST', '/api/deck/apply', body)
+    : await api.send('POST', '/api/deck/plan', body);
+  // ops 存在界面这一侧（服务端只认它转发的 payload）：落盘时发的就是刚预演过的那一份
+  DECK_STORE.plan = { ...res, ops, label, name: deckCard(ops[0].index)?.name ?? '' };
+  showDeckDiff(DECK_STORE.plan);
+  return res;
+}
+
+function deckToastResult(res, verb) {
+  const out = (res.stderr || '').trim();
+  if (res.ok) toast(`${verb}：${(res.changed || []).join('；') || '完成'}`, 'ok');
+  else toast(`${verb}失败：${res.error || out || '见下面的输出'}`, 'error');
+}
+
+async function deckPlanBtn(ops, label) {
+  if (!ops.length) {
+    toast('没有改动 —— 表单和清单里现在是一样的', 'error');
+    return false;
+  }
+  try {
+    const res = await deckRun(ops, label, false);
+    $('deck-apply').disabled = !res.ok;
+    deckToastResult(res, '预演');
+    return res.ok;
+  } catch (err) {
+    toast(`预演失败：${err.message}`, 'error');
+    return false;
+  }
+}
+
+async function deckApplyBtn() {
+  const plan = DECK_STORE.plan;
+  if (!plan || !plan.ops) {
+    toast('先点「预演改动」看一眼 diff，再写盘', 'error');
+    return;
+  }
+  const btn = $('deck-apply');
+  btn.disabled = true;
+  try {
+    const res = await deckRun(plan.ops, plan.label, true);
+    deckToastResult(res, '写盘');
+    const keep = deckCard(plan.ops[plan.ops.length - 1].index)?.name ?? null;
+    await loadDeck(true);
+    // 改动后顺序号会变（移动/删除），按名字把选中的卡重新找回来
+    const same = (DECK_STORE.data?.cards || []).find((c) => c.name === keep);
+    DECK_STORE.sel = same ? same.no : null;
+    DECK_STORE.plan = res.ok ? DECK_STORE.plan : null;
+    renderDeckList();
+    renderDeckDetail();
+  } catch (err) {
+    toast(`写盘失败：${err.message}`, 'error');
+  } finally {
+    const b = $('deck-apply');
+    if (b) b.disabled = false;
+  }
+}
+
+// 破坏性按钮统一走「再点一次确认」：与发布、删内容同一个手势，不弹 confirm 打断
+function deckArm(btn, label, run) {
+  if (btn.dataset.armed !== '1') {
+    btn.dataset.armed = '1';
+    btn.textContent = `再点一次：${label}`;
+    toast(`再点一次确认：${label}`);
+    clearTimeout(DECK_STORE.armed);
+    DECK_STORE.armed = setTimeout(() => {
+      btn.dataset.armed = '';
+      btn.textContent = label;
+    }, 10000);
+    return;
+  }
+  btn.dataset.armed = '';
+  btn.textContent = label;
+  run();
+}
+
+// 两个现成脚本的按钮：定级（rank-deck.py --check / --apply）与重出卡面（make-cards.py）。
+// 输出原样贴到 #deck-tool-log —— 判据在脚本里，界面不解读、不复刻。
+async function deckToolRun(path, body, label, btn) {
+  const log = $('deck-tool-log');
+  log.hidden = false;
+  log.textContent = `${label}…`;
+  if (btn) btn.disabled = true;
+  try {
+    const res = await api.send('POST', path, body);
+    const out = `${res.stdout ?? ''}${res.stderr ?? ''}`.trim();
+    log.textContent = `${res.ok ? '✓' : '✗'} ${label}\n\n${out || '（脚本没有输出）'}`;
+    if (res.ok) toast(`${label}：完成`, 'ok');
+    else toast(`${label}：退出码非零，见输出`, 'error');
+    if (res.ok && (path === '/api/deck/rank' || path === '/api/deck/regenerate')) {
+      DECK_STORE.plan = null;
+      await loadDeck(true);
+    }
+    return res;
+  } catch (err) {
+    log.textContent = `✗ ${label}：${err.message}`;
+    toast(`${label}失败：${err.message}`, 'error');
+    return null;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function initDeck() {
+  if (!$('panel-deck')) return;
+  $('deck-q').addEventListener('input', renderDeckList);
+  $('deck-bad-only').addEventListener('change', renderDeckList);
+  $('deck-reload').addEventListener('click', () => loadDeck(true).catch(() => {}));
+
+  // 点一行打开它。列表每次整体重渲染，所以在这里用委托 —— 缓存下来的节点重渲染后就失效了
+  $('deck-list').addEventListener('click', (ev) => {
+    const row = ev.target.closest('button[data-deck-no]');
+    if (!row) return;
+    DECK_STORE.sel = Number(row.dataset.deckNo);
+    DECK_STORE.plan = null;
+    renderDeckList();
+    renderDeckDetail();
+  });
+
+  $('deck-detail').addEventListener('click', async (ev) => {
+    const c = deckCard(DECK_STORE.sel);
+    if (!c) return;
+    const chip = ev.target.closest('button[data-deck-style]');
+    if (chip) {
+      $('deck-f-style').value = chip.dataset.deckStyle;
+      toast(`工艺已填成 ${chip.textContent}（还没写盘，点「预演改动」看 diff）`);
+      return;
+    }
+    if (ev.target.closest('#deck-rec')) {
+      $('deck-f-style').value = c.recommended;
+      toast(`工艺已填成推荐值（${c.recommendCraft}）；点「预演改动」看 diff`);
+      return;
+    }
+    if (ev.target.closest('#deck-plan')) {
+      await deckPlanBtn(deckFormOps(c), `改第 ${c.no} 张（${c.name}）`);
+      return;
+    }
+    if (ev.target.closest('#deck-apply')) {
+      await deckApplyBtn();
+      return;
+    }
+    if (ev.target.closest('#deck-up') || ev.target.closest('#deck-down')) {
+      const dir = ev.target.closest('#deck-up') ? -1 : 1;
+      const to = c.no + dir;
+      if (to < 1 || to > DECK_STORE.data.count) {
+        toast(dir < 0 ? '已经是第一张' : '已经是最后一张', 'error');
+        return;
+      }
+      await deckPlanBtn([{ type: 'move', index: c.no, to }], `顺序：第 ${c.no} 位 → 第 ${to} 位`);
+      return;
+    }
+    const del = ev.target.closest('#deck-del');
+    if (del) {
+      deckArm(del, '删除这张卡', async () => {
+        const ok = await deckPlanBtn(
+          [{ type: 'delete', index: c.no }],
+          `删掉第 ${c.no} 张（${c.name}）；卡面产物与 3D 深度图不在这里删（那是 assets/ 下的产物）`
+        );
+        if (ok) toast('预演过了：卡面与深度图产物要另外删，否则 check-deck.mjs 会报孤儿产物', 'error');
+      });
+    }
+  });
+
+  $('deck-rank-check').addEventListener('click', (ev) =>
+    deckToolRun('/api/deck/rank', { apply: false }, '定级差异（rank-deck.py --check）', ev.target));
+  $('deck-rank-apply').addEventListener('click', (ev) =>
+    deckArm(ev.target, '应用建议档（rank-deck.py --apply，会写回清单）', () =>
+      deckToolRun('/api/deck/rank', { apply: true }, '应用建议档（rank-deck.py --apply）', ev.target)));
+  $('deck-regen').addEventListener('click', (ev) =>
+    deckArm(ev.target, '重出卡面（make-cards.py）', () =>
+      deckToolRun('/api/deck/regenerate', {}, '重出卡面（make-cards.py）', ev.target)));
 }
 
 // ---------------- 知识库（wiki）发布 ----------------
@@ -3142,6 +3533,7 @@ function initExtras() {
   initPublishExtras();
   initWikiPublish();
   initCardLib();
+  initDeck();
   initShortcuts();
   // 正文里直接粘贴截图：插图最顺手的路径，不必先存成文件再拖进来
   $('editor').addEventListener('paste', (ev) => {

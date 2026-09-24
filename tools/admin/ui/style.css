@@ -879,3 +879,25 @@ button.list-row:hover { background: var(--code-bg); }
 .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .card-form { display: grid; gap: 8px; }
 .card-form textarea { font-family: ui-monospace, monospace; font-size: 12.5px; }
+
+/* ---------- 收藏库（首页卡片墙的清单） ----------
+   面板结构与「卡片库」共用 .list / .list-group / button.list-row / .card-form / .chip，
+   这里只补三样它没有的：行里的缩略图、详情里的大图、违规那一行的红色。
+   整段删掉面板仍能用（退化成没有图的行列表）。 */
+
+.deck-row { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 8px; }
+.deck-row.on { background: var(--code-bg); box-shadow: inset 2px 0 0 var(--accent); }
+.deck-thumb { width: 30px; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid var(--border); }
+.deck-thumb-empty { display: block; background: var(--code-bg); }
+.deck-row-body { min-width: 0; display: block; }
+.deck-l { font-variant-numeric: tabular-nums; }
+
+.deck-face-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: start; margin-bottom: 10px; }
+.deck-face { width: 96px; height: 134px; object-fit: cover; border-radius: 5px; border: 1px solid var(--border); }
+.deck-face-info { display: grid; gap: 6px; font-size: 12.5px; }
+.deck-allowed { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.deck-allowed-chip { cursor: pointer; }
+.deck-allowed-chip:hover { border-color: var(--accent); color: var(--accent); }
+.deck-off { opacity: .55; }
+.deck-bad { color: var(--danger); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.deck-src { overflow-wrap: anywhere; }

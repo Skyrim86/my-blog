@@ -69,6 +69,9 @@
      data-close="{{ i18n "deckClose" }}" data-credit="{{ i18n "deckCredit" }}"
      data-dialog="{{ i18n "deckDialogLabel" }}"
      data-flip="{{ i18n "deckFlip" }}" data-flip-back="{{ i18n "deckFlipBack" }}"
+     {{- /* 层离按钮（2026-09-24）：只有传世与奇迹会有这颗按钮，但**文案两边都给** ——
+            哪两档有是 card-3d.js 的 layerRank() 判的，模板不参与那个判断。 */}}
+     data-layer="{{ i18n "deckLayer" }}" data-layer-back="{{ i18n "deckLayerBack" }}"
      data-rotate="{{ i18n "deckRotate" }}" data-gl-fail="{{ i18n "deckGlFail" }}">
     <div class="deck-wall-grid" id="deck-wall-grid">
         {{- range $n, $it := . }}

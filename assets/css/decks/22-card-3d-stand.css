@@ -1,0 +1,127 @@
+/* ============================================
+   3D 弹层：展示台 + 层离按钮（2026-09-24）
+   ============================================
+   这一张只服务**弹层里的 3D 卡**（assets/js/card-3d.js）。为什么单独成文件、而不是写进
+   21-card-deck.css 的 3D 那一段：那一张同时是卡框 / 色带 / 花纹 / 角花 / 徽章 / 卡背的落点
+   （另一条改造线正在改它），把一个新职责并进去只会让两件事互相踩。decks/ 是按 `resources.Match
+   "css/decks/*.css"` 合并的，文件名前缀决定顺序，22 排在 21 之后 —— 所以这里可以覆盖那两张里的
+   同名选择器（本文件靠 `html.` 前缀或更高的选择器权重做到，不依赖加载顺序）。
+
+   brief 四.3-4 拍定的四件事，各自由哪一行给：
+     ① 卡悬浮 + ② 投影 → `.home-deck-stage-shadow`（元素由 card-3d.js 建，每帧只写
+        transform/opacity 两个合成层属性；为什么不在 GL 里画一遍见那边的 syncStand 注释）
+     ③ 背景压暗 → `.home-deck-stage.is-stand`（台面底更暗 + 一圈内暗角）与下面那条遮罩加深
+     ④ 景深 → 遮罩的 backdrop-filter 由 3px 提到 5px：卡清楚、它身后那一片出焦。
+        卡内的深度线索由着色器给（层离时远的那几条压暗、近的往右下错开）。
+
+   `is-stand` 由 card-3d.js 在 GL 就绪之后打在台面上：回退到平面大图的那条路没有悬浮与投影，
+   不该跟着一起变暗（否则「没 3D」这件事看起来只是「变暗了」，而不是「回退了」）。 */
+
+/* 遮罩（背景压暗 + 景深）：21-card-deck.css 里是 rgba(10,8,14,.62) / blur(3px)。
+   压深一档的理由：卡片是浮在台面上、台面又浮在页面上，三层要分得开；遮罩不够暗时
+   台面的暗角与页面的背景糊成一片（深色主题下尤其）。 */
+html.is-deck-dialog .home-deck-dialog-backdrop {
+  background: rgba(8, 6, 12, .74);
+  backdrop-filter: blur(5px) saturate(120%);
+  -webkit-backdrop-filter: blur(5px) saturate(120%);
+}
+
+/* 回退用的平面大图：脚本在 3D 可用时给它加了 hidden，但 21-card-deck.css 里
+   `.home-deck-stage img { display: block }` 是**作者样式**，压过 UA 的 `[hidden] { display: none }`
+   （作者 > UA），于是那张平面大图一直铺满整个台面、画在画布底下。实测：把 --deckstage-bg 改成
+   纯红，一个红像素都看不见；把它 display:none 之后红色正好铺满 540..1140 / 53..893（= 台面矩形）。
+   后果不止是"多一张图"：台面的底、暗角、投影全被它压住，而卡片四周露出来的那一圈是平面大图的
+   边框 —— 看起来像"3D 卡外面套了另一张卡"。这一条把它按回去（权重 0,2,1 > 0,1,1）。
+   回退路径（没有 WebGL）不受影响：那时脚本不设 hidden，大图照旧顶上。 */
+.home-deck-stage img[hidden] { display: none; }
+
+/* 台面（展示台的台底）：底压暗、中心那道柔光收紧一点（= 一盏灯打下来），
+   再加一圈内暗角把四周吃深 —— 卡于是「从暗处浮起来」，而不是「贴在一块亮板上」。
+   **底不能压太狠**：投影是深色的，落在过暗的底上等于没有（第一版把明亮主题压到 .74，
+   量出来台面只有 ~62 的亮度，投影那条暗带就消失了）。现在的口径是"中调台面 + 一圈暗角"：
+   明亮主题 .30（面板 215 → 台面约 150，中心那道柔光再提一点）、暗色主题给一层极淡的白
+   （面板本身已经很暗，再压就什么都看不见了）。
+   两个变量是 21-card-deck.css 里台面 background 在用的那两个，在这里就地改值，不动那一张文件。 */
+.home-deck-stage.is-stand {
+  --deckstage-bg: rgba(10, 9, 16, .30);
+  --deckstage-glow: rgba(206, 218, 255, .22);
+  box-shadow: inset 0 0 56px 14px rgba(5, 5, 9, .34);
+}
+
+:root[data-theme="dark"] .home-deck-stage.is-stand {
+  --deckstage-bg: rgba(255, 255, 255, .06);
+  --deckstage-glow: rgba(160, 180, 240, .18);
+  box-shadow: inset 0 0 64px 18px rgba(0, 0, 0, .46);
+}
+
+/* 投影：卡片悬浮在台面上方，影子落在它下面，两者之间留一道缝。
+   几何是**量出来的**，不是拍的：把卡 pin 在正面（yaw 0）读画布 α 通道的包围盒，600×840 的
+   台面上卡底边在 88.5%（`card3d.setAngle(0,0,true)` 后同任务内 drawImage 到 2D 画布再扫 α，
+   读数与脚本见 lab/结果/deck3d-stand/）。影子上沿取 91.5%：与卡底之间留 3%（840 上是 25px，
+   实测卡底 791 / 影子上沿 822 ≈ 31px）的缝 ——
+   那道缝就是「悬浮」与「贴在台面上」的差别。宽窄/浓淡/水平位移由 JS 按当前转角每帧写
+   （正面最宽最浓、转到侧面收成一条窄影／正面 opacity≈0.80、侧面≈0.34）。
+   卡片本身也因此从台面高的 86% 收到 77%（card-3d.js 里呼吸系数 1.16 → 1.30），否则下面
+   根本没有落影子的地方。 */
+.home-deck-stage-shadow {
+  position: absolute;
+  left: 19%;
+  width: 62%;
+  top: 91.5%;
+  height: 5.4%;
+  border-radius: 50%;
+  /* 两层叠出的「投影」：上层是**沿垂直方向的落影**（上沿最实、往下淡出，读作"压在卡下面"），
+     下层是椭圆本体（左右两端自然收掉、往外围还有个很长的渐隐）。
+     单用一层椭圆会被读成"一道灰条"（横向密度太均匀、上下沿反而更清楚）—— 实测对照过。 */
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, .40), rgba(0, 0, 0, 0) 76%),
+    radial-gradient(50% 58% at 50% 40%,
+      rgba(0, 0, 0, .58), rgba(0, 0, 0, .24) 56%, rgba(0, 0, 0, 0) 84%);
+  filter: blur(6px);
+  opacity: 0;                     /* 第一次 syncStand() 会立刻写真实值 */
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+}
+
+/* 影子的外圈：一圈极淡的亮环 = 「一块被照亮的台面」。
+   少了它，投影看起来是「卡下面糊了一块黑」，而不是「东西落在台面上」。
+   它在同一个元素里，所以跟着影子一起被缩放（混着 blur 一起），不必再同步一次。 */
+.home-deck-stage-shadow::after {
+  content: '';
+  position: absolute;
+  inset: -70% -30%;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%,
+    rgba(255, 255, 255, .18), rgba(255, 255, 255, 0) 74%);
+}
+
+/* 层离按钮：外观与 .home-deck-flip 逐条相同（数值见 21-card-deck.css 那一条）——
+   两颗按钮并排，尺寸/圆角/字重不一致会立刻看出来，所以这里照抄而不是另立一套。
+   按下态（aria-pressed="true"）另给一套描边与底色：它是**状态**，不是悬停。 */
+.home-deck-layer {
+  align-self: center;
+  padding: .18rem .7rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary);
+  font-size: .78rem;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background-color .18s ease;
+}
+
+.home-deck-layer:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.home-deck-layer[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  /* 按下态要能**静止时**与悬停态分开（悬停只改描边与字色）。底色取 --tertiary：
+     主题给词条页胶囊的那一支实色，明暗两套都有（00-theme.css），而且是不透明的 ——
+     不用 color-mix（那一套计算值会序列化成 color(srgb …)，对比度脚本按 [\d.]+ 取数会读错，
+     见 00-theme.css 第 356 行那条）。 */
+  background: var(--tertiary);
+}

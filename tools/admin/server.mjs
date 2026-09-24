@@ -328,6 +328,103 @@ async function handleCardsWrite(sub, body) {
   };
 }
 
+/* ---------------- 收藏库（data/home-cards.yaml，首页卡片墙的清单） ---------------- */
+// 与「卡片库」是两回事，互不相干：那边管的是知识库（数学库 / CS 库）的卡片，
+// 走 tools/wiki-publish/cards.py；这边管的是**首页收藏卡**，走 scripts/deck-edit.py。
+//
+// 同样一条纪律：清单的读写、明度体检、改名字/系列/等级/工艺、排序、删除全在那个 Python 脚本里，
+// 服务端只递参数、转 JSON。写盘前一概先跑 dry-run（POST /api/deck/plan），界面把 diff 摆出来
+// 让人看过再 POST /api/deck/apply —— 「先看改动再落盘」这件事在脚本里由同一个入口保证。
+const DECK_TOOL = 'scripts/deck-edit.py';
+const DECK_RANK_TOOL = 'scripts/rank-deck.py';
+const DECK_CARD_MAKER = 'tools/cards/make-cards.py';
+
+async function handleDeckJson(args, { input = null, timeoutMs = 120000 } = {}) {
+  let result;
+  try {
+    result = await runPythonScript(REPO_ROOT, DECK_TOOL, args, { input, timeoutMs });
+  } catch (err) {
+    // 「没有 Python / 缺 PyYAML / 缺 Pillow」是前提缺失，不是改动失败 —— 返回可读提示，
+    // 否则界面上只会看到一个光秃秃的 500，看不出该去装什么。
+    return { ok: false, error: err.message, stdout: '', stderr: '' };
+  }
+  let payload = {};
+  try {
+    payload = JSON.parse(result.stdout || '{}');
+  } catch {
+    return {
+      ok: false,
+      code: result.code,
+      error: '收藏库脚本的输出不是 JSON',
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+  }
+  // 脚本自己带 ok（自检不过、op 越界等都走 ok:false + 退出码 1），两个都认
+  return { code: result.code, ...payload, ok: payload.ok !== false && result.code === 0, stderr: result.stderr };
+}
+
+// 卡面缩略图。产物在 assets/images/cards/，不在管理页的静态目录（ui/）里，
+// 所以单开一条只读路由。路径只接受 images/cards/ 下的平铺文件名 —— 与 serveStatic 同一条纪律：
+// 不给子目录、不给 `..`，否则这就是一个任意文件读的洞。
+const DECK_FACE_RE = /^images\/cards\/[A-Za-z0-9._-]+\.(webp|png)$/;
+
+async function serveDeckFace(res, rel) {
+  if (!DECK_FACE_RE.test(rel)) {
+    fail(res, 403, '卡面路径不合法');
+    return;
+  }
+  const abs = path.join(REPO_ROOT, 'assets', rel);
+  try {
+    const data = await fs.readFile(abs);
+    res.writeHead(200, {
+      'Content-Type': STATIC_TYPES[path.extname(abs).toLowerCase()] ?? 'application/octet-stream',
+      // 界面用 ?v=<产物 mtime> 取新鲜度（重出卡面即换 URL），所以这里可以放心让浏览器缓存
+      'Cache-Control': 'private, max-age=300',
+    });
+    res.end(data);
+  } catch {
+    fail(res, 404, `找不到卡面 ${rel}`);
+  }
+}
+
+async function handleDeckWrite(dryRun, body) {
+  const ops = Array.isArray(body?.ops) ? body.ops : [];
+  if (!ops.length) return { ok: false, error: '没有要做的改动' };
+  const input = JSON.stringify({ ops, expectCount: body?.expectCount });
+  const args = ['apply', '--stdin'];
+  if (dryRun) args.push('--dry-run');
+  const out = await handleDeckJson(args, { input, timeoutMs: 120000 });
+  return { ...out, dryRun };
+}
+
+// 定级：scripts/rank-deck.py 自己算分并写回 rank。**不复刻它的打分** —— 那是它的活，
+// 界面给两个按钮（只看差异 / 应用建议档）就够了。
+async function handleDeckRank(body) {
+  const apply = Boolean(body?.apply);
+  let result;
+  try {
+    result = await runPythonScript(REPO_ROOT, DECK_RANK_TOOL, [apply ? '--apply' : '--check'], {
+      timeoutMs: 300000,
+    });
+  } catch (err) {
+    return { ok: false, error: err.message, stdout: '', stderr: '' };
+  }
+  return { ok: result.code === 0, apply, code: result.code, stdout: result.stdout, stderr: result.stderr };
+}
+
+// 重出卡面：tools/cards/make-cards.py 按清单重生成 assets/images/cards/*.webp。
+// 改完 style / 换图之后要跑一次，否则墙上还是旧图（这个脚本顺带报「目录里有、清单里没有」的孤儿产物）。
+async function handleDeckRegenerate() {
+  let result;
+  try {
+    result = await runPythonScript(REPO_ROOT, DECK_CARD_MAKER, [], { timeoutMs: 900000 });
+  } catch (err) {
+    return { ok: false, error: err.message, stdout: '', stderr: '' };
+  }
+  return { ok: result.code === 0, code: result.code, stdout: result.stdout, stderr: result.stderr };
+}
+
 async function handleState() {
   const st = await gitlib.status(REPO_ROOT);
   let items = [];
@@ -864,6 +961,30 @@ const server = http.createServer(async (req, res) => {
         });
         return;
       }
+      case 'GET /api/deck/list':
+        json(res, 200, await handleDeckJson(['list', '--json'], { timeoutMs: 180000 }));
+        return;
+      case 'GET /api/deck/face': {
+        const image = searchParams.get('image') ?? '';
+        if (!image) {
+          fail(res, 400, '缺少 image 参数');
+          return;
+        }
+        await serveDeckFace(res, image);
+        return;
+      }
+      case 'POST /api/deck/plan':
+        json(res, 200, await handleDeckWrite(true, await readJsonBody(req)));
+        return;
+      case 'POST /api/deck/apply':
+        json(res, 200, await handleDeckWrite(false, await readJsonBody(req)));
+        return;
+      case 'POST /api/deck/rank':
+        json(res, 200, await handleDeckRank(await readJsonBody(req)));
+        return;
+      case 'POST /api/deck/regenerate':
+        json(res, 200, await handleDeckRegenerate());
+        return;
       case 'GET /api/preview/url':
         json(res, 200, await handlePreviewUrl(searchParams));
         return;

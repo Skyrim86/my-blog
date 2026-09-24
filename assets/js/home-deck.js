@@ -282,6 +282,33 @@
     return viewer;
   }
 
+  /* ---------- 层离按钮（2026-09-24，brief 四.4）----------
+     **只有传世与奇迹出现**，而且「哪两档有」这件事在这里**不写第二遍** —— 只问 viewer
+     （card-3d.js 的 layerAvailable()，那边 layerRank() 是唯一一处档位判断）。写两遍
+     （这里 `rank === 'legend' || rank === 'miracle'`、那边再来一次）迟早会不一致，
+     而那种不一致不报错：表现是「按钮在，按下去没反应」或反过来的静默。
+     它同时是**奇迹显形的第三条入口**：奇迹按下去，层离与显形是同一个动作（见 card-3d.js 的 layerOff）。
+     与翻面按钮同一个来源：由脚本注入（禁 JS 时不存在，也就不会留下点不动的控件）。
+     文案走 data-*（JS 调不到 i18n，与 deck.dataset.flip 同一套做法）；少一条就退回英文兜底。 */
+  var layerBtn = document.createElement('button');
+  layerBtn.type = 'button';
+  layerBtn.className = 'home-deck-layer';
+  layerBtn.hidden = true;                       // 非这两档、或 3D 不可用时都不出现
+  layerBtn.setAttribute('aria-pressed', 'false');
+  layerBtn.textContent = deck.dataset.layer || 'layer';
+  layerBtn.setAttribute('title', layerBtn.textContent);
+  layerBtn.addEventListener('click', function () {
+    if (!viewer || typeof viewer.layerOff !== 'function') return;
+    syncLayer(viewer.layerOff());
+  });
+  // 按下态与名字一起换（与翻面按钮同一口径：按钮名要说明按下会发生什么）
+  function syncLayer(on) {
+    layerBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    layerBtn.textContent = (on ? deck.dataset.layerBack : deck.dataset.layer) || layerBtn.textContent;
+    layerBtn.setAttribute('title', layerBtn.textContent);
+  }
+  actions.appendChild(layerBtn);
+
   var meta = document.createElement('div');
   meta.className = 'home-deck-dialog-meta';
   var metaName = document.createElement('span');
@@ -431,6 +458,13 @@
       }
       flipBtn.setAttribute('aria-pressed', 'false');
       flipBtn.textContent = deck.dataset.flip || flipBtn.textContent;
+      /* 层离按钮：**只有传世与奇迹有**。判据问 viewer（那边 layerRank() 是唯一一处档位判断），
+         不在这里写第二遍 —— 两个副本迟早会不一致，而那种不一致不会有任何报错。
+         每一次换卡/重开弹层都要重新问：setItem 已经把 layerOn 复位成 off（见 card-3d.js 的 reset）。 */
+      var canLayer = typeof viewer.layerAvailable === 'function' && viewer.layerAvailable();
+      var lState = typeof viewer.layerState === 'function' ? viewer.layerState() : { on: false };
+      layerBtn.hidden = !canLayer;
+      syncLayer(!!canLayer && !!lState.on);
     }
   }
 

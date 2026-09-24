@@ -11,7 +11,7 @@
 
 双击后它会自动打开浏览器、并顺手带起 `hugo server` 预览。
 
-它在本机起一个**零依赖的 Node 服务**（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，五块功能：**新建**（九种内容类型的表单 + 词表 chips 选标签 + **拖入 .md 导入**）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条 + 删除 + **拖入 .md 替换正文** + **粘贴/拖入图片**）、**发布**（git 改动清单 + diff + 草稿与排期 + 提交历史 + CI 状态 + 流式日志）、**体检**（跑 `scripts/` 那批校验脚本，结果按文件列出、可点进编辑器，见第 14 节）、**同屏 iframe 预览**（可拖宽、可切设备宽度）。顶栏常驻仓库状态（分支 / 改动 / 草稿 / 排期 / 预览），随时可按 `Ctrl+K` 开命令面板。
+它在本机起一个**零依赖的 Node 服务**（只用 `node:` 内置模块，**没有 package.json、没有 node_modules**），浏览器打开一个中文单页，六块面板：**新建**（九种内容类型的表单 + 词表 chips 选标签 + **拖入 .md 导入**）、**编辑**（内容文件树 + front matter 表单 + Markdown 工具条 + 删除 + **拖入 .md 替换正文** + **粘贴/拖入图片**）、**发布**（git 改动清单 + diff + 草稿与排期 + 提交历史 + CI 状态 + 流式日志）、**收藏库**（首页卡片墙的清单 `data/home-cards.yaml`：列表 / 缩略图 / 搜索 / 明度体检 / 改字段 / 排序 / 删除，见第 21 节）、**卡片库**（数学库 / CS 库的卡片，走 `tools/wiki-publish/cards.py`）、**体检**（跑 `scripts/` 那批校验脚本，结果按文件列出、可点进编辑器，见第 14 节），外加**同屏 iframe 预览**（可拖宽、可切设备宽度）。顶栏常驻仓库状态（分支 / 改动 / 草稿 / 排期 / 预览），随时可按 `Ctrl+K` 开命令面板。
 
 ```
 tools/admin/
@@ -23,7 +23,7 @@ tools/admin/
                     # + ayaka.ico（标签页与桌面快捷方式图标）
 ```
 
-**它是现有脚本的界面外壳，不是替代品**：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），**删除调 `new-content.sh remove`**，读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制。
+**它是现有脚本的界面外壳，不是替代品**：新建一律调 `scripts/new-content.sh`（front matter 仍来自 `archetypes/`），**删除调 `new-content.sh remove`**，读词表调 `new-content.sh tags`，发布调 `scripts/push-blog.sh`，**首页收藏库（`data/home-cards.yaml`）的读写与卡面明度体检调 `scripts/deck-edit.py`**。所以分支校验、构建校验、草稿与词表警告、commit/push/CI 那条链路一条都没有被复制。
 
 ## 2. 新建面板的两级类型选择
 
@@ -228,6 +228,7 @@ section 页（课程主页 / 章节 / 分层项目主页 / 子项目页 / 列表
 | `Esc` | 关面板 |
 | `Ctrl/Cmd + S` | 保存当前编辑的文件 |
 | `Ctrl/Cmd + Shift + S` | 保存并切到发布页（与编辑器头部的「保存并去发布」同一个动作） |
+| `Ctrl/Cmd + Shift + D` | 切到收藏库面板并重新加载（明度是现算的，重出卡面后要看新的就按它） |
 
 面板里三类结果混排：**动作**（切 tab、跑快检、刷新/重启预览、切主题、保存 / 保存并去发布 / 聚焦新建表单）、**文件**（本地已有的 `store.items`）、**正文命中**（`GET /api/search`，服务端按 mtime+size 缓存正文行，敲字时每 130ms 问一次也不重读磁盘）。正文命中带行号，回车跳到那一行。
 
@@ -312,6 +313,12 @@ CI 这块走 `curl` 而不是 Node 的 `fetch`：这台机器上 `fetch` 直连 
 | `GET /api/search?q=` | 正文全文搜索，返回 `path` / `title` / `line` / `text` / `kind` |
 | `POST /api/asset/upload` | 图片落盘，返回 `{path, markdown}` |
 | `GET /api/ci` | GitHub Actions 最近运行 |
+| `GET /api/deck/list` | 收藏库清单 + 卡面明度体检（`scripts/deck-edit.py list --json`，见第 21 节） |
+| `GET /api/deck/face?image=` | 卡面缩略图（`assets/images/cards/` 下的产物，只接受平铺文件名） |
+| `POST /api/deck/plan` | 改动预演：脚本 `--dry-run`，回 unified diff，**不写盘** |
+| `POST /api/deck/apply` | 改动落盘（与 plan 同一份 ops，只差 `--dry-run`） |
+| `POST /api/deck/rank` | `scripts/rank-deck.py --check` / `--apply`（body 里 `apply: true` 才写回 rank） |
+| `POST /api/deck/regenerate` | 重出卡面：`tools/cards/make-cards.py` |
 
 `lib/` 里新增四个模块：`checks.mjs`、`search.mjs`、`asset.mjs`、`ci.mjs`。
 
@@ -340,3 +347,91 @@ CI 这块走 `curl` 而不是 Node 的 `fetch`：这台机器上 `fetch` 直连 
 - 换图：把新图放进 `ui/`（**必须是平铺文件名**——`server.mjs` 的 `serveStatic` 只接受 `[A-Za-z0-9._-]+`，不支持子目录），改 `style.css` 里的 `url()`。新增扩展名要同时加进 `STATIC_TYPES`（`.webp` / `.png` 已加）
 - **`ayaka.ico`（169 KB，16→256 六帧）只给本地用**：管理页标签页图标 + 桌面快捷方式。桌面快捷方式 `博客管理页.lnk` 的 `IconLocation` 指向它；换图标后 Explorer 有缓存，跑 `ie4uinit.exe -show` 或注销一次才刷新
 - 图标与站点那套同源，都由 `tools/icons/make-icons.py` 生成（素材出处与许可见 `architecture.md` 第 6 节）
+
+## 21. 收藏库面板（首页卡片墙的清单）
+
+首页卡片墙的卡是 `data/home-cards.yaml` 里的 57 条（单一事实源：模板 `layouts/_partials/home-cards.html`
+与卡面生成器 `tools/cards/make-cards.py` 都读它）。这个面板管的就是那个文件：**列表 / 缩略图 / 搜索、
+明度体检、改 名字 / 系列 / 等级 / 工艺、上移下移、删除**，外加把两个现成脚本接到按钮上。
+
+**与「卡片库」是两个面板，别合并**：卡片库管的是知识库（数学库 / CS 库）的卡，走 `tools/wiki-publish/cards.py`，
+四个来源各自写回源头；收藏库管的是首页收藏卡（`craft` / `rank` / `style` / 取景那一套）。tab id 分别是
+`cards` 与 `deck`（`#deck` 深链直达；命令面板里有「去『收藏库』」与「收藏库：跑定级差异」两条动作）。
+
+### 21.1 写盘只有一条路：`scripts/deck-edit.py`
+
+界面不解析也不生成 YAML（硬规则 14：写盘一律转交脚本）。服务端把面板发来的 ops 原样转给脚本：
+
+| 命令 | 作用 |
+| --- | --- |
+| `python scripts/deck-edit.py list --json` | 清单 + 明度体检（`GET /api/deck/list` 用它） |
+| `python scripts/deck-edit.py apply --stdin --dry-run` | 预演：出一份 unified diff，**不写盘** |
+| `python scripts/deck-edit.py apply --stdin` | 同一份 ops 落盘 |
+
+ops 是 JSON，`index` / `to` 都是 1 起的**顺序号**（就是面板上显示的那个号）：
+
+```json
+{"ops":[{"type":"update","index":3,"fields":{"style":"silver"}},
+        {"type":"move","index":5,"to":2},
+        {"type":"delete","index":7}]}
+```
+
+- **行级手术，不重新序列化**：只改被打到的那些行（`update` 就地换值、`move` / `delete` 挪或删整条），
+  其余行逐字保留 —— 清单里那些注释（分组说明、工艺分布的实测数字）不该被一次改名字洗掉。
+  实测：`move` 出去再挪回来，文件 **sha1 逐字节相同**。
+- **每条卡带着它的组注释一起搬**：`- image:` 上面紧贴的那几行注释（`# ---- 黑长直少女：…`）算这条卡的一部分；
+  删掉某组第一条时注释交给组里下一张，删掉最后一条时一并删掉并在结果里报出来。
+- **写盘前自检**：改完的文本再解析一遍，卡数、必备字段（`image` / `src` / `name` / `style` / `rank`）、
+  产物与「系列+名字」唯一性都对得上才敢写；不过就**整份不写**并返回 `ok:false`。自检过了才生成 diff ——
+  顺序不能反，否则自检不过时也会显示一份「看起来能落盘」的 diff。
+- **`craft_exempt: true` 是显式豁免**：明度规则（§十八）判它违规也放行，面板上标成「豁免」而不是「违规」。
+- 允许改的字段只有 `name` / `series` / `rank` / `style`：写别的（如 `credit`）会被脚本拒掉并说明原因。
+
+### 21.2 明度体检列
+
+规则是 `docs/card-redesign-brief.md` 第十八节那张表（亮 `L≥185`、中 `140≤L<185`、暗 `L<140` 各允许哪几种工艺），
+**实现只有 `scripts/deck-edit.py` 里那一份**，界面不复刻：
+
+- **L 现算、不写进清单**：卡面图缩到 60×84 取灰度均值，与 `lab/工具/craftfit.py`（那次体检的实测脚本）
+  同一套口径。57 张复算值逐张对得上（观星 180.3 / 夜思 146.4 / 初始之音 37.3 / 雨幕 64.0），
+  分布 亮 32 / 中 12 / 暗 13，违规也正好是那次实测报的 2 张（观星、夜思挂星屑）。**换图后自动重算**。
+- **只判 8 种口径里的工艺**：现有的 `foil` / `holo-prism` / `silver` / `starnight`，加上新 8 种的代码
+  （`emboss` / `pearl` / `goldfoil` / `inkwash`，表在 `scripts/deck-edit.py` 的 `CRAFT_CODES`）。
+  还没并进那 8 种的旧工艺（`washi` / `ink` / `yukika` / … 共 44 张）标**「不判定」而不是违规** ——
+  工艺正在从 16 种收到 8 种，这期间乱判就是谎报。**迁移若换了代码名，改 `CRAFT_CODES` 一处即可。**
+- **允许集合里每种都标「实现没实现」**：`available` 取自渲染链上真实存在的工艺代码
+  （`data/card-styles.yaml` 的键 + `21-card-styles.css` / `21-card-deck.css` 里的 `.home-card--*`），
+  没实现的那种只显示、不给点（点了也写不出东西）。
+- **一键改成推荐值** = 该档允许集合里**第一个有实现的**工艺（表序取 §十八 那张表），只对违规卡出现；
+  允许集合里其它有实现的工艺也能直接点，都只是把「工艺」下拉填上，仍要走「预演 → 写盘」。
+- 工艺与等级的中文名不是这里编的：工艺名从 `layouts/_partials/deck-manifest.html` 的 `styleLabel` 表
+  配 `i18n/zh.toml` 现取，等级名同源于 `deckRank*`。
+- **需要 Pillow**（读 webp 算明度）：缺了就整列留空并在面板上说明，其余功能照跑。
+
+### 21.3 预演 → 写盘
+
+改动先变成 diff 才允许落盘：`POST /api/deck/plan`（脚本 `--dry-run`）把 unified diff、逐条改动说明、
+自检结果回显到面板；确认后 `POST /api/deck/apply` 发的是**刚预演过的那一份 ops**（ops 存在界面侧，
+服务端只转发）。面板头部写明这一版是「预演（没有写盘）」还是「已写盘」—— 两处共用同一个面板，
+标错就等于骗人。改动落盘后列表会重拉，选中的卡按**名字**找回（移动 / 删除会换顺序号）。
+
+### 21.4 接上来的两个现成脚本（逻辑不复刻）
+
+| 按钮 | 调的脚本 | 说明 |
+| --- | --- | --- |
+| 跑定级差异 | `scripts/rank-deck.py --check` | 清单 rank 与建议档的差异（实测：21 张） |
+| 应用建议档 | `scripts/rank-deck.py --apply` | **写回清单**，所以按钮要点两次确认 |
+| 重出卡面 | `tools/cards/make-cards.py` | 改完 style / 换图之后要跑；也点两次确认 |
+
+输出原样贴进面板（`#deck-tool-log`）—— 判分、取景、出图都在脚本里，界面不解读也不复刻。
+
+### 21.5 已知边界
+
+- **删除只删清单里那一行**：`assets/images/cards/` 下的卡面产物（以及 3D 用的深度图）不在这里删，
+  留着会被 `node scripts/check-deck.mjs` 报成孤儿产物 —— 面板会提示，但真要删产物得走终端。
+  理由是产物归 `tools/cards/` 那条链，界面只碰清单这一个事实源。
+- **缩略图按 `?v=<产物 mtime>` 取新鲜度**（浏览器缓存 300 秒）：重出卡面后 URL 自动变，不用清缓存。
+  卡面路由只接受 `images/cards/<平铺文件名>.webp|png`，与静态资源同一条纪律（不给子目录、不给 `..`）。
+- 面板不显示 `crop` / `pad` / `flat` —— 取景与垫底是生成器的输入，改它们要看图，不适合在表单里盲改；
+  `src` / `credit` 只在详情里作为只读信息露一行。
+- 57 张缩略图按需加载（`loading="lazy"`），一次进面板不会把 2MB 卡面全拉下来。

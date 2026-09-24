@@ -16,6 +16,7 @@
     <button type="button" data-tab="create" class="active">新建</button>
     <button type="button" data-tab="edit">编辑</button>
     <button type="button" data-tab="publish">发布</button>
+    <button type="button" data-tab="deck">收藏库</button>
     <button type="button" data-tab="cards">卡片库</button>
     <button type="button" data-tab="check">体检</button>
   </nav>
@@ -164,7 +165,45 @@
       <div id="publish-log" class="log" hidden></div>
     </section>
 
-    <!-- ============ 体检 ============ -->
+    <!-- ============ 收藏库（首页卡片墙的清单） ============ -->
+    <!-- 与「卡片库」不是一回事：那边是知识库（数学库 / CS 库）的卡片，这边是首页收藏卡。
+         列表与体检数据来自 scripts/deck-edit.py list --json；改动用同一个脚本的 apply --stdin
+         （先 plan 预演拿 diff，再 apply 落盘）。 -->
+    <section class="panel" id="panel-deck">
+      <div class="panel-head">
+        <h2>收藏库</h2>
+        <span class="hint">首页卡片墙的清单 data/home-cards.yaml：改 名字 / 系列 / 等级 / 工艺、上移下移、删除。写盘走 scripts/deck-edit.py，先预演看 diff 再落盘</span>
+      </div>
+
+      <div class="publish-top">
+        <div class="field">
+          <label for="deck-q">卡片<span class="hint">按系列分组；点一行打开；L = 卡面灰度均值（每次现算，不写进清单）</span></label>
+          <input type="search" id="deck-q" placeholder="搜索 名字 / 系列 / 等级 / 工艺…" autocomplete="off">
+          <div class="actions">
+            <button type="button" class="ghost tiny" id="deck-reload">重新加载</button>
+            <label class="check"><input type="checkbox" id="deck-bad-only"> 只看违规 / 不判定</label>
+          </div>
+          <div class="hint" id="deck-summary">还没加载</div>
+          <div id="deck-list" class="list"></div>
+        </div>
+
+        <div class="field">
+          <div id="deck-detail"><span class="muted">从左边点一张卡。</span></div>
+        </div>
+      </div>
+
+      <details class="pub-col" id="deck-tools" open>
+        <summary>现有脚本接到这里（定级 / 重出卡面）<span class="hint">逻辑不在这里复刻，只递参数、把输出原样显示</span></summary>
+        <div class="actions">
+          <button type="button" class="ghost tiny" id="deck-rank-check">跑定级差异（rank-deck.py --check）</button>
+          <button type="button" class="ghost tiny" id="deck-rank-apply">应用建议档（--apply）</button>
+          <button type="button" class="ghost tiny" id="deck-regen">重出卡面（make-cards.py）</button>
+        </div>
+        <div id="deck-tool-log" class="log" hidden></div>
+      </details>
+    </section>
+
+    <!-- ============ 卡片库（知识库） ============ -->
     <section class="panel" id="panel-cards">
       <div class="panel-head">
         <h2>卡片库</h2>
