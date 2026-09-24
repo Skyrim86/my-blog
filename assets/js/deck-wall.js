@@ -178,6 +178,16 @@
     return value;
   }
 
+  // 阶序数字（2026-09-25）：等级那一排专用。清单里每条都带 rankWallNo（见 deck-manifest.html
+  // 那条注释：罗马数字不进 i18n、也不上卡正面）—— 「只靠色相排高低」对色盲不友好，数字是
+  // 第二条通道。取法与 displayName 同构，免得两处各写一遍「哪条属于哪档」的搜索。
+  function numeralOf(spec, value) {
+    for (var n = 0; n < items.length; n++) {
+      if (valOf(items[n], spec) === value) return items[n].rankWallNo || '';
+    }
+    return '';
+  }
+
   // 某一档里都有哪些取值，**按筛选条里的显示顺序**（组内按张数从多到少）——
   // 与 chip 的实际顺序一致，整档选中/取消时不会与看到的对不上。
   function tierValues(spec, tier) {
@@ -327,6 +337,15 @@
         b.setAttribute('data-value', value);
         b.setAttribute('aria-pressed', 'false');
         b.appendChild(document.createTextNode(displayName(spec, value)));
+        if (spec.key === 'rank') {
+          // 数字紧跟在档名后面（不是挂在徽章上）：它是「读得出」的第二条通道，与卡背同一个数
+          // —— 只靠色相排高低对色盲不友好。aria-hidden：读屏已经听到档位名了，数字是重复信息。
+          var no = document.createElement('span');
+          no.className = 'deck-chip-no';
+          no.setAttribute('aria-hidden', 'true');
+          no.textContent = numeralOf(spec, value);
+          b.appendChild(no);
+        }
         var c = document.createElement('span');
         c.className = 'deck-chip-count';
         b.appendChild(c);
@@ -770,9 +789,12 @@
         if (!tile) return;
         var meta = tile.querySelector('.deck-tile-meta');
         if (meta) meta.textContent = [it.series, it.rankLabel].filter(Boolean).join(' · ');
-        /* 卡背那行档位名也是服务端按 rankWallLabel 渲染的（显形前写「收藏」），
-           与上面 meta 同口径一起换成真名 —— 否则翻到卡背还是「收藏」。 */
-        var backName = tile.querySelector('.home-card-backname');
+        /* 卡背那两样也是服务端按 rankWall / rankWallNo 渲染的（显形前是「Ⅰ 收藏」），
+           与上面 meta 同口径一起换成真值 —— 否则翻到卡背还是「收藏」。
+           数字与名字是**两个** span：整段 textContent 会把数字那一格一起冲掉。 */
+        var backNo = tile.querySelector('.home-card-backno');
+        if (backNo) backNo.textContent = it.rankNo || '';
+        var backName = tile.querySelector('.home-card-backname-text');
         if (backName) backName.textContent = it.rankLabel || '';
         tile.classList.add('is-revealed');
         srStatus.textContent = attr('reveal', '{label}：{rank}')

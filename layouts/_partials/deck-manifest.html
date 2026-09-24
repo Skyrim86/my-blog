@@ -93,7 +93,13 @@
           为什么不直接把 rank 改成 collector：清单里的真值要留给 3D 查看器（它靠
           `item.rank === 'miracle'` 决定要不要显形）与卡背文字，改掉它显形就永远不会发生。
           卡片墙按这一对字段筛与显示，显形之后 deck-wall.js 收 deck:reveal 把那一格换回真名
-          —— 于是「57 张里那一张是隐藏档」不再被这一页的**文字**泄底。 */}}
+          —— 于是「57 张里那一张是隐藏档」不再被这一页的**文字**泄底。
+       ③ **阶序标记**（rankNo / rankWallNo，2026-09-25：「只靠色相排高低对色盲不友好」）：
+          每档配一个罗马数字。不进 i18n（罗马数字两种语言同形），也**不上卡正面**（正面框深
+          15px 的预算已被色带与花纹占满；正面读气氛，卡背与筛选条读信息）。奇迹同样走
+          rankWall 那一份：显形前是「Ⅰ 收藏」，显形后由 deck-wall.js 换成真值。
+       ⚠ 这三段的注释都在表达式**外面** —— 写进下面那个 dict() 的括号里会报
+         `unexpected "{" in operand`（本仓踩过一次，见 docs/traps.md）。 */}}
 {{- $tint := "" }}
 {{- with $img.Colors }}{{ $tint = printf "%v" (index . 0) }}{{ end }}
 {{- /* 画面内衬线的补线墨色：按这张画**主色**的亮度分支（主色亮度与实测卡面亮度的相关 r = 0.87，
@@ -132,6 +138,12 @@
         "collector" (i18n "deckRankCollector") "rare" (i18n "deckRankRare")
         "epic" (i18n "deckRankEpic") "arcane" (i18n "deckRankArcane")
         "legend" (i18n "deckRankLegend") "miracle" (i18n "deckRankMiracle")) $rank)
+    "rankNo" (index (dict
+        "collector" "Ⅰ" "rare" "Ⅱ" "epic" "Ⅲ"
+        "arcane" "Ⅳ" "legend" "Ⅴ" "miracle" "Ⅵ") $rank)
+    "rankWallNo" (index (dict
+        "collector" "Ⅰ" "rare" "Ⅱ" "epic" "Ⅲ"
+        "arcane" "Ⅳ" "legend" "Ⅴ" "miracle" "Ⅵ") $rankWall)
     "tint" $tint "ring" $ringInk
     "credit" (.credit | default "") "url" (.credit_url | default "") ) }}
 {{- else }}

@@ -1498,6 +1498,17 @@ a.home-deck-dialog-credit:hover {
   margin: .5em auto 0;
   background: linear-gradient(90deg, transparent, var(--bk-line, #d9b673), transparent);
 }
+/* 阶序标记（2026-09-25）：档位名左边一个罗马数字。只靠色相排高低对色盲不友好，这个数字是
+   **零尺寸成本**的第二条通道（不加图、不加层）。字号取 .72em 而不是跟着名字走：它是索引，
+   不是标题；`letter-spacing: 0` 是必须的 —— 名字那 .26em 字距会把「Ⅳ」推得离名字很远。
+   aria-hidden 写在模板上：读屏已经听到档位名了，数字对它是重复信息。 */
+.home-card-backno {
+  display: inline-block;
+  margin-right: .4em;
+  font-size: .72em;
+  letter-spacing: 0;
+  opacity: .82;
+}
 
 /* 奇迹（轴外档）的卡背：深紫黑底 + 高饱和虹彩整片底 + 虹彩内框 + 流光 */
 .home-card-rank--miracle.is-revealed .home-card-backfield {
@@ -1850,6 +1861,14 @@ a.home-deck-dialog-credit:hover {
 }
 
 .deck-chip-count {
+  font-size: .72rem;
+  opacity: .7;
+}
+
+/* 等级 chip 上的阶序数字：与卡背同一个数、同一份口径（见 .home-card-backno 那条）。
+   字号与计数同一档 —— 它是「读得出」的那一条，不承担装饰。 */
+.deck-chip-no {
+  margin-left: .1em;
   font-size: .72rem;
   opacity: .7;
 }
