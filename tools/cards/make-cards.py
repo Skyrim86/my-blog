@@ -164,28 +164,28 @@ def main():
             print(f"✗ 源图不在：{c['src']}（{c['image']}）")
             continue
         im = Image.open(src)
-            transparent = (im.mode in ("RGBA", "LA")
-                           and np.asarray(im.convert("RGBA").getchannel("A")).min() < 250)
-            # 取景只有两条路：**手量窗**（构图满、没法定「内容」的几张）与**填满**
-            # （figure 与 auto 现在是同一件事，见 fill_box 的注释）。上一版那两条
-            # 「整幅缩进 + 补边」的退路已删除 —— 它们正是空带的来源。
-            crop_spec = c.get("crop")
-            if isinstance(crop_spec, list):
-                box = tuple(int(round(v * s2)) for v, s2 in
-                            zip(crop_spec, (im.width, im.height, im.width, im.height)))
-                note = "手量窗"
-            else:
-                # pad 是旧字段名（语义相同），保留兼容；高等级的卡用 zoom 放开构图
-                box = fill_box(im, float(c.get("zoom", c.get("pad", 1.0))))
-                note = "填满"
-            crop = fit_ratio(im.crop(box))
-            if transparent:
-                top, bottom = c.get("flat", [[246, 243, 249], [222, 216, 232]])
-                bg = gradient(crop.size, tuple(top), tuple(bottom))
-                crop = Image.composite(crop.convert("RGB"), bg, crop.convert("RGBA").getchannel("A"))
-            else:
-                crop = crop.convert("RGB")
-            face = crop.resize((CARD_W, CARD_H), Image.LANCZOS)
+        transparent = (im.mode in ("RGBA", "LA")
+                       and np.asarray(im.convert("RGBA").getchannel("A")).min() < 250)
+        # 取景只有两条路：**手量窗**（构图满、没法定「内容」的几张）与**填满**
+        # （figure 与 auto 现在是同一件事，见 fill_box 的注释）。上一版那两条
+        # 「整幅缩进 + 补边」的退路已删除 —— 它们正是空带的来源。
+        crop_spec = c.get("crop")
+        if isinstance(crop_spec, list):
+            box = tuple(int(round(v * s2)) for v, s2 in
+                        zip(crop_spec, (im.width, im.height, im.width, im.height)))
+            note = "手量窗"
+        else:
+            # pad 是旧字段名（语义相同），保留兼容；高等级的卡用 zoom 放开构图
+            box = fill_box(im, float(c.get("zoom", c.get("pad", 1.0))))
+            note = "填满"
+        crop = fit_ratio(im.crop(box))
+        if transparent:
+            top, bottom = c.get("flat", [[246, 243, 249], [222, 216, 232]])
+            bg = gradient(crop.size, tuple(top), tuple(bottom))
+            crop = Image.composite(crop.convert("RGB"), bg, crop.convert("RGBA").getchannel("A"))
+        else:
+            crop = crop.convert("RGB")
+        face = crop.resize((CARD_W, CARD_H), Image.LANCZOS)
         dest = os.path.join(ROOT, "assets", c["image"])   # image 是相对 assets/ 的路径
         face.save(dest, "WEBP", quality=QUALITY, method=6)
         kb = os.path.getsize(dest) // 1024
