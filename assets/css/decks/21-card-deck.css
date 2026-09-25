@@ -2563,3 +2563,88 @@ a.home-deck-dialog-credit:hover {
   --rank-band: 0px; --rank-band-a: 0;
 }
 .home-card-corners, .home-card-strip { display: none; }
+
+/* ---------- 收藏库说明段：默认折叠（2026-09-25）----------
+   首屏实测（1440×1000）：页头到 349、说明段 379–1209（830px）、筛选条与图例 1239–1514，
+   第一格卡顶在 y=1514 —— 访客得先滚一屏多才看见第一张卡；390×844 下更糟（说明段 1452px、
+   第一格 2432）。折起来之后第一格回到 ~684。
+   **不做成「一句话简介 + 展开」是因为那要维护两份文案**：<details> 里的正文仍是 .Content
+   本身，一个字没删、也没抄第二份。原生 detail 的可展开/可读屏/无 JS 可用都是白送的。
+   样式只用站点自己的令牌（--surface / --edge / --secondary / --accent），不引新颜色。 */
+.deck-intro {
+    margin: 0 0 16px;
+    border: 1px solid var(--edge);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+}
+.deck-intro > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--secondary);
+    list-style: none;
+}
+.deck-intro > summary::-webkit-details-marker { display: none; }
+.deck-intro > summary::before {
+    content: "▸";
+    color: var(--accent);
+    font-size: 15px;
+    line-height: 1;
+    transition: transform .18s ease;
+}
+.deck-intro[open] > summary::before { transform: rotate(90deg); }
+.deck-intro > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.deck-intro[open] > summary { border-bottom: 1px solid var(--surface-border); }
+/* 说明正文在面板里：把 .post-content 自己的上下外边距压掉，否则展开后与摘要之间空一大截 */
+.deck-intro > .post-content { padding: 10px 14px 4px; margin: 0; }
+.deck-intro > .post-content > :first-child { margin-top: 0; }
+.deck-intro > .post-content > :last-child { margin-bottom: 6px; }
+@media (prefers-reduced-motion: reduce) {
+    .deck-intro > summary::before { transition: none; }
+}
+
+/* ---------- 筛选 chip 默认收起（2026-09-25）----------
+   折叠判据只看类名不看 [hidden]（作者样式里的 display 会压过 [hidden]，见 features.md ⑫）。
+   折的是 chip 那几排；搜索框与「张数 / 卡册 / 分组 / 抽卡」那行**不折** —— 它们各只占一行，
+   而把视图控件藏起来要付一次点击，不值。 */
+.deck-filters.is-facets-collapsed .deck-facets { display: none; }
+.deck-facets-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    padding: 0 .6rem;
+    font: inherit;
+    font-size: .82rem;
+    color: var(--primary);
+    background: transparent;
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    cursor: pointer;
+}
+.deck-facets-toggle::after {
+    content: "▾";
+    color: var(--accent);
+    font-size: .95em;
+    line-height: 1;
+    transition: transform .18s ease;
+}
+.deck-facets-toggle[aria-expanded="true"]::after { transform: rotate(180deg); }
+.deck-facets-toggle:hover { color: var(--primary); border-color: var(--accent); }
+.deck-facets-count {
+    min-width: 1.1em;
+    padding: 0 .34em;
+    font-size: .78em;
+    line-height: 1.5;
+    text-align: center;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 999px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .deck-facets-toggle::after { transition: none; }
+}

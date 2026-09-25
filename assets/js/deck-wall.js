@@ -318,6 +318,37 @@
     syncURL();
   });
 
+  /* chip 那几排**默认收起**（2026-09-25）。它们是这一块最高的一坨：实测 390×844 下约 305px、
+     1440×1000 下约 90px，而这一页最上面还有页头与说明段 —— 第一格卡因此被推到 1013（窄屏）/
+     715（桌面）。折起来之后窄屏第一格回到 ~708。
+     **搜索框与结果行不折**：前者是「先缩小范围」那一步，后者是张数 / 卡册 / 分组 / 抽卡这些
+     视图控件 —— 把它们藏起来省下的高度不值那一次点击。
+     折叠状态用**类名**不用 [hidden]：作者样式里 `.deck-facets` 有 display，[hidden] 会被它压过去
+     （同一个坑在卡片组那边踩过，见 docs/features.md ⑫）。 */
+  var facetsWrap = document.createElement('div');
+  facetsWrap.className = 'deck-facets';
+  facetsWrap.id = 'deck-facets';
+  var facetToggle = document.createElement('button');
+  facetToggle.type = 'button';
+  facetToggle.className = 'deck-facets-toggle';
+  facetToggle.setAttribute('aria-controls', 'deck-facets');
+  facetToggle.setAttribute('aria-expanded', 'false');
+  var facetToggleText = document.createElement('span');
+  facetToggleText.textContent = attr('facetsToggle', '筛选');
+  var facetToggleCount = document.createElement('span');
+  facetToggleCount.className = 'deck-facets-count';
+  facetToggle.appendChild(facetToggleText);
+  facetToggle.appendChild(facetToggleCount);
+  searchRow.appendChild(facetToggle);
+  bar.classList.add('is-facets-collapsed');
+  bar.appendChild(facetsWrap);
+  function setFacetsOpen(open) {
+    bar.classList.toggle('is-facets-collapsed', !open);
+    facetToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function facetsOpen() { return !bar.classList.contains('is-facets-collapsed'); }
+  facetToggle.addEventListener('click', function () { setFacetsOpen(!facetsOpen()); });
+
   var rankBar = [];   // 等级那条比例条的分段（{value, seg}）；顺序 = chip 的顺序
 
   FACETS.forEach(function (spec) {
@@ -428,7 +459,7 @@
       row.appendChild(rbar);
     }
 
-    bar.appendChild(row);
+    facetsWrap.appendChild(row);
   });
 
   // 结果行：张数走 role="status" 播报（读屏用户看不到网格变短了），「清空筛选」是颗按钮 ——
@@ -756,6 +787,14 @@
     resultText.textContent = summary(shown);
     if (query) resultText.textContent += attr('searchHit', ' · 搜「{q}」').replace('{q}', query);
     clear.hidden = !facets.some(function (spec) { return selectFacet(spec).length; });
+    /* 折叠时那颗按钮上的角标：有筛选就必须看得见，否则「筛过了」这件事被自己藏起来。
+       数字只算 chip 那几维（不含搜索词 —— 搜索框自己就在外面显示着）。 */
+    var activeN = facets.reduce(function (a, spec) { return a + selectFacet(spec).length; }, 0);
+    facetToggleCount.textContent = activeN ? String(activeN) : '';
+    facetToggleCount.hidden = !activeN;
+    facetToggle.setAttribute('aria-label', activeN
+      ? attr('facetsToggle', '筛选') + '（' + activeN + '）'
+      : attr('facetsToggle', '筛选'));
     empty.hidden = shown > 0;
     draw.disabled = shown === 0;
     syncURL();
@@ -1058,6 +1097,9 @@
   if (seriesSpec) buildHeads();
   else groupBtn.hidden = true;
   readURL();
+  /* 地址里带着筛选参数进来（分享链接 / 刷新）时**自动展开**：状态不能藏在自己身后。
+     注意只在恢复时展开一次 —— 交互中间不动它，否则打字搜索会把面板弹开。 */
+  if (facets.some(function (spec) { return selectFacet(spec).length; })) setFacetsOpen(true);
   applyGrouping();
   // 第一格进 tab 序列 —— roving tabindex 的起点。**不是「第一格可见的」**：筛选会变，
   // 落点跟着变会让「进墙后第一个方向键从哪里开始」不可预测；固定第一格，方向键再走到想去的地方。

@@ -1094,8 +1094,11 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
   const DIALOG_KEYS = ['deckCompare', 'deckCompareClear', 'deckCompareGo', 'deckCompareTitle', 'deckCompareFail',
     'deckLoading'];
   const WALL_KEYS = ['deckSearch', 'deckSearchHint', 'deckSearchHit', 'deckBookOn', 'deckBookOff',
-    'deckPage', 'deckPagePrev', 'deckPageNext'];
-  for (const key of DIALOG_KEYS.concat(WALL_KEYS)) {
+    'deckPage', 'deckPagePrev', 'deckPageNext', 'deckFacetsToggle'];
+  // 2026-09-25：收藏库说明段折成 <details> 之后，摘要那行是一句 i18n 文案 —— 键在不在也一起查。
+  // 少一条的表现是摘要位置出现英文兜底（或空白），构建与其余守卫全绿。
+  const PAGE_KEYS = ['deckIntroSummary'];
+  for (const key of DIALOG_KEYS.concat(WALL_KEYS, PAGE_KEYS)) {
     if (!toml.split(/\r?\n/).some((l) => l.trim() === '[' + key + ']')) {
       failures.push(`✗ i18n/zh.toml 少了 [${key}] —— 对应的控件会静默回落成英文`);
     }
@@ -1108,6 +1111,7 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
     ]],
     ['layouts/_partials/deck-wall.html', [
       ['data-search', 'deckSearch'], ['data-search-hint', 'deckSearchHint'], ['data-search-hit', 'deckSearchHit'],
+      ['data-facets-toggle', 'deckFacetsToggle'],
       ['data-book-on', 'deckBookOn'], ['data-book-off', 'deckBookOff'],
       ['data-page', 'deckPage'], ['data-page-prev', 'deckPagePrev'], ['data-page-next', 'deckPageNext'],
       ['data-compare', 'deckCompare'], ['data-compare-clear', 'deckCompareClear'],
@@ -1115,6 +1119,15 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
       ['data-loading', 'deckLoading'],
     ]],
   ];
+  {
+    // 说明段的摘要没有 data-* 可绑（它自己是 <summary> 的文字），单独查一次模板里的引用。
+    const rel = 'layouts/_default/collection.html';
+    const src = readFileSync(rel, 'utf8');
+    const binding = 'i18n "deckIntroSummary"';
+    if (!src.includes(binding)) {
+      failures.push(`✗ ${rel} 少了 ${binding} —— 收藏库说明段的摘要会退回默认值`);
+    }
+  }
   for (const [rel, pairs] of need) {
     const src = readFileSync(rel, 'utf8');
     for (const [attr, key] of pairs) {

@@ -472,6 +472,10 @@ other = "角色"
 
 [deckLoading]
 other = "加载中"
+[deckIntroSummary]
+other = "收藏库说明：分级、工艺与筛选（点开）"
+[deckFacetsToggle]
+other = "筛选"
 [deckRevealAnnounce]
 other = "《{label}》显形了：{rank}"
 

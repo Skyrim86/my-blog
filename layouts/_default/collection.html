@@ -12,9 +12,16 @@
   {{- partial "page-head.html" (dict "page" .) }}
 
   {{- if .Content }}
-  <div class="post-content md-content">
-    {{- partial "anchored_headings.html" .Content }}
-  </div>
+  {{- /* 说明段**默认折叠**（2026-09-25）。它是这一页最上面的一大块：1440×1000 下实测占
+       830px（390×844 下 1452px），第一格卡因此被推到 y=1514 —— 访客要滚一屏多才看见第一张卡。
+       折起来之后第一格回到 ~684。**文字一个字没删**：<details> 原生可展开、读屏能读、无 JS 也能开，
+       只是默认收起。摘要那行走 i18n（键名在 check-deck.mjs 里有一条守卫）。 */}}
+  <details class="deck-intro">
+    <summary>{{ i18n "deckIntroSummary" }}</summary>
+    <div class="post-content md-content">
+      {{- partial "anchored_headings.html" .Content }}
+    </div>
+  </details>
   {{- end }}
 
   {{- /* 卡片墙：清单、卡面、筛选条、三维弹层都在这里接上 */ -}}
