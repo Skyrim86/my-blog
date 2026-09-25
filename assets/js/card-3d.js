@@ -192,11 +192,234 @@
                  wall: 1.00, cast: 0.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00, disp: 0.35, sharp: 0.30,
                  layer: 1.00 },
   };
-  // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。这两张表是卡背
-  // 那套「由素到华丽」的全部依据 —— 以前是一串 `rk === 'epic' / 'legend' / 'miracle'` 的
-  // 字符串比较，四档时勉强能读，六档就是十三条分支，所以改成序号取值。
-  var BACK_RING_A = [0, 0.45, 0.58, 0.72, 0.85, 0.95];
-  var BACK_RING_W = [0, 2.5, 3, 3.5, 5, 6];
+  // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。以前这两张表
+  // 是卡背「由素到华丽」的全部依据；2026-09-25 升级后它们只负责**外圈等级环**这一条
+  // 通道，金轴的主表是下面的 BACK_ART（底色调/纹样密度/发光/角饰金/覆膜）。
+  var BACK_RING_A = [0, 0.38, 0.55, 0.75, 0.88, 1.00];
+  var BACK_RING_W = [0, 3, 6, 9, 12, 15];
+
+  /* ---------- 卡背升级（2026-09-25，brief §三十六–§四十一）----------
+     六档短名（星象套）+ 金轴取值。规则：① 短名**只在卡背**出现，rankLabel / 筛选条 /
+     meta 一律保持原档名（与 `rankNo` 不进 i18n 同一条口径）；② 环宽是**纹理 px**，
+     落到 430px 显示要乘 0.54 —— 所以这几个数比看上去的大（见 §四十一 那条「通道按显示
+     px 定值」）；③ 奇迹走轴外：彩虹环 + 六角星专属底纹 + 四角星徽，不参与金量递增。 */
+  var BACK_SHORT = { collector: '落尘', rare: '流萤', epic: '星座',
+                     arcane: '月轮', legend: '日冕', miracle: '蚀' };
+  var BACK_RN = { collector: 'Ⅰ', rare: 'Ⅱ', epic: 'Ⅲ', arcane: 'Ⅳ', legend: 'Ⅴ', miracle: 'Ⅵ' };
+  var BACK_RANK_ORDER = ['collector', 'rare', 'epic', 'arcane', 'legend', 'miracle'];
+  var BACK_ART = {
+    collector: { gold: '#a8adba', goldLo: '#7d8494', tint: '#232733', dens: 0.08, glow: 0.00,
+                 line: '#a8adba', name: '#f4f5f9', holo: 0.00, corgold: 0 },
+    rare:      { gold: '#9d9078', goldLo: '#6f6553', tint: '#1d4033', dens: 0.11, glow: 0.14,
+                 line: '#9aa1b2', name: '#f4f0e6', holo: 0.05, corgold: 0 },
+    epic:      { gold: '#b09a6a', goldLo: '#7d6c48', tint: '#21305a', dens: 0.22, glow: 0.34,
+                 line: '#c8ab72', name: '#f4f5f9', holo: 0.30, corgold: 0 },
+    arcane:    { gold: '#c8ab72', goldLo: '#8f7846', tint: '#2a1a45', dens: 0.30, glow: 0.52,
+                 line: '#d5bb84', name: '#f4f5f9', holo: 0.48, corgold: 1 },
+    legend:    { gold: '#e2c488', goldLo: '#a1854c', tint: '#3e3011', dens: 0.38, glow: 0.78,
+                 line: '#e8d29a', name: '#f0dfae', holo: 0.70, corgold: 1 },
+    miracle:   { gold: '#fff4d2', goldLo: '#b9a26a', tint: '#2a1638', dens: 0.46, glow: 1.00,
+                 line: '#fff4d2', name: '#fff6d8', holo: 1.00, corgold: 1 },
+  };
+  var BACK_IRID = ['#ffd98a', '#ff9ecd', '#8ab8ff', '#8affd0', '#d18aff', '#ffd98a'];
+
+  function mixHex(a, b, t) {
+    function p(h) {
+      return [1, 3, 5].map(function (i) { return parseInt(h.substr(i, 2), 16); });
+    }
+    var x = p(a), y = p(b), o = [];
+    for (var i = 0; i < 3; i++) o.push(Math.round(x[i] + (y[i] - x[i]) * t));
+    return 'rgb(' + o.join(',') + ')';
+  }
+  // 确定性伪随机：卡背纹理按 key 缓存，用 Math.random 会让同一张卡每次重画都不一样
+  function rnd(seed) {
+    var s = seed;
+    return function () { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+  }
+  function sArc(cx, cy, r, a0, a1, n) {
+    var p = [];
+    for (var i = 0; i <= n; i++) {
+      var a = a0 + (a1 - a0) * i / n;
+      p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+    }
+    return p;
+  }
+  function sQuad(p0, p1, p2, n) {
+    var p = [];
+    for (var i = 0; i <= n; i++) {
+      var t = i / n, u = 1 - t;
+      p.push([u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0],
+              u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]]);
+    }
+    return p;
+  }
+  /* 收锋笔画：填充带（起笔粗、收笔尖）。**两点直线必须先重采样** —— 用 i/(len-2) 归一化时
+     只有端点的笔画只画一段、宽度恒为首值，收锋根本不发生（2026-09-25 踩过一轮）。 */
+  function taper(g, pts, w0, w1, a) {
+    if (pts.length < 12) {
+      var src = pts, n = 14, out = [];
+      for (var k = 0; k <= n; k++) {
+        var t0 = k / n * (src.length - 1), i0 = Math.min(src.length - 2, Math.floor(t0)), f = t0 - i0;
+        out.push([src[i0][0] + (src[i0 + 1][0] - src[i0][0]) * f,
+                  src[i0][1] + (src[i0 + 1][1] - src[i0][1]) * f]);
+      }
+      pts = out;
+    }
+    var saveA = g.globalAlpha;
+    g.save();
+    g.globalAlpha = a == null ? saveA : a;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (var i = 0; i < pts.length - 1; i++) {
+      var t = i / Math.max(1, pts.length - 1);
+      g.lineWidth = Math.max(0.4, w0 + (w1 - w0) * t);
+      g.beginPath(); g.moveTo(pts[i][0], pts[i][1]); g.lineTo(pts[i + 1][0], pts[i + 1][1]); g.stroke();
+    }
+    g.restore();
+  }
+  function hexStar(g, x, y, r) {
+    g.beginPath();
+    for (var i = 0; i < 12; i++) {
+      var a = -Math.PI / 2 + i * Math.PI / 6, rr = (i % 2) ? r * 0.42 : r;
+      if (i) g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      else g.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    g.closePath(); g.fill();
+  }
+  /* 六种意象件（收锋版）：等级标的负形、满幅纹样的偶发件用**同一份**图形 —— 一处两用。 */
+  var PIECE = {
+    collector: function (g, cx, cy, s, a) {          // 落尘：一道收锋弧 + 三点递减
+      taper(g, sQuad([cx - s * .34, cy + s * .30], [cx - s * .02, cy + s * .42], [cx + s * .34, cy - s * .06], 22),
+            s * .085, s * .004, a);
+      g.globalAlpha = a;
+      [[-0.26, 0.16, 0.095], [-0.02, -0.02, 0.072], [0.26, -0.26, 0.050]].forEach(function (p) {
+        g.beginPath(); g.arc(cx + p[0] * s, cy + p[1] * s, p[2] * s, 0, 7); g.fill();
+      });
+      g.globalAlpha = 1;
+    },
+    rare: function (g, cx, cy, s, a) {               // 流萤：三枚收锋泪滴
+      [[-0.30, 0.22], [-0.02, 0.02], [0.26, -0.22]].forEach(function (p) {
+        taper(g, sQuad([cx + p[0] * s, cy + p[1] * s], [cx + (p[0] + .10) * s, cy + (p[1] - .04) * s],
+                       [cx + (p[0] + .20) * s, cy + (p[1] - .16) * s], 18), s * .085, s * .004, a);
+        g.globalAlpha = a;
+        g.beginPath(); g.arc(cx + p[0] * s, cy + p[1] * s, s * .066, 0, 7); g.fill();
+      });
+      g.globalAlpha = 1;
+    },
+    epic: function (g, cx, cy, s, a) {               // 星座：两条弧线 + 三颗星压在端点上
+      var A = [cx - s * .50, cy + s * .36], B = [cx + s * .02, cy - s * .28], C = [cx + s * .14, cy + s * .04],
+          D = [cx + s * .32, cy + s * .22], E = [cx + s * .52, cy - s * .38];
+      taper(g, sQuad(A, B, C, 26), s * .090, s * .003, a);
+      taper(g, sQuad(C, D, E, 26), s * .062, s * .0025, a);
+      g.globalAlpha = a;
+      [[A, 0.048], [C, 0.036], [E, 0.054]].forEach(function (p) {
+        g.beginPath(); g.arc(p[0][0], p[0][1], p[1] * s, 0, 7); g.fill();
+      });
+      g.globalAlpha = 1;
+    },
+    arcane: function (g, cx, cy, s, a) {             // 月轮：月牙 + 牙内两段收锋弧 + 三颗带锋小星
+      g.save(); g.globalAlpha = a;
+      g.beginPath();
+      g.moveTo(cx + s * .02, cy - s * .33);
+      g.arc(cx - s * .08, cy, s * .32, Math.PI * 1.54, Math.PI * 0.46, false);
+      g.arc(cx + s * .16, cy, s * .34, Math.PI * 0.44, Math.PI * 1.56, true);
+      g.closePath(); g.fill();
+      g.restore();
+      taper(g, sArc(cx - s * .06, cy, s * .24, Math.PI * 1.30, Math.PI * 1.72, 10), s * .062, s * .008, a * .85);
+      taper(g, sArc(cx - s * .06, cy, s * .24, Math.PI * 1.72, Math.PI * 0.52, 16), s * .062, s * .005, a * .85);
+      [[0.30, -0.26, -0.55], [0.33, 0.17, 0.30], [0.11, 0.36, 1.25]].forEach(function (p) {
+        var dx = Math.cos(p[2]) * s * .085, dy = Math.sin(p[2]) * s * .085;
+        taper(g, [[cx + p[0] * s, cy + p[1] * s], [cx + p[0] * s + dx, cy + p[1] * s + dy]],
+              s * .048, s * .008, a);
+      });
+    },
+    legend: function (g, cx, cy, s, a) {             // 日冕：长短差大的收锋放射 + 空心环
+      for (var i = 0; i < 12; i++) {
+        var ang = i * Math.PI / 6, lg = i % 2 === 0, r0 = s * .12, r1 = s * (lg ? .46 : .24);
+        taper(g, [[cx + Math.cos(ang) * r0, cy + Math.sin(ang) * r0],
+                  [cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1]], s * (lg ? .105 : .062), s * .002, a);
+      }
+      g.save(); g.globalAlpha = a; g.lineWidth = s * .035;
+      g.beginPath(); g.arc(cx, cy, s * .135, 0, 7); g.stroke(); g.restore();
+    },
+    miracle: function (g, cx, cy, s, a) {            // 蚀：8 段笔锋环（带缺口）+ 八道收锋细芒 + 内点
+      var R0 = s * .26, t0 = Math.PI * 0.24, span = Math.PI * 1.72, segs = 8, i;
+      for (i = 0; i < segs; i++) {
+        var a0 = t0 + i * span / segs, a1 = a0 + span / segs, mid = (a0 + a1) / 2;
+        taper(g, sArc(cx, cy, R0, a0, mid, 8), s * .030, s * .096, a);
+        taper(g, sArc(cx, cy, R0, mid, a1, 8), s * .096, s * .028, a);
+      }
+      for (i = 0; i < 8; i++) {
+        var ang = i * Math.PI / 4 + Math.PI / 8;
+        taper(g, [[cx + Math.cos(ang) * s * .32, cy + Math.sin(ang) * s * .32],
+                  [cx + Math.cos(ang) * s * .42, cy + Math.sin(ang) * s * .42]], s * .052, s * .003, a * .85);
+      }
+      g.globalAlpha = a;
+      g.beginPath(); g.arc(cx, cy, s * .055, 0, 7); g.fill();
+      g.globalAlpha = 1;
+    },
+  };
+  function shieldPath(g, cx, cy, w, h) {
+    var r = w * 0.16, top = cy - h / 2, bot = cy + h / 2;
+    g.beginPath();
+    g.moveTo(cx - w / 2 + r, top);
+    g.lineTo(cx + w / 2 - r, top);
+    g.quadraticCurveTo(cx + w / 2, top, cx + w / 2, top + r);
+    g.lineTo(cx + w / 2, bot - h * 0.30);
+    g.quadraticCurveTo(cx + w / 2, bot - h * 0.04, cx, bot);
+    g.quadraticCurveTo(cx - w / 2, bot - h * 0.04, cx - w / 2, bot - h * 0.30);
+    g.lineTo(cx - w / 2, top + r);
+    g.quadraticCurveTo(cx - w / 2, top, cx - w / 2 + r, top);
+    g.closePath();
+  }
+  function goldGrad(g, A) {
+    var gr = g.createLinearGradient(0, 0, BW, BH);
+    gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.34, A.gold); gr.addColorStop(1, A.goldLo);
+    return gr;
+  }
+  /* 满幅纹样（精修矢量，样张 v10 定样）：斜向笔触组 + 低频成团 + 收锋 + 偶发件。
+     不是等距平铺 —— 等距平铺在 1:1 上被判「撒贴纸」，密度成团 + 收锋才读成印出来的纹样。 */
+  function backPattern(g, A, key) {
+    var ri = BACK_RANK_ORDER.indexOf(key);
+    if (ri < 0) ri = 0;
+    var dens = 0.55 + ri * 0.23, r0 = rnd(700 + ri * 13), i;
+    var blobs = [];
+    for (i = 0; i < 26; i++) blobs.push([r0() * BW, r0() * BH, 90 + r0() * 260]);
+    function density(x, y) {
+      var v = 0;
+      for (var j = 0; j < blobs.length; j++) {
+        var d = Math.sqrt((x - blobs[j][0]) * (x - blobs[j][0]) + (y - blobs[j][1]) * (y - blobs[j][1]));
+        if (d < blobs[j][2]) v += 1 - d / blobs[j][2];
+      }
+      return Math.min(1, v / 2.2);
+    }
+    var gr = goldGrad(g, A), base = 0.09 + A.dens * 0.16;
+    g.save(); g.strokeStyle = gr; g.fillStyle = gr;
+    var groups = [[46, 34], [-46, 46], [78, 58]];
+    for (var gi = 0; gi < groups.length; gi++) {
+      var ang = groups[gi][0] * Math.PI / 180, step = groups[gi][1];
+      var nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2);
+      for (var pos = -BH; pos < BW + BH; pos += step * (0.72 + r0() * 0.8)) {
+        for (var t = -BH * 0.2; t < BH * 1.1;) {
+          var seg = 60 + r0() * 150;
+          var x0 = nx * pos + Math.cos(ang) * t, y0 = ny * pos + Math.sin(ang) * t;
+          var x1 = x0 + Math.cos(ang) * seg, y1 = y0 + Math.sin(ang) * seg;
+          t += seg * (1.15 + r0() * 0.9);
+          var mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+          if (mx < -40 || mx > BW + 40 || my < -40 || my > BH + 40) continue;
+          var dn = density(mx, my);
+          if (dn * dens < 0.34) continue;
+          var w0 = 2.2 + r0() * 3.0, w1 = Math.max(0.5, w0 * (0.06 + r0() * 0.25));
+          taper(g, sQuad([x0, y0], [mx + (r0() - 0.5) * 46, my - seg * 0.28], [x1, y1], 14),
+                w0, w1, base * (0.55 + dn * 0.75));
+          if (r0() < 0.18 * dens) {
+            if (key === 'miracle') { g.globalAlpha = base * 1.25; hexStar(g, x1, y1, 9 + r0() * 9); g.globalAlpha = 1; }
+            else PIECE[key](g, x1, y1, 22 + r0() * 22, base * 1.15);
+          }
+        }
+      }
+    }
+    g.restore();
+  }
   // 奇迹触发显形的两个入口：转满一圈、或在背面停留。360° 是「你真的把它翻过一遍」，
   // 停留是给不想转的人一条路（也照顾了触屏上不便连续划圈的情况）。
   var REVEAL_TURN = Math.PI * 2;
@@ -967,80 +1190,193 @@
     };
   }
 
+  // 卡背（2026-09-25 升级：两层构图「外圈等级标 + 内里系列纹样」）。定位：正面清框之后
+  // 这里是**唯一**的图内等级面 —— 点开卡背能看到等级是设计，不是泄漏（正面与卡边才归奇迹那套）。
+  // 六条金轴：底色调 → 满幅纹样密度 → 外发光 → 框线/角饰 → 等级环 → 等级标 → 覆膜。
+  function conic(g, a0, x, y, cols) {
+    if (!g.createConicGradient) {           // 老 Safari 没有 conic：退成斜向渐变，颜色不丢
+      var lg = g.createLinearGradient(x - 200, y - 200, x + 200, y + 200);
+      cols.forEach(function (c, i) { lg.addColorStop(i / (cols.length - 1), c); });
+      return lg;
+    }
+    var cg = g.createConicGradient(a0, x, y);
+    cols.forEach(function (c, i) { cg.addColorStop(i / (cols.length - 1), c); });
+    return cg;
+  }
+
   function drawBack(canvas, data, C) {
     var g = canvas.getContext('2d');
     var fam = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    var key = data.rank || 'collector';
+    if (!BACK_ART[key]) key = 'collector';
+    var A = BACK_ART[key];
+    var ri = BACK_RANK_ORDER.indexOf(key);
+    var sizeK = 0.92 + ri * 0.032;
+    var ringA = BACK_RING_A[Math.min(ri, 5)], ringW = BACK_RING_W[Math.min(ri, 5)];
+
+    /* 1 底：档位底色（斜向），再压满幅纹样 */
     g.clearRect(0, 0, BW, BH);
-    var grad = g.createLinearGradient(0, 0, BW * 0.35, BH);
-    grad.addColorStop(0, C.bg1); grad.addColorStop(1, C.bg2);
-    g.fillStyle = grad; g.fillRect(0, 0, BW, BH);
-    // 极淡的斜向细格：卡背的手感来自这层规则纹样
-    g.save();
-    g.globalAlpha = 0.15; g.strokeStyle = C.line; g.lineWidth = 1.6;
-    for (var d = -BH; d < BW + BH; d += 34) {
-      g.beginPath(); g.moveTo(d, 0); g.lineTo(d + BH * 0.45, BH); g.stroke();
-      g.beginPath(); g.moveTo(d, 0); g.lineTo(d - BH * 0.45, BH); g.stroke();
+    var bg = g.createLinearGradient(0, 0, BW * 0.35, BH);
+    bg.addColorStop(0, mixHex(A.tint, '#6a7090', 0.30));
+    bg.addColorStop(0.58, mixHex(A.tint, '#05070c', 0.62));
+    bg.addColorStop(1, A.tint);
+    g.fillStyle = bg; g.fillRect(0, 0, BW, BH);
+    backPattern(g, A, key);
+
+    /* 2 斜向反光 */
+    var sh = g.createLinearGradient(0, BH, BW * 0.9, 0);
+    sh.addColorStop(0.34, 'rgba(255,255,255,0)');
+    sh.addColorStop(0.46, 'rgba(255,255,255,' + (0.13 + A.glow * 0.05).toFixed(3) + ')');
+    sh.addColorStop(0.58, 'rgba(255,255,255,0)');
+    g.fillStyle = sh; g.fillRect(0, 0, BW, BH);
+
+    /* 3 外发光（高档才有，screen 叠上去） */
+    if (A.glow > 0) {
+      var rg = g.createRadialGradient(BW / 2, BH * 0.34, 40, BW / 2, BH * 0.34, BW * 0.62);
+      rg.addColorStop(0, 'rgba(255,246,220,' + (A.glow * 0.16).toFixed(3) + ')');
+      rg.addColorStop(1, 'rgba(255,246,220,0)');
+      g.save(); g.globalCompositeOperation = 'screen'; g.fillStyle = rg;
+      g.fillRect(0, 0, BW, BH); g.restore();
     }
-    g.restore();
-    // 双线外框（集换卡背面的常见做法）
-    g.strokeStyle = C.accent; g.globalAlpha = 0.85; g.lineWidth = 5;
+
+    /* 4 双线外框 + 一道内衬线（线宽随档） */
+    var gold = goldGrad(g, A);
+    g.save();
+    g.strokeStyle = gold; g.globalAlpha = 0.85; g.lineWidth = 4.4 + ringA * 3.6;
     rrect(g, 34, 34, BW - 68, BH - 68, 26); g.stroke();
     g.globalAlpha = 0.35; g.lineWidth = 2;
     rrect(g, 52, 52, BW - 104, BH - 104, 18); g.stroke();
-    g.globalAlpha = 1;
+    g.globalAlpha = ringA > 0 ? 0.22 + ringA * 0.30 : 0.16;
+    g.lineWidth = 1.4 + ringW * 0.35; g.strokeStyle = A.line;
+    rrect(g, 74, 74, BW - 148, BH - 148, 14); g.stroke();
+    g.restore();
 
-    emblem(g, data.series, BW / 2, BH * 0.36, BW * 0.17, C.accent);
-    // 等级：徽记加环、传世及以上加双环与等级带；奇迹再加一层背光。
-    // 卡背是 canvas 现画的，所以「分级」在这里只是多几条绘制路径，不引入任何新素材。
-    // **这里读的是清单里的原档（data.rank），不是 rankOf()**：奇迹的「看不出来」只管**正面**
-    // 与卡边，卡背本来就是它的信息面 —— 点开卡背能看到它的等级，这是设计，不是泄漏。
-    var rk = data.rank || 'collector';
-    var tier = (RANK_3D[rk] || RANK_3D.collector).back;
-    if (tier >= 1) {
+    /* 5 四角角饰：卷草两笔；奇迹换四角星徽 */
+    g.save();
+    var corGold = A.corgold ? gold : A.line;
+    g.strokeStyle = corGold; g.fillStyle = corGold;
+    g.globalAlpha = 0.34 + A.corgold * 0.24;
+    g.lineWidth = 2.4 + A.corgold * 1.0; g.lineCap = 'round';
+    [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(function (q) {
+      var sx = q[0], sy = q[1];
+      var ox = sx > 0 ? 96 : BW - 96, oy = sy > 0 ? 96 : BH - 96;
+      if (key === 'miracle') {
+        hexStar(g, ox + sx * 16, oy + sy * 16, 15);
+      } else {
+        taper(g, sQuad([ox, oy + sy * 26], [ox + sx * 4, oy + sy * 4], [ox + sx * 26, oy], 12),
+              3.0 + A.corgold * 1.2, 1.2, 0.55);
+        taper(g, sQuad([ox + sx * 8, oy + sy * 30], [ox + sx * 14, oy + sy * 14], [ox + sx * 30, oy + sy * 8], 12),
+              2.2, 1.0, 0.45);
+      }
+    });
+    g.restore();
+
+    /* 6 等级环：外圈就是「外圈等级标」的那一圈；奇迹走彩虹环 */
+    var cx = BW / 2, cy = BH * 0.335;
+    if (ringA > 0) {
       g.save();
-      g.strokeStyle = C.accent;
-      g.globalAlpha = BACK_RING_A[tier];
-      g.lineWidth = BACK_RING_W[tier];
-      g.beginPath(); g.arc(BW / 2, BH * 0.36, BW * 0.215, 0, Math.PI * 2); g.stroke();
-      if (tier >= 4) {
-        g.globalAlpha = 0.42; g.lineWidth = 2;
-        g.beginPath(); g.arc(BW / 2, BH * 0.36, BW * 0.248, 0, Math.PI * 2); g.stroke();
+      if (key === 'miracle') {
+        g.strokeStyle = conic(g, 0.6, cx, cy, BACK_IRID);
+        g.globalAlpha = ringA; g.lineWidth = ringW;
+        g.beginPath(); g.arc(cx, cy, BW * 0.255, 0, 7); g.stroke();
+        g.globalAlpha = 0.5; g.lineWidth = 2;
+        g.beginPath(); g.arc(cx, cy, BW * 0.288, 0, 7); g.stroke();
+      } else {
+        g.strokeStyle = gold; g.globalAlpha = ringA; g.lineWidth = ringW;
+        g.beginPath(); g.arc(cx, cy, BW * 0.255, 0, 7); g.stroke();
+        if (ringA >= 0.70) {
+          g.globalAlpha = 0.42; g.lineWidth = 2;
+          g.beginPath(); g.arc(cx, cy, BW * 0.288, 0, 7); g.stroke();
+        }
       }
       g.restore();
     }
-    if (tier >= 5) {
-      var rg = g.createRadialGradient(BW / 2, BH * 0.36, 8, BW / 2, BH * 0.36, BW * 0.44);
-      rg.addColorStop(0, 'rgba(255,233,172,.62)');
-      rg.addColorStop(1, 'rgba(255,233,172,0)');
-      g.save(); g.globalCompositeOperation = 'screen'; g.fillStyle = rg;
-      g.fillRect(0, BH * 0.06, BW, BH * 0.60); g.restore();
-    }
 
-    g.textAlign = 'center';
-    g.fillStyle = C.fg; g.font = '700 66px ' + fam;
-    g.fillText(clampText(g, data.label || '', BW - 190), BW / 2, BH * 0.62);
-    g.font = '400 34px ' + fam; g.fillStyle = C.dim;
-    g.fillText(data.series || '', BW / 2, BH * 0.675);
+    /* 7 等级标：盾形底场六档一致，靠**负形镂空**（收锋件）+ 金量 + 尺寸 ±8% 分档 */
+    var sw = 210 * sizeK, shh = 250 * sizeK;
+    var mg = g.createLinearGradient(cx - sw * 0.55, cy - shh * 0.5, cx + sw * 0.5, cy + shh * 0.55);
+    mg.addColorStop(0, '#ffffff'); mg.addColorStop(0.30, A.gold);
+    mg.addColorStop(0.62, A.goldLo); mg.addColorStop(1, A.gold);
     g.save();
-    g.globalAlpha = 0.5; g.strokeStyle = C.line; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(BW * 0.30, BH * 0.72); g.lineTo(BW * 0.70, BH * 0.72); g.stroke();
+    g.shadowColor = 'rgba(255,246,220,' + (0.40 * A.glow).toFixed(2) + ')';
+    g.shadowBlur = 30 * A.glow;
+    shieldPath(g, cx, cy, sw, shh); g.fillStyle = mg; g.fill();
+    g.shadowBlur = 0; g.shadowColor = 'transparent';
+    // 斜向高光带（金属感的来源；纯渐变会被读成平面贴图）
+    g.save(); g.globalCompositeOperation = 'screen'; g.globalAlpha = 0.20;
+    var hl = g.createLinearGradient(cx - sw * 0.5, cy + shh * 0.42, cx + sw * 0.30, cy - shh * 0.5);
+    hl.addColorStop(0, 'rgba(255,255,255,0)');
+    hl.addColorStop(0.52, 'rgba(255,255,255,.95)');
+    hl.addColorStop(1, 'rgba(255,255,255,0)');
+    shieldPath(g, cx, cy, sw, shh); g.fillStyle = hl; g.fill(); g.restore();
+    // 双线内刻线（凹线 + 下沿亮线）
+    g.strokeStyle = 'rgba(18,15,22,.34)'; g.lineWidth = 1.7;
+    shieldPath(g, cx, cy, sw * 0.90, shh * 0.90); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.20)'; g.lineWidth = 1.1;
+    shieldPath(g, cx, cy + 1.3, sw * 0.90, shh * 0.90); g.stroke();
+    // 件：先深色「洞」，再向上 1.2px 描一道刻痕高光（负形的做法）
+    g.fillStyle = 'rgba(11,9,15,.95)'; g.strokeStyle = 'rgba(11,9,15,.95)';
+    PIECE[key](g, cx, cy - shh * 0.015, sw * 0.58, 1);
+    g.save(); g.globalAlpha = 0.17; g.fillStyle = '#fff'; g.strokeStyle = '#fff';
+    PIECE[key](g, cx, cy - shh * 0.015 - 1.2, sw * 0.58, 1);
     g.restore();
-    if (data.rankLabel && tier >= 4) {
-      g.font = '600 30px ' + fam; g.fillStyle = C.accent; g.globalAlpha = tier >= 5 ? 1 : 0.9;
-      g.fillText(data.rankLabel, BW / 2, BH * 0.845);
-      g.globalAlpha = 1;
-    }
-    // 「07 / 63」这个序号**不印在卡背上**（2026-09-21 用户要求）：卡背是一张卡，不是一条记录 ——
-    // 编号那种「x / y」样式的元数据属于信息栏。信息本身没丢：弹层里那条 DOM 文本照样有它
-    // （home-deck.js 的 indexText，见文件头第 5 条「卡背文字必须有等价的 DOM 文本」）。
-    // 空出来的位置让给下面那条装饰线到出处之间的一段呼吸。
-    if (data.creditText) {
-      g.font = '400 26px ' + fam; g.fillStyle = C.dim;
-      g.fillText(clampText(g, data.creditText, BW - 160), BW / 2, BH * 0.90);
-    }
-    g.font = '400 24px ' + fam; g.globalAlpha = 0.7; g.fillStyle = C.dim;
-    g.fillText('KAGAMI · 卡片组', BW / 2, BH * 0.955);
+    g.restore();
+
+    /* 8 内里：系列纹样（不换系列就不换它，等级标只在外圈，居中不丢「这是谁的卡」） */
+    g.save(); g.globalAlpha = 0.95;
+    emblem(g, data.series, cx, cy + 74 * sizeK, 30 * sizeK, key === 'miracle' ? '#fff2ff' : A.gold);
+    g.restore();
+
+    /* 9 文字：阶序标记 → 卡名 → 系列 → 分隔线 → 「Ⅵ 蚀 · 奇迹」 → 出处 → 品牌 */
+    var rn = data.rankNo || BACK_RN[key];
+    g.save();
+    g.textAlign = 'center';
+    g.fillStyle = A.name; g.globalAlpha = 0.92;
+    g.font = '600 ' + (38 + ringA * 24).toFixed(0) + 'px ' + fam;
+    g.fillText(rn, cx, cy + shh * 0.5 + 54);
     g.globalAlpha = 1;
+    g.font = '700 62px ' + fam;
+    g.fillStyle = key === 'miracle' ? '#fff6ff' : mixHex(C.fg || '#f4f5f9', A.name, 0.55);
+    g.fillText(clampText(g, data.label || '', BW - 190), cx, BH * 0.645);
+    g.font = '400 30px ' + fam; g.fillStyle = C.dim;
+    g.fillText(data.series || '', cx, BH * 0.695);
+    g.globalAlpha = 0.5; g.strokeStyle = A.line; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(BW * 0.30, BH * 0.735); g.lineTo(BW * 0.70, BH * 0.735); g.stroke();
+    g.globalAlpha = 1;
+    // 短名在前：「Ⅵ 蚀 · 奇迹」。短名只在卡背出现 —— 筛选条 / meta / 正面一律还是原档名。
+    if (data.rankLabel) {
+      g.font = '600 30px ' + fam;
+      g.fillStyle = key === 'miracle' ? conic(g, 0.5, cx, BH * 0.80, BACK_IRID) : A.gold;
+      g.fillText(rn + ' ' + BACK_SHORT[key] + ' · ' + data.rankLabel, cx, BH * 0.845);
+    }
+    // 「07 / 63」这个序号**不印在卡背上**（2026-09-21 用户要求）：卡背是一张卡，不是一条记录，
+    // 编号属于信息栏。信息本身没丢：弹层里那条 DOM 文本照样有它（见文件头第 5 条）。
+    if (data.creditText) {
+      g.fillStyle = C.dim; g.font = '400 26px ' + fam;
+      g.fillText(clampText(g, data.creditText, BW - 160), cx, BH * 0.905);
+    }
+    g.globalAlpha = 0.7; g.fillStyle = C.dim; g.font = '400 24px ' + fam;
+    g.fillText('KAGAMI · 卡片组', cx, BH * 0.955);
+    g.globalAlpha = 1;
+    g.restore();
+
+    /* 10 覆膜：虹彩（conic）+ 细颗粒。Ⅰ/Ⅱ 不做覆膜 —— 「覆膜 = 高档」这条信号要保纯度 */
+    if (A.holo > 0) {
+      g.save();
+      g.globalCompositeOperation = 'screen';
+      var cols = key === 'miracle'
+        ? BACK_IRID
+        : ['#ffe9b0', '#ffc7e0', '#b6d4ff', '#c3ffe6', '#e2c7ff', '#ffe9b0'];
+      g.globalAlpha = A.holo * 0.22;
+      g.fillStyle = conic(g, 1.1, BW * 0.42, BH * 0.30, cols);
+      g.fillRect(0, 0, BW, BH);
+      g.globalAlpha = A.holo * 0.30;
+      for (var i = 0; i < 900; i++) {
+        g.fillStyle = i % 3 === 0 ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)';
+        g.fillRect((i * 97) % BW, (i * 173) % BH, 2.4, 2.4);
+      }
+      g.restore();
+    }
   }
 
   /* ============================================================

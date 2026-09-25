@@ -445,7 +445,7 @@
         // 头号根因，也让那份产物白白占着体积（见 docs/traps.md 的「静默回退」一节）。
         s: item.s, l: item.l, xl: item.xl || '', d: item.d || '', low: low,
         label: item.label || '', series: item.series || '', style: item.style || 'foil',
-        rank: item.rank || 'collector', rankLabel: item.rankLabel || '',
+        rank: item.rank || 'collector', rankLabel: item.rankLabel || '', rankNo: item.rankNo || '',
         indexText: pad(i + 1) + ' / ' + pad(items.length),
         creditText: credit
       });
