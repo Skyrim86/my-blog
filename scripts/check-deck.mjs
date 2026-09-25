@@ -674,6 +674,8 @@ if (!existsSync(CARD3D)) {
      再核一条**名称对齐**：initGL 里的 uniform 名单与 draw() 里实际设置的必须一一对应 ——
      名字拼错时 getUniformLocation 返回 null，而 uniform1f(null, x) 只是静默无效。 */
   const FX_LEGACY = ['metal', 'emis', 'diff', 'relief', 'back', 'shadow', 'sweep'];
+  // 注：「基础 2 层」（主体浮在背景之上）用的是 bgZoom/bgPar/drift 三条，它们**全档位都有**
+  // （2026-09-24 从传世/奇迹放开，brief 四.4「基础（全部档位）：2 层」），单调性由下面这段守卫兜着。
   // 后四项是 2026-09-21 第二轮加的（透明盖 + 「好像要脱离卡面」）：
   //   lid 盖子（**唯一多一遍混合绘制**的通道）  wall 侧壁取色  cast 卡面接触投影  drift 主体/背景微视差
   const FX_NEW = ['steps', 'sparkle', 'holo', 'halo', 'cliff', 'glint', 'bgZoom', 'bgPar',
@@ -684,14 +686,7 @@ if (!existsSync(CARD3D)) {
     // 第四轮（2026-09-21）：**画质**两项。disp = 主体色散（按 POM 位移把 RGB 分开采样）、
     // sharp = 卡面锐化（纹理源头只有 700px 高，放大到 840、xl 档 1064）。低三档同样是 0 ——
     // 「低档不许被顺手美化」这条纪律对它们一样成立。
-    'disp', 'sharp',
-    // 第五轮（2026-09-24，brief 四.4「分层浮起」）：layer = 层离强度。与上面那批不同，
-    // 它**只在传世/奇迹非 0**（0 = 这一档没有层离按钮，界面上按钮的显隐由 card-3d.js 的
-    // layerRank() 判）—— 所以它一并进这张表，好让「每档每通道必写 + 六档单调不减」这条守卫
-    // 也把它罩住：漏写一档就是按钮在该档消失，而那种错在页面上完全不报错。
-    // 注：同一条要求里的「基础 2 层」用的是 bgZoom/bgPar/drift，那三条本轮**从传世/奇迹放开到
-    // 全档位**（brief 明写「基础（全部档位）：2 层」），单调性同样由下面这段守卫兜着。
-    'layer'];
+    'disp', 'sharp'];
   const FX_ALL = FX_LEGACY.concat(FX_NEW);
   // 单调不减的通道（back 是序号、glint 只在拖动时有值，都参与；metal/emis/diff 本来就是阶梯）
   const MONO = FX_ALL.filter((f) => f !== 'glint');

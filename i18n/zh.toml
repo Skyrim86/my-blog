@@ -217,15 +217,6 @@ other = "{label}，第 {n} 张，共 {total} 张。拖动可转动卡片，翻�
 [deckGlFail]
 other = "这台设备/浏览器没有可用的 WebGL，卡片只能看平面大图"
 
-# 层离按钮（2026-09-24 加）：**只有传世与奇迹**有这颗按钮（见 assets/js/card-3d.js 的 layerRank）。
-# deckLayer 是未按下时的名字，deckLayerBack 是按下之后的名字 —— 与 deckFlip/deckFlipBack 同一套口径：
-# 按钮名要说「按下会发生什么」，而不是「现在是什么状态」（状态由 aria-pressed 表示）。
-# 对奇迹那一档，按下它同时就是**显形**（两个动作合成一个，brief 四.4）。
-[deckLayer]
-other = "层离"
-
-[deckLayerBack]
-other = "收层"
 
 # 卡片等级（2026-09-20 加，2026-09-21 从四档扩到六档）。**只有 3D 卡背与角标会用到这些词** ——
 # 卡面本身不写等级字（名字旁印的是**形状**徽章，色盲也能分，见 21-card-deck.css 的「等级」一节），

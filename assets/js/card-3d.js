@@ -41,8 +41,7 @@
 //      而读屏/键盘用户也没有因此少掉任何一条操作路径。
 //
 // 对外接口（home-deck.js 用）：window.card3d = { supported, attach, setItem, setOpen,
-//                                             setTheme, flip, isBack, reset, stats, setAngle,
-//                                             layerAvailable, layerState, layerOff }
+//                                             setTheme, flip, isBack, reset, stats, setAngle }
 (function () {
   'use strict';
 
@@ -152,10 +151,6 @@
   //   bgZoom  画面放大倍率（背景视差的前提：不放大会采到画面外）
   //   bgPar   背景视差的最大位移（UV 单位；必须 ≤ 0.5 − 0.5/(1+bgZoom)，否则会采出边界 ——
   //           JS 里夹了一道，表也不能写超）
-  //   layer   层离强度（0 = 这一档**没有**层离按钮）。见文件头那段：基础 2 层由 bgZoom/bgPar/drift
-  //           给、**全档位**都有（2026-09-24 放开，brief 四.4 明写「基础（全部档位）」）；
-  //           layer 是「更多层、各自视差」那部分，只有传世/奇迹有 —— 与「自选触发」那条要求一致，
-  //           界面的判据在 layerRank()（按钮由它决定显不显）。
   // **六档**（2026-09-21 从四档扩到六档：加了 rare 珍稀 / arcane 秘藏）。这张表与 CSS 的
   // `.home-card-rank--*` 必须一一对应 —— 少一档会静默套用兜底（首页看着是它、转起来不是它），
   // check-deck.mjs 里有守卫核这个，另有一条核「每档每个通道都得写、且六档单调不减」。
@@ -163,20 +158,16 @@
   var RANK_3D = {
     collector: { metal: 0.05, emis: 0.00, diff: 0.00, relief: 1.00, back: 0, shadow: 0.35, sweep: 0.25,
                  steps: 8,  sparkle: 0.00, holo: 0.00, halo: 0.00, cliff: 0.00, glint: 0.00, bgZoom: 0.016, bgPar: 0.006,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.18, coneC: 0.00, holoC: 0.00, disp: 0.00, sharp: 0.00,
-                 layer: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.18, coneC: 0.00, holoC: 0.00, disp: 0.00, sharp: 0.00 },
     rare:      { metal: 0.30, emis: 0.01, diff: 0.05, relief: 1.15, back: 1, shadow: 0.48, sweep: 0.38,
                  steps: 10, sparkle: 0.10, holo: 0.08, halo: 0.05, cliff: 0.15, glint: 0.10, bgZoom: 0.024, bgPar: 0.008,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.26, coneC: 0.00, holoC: 0.20, disp: 0.00, sharp: 0.00,
-                 layer: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.26, coneC: 0.00, holoC: 0.20, disp: 0.00, sharp: 0.00 },
     epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.30, back: 2, shadow: 0.62, sweep: 0.50,
                  steps: 12, sparkle: 0.28, holo: 0.22, halo: 0.16, cliff: 0.32, glint: 0.25, bgZoom: 0.032, bgPar: 0.0105,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.34, coneC: 0.00, holoC: 0.40, disp: 0.00, sharp: 0.12,
-                 layer: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.34, coneC: 0.00, holoC: 0.40, disp: 0.00, sharp: 0.12 },
     arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.50, back: 3, shadow: 0.82, sweep: 0.68,
                  steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.042, bgPar: 0.014,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.44, coneC: 0.00, holoC: 0.60, disp: 0.12, sharp: 0.18,
-                 layer: 0.00 },
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.44, coneC: 0.00, holoC: 0.60, disp: 0.12, sharp: 0.18 },
     // relief 1.90 → **1.60**、cast 0.65 → **0.00**：2026-09-25 用户按对照图拍板（见 docs/pending.md
     // 「3D 取值拍板」）。cast 是**实测零效应**的旋钮（关掉它逐像素 0.00 差异），留着只会让人以为
     // 调它有用 —— 置 0 并在守卫的单调性检查里保持「不减」。
@@ -184,13 +175,11 @@
     // 置 0 前已拍基线对拍确认逐像素 0.00（把 holo/sparkle 钉住），见 docs/pending.md。
     legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 1.60, back: 4, shadow: 1.00, sweep: 0.85,
                  steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
-                 wall: 0.70, cast: 0.00, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82, disp: 0.26, sharp: 0.24,
-                 layer: 0.55 },
+                 wall: 0.70, cast: 0.00, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82, disp: 0.26, sharp: 0.24 },
     // 同上：relief 2.20 → **1.90**、cast 1.00 → **0.00**（2026-09-25 拍板）。
     miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 1.90, back: 5, shadow: 1.15, sweep: 1.00,
                  steps: 24, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030,
-                 wall: 1.00, cast: 0.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00, disp: 0.35, sharp: 0.30,
-                 layer: 1.00 },
+                 wall: 1.00, cast: 0.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00, disp: 0.35, sharp: 0.30 },
   };
   // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。以前这两张表
   // 是卡背「由素到华丽」的全部依据；2026-09-25 升级后它们只负责**外圈等级环**这一条
@@ -425,41 +414,13 @@
   var REVEAL_TURN = Math.PI * 2;
   var REVEAL_DWELL_MS = 1500;
 
-  // ---------- 分层浮起 / 层离 / 收平（2026-09-24，brief 四.3-4）----------
+  // ---------- 分层浮起 / 收平（2026-09-24，brief 四.3-4）----------
   // 「基础（全部档位）：2 层（主体 + 背景）」= 已有的卡内背景视差（uBgPar + uDrift）：卡片转动时
   // **远处（低高度）的像素先走、主体慢半拍**，于是画面读成「主体浮在背景之上」的两层。
   // 它由 RANK_3D 的 bgZoom/bgPar/drift 三条给 —— 本轮把这三条**从「只有传世/奇迹」放开到全档位**
   // （brief 明写「全部档位」），所以低四档不再与加这批之前逐像素一致。**只有那 13 条光效通道
   // （sparkle/holo/halo/cliff/disp/sharp…）继续守「低档为 0」**：2 层是手感，不是光效，这是用户拍的例外。
   var FLAT_NEAR = 0.62, FLAT_FAR = 1.35;   // 收平斜坡（弧度）：|转角| 过 NEAR 开始收、到 FAR 归零
-  // 「层离」= 把高度场切成 LAYER_BANDS 条、每条按自己的深度错开一点（远景往左上、近景往右下），
-  // 于是卡面读成几张叠起来的纸 —— **这是「更多层、各自视差」那条**，基础 2 层不含它。
-  // 三条里只有 LAYER_BANDS 进着色器当编译期常量（GLSL 的循环/常量表达式要求它），另两条经 uLayer 缩放。
-  var LAYER_BANDS = 6.0;
-  var LAYER_SPREAD = 0.010;    // 每一条的最大位移（UV 单位）：±半条 = ±0.005，两层之间约 6px（600px 台面）
-  var LAYER_SHADE = 0.22;      // 远条压暗幅度（深度线索；只压亮度、不动色相）
-  // ↑ 2026-09-25 由 0.16 抬到 0.22（判读原话「很微弱地读成几层叠纸」）。**位移先不动** ——
-  // 它是「前景边缘被撕开」的来源，而同轮的单旋钮对照说它并不比明暗更有效。
-  // 对照条件：同一张传世卡（花簪）、yaw=pitch=0 的静止角度、564×790 前台面、1600×950 帧；
-  // 指标 = 整帧平均绝对差 / 差>8 的像素比。两次「关」的截图逐像素差 0.0 → 这些数不是噪声。
-  //     SHADE .16 / SPREAD .010 → 1.48 / 11.6%
-  //     SHADE .22 / SPREAD .010 → 1.77 / 12.55%   ← 采用
-  //     SHADE .16 / SPREAD .016 → 1.66 / 12.3%
-  // 读数本身是结论的一部分：**两个旋钮的响应都只有 +10~20%**，这个指标对幅度不敏感。
-  //
-  // 【2026-09-25 补：层数那一轮测完了，结论是「不改」】上面那三个数用的是**整帧**口径，
-  // 而整帧把效应稀释约 7 倍（同一个 on/off 对在卡面画布内是 12.84、整帧只有 1.77）。
-  // 换成卡面内口径、并把调速器档位与角度都钉住之后（`setGovTier(0)` / `setAngle(y,0,true)`；
-  // 为什么必须钉、钉不钉差多少，见 lab/README.md 的「3D 卡效果的量测口径」一节）：
-  //     角度：0° 12.84 / 43.0%   0.45 rad 10.72   0.90 rad 3.99   1.25 rad 0.16
-  //       —— 收平系数 `flat` 在 |yaw| ≤ 0.62 rad 内恒为 1，所以「转起来才看得见」是**错的**：
-  //          正面就是满强度，转过约 35° 才开始收，77° 归零。
-  //     层数：4 档 12.41 / 42.6%   6 档（现状）12.84 / 43.0%   12 档 13.52 / 44.3%
-  //       —— 总变化量只差 5~9%，判读排名却是 **4 > 6 > 12**：4 档最像「几张纸叠着」但双影/撕裂
-  //          明显，12 档台阶太密、读成「套印不准 + 涂抹」。6 档是实测的折中，**保持 6**。
-  //     融合窗口 smoothstep(0.22,0.78) → (0.34,0.66)：0.32 / 0.07% 像素，**几乎惰性**（已还原）。
-  // 一句话：这三个常量都到不了「读得出」的台阶，别在这里继续加码。真要再进一步得改分层的
-  // **做法**（例如按连通块而不是按高度等分），不是调数。
   // 展示台的投影：卡片悬浮在台面上方，投影落在卡下面（一条软椭圆）。宽窄/浓淡/位移全由**当前转角**给，
   // 见 syncStand()。它是 DOM 元素而不是一遍 GL 绘制 —— 一遍额外的全屏混合填充实测要 6.1 → 8.3 ms
   // （见 docs/traps.md「多一整遍全屏填充的代价」），而这张影子只需要一个合成层的 transform。
@@ -720,10 +681,6 @@
     //   uWall 侧壁取色  uCast 卡面接触投影  uDrift 主体与背景的微视差
     'uniform float uLid, uWall, uCast, uDrift, uCone;',
     'uniform float uConeC, uHoloC;',
-    // 层离（2026-09-24）：把高度场切成 LAYER_BANDS 条、每条按自己的深度错开一点 ——
-    // 「更多层、各自视差」那条要求的实现（基础 2 层由 uBgPar + uDrift 给，见 main 里那段）。
-    // 值由 JS 给**生效值**（本档强度 × 收平系数），所以它是 0 时整条路径不生效。
-    'uniform float uLayer;',
     // 光锥：从**上方斜射**进来的一道柔光（参考图里那一团）。卡与盖子两边都要用它 ——
     // 卡上是光落下来的提亮（caustic），盖子上是光在玻璃里的那一层。放这里两处共用一份。
     // ---------- 曲线场（2026-09-21 第三轮）----------
@@ -870,7 +827,6 @@
     // 采样点：正面会先经 POM、再经背景视差挪动。**声明在这里而不是下面那个 if 里** ——
     // 等级效果那一段还要用它（星屑的哈希网格扎在采样点上），写在块里就出了作用域。
     '  vec2 puv = uv;',
-    '  float bandShade = 1.0;',          // 层离：远的那几条压暗一点（深度线索，只压亮度不动色相）
     '  if (vFace < 1.5) {',
     '    puv = (vFace < 0.5) ? parallax(uv, V) : uv;',
     '    if (vFace < 0.5) {',
@@ -883,26 +839,9 @@
     '      float bgW = 1.0 - smoothstep(0.10, 0.34, hs)',
     '                 - uDrift * 0.30 * smoothstep(0.40, 0.95, hs);',
     '      puv = clamp(puv + uBgPar * bgW, 0.002, 0.998);',
-    // ---------- 层离（2026-09-24）----------
-    // 上面那一段是**基础 2 层**（远处先走、主体慢半拍）。这一段是**更多层、各自视差**：
-    // 按高度把画面切成 LAYER_BANDS 条，每条按自己的深度错开 —— 远景往左上让、近景往右下压，
-    // 卡面于是读成几张叠起来的纸，而每一张的位移都不相同（这就是「各自视差」）。
-    //
-    // 条与条之间用 smoothstep 过渡、不是 floor 的硬台阶：硬台阶会在条的边界上把画面撕出锯齿
-    // （A/B 对照里明显），而完全连续又退回上面那条「整张背景一起挪」—— 看不出分层。
-    // uLayer 由 JS 给生效值（本档强度 × 收平系数），转到侧面/背面时它是 0（见 draw 里 flat 那段），
-    // 于是这条路径整条不生效、卡回到一张实卡。
-    '      if (uLayer > 0.005) {',
-    '        float bf = clamp(hs, 0.0, 0.999) * LAYER_BANDS;',
-    '        float bk = floor(bf);',
-    '        float bm = (bk + smoothstep(0.22, 0.78, bf - bk) + 0.5) / LAYER_BANDS - 0.5;',
-    '        puv = clamp(puv + vec2(0.58, 0.81) * bm * uLayer * LAYER_SPREAD, 0.002, 0.998);',
-    '        bandShade = 1.0 - LAYER_SHADE * (0.5 - bm) * 2.0 * uLayer;',
-    '      }',
     '    }',
     '    if (vFace < 0.5) {',
     '      vec3 alb = texture2D(uFace, puv).rgb;',
-    '      alb *= bandShade;',           // 层离：远条压暗（uLayer = 0 时恒为 1，逐像素与之前一致）
     // 色散：**按这一像素被挪了多远**把 RGB 分开采样 —— `puv - uv` 正好是 POM 与卡内视差
     // 的合位移。参考站 holo3D-card 把这道叫次表面色散：隆起物的边缘会析出极窄的彩边，
     // 而卡的边缘本来就是凸起信息最密的地方，所以彩边长在正确的位置上。
@@ -1085,11 +1024,6 @@
       '#define CARD_R ' + CARD_R.toFixed(4),
       // 角的形状指数：与 perimeter()、与 CSS 的 --cshape 同一个数（见 CARD_N 那条注释）
       '#define CARD_N ' + CARD_N.toFixed(1),
-      // 层离的条数与两条幅度（见文件头那段）。写成 #define 是因为它们是**形状参数**：
-      // 条数必须能在 GLSL 里当常量用（floor(bf) 之后没有循环，但取值口径要一致）。
-      '#define LAYER_BANDS ' + LAYER_BANDS.toFixed(1),
-      '#define LAYER_SPREAD ' + LAYER_SPREAD.toFixed(4),
-      '#define LAYER_SHADE ' + LAYER_SHADE.toFixed(3),
       '#define POM_STEPS_MAX ' + POM_STEPS_MAX];
     return { vert: defs.concat(VERT).join('\n'), frag: defs.concat(FRAG_HEAD, FRAG_BODY).join('\n') };
   }
@@ -1402,10 +1336,6 @@
   var revealed = false;        // 奇迹是否已显形（本次打开内保持）
   var backSince = 0;           // 停在背面的起始时刻（另一个判据）
   var revealTimer = 0;         // 「在背面停留」的定时器
-  // 层离是否已按下（**只有传世与奇迹能打开**，判据在 layerRank()）。它**不是**等级通道：
-  // 档位给的是这一档「能给多少」（RANK_3D.layer），人是「要不要现在给」—— 所以它在这里，
-  // 换卡与重开弹层都会回到 off（见 reset()），界面上那个按钮的按下态也跟着复位。
-  var layerOn = false;
   var standEl = null;          // 展示台上的投影（DOM，attach 时建；无 GL 时不存在）
   var sweepPos = -0.5;         // 亮带当前位置（uv 空间，负值 = 还在卡外）
   var sweepK = 0;              // 亮带强度：只在转动时升起，停下衰减到 0
@@ -1417,11 +1347,10 @@
   var fxEff = { relief: 0, disp: 0, sharp: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0,
               bgZoom: 0, bgParMax: 0, wall: 0, cast: 0, lid: 0, cone: 0, drift: 0,
              coneC: 0, holoC: 0,
-             // 层离（2026-09-24）：layer = 本档能给到的最大强度、layerNow = 这一帧真正送进着色器的值
-             // （= layer × 收平系数，未按下时为 0）、flat = 这一帧的收平系数。三个都留档，因为
-             // 「这一档有没有这条通道」与「此刻它生效了没有」是**两个不同的问题**，同一个读数答不了
-             // （docs/traps.md 里 bgPar 那条假绿就是这么来的）。
-             layer: 0, layerNow: 0, flat: 1, bgParNow: 0 };
+             // flat = 这一帧的收平系数（转角把它从 1 收到 0）、bgParNow = 这一帧真挪了多少。
+             // 留档的是**生效值**：「这一档有没有这条通道」与「此刻它生效了没有」是两个不同的问题，
+             // 同一个读数答不了（docs/traps.md 里 bgPar 那条假绿就是这么来的）。
+             flat: 1, bgParNow: 0 };
   var fxOverride = null;       // lab 拍对比图时的临时覆盖（api.setFx），产品路径上恒为 null
 
   function pickQuality() {
@@ -1498,7 +1427,7 @@
       'uEdgeMetal', 'uEdgeEmis', 'uEdgeDiff', 'uShadow', 'uSweepPos', 'uSweepK',
       'uTime', 'uSteps', 'uSparkle', 'uHolo', 'uHalo', 'uCliff', 'uGlint',
       'uBgZoom', 'uBgPar', 'uLid', 'uWall', 'uCast', 'uDrift', 'uCone',
-      'uConeC', 'uHoloC', 'uLayer',
+      'uConeC', 'uHoloC',
       'uTexel', 'uDark', 'uDisp', 'uSharp', 'uFaceTexel'].forEach(function (n) {
       U[n] = gl.getUniformLocation(prog, n);
     });
@@ -1685,10 +1614,10 @@
     // ---------- 收平（brief 四.4「转到侧面/背面自动收平 —— 保住实卡手感」）----------
     // 判据取的是**绝对朝向**（离正面多远），不是「离静止的那一面多远」：翻到背面停下时
     // 「离静止面」是 0，可那时卡背是另一张面，用户要的收平必须已经发生（而且翻面后转身
-    // 再转回来的一路上也不该突然冒出层离）。所以 |yaw| 折进 [0, π]：0 = 正面、π/2 = 侧面、
+    // 再转回来的一路上也不该突然冒出卡内视差）。所以 |yaw| 折进 [0, π]：0 = 正面、π/2 = 侧面、
     // π = 背面，三个都在同一条斜坡上。
-    // |朝向| 过 FLAT_NEAR 起把**基础 2 层的视差与层离一起**收掉，到 FLAT_FAR 归零 ——
-    // 侧面只剩一条边、背面是另一张面，那时还留着层离就是穿帮（实卡手感优先）。
+    // |朝向| 过 FLAT_NEAR 起把**卡内视差收掉**，到 FLAT_FAR 归零 ——
+    // 侧面只剩一条边、背面是另一张面，那时还留着视差就是穿帮（实卡手感优先）。
     var fy = yaw;
     fy = Math.abs(fy - Math.round(fy / (Math.PI * 2)) * Math.PI * 2);
     var ft = (fy - FLAT_NEAR) / (FLAT_FAR - FLAT_NEAR);
@@ -1705,11 +1634,6 @@
     fxEff.bgParMax = Math.min(bgMax, lim);
     fxEff.bgParNow = bl;                             // 这一帧真挪了多少（收平/静止时它才会是 0）
     gl.uniform2f(U.uBgPar, bx, by);
-    // 层离：与 bgPar 同一条留档口径 —— layer 是这一档能给到的最大强度（已过调速器），
-    // layerNow 是这一帧真正送进着色器的值（未按下或已收平时为 0）。
-    fxEff.layer = R.layer * G.fx;
-    fxEff.layerNow = layerOn ? fxEff.layer * flat : 0;
-    gl.uniform1f(U.uLayer, fxEff.layerNow);
     gl.uniform1f(U.uTime, fxTime);
     // 亮带的强度与位置都由**当前角速度**决定：转得快就亮、停下就淡掉。
     // vy/vp 是「每帧的弧度」，这里只用来驱动视觉，不参与物理。
@@ -1793,16 +1717,6 @@
     return r;
   }
   function selectRank() { return RANK_3D[rankOf()] || RANK_3D.collector; }
-  /* 层离的**唯一档位判据**：只有传世与奇迹（brief 四.4「只有传世与奇迹有触发方式」）。
-     为什么抽成函数而不是就地比较：三处要问同一个问题 ——
-       ① api.layerAvailable()（home-deck.js 据此决定那颗按钮显不显）
-       ② api.layerOff()（不是这两档就拒绝，切了也不算成功）
-       ③ stats().fx.layer（层离的档位读数）
-     分开写三遍的话，「只在两档出现」这条口径就会有三个副本，改一处漏两处。 */
-  function layerRank() {
-    var r = (item && item.rank) || '';
-    return r === 'legend' || r === 'miracle';
-  }
 
   // 「现在停在正面还是背面」这件事有**两个**来源：拖拽松手（settleTarget）与翻面按钮（flip）。
   // 第一版只在 settleTarget 里记账，于是按翻面按钮转到背面时「停留」的计时从来没启动 ——
@@ -2164,7 +2078,6 @@
     reset: function () {
       yaw = 0; pitch = 0; vy = 0; vp = 0; baseYaw = 0; pinned = false; inertia = false;
       turned = 0; backSince = 0;
-      layerOn = false;                 // 换卡/重开弹层：层离回到未按下（按钮的按下态由 home-deck.js 复位）
       if (revealTimer) { window.clearTimeout(revealTimer); revealTimer = 0; }
       if (deckEl) deckEl.classList.remove('is-rank-revealed');
       if (deckEl) deckEl.setAttribute('data-face', 'front');
@@ -2184,22 +2097,6 @@
       return wantBack;
     },
     isBack: function () { return faceOf(baseYaw) === 'back'; },
-    /* ---------- 层离（2026-09-24，brief 四.4）----------
-       只有传世与奇迹有触发方式：按一下 → 进入「层离」（更多层、各自视差）。三个接口分工：
-         layerAvailable()  这一张**有没有**这个动作（home-deck.js 据此显隐按钮；判据只有一处，见 layerRank）
-         layerState()      当前状态（读屏与 lab 用）
-         layerOff()        切换，返回切换后的状态；不是那两档就**拒绝**（返回原值、不改状态）
-       与奇迹的**显形合成一个动作**：奇迹这一档按下层离的同时就把显形做掉（同一个点击、同一次重绘），
-       不再让「转满一圈」或「在背面停留」当唯一入口 —— 那两条仍然保留。 */
-    layerAvailable: function () { return layerRank(); },
-    layerState: function () { return { available: layerRank(), on: layerOn }; },
-    layerOff: function () {
-      if (!layerRank()) return layerOn;          // 不是传世/奇迹：这个动作不存在，调用无效
-      layerOn = !layerOn;
-      if (layerOn) maybeReveal('层离');          // 奇迹：层离与显形是同一个动作
-      kick();
-      return layerOn;
-    },
     // 给 lab/工具/shots.py 的读数：断言「转到位了 / 画面非空 / 空闲时真的停了 / 各档效果真的不同」
     stats: function () {
       return {
@@ -2225,11 +2122,7 @@
           wall: +fxEff.wall.toFixed(4), cast: +fxEff.cast.toFixed(4),
           lid: +fxEff.lid.toFixed(4), cone: +fxEff.cone.toFixed(4), drift: +fxEff.drift.toFixed(4),
           coneC: +fxEff.coneC.toFixed(4), holoC: +fxEff.holoC.toFixed(4),
-          // 层离与收平（2026-09-24）：layer 是这一档能给到的最大强度、layerNow 是这一帧真送进
-          // 着色器的值、flat 是收平系数。三者分开读，才能把「这一档有没有层离」与
-          // 「此刻它生效了没有」分开答 —— 层离为 0 与「已收平」是两件完全不同的事。
-          layer: +fxEff.layer.toFixed(4), layerNow: +fxEff.layerNow.toFixed(4),
-          layerOn: layerOn, layerAvailable: layerRank(),
+          // 收平：flat 是这一帧的收平系数、bgParNow 是这一帧真挪了多少。
           flat: +fxEff.flat.toFixed(3), bgParNow: +fxEff.bgParNow.toFixed(4)
         }
       };

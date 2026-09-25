@@ -47,7 +47,6 @@
      data-zoom="{{ i18n "deckZoom" }}" data-close="{{ i18n "deckClose" }}"
      data-credit="{{ i18n "deckCredit" }}" data-dialog="{{ i18n "deckDialogLabel" }}"
      data-flip="{{ i18n "deckFlip" }}" data-flip-back="{{ i18n "deckFlipBack" }}"
-     data-layer="{{ i18n "deckLayer" }}" data-layer-back="{{ i18n "deckLayerBack" }}"
      data-rotate="{{ i18n "deckRotate" }}" data-gl-fail="{{ i18n "deckGlFail" }}">
     <div class="home-card home-card--{{ $first.style }} home-card-rank--{{ $first.rank }}" style="--art: url('{{ $first.l }}'){{ with $first.ring }}; --ring-ink: {{ . | safe.CSS }}{{ end }}{{ with $first.bumpLit }}; --bump-lit: url('{{ . }}'){{ end }}{{ with $first.bumpSpec }}; --bump-spec: url('{{ . }}'){{ end }}">
         {{- /* fetchpriority=high 是给它一个「先下」的提示：这是首屏唯一的卡面，也是 LCP 候选。
