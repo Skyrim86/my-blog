@@ -1417,7 +1417,7 @@
     var w = STAND_SHADOW_K + (1 - STAND_SHADOW_K) * ac;
     var x = -Math.sin(yaw) * STAND_X_K;
     var y = Math.abs(pitch) * 1.2;                    // 俯仰时影子跟着往下让一点
-    var op = (0.34 + 0.46 * ac) * (1 - 0.25 * Math.abs(Math.sin(pitch)));
+    var op = (0.38 + 0.50 * ac) * (1 - 0.25 * Math.abs(Math.sin(pitch)));   // 2026-09-25：判读说「核心太淡、支撑感不足」→ 正面 .80→.88、侧面 .34→.38
     standEl.style.transform = 'translate(' + x.toFixed(2) + '%,' + y.toFixed(2) +
                               '%) scaleX(' + w.toFixed(3) + ')';
     standEl.style.opacity = op.toFixed(3);

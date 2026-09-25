@@ -15,15 +15,22 @@
         卡内的深度线索由着色器给（层离时远的那几条压暗、近的往右下错开）。
 
    `is-stand` 由 card-3d.js 在 GL 就绪之后打在台面上：回退到平面大图的那条路没有悬浮与投影，
-   不该跟着一起变暗（否则「没 3D」这件事看起来只是「变暗了」，而不是「回退了」）。 */
+   不该跟着一起变暗（否则「没 3D」这件事看起来只是「变暗了」，而不是「回退了」）。
+
+   **2026-09-25 验收与微调**：1:1 判读四条 —— ②投影「成立」、④景深「成立（偏 UI 层叠）」、
+   ①悬浮「勉强（最弱）」、③压暗「勉强」。①弱在「影子太贴、太居中、缺厚度感」，所以这一轮按
+   「抬高」的视觉线索改三处：影子上沿 91.5%→**93.2%**（缝 3%→4.7%）、宽度 62%→**55%**
+   （影子比卡小 = 离得远）、blur 6→**9px**（更虚 = 更远）；③④各深一档（遮罩 .74→**.80**、
+   blur 5→**7px**）。台面的 88.5%/91.5% 那套是**量出来的**（卡 pin 正面读 α 包围盒），
+   这次只在它上面加高度线索，没有推翻测量。 */
 
 /* 遮罩（背景压暗 + 景深）：21-card-deck.css 里是 rgba(10,8,14,.62) / blur(3px)。
    压深一档的理由：卡片是浮在台面上、台面又浮在页面上，三层要分得开；遮罩不够暗时
    台面的暗角与页面的背景糊成一片（深色主题下尤其）。 */
 html.is-deck-dialog .home-deck-dialog-backdrop {
-  background: rgba(8, 6, 12, .74);
-  backdrop-filter: blur(5px) saturate(120%);
-  -webkit-backdrop-filter: blur(5px) saturate(120%);
+  background: rgba(8, 6, 12, .80);
+  backdrop-filter: blur(7px) saturate(118%);
+  -webkit-backdrop-filter: blur(7px) saturate(118%);
 }
 
 /* 回退用的平面大图：脚本在 3D 可用时给它加了 hidden，但 21-card-deck.css 里
@@ -65,19 +72,19 @@ html.is-deck-dialog .home-deck-dialog-backdrop {
    根本没有落影子的地方。 */
 .home-deck-stage-shadow {
   position: absolute;
-  left: 19%;
-  width: 62%;
-  top: 91.5%;
-  height: 5.4%;
+  left: 22.5%;
+  width: 55%;
+  top: 93.2%;
+  height: 4.8%;
   border-radius: 50%;
   /* 两层叠出的「投影」：上层是**沿垂直方向的落影**（上沿最实、往下淡出，读作"压在卡下面"），
      下层是椭圆本体（左右两端自然收掉、往外围还有个很长的渐隐）。
      单用一层椭圆会被读成"一道灰条"（横向密度太均匀、上下沿反而更清楚）—— 实测对照过。 */
   background:
-    linear-gradient(to bottom, rgba(0, 0, 0, .40), rgba(0, 0, 0, 0) 76%),
+    linear-gradient(to bottom, rgba(0, 0, 0, .52), rgba(0, 0, 0, 0) 76%),
     radial-gradient(50% 58% at 50% 40%,
-      rgba(0, 0, 0, .58), rgba(0, 0, 0, .24) 56%, rgba(0, 0, 0, 0) 84%);
-  filter: blur(6px);
+      rgba(0, 0, 0, .72), rgba(0, 0, 0, .30) 56%, rgba(0, 0, 0, 0) 84%);
+  filter: blur(9px);
   opacity: 0;                     /* 第一次 syncStand() 会立刻写真实值 */
   pointer-events: none;
   transform-origin: 50% 50%;
@@ -93,7 +100,7 @@ html.is-deck-dialog .home-deck-dialog-backdrop {
   inset: -70% -30%;
   border-radius: 50%;
   background: radial-gradient(50% 50% at 50% 50%,
-    rgba(255, 255, 255, .18), rgba(255, 255, 255, 0) 74%);
+    rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 74%);
 }
 
 /* 层离按钮：外观与 .home-deck-flip 逐条相同（数值见 21-card-deck.css 那一条）——
