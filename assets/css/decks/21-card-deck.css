@@ -2256,3 +2256,36 @@ a.home-deck-dialog-credit:hover {
 .home-card-rank--legend    { --strip-ink: rgba(11, 8, 15, .90); }
 .home-card-rank--miracle:not(.is-revealed) { --strip-ink: rgba(11, 8, 15, .90); }
 .home-card-rank--miracle.is-revealed       { --strip-ink: rgba(6, 4, 10, .92); }
+
+/* ---------- 真无框（2026-09-25 用户拍板 1.a）：整副框收掉、画面铺满 ----------
+   ⚠ 本块**必须留在文件最末**：它与 `.home-card-mat` 的基础定义（前文）同权重，靠后写才生效。
+   第一版插在 `.home-card-plate` 之前，`border-top` 被基础定义的 `border-top: 0` 盖掉，
+   顶部等级色带等于没画（读回值 matTop=0px 才发现的）。
+   原来「等级 = 框的厚度/色带/角饰」是正面最主要的等级信号。用户要的是满幅画面，所以信号
+   改由两处承担、而不加新 DOM：
+     · `.home-card-mat`（原本是画面内衬线）**同时**做两件事 —— `border-top` 出一条 3px 的
+       等级色带（见下方两层 background 的注释：**不能用 border**）。踩过的坑：①`--cframe` 是
+       `linear-gradient(...)`，拿它当 border-color 是无效值 → 整条声明被丢弃（读回 btw=0px /
+       bts=none），当 background 才有效；②平色带在 1:1 下读不出来，要叠 `--cframe-finish`。
+       另须显式 `opacity: 1`：基础规则里 mat 的 opacity 是 `var(--rank-ring-op, 0)`，
+       而本块把 --rank-ring-op 归零 ⇒ 元素整个透明，画什么都没用。
+       内描边是必须的：这批立绘带浅色/半透明边缘，满幅之后会直接糊进页面底色（浅色主题尤甚），
+       1px 实测偏弱，取 2px + 一点内阴影。
+     · 信息栏底板（--cplate）照旧随档变色。
+   判据与对照：`../lab/结果/collreview/pick-fullbleed.png`（三排：现状 / 只 1px / 1px+色带）。 */
+.home-card[class*="home-card-rank--"] {
+  --cart-inset: 0px; --rank-frame: 0px; --rank-mat: 0px; --rank-band: 0px; --rank-band-a: 0;
+  --rank-line: transparent; --rank-orn: 0; --fret-w: 0px; --rank-ring-op: 0;
+}
+.home-card-corners, .home-card-motif { display: none; }
+.home-card-mat {
+  inset: 0; border-radius: inherit; background: none;
+  opacity: 1;
+  /* 顶部色带用**两层 background**、不用 border：底下一层是本档的实色（--rank-mark-fill，逐档
+     不同），上面压一层框的质感叠层（--cframe-finish：亮卡才有值的白色微光）。写成 border
+     只有平色，1:1 下读不出来；这两层合起来才是原来框边上那条「金属」的观感，而且不留边框。 */
+  background:
+    var(--cframe-finish) no-repeat left top / 100% 3px,
+    var(--rank-mark-fill, currentColor) no-repeat left top / 100% 3px;
+  box-shadow: inset 0 0 0 2px rgba(12, 14, 20, .34), inset 0 0 18px rgba(12, 14, 20, .14);
+}

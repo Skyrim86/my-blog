@@ -373,3 +373,12 @@ brief 第 3 条「卡悬浮 + 背景压暗 + 投影 + 景深」**2026-09-24 就�
 完整交接在过程区：`blog/lab/记录/HANDOFF-2026-09-24.md` —— 状态、下一步第一件事（等级层块② 花纹+角花 → 块③ 卡背金轴+奇迹虹彩）、验收配方四条硬约束、**今晚的四个判据错误**、六件等用户拍板的事、红线与关键路径速查。**新会话起手读它。**
 
 **验收配方（别重犯）**：截图用 `python shots.py`（本机 `python` 是 Hermes 自带 venv，有 `websockets`；ml 环境的 python 没有，直接 ModuleNotFoundError）；`--full` 全页截图**前必须逐屏滚到底**，卡片图是 lazy 的，否则截到未加载的空白卡（已因此把判据弄错过一次）；卡片墙每卡 206×288 CSS px，本地服务在 `http://127.0.0.1:8831/my-blog/collection/`。
+
+- **真无框（1.a）已落地（2026-09-25）**：六档 `--rank-frame/--rank-mat/--rank-band/--rank-line/
+  --rank-orn/--rank-ring-op/--fret-w` 与 `--cart-inset` 全部归零 ⇒ 插画满幅（DOM 实测 `img` 矩形 == 格子
+  206×288）。等级信号改由 `.home-card-mat` 一层承担：顶部 3px 色带（`--rank-mark-fill` + `--cframe-finish`
+  两层 background，逐档不同色）+ 2px 深色内描边（浅底立绘边缘不与页面底色糊）。两个坑记在 CSS 注释里：
+  ①`--cframe` 是渐变，当 border-color 用是无效值（整条 border-top 被丢弃，btw 读回 0px）；②mat 的
+  opacity 是 `var(--rank-ring-op, 0)`，归零 ring-op 等于把元素透明掉，必须显式 `opacity: 1`。
+  代价实测：传世「花簪」那格边上仍读得出金色 —— 那是**立绘自己画的金饰**（边缘 6-7px 处 (200,138,17)），
+  不是 CSS 框；收藏/奇迹两格外圈 3px 是均匀深灰，真无框读得干净。
