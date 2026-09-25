@@ -2363,8 +2363,10 @@ head/baseof，拿那份维护面换一句标签页文字不值。
 主题」，就地补一条 `<link rel=preload as=image>` 让请求与主样式并行 —— 只对**静态套**做：默认访客
 走动态背景、本来一条壁纸请求都没有（实测 0 条），给他们加 preload 是白下 97 KB。
 线上前后对照（同一探针 `lab/工具/bgpreload.py`，冷 profile）：改前 `start 3719 ms / initiator=css`，
-改后 **start … ms / initiator=link**（部署后复核，数字见本小节末的「线上对账」）；`data-theme` 判据与 CSS 的 `[data-theme="dark"]` 同一条。
+改后两次 **`109 ms` / `710 ms`、`initiator=link`**。网络有离散度，稳定的是「发起者从 css 变成 link、
+且落在样式表链之前」这一条；默认（动态）访客复测仍是 **0 条壁纸请求**（只多一个 `<link>` 标签、不下载）。
 （本地先验：`start 30 ms / initiator=link`。）
+
 ## 玩法层第二批（2026-09-25）
 
 六条一次推完，全是零新素材，全部挂已有单一事实源（清单 / `card-3d.js` 相机 / `deck-wall.js` 的筛选状态）。
