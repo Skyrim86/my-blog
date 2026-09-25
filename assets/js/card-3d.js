@@ -171,15 +171,17 @@
                  layer: 0.00 },
     epic:      { metal: 0.55, emis: 0.02, diff: 0.12, relief: 1.30, back: 2, shadow: 0.62, sweep: 0.50,
                  steps: 12, sparkle: 0.28, holo: 0.22, halo: 0.16, cliff: 0.32, glint: 0.25, bgZoom: 0.032, bgPar: 0.0105,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.34, coneC: 0.20, holoC: 0.40, disp: 0.00, sharp: 0.12,
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.34, coneC: 0.00, holoC: 0.40, disp: 0.00, sharp: 0.12,
                  layer: 0.00 },
     arcane:    { metal: 0.72, emis: 0.03, diff: 0.30, relief: 1.50, back: 3, shadow: 0.82, sweep: 0.68,
                  steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.042, bgPar: 0.014,
-                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.44, coneC: 0.45, holoC: 0.60, disp: 0.12, sharp: 0.18,
+                 wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.44, coneC: 0.00, holoC: 0.60, disp: 0.12, sharp: 0.18,
                  layer: 0.00 },
     // relief 1.90 → **1.60**、cast 0.65 → **0.00**：2026-09-25 用户按对照图拍板（见 docs/pending.md
     // 「3D 取值拍板」）。cast 是**实测零效应**的旋钮（关掉它逐像素 0.00 差异），留着只会让人以为
     // 调它有用 —— 置 0 并在守卫的单调性检查里保持「不减」。
+    // 同理 epic/arcane 的 coneC（.20/.45）→ 0：这两档 cone=0，coneC 乘在 0 上 = 空转。
+    // 置 0 前已拍基线对拍确认逐像素 0.00（把 holo/sparkle 钉住），见 docs/pending.md。
     legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 1.60, back: 4, shadow: 1.00, sweep: 0.85,
                  steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
                  wall: 0.70, cast: 0.00, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82, disp: 0.26, sharp: 0.24,
