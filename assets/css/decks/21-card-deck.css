@@ -2256,3 +2256,28 @@ a.home-deck-dialog-credit:hover {
 .home-card-rank--legend    { --strip-ink: rgba(11, 8, 15, .90); }
 .home-card-rank--miracle:not(.is-revealed) { --strip-ink: rgba(11, 8, 15, .90); }
 .home-card-rank--miracle.is-revealed       { --strip-ink: rgba(6, 4, 10, .92); }
+
+/* ---------- 清卡框线条（2026-09-25 用户口径）----------
+   口径：「去掉卡框」= 只清除卡框的线条 + 内缩归零让画面铺满（对照图
+   ../lab/结果/collreview/pick-lines-ab.png，取第 5 行那个口径）。纯减法、无替代件 ——
+   之前自作主张补的 2px 内描边与 3px 等级色带是新装饰，不要。
+
+   清掉的（对照图逐条量过，卡面内 |Δ|>8 像素占比，相对上一版）：
+     (a) --rank-frame   框棱亮线  六档全 0.00% —— 令牌空转，渲染上什么都不改；一并归零只是
+                                  让语义不撒谎，将来别把它当可见要素。
+     (b) --rank-ring-op 内衬线    收藏 1.30% / 奇迹 2.07% / 传世 0.00%（传世本来就 0）
+     (c) --strip-ink    色带两条 1px 描边  2.99% / 2.99% / 3.12% ← 真正看得见的那条
+     (d,e) --rank-line / --rank-orn / --fret-w + .home-card-corners  0.43–0.49%
+     内缩 --cart-inset  7.5%（15.5px@206）→ 0：画面 175×257 → 206×288，重排量 50–66%
+
+   保留（不在「线条」口径里）：框内缘等级色带本体（--rank-band，等级唯一正面信号）、
+   工艺纹样 ::before、虹彩覆膜 .home-card-rank、花纹 .home-card-motif、名牌 .home-card-plate、
+   玻璃釉面 / 凸印受力图。内缩归零后色带本体落在卡的最外缘，读起来会像一圈窄边框。
+
+   ⚠ 本块必须留在文件最末：与逐档 `.home-card-rank--*` 基础定义同权重，靠后写才生效。 */
+.home-card[class*="home-card-rank--"] {
+  --cart-inset: 0px;
+  --rank-frame: 0px; --rank-line: transparent; --rank-orn: 0; --fret-w: 0px;
+  --rank-ring-op: 0; --strip-ink: transparent;
+}
+.home-card-corners { display: none; }
