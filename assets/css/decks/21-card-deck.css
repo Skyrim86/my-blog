@@ -763,6 +763,14 @@ html.is-deck-dialog #bottom-link {
   border-color: var(--accent);
 }
 
+/* 「看工艺」按下时（aria-pressed=true）：边框与字都走强调色 —— 与翻面按钮同一个开关写法，
+   但它是一个**模式**（进去就停在那个机位），所以比 hover 更实一档。 */
+.home-deck-inspect[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+
 /* 卡背（3D 卡的反面）的配色：由 assets/js/card-3d.js 用 canvas 画出来，颜色**从这里读**
    （见该文件里的 readVars）。写成 CSS 变量的意义不只是「统一」——对比度脚本只看得见 DOM
    里的元素，canvas 上的字它看不见；把配色放在变量里，至少让这套颜色是被主题管着的那一套，
@@ -804,6 +812,12 @@ html.is-deck-dialog #bottom-link {
 
 .home-deck-dialog-series {
   color: var(--secondary);
+}
+
+/* 信息卡那一行（作品 / 角色 / 收录）：与系列同一行，弱一档 —— 它是补注不是标题 */
+.home-deck-dialog-info {
+  color: var(--muted-foreground, var(--secondary));
+  font-size: .96em;
 }
 
 .home-deck-dialog-index {
@@ -1735,6 +1749,33 @@ a.home-deck-dialog-credit:hover {
   /* 这一格就是墙上那张卡的宽度来源（206px）→ 卡片用 100cqw 量它，见「等级层」那一节。
      格子里没有内边距，所以 100cqw 正好是卡宽 —— 与首页 `.home-deck` 那一处同一条口径。 */
   container-type: inline-size;
+  /* 探索进度那个小点（.deck-tile-dot）锚在这一格上 —— 不锚 .home-card：
+     它的伪元素预算已经被卡框/色带/花纹占满了（见「等级层」那一节）。 */
+  position: relative;
+}
+
+/* 探索进度（2026-09-25）：看过 = 右上角一点，看过卡背 = 点外再多一圈。
+   两个状态走**同一个通道**（明度/厚度），不新增色相 —— 与「一张卡只允许一条通道说等级」
+   同一条纪律。点不拦指针，也不改格子尺寸。 */
+.deck-tile-dot {
+  position: absolute;
+  top: .34rem;
+  right: .34rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px rgba(12, 11, 16, .45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease, box-shadow .22s ease;
+}
+
+.deck-tile.is-seen .deck-tile-dot { opacity: .82; }
+
+.deck-tile.is-backseen .deck-tile-dot {
+  opacity: 1;
+  box-shadow: 0 0 0 1px rgba(12, 11, 16, .45), 0 0 0 3px rgba(250, 249, 252, .32);
 }
 
 /* 没有升级成按钮时，卡不该看着像能点（`.home-card` 自带 cursor: pointer） */
@@ -1921,6 +1962,34 @@ a.home-deck-dialog-credit:hover {
 
 .deck-chip:disabled:hover {
   border-color: var(--edge);
+}
+
+/* 探索进度那一条：数字 + 细进度条。只在探过至少一张之后现身（JS 管 hidden）。 */
+.deck-progress {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin: .35rem 0 0;
+  font-size: .78rem;
+  color: var(--muted-foreground, var(--secondary));
+}
+
+.deck-progress-text { font-variant-numeric: tabular-nums; }
+
+.deck-progress-track {
+  flex: 0 1 15rem;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.deck-progress-bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width .28s ease;
 }
 
 .deck-result,

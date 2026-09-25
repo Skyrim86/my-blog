@@ -389,9 +389,45 @@ other = "改回平铺"
 [deckGroupHead]
 other = "{series} · {n} 张"
 
-# 随机翻一张：角落那个像素小人按钮的名字，按下会从**当前筛选出来**的那些卡里抽一张打开。
+# 「今日一抽」（2026-09-25 从「随机翻一张」改名）：角落那个像素小人按钮。按下从**当前筛选
+# 出来**的那些卡里，按**今天的洗牌顺序**翻下一张还没看过的 —— 种子取访客本地日期，与首页
+# 「今天的 12 张」同一套 daySeed，所以同一天里顺序固定、点几次就是往后走几步；
+# 全看过之后退回随机一张。
 [deckDraw]
-other = "从当前这些里随机翻一张"
+other = "今日一抽"
+
+# 探索进度那一条（2026-09-25）：「已探」= 看过，与格子上的打点同一口径。
+# {seen} / {total} 由 JS 填。
+[deckProgress]
+other = "已探 {seen} / {total}"
+
+[deckProgressAria]
+other = "已看过 {seen} 张，共 {total} 张"
+
+# 格子上那两个状态的读屏名（肉眼看到的是角落一个小点：看过实心、看过卡背实心带圈）。
+[deckSeen]
+other = "已看过"
+
+[deckBackSeen]
+other = "看过卡背"
+
+# 弹层里那颗近观按钮：切到固定斜角 + 1.8× 近观，看浮雕、箔纹、珠光这些**材料**。
+# 退出时改成「退出近观」（与翻面按钮同一个 aria-pressed 写法）。
+[deckInspect]
+other = "看工艺"
+
+[deckInspectOff]
+other = "退出近观"
+
+# 弹层信息卡的三行标签（值来自清单的 work / role / added）。
+[deckInfoWork]
+other = "作品"
+
+[deckInfoRole]
+other = "角色"
+
+[deckInfoAdded]
+other = "收录"
 
 # 显形是**纯视觉**的变化（画布上那点光），读屏用户什么都得不到 —— 这条由 role="status" 播报。
 [deckRevealAnnounce]

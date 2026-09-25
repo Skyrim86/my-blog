@@ -41,7 +41,8 @@
 //      而读屏/键盘用户也没有因此少掉任何一条操作路径。
 //
 // 对外接口（home-deck.js 用）：window.card3d = { supported, attach, setItem, setOpen,
-//                                             setTheme, flip, isBack, reset, stats, setAngle }
+//                                             setTheme, flip, isBack, reset, stats, setAngle,
+//                                             setInspect, isInspect }
 (function () {
   'use strict';
 
@@ -430,6 +431,10 @@
   // 拖拽灵敏度（弧度/像素）与俯仰限位。俯仰限 ±34°：再大就看到卡背的背面了；
   // 水平不限位，因为要能一路翻到背面。
   var YAW_GAIN = 0.0092, PITCH_GAIN = 0.0072, PITCH_MAX = 0.60;
+  // 「看工艺」近观（2026-09-25）：固定斜角 + 拉近机位，让浮雕、箔纹、珠光这些**材料**看得见。
+  // 角度 0.40 rad（≈23°）：再大就只看得到卡的侧边、看不到面；1.8× 是「卡占满画布、四边略出框」
+  // 的那个倍数 —— 台面本来留了 11.5% 余量，除完 1.8 之后卡是画布的 1.38 倍宽。
+  var INSPECT_YAW = 0.40, INSPECT_ZOOM = 1.8;
   var SPRING_K = 190, SPRING_C = 26;          // 临界阻尼附近：2√K ≈ 27.6
   // 惯性：**速度要限幅**。第一版不限幅、衰减 0.94，结果「轻甩一下」的总行程是
   // vy/(1-0.94) ≈ 7 弧度 —— 卡片会自己转一整圈多，而且回弹要 1.7 秒才停。
@@ -1329,6 +1334,8 @@
   var backCanvas = null, backKey = '';
   var proj = mat4(), view = mat4(), model = mat4(), rot = mat4(), rot2 = mat4();
   var yaw = 0, pitch = 0, vy = 0, vp = 0, baseYaw = 0;
+  var zoom = 1, zoomTo = 1, inspect = false;
+  var faceWasBack = false;
   var dragging = false, pinned = false, inertia = false;
   var lastX = 0, lastY = 0, lastT = 0;
   var raf = 0, lastFrame = 0, frames = 0, lastStats = 0, open = false;
@@ -1505,7 +1512,7 @@
     // 卡小了一档（600px 台面上 517 → 462px），但那反而正中另一件事：卡面 xl 档只有 760px，
     // 卡小了上采样倍数就小（2x 屏 1034 → 924px），**糊的主要来源就是这一步放大**（见 resize 开头）。
     // 侧面（45°）那张最坏情况也仍在框里：投影高度 85.8%（1.16 时是 97.5%，几乎顶边）。
-    var dist = need * 0.5 * 1.30;
+    var dist = need * 0.5 * 1.30 / zoom;
     perspective(proj, fov, aspect, 0.1, dist * 4);
     identity(view);
     view[14] = -dist;
@@ -1724,6 +1731,14 @@
   // 另外计时**必须用 setTimeout**，不能写在 update() 里：卡停稳后动画循环就停了，
   // update() 不再被调用，那个检查也就永远不会执行。
   function noteFace(back) {
+    // 只在**面真的变了**的那一次广播：收藏库靠它记「翻过卡背」那半个进度
+    // （见 home-deck.js 的 markSeen 那段）。老浏览器没有 CustomEvent 构造器，忽略即可。
+    if (back !== faceWasBack) {
+      faceWasBack = back;
+      try {
+        document.dispatchEvent(new CustomEvent('deck:face', { detail: { back: !!back } }));
+      } catch (e) { /* 墙上少一点进度，其它照旧 */ }
+    }
     if (back) {
       backSince = backSince || performance.now();
       if (!revealTimer) {
@@ -1815,6 +1830,11 @@
   function noteInput() { lastInput = performance.now(); }
 
   function update(dt) {
+    if (Math.abs(zoomTo - zoom) > 0.0008) {
+      zoom += (zoomTo - zoom) * Math.min(1, dt * 8);
+      if (Math.abs(zoomTo - zoom) <= 0.0008) zoom = zoomTo;
+      return true;
+    }
     if (!pinned && backSince && performance.now() - backSince > REVEAL_DWELL_MS) maybeReveal('在背面停留');
     if (pinned) return false;
     if (dragging) return true;
@@ -2078,6 +2098,7 @@
     reset: function () {
       yaw = 0; pitch = 0; vy = 0; vp = 0; baseYaw = 0; pinned = false; inertia = false;
       turned = 0; backSince = 0;
+      inspect = false; zoomTo = 1; zoom = 1; faceWasBack = false;
       if (revealTimer) { window.clearTimeout(revealTimer); revealTimer = 0; }
       if (deckEl) deckEl.classList.remove('is-rank-revealed');
       if (deckEl) deckEl.setAttribute('data-face', 'front');
@@ -2143,6 +2164,23 @@
       if (pinned && canvas && canvas.clientWidth) { resize(); draw(); } else kick();
       return govTier;
     },
+    /* 「看工艺」近观开关（2026-09-25）。进 = 转到固定斜角 + 拉近机位；退 = 回正面 + 原机位。
+        **只在正面有意义**：卡背没有材料可看，所以从背面按进来会先转到正面（面状态同步给
+       data-face，按钮那边的文字由 home-deck.js 自己按 isBack() 同步）。 */
+    setInspect: function (on) {
+      inspect = !!on;
+      if (!GL) return false;
+      pinned = false; inertia = false; dragging = false;
+      vy = 0; vp = 0;
+      baseYaw = inspect ? INSPECT_YAW : 0;
+      zoomTo = inspect ? INSPECT_ZOOM : 1;
+      backSince = 0;
+      if (deckEl) deckEl.setAttribute('data-face', 'front');
+      noteInput();
+      kick();
+      return inspect;
+    },
+    isInspect: function () { return inspect; },
     // 把卡钉在指定角度（lab 拍照用；pin=true 时不起弹簧，不会被拉回正面）。
     // pin 时**同步画一帧**而不是排进 rAF：lab 里紧接着就要把画布 drawImage 到合成图上，
     // 而 WebGL 的绘图缓冲在同一帧之外读是空的（见 lab/README.md 里那条 readPixels 的坑）。

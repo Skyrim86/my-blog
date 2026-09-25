@@ -175,6 +175,19 @@ for (const [idx, c] of entries.entries()) {
   }
   if (c.style) usedStyles.add(String(c.style));
 
+  // 2026-09-25 加的三个字段（work / role / added）：都**可选**，但写了就得合法 ——
+  // added 走弹层信息卡，格式错了页面上不报错、只是印出一串怪字符串；work/role 写了空值
+  // 会让信息卡多出一截没有内容的标签。
+
+  if (c.added && !/^\d{4}-\d{2}-\d{2}$/.test(String(c.added))) {
+    failures.push(`✗ ${where}：added「${c.added}」不是 YYYY-MM-DD`);
+  }
+  for (const key of ['work', 'role']) {
+    if (key in c && !String(c[key]).trim()) {
+      failures.push(`✗ ${where}：${key} 写了但值是空的 —— 要么删掉这一行，要么写值`);
+    }
+  }
+
   // crop：三种合法写法。拼错会静默走「整幅硬裁 5:7」那条路（构图不对但图照出）
   const crop = c.crop;
   const cropOk =
@@ -1043,6 +1056,36 @@ notes.push(
     `· 工艺分布：最多 ${max} 张，最少 ${Math.min(...perStyle.values())} 张` +
       (thin.length ? ` —— **${thin.map(([s, n]) => s + ' ' + n).join(' / ')} 少于 3 张**` : '（每种都 ≥ 3 张）')
   );
+}
+
+/* ---------- 日期种子的**两份副本**（2026-09-25）----------
+   home-deck.js 用它抽「首页今天的 12 张」，deck-wall.js 用它做「今日一抽」的顺序。
+   两处都是经典脚本、没有模块可共享，所以只能靠这条守卫防漂移 ——
+   漂移的表现是两种「今天」给出不同的顺序，**页面上不会有任何报错**。
+   （只比函数体、不比名字：deck-wall 那份叫 todaySeed，名字不同是故意的。） */
+const SEED_A = readFileSync(join('assets', 'js', 'home-deck.js'), 'utf8');
+const SEED_B = readFileSync(join('assets', 'js', 'deck-wall.js'), 'utf8');
+function seedBody(src, name) {
+  const i = src.indexOf('function ' + name + '(');
+  if (i < 0) return null;
+  const j = src.indexOf('\n  }', i);
+  if (j < 0) return null;
+  return src.slice(i, j).replace(/function \w+/, 'function').replace(/\s+/g, ' ').trim();
+}
+for (const [na, nb] of [['hash01', 'hash01'], ['daySeed', 'todaySeed']]) {
+  const a = seedBody(SEED_A, na), b = seedBody(SEED_B, nb);
+  if (!a || !b) {
+    failures.push(`✗ 日期种子的 ${na}() / ${nb}() —— 两份副本里有一份找不到了（home-deck.js 与 deck-wall.js 必须各有一份）`);
+  } else if (a !== b) {
+    failures.push(
+      `✗ 日期种子的两份副本漂移了：home-deck.js 的 ${na}() 与 deck-wall.js 的 ${nb}() 必须逐行相同 —— ` +
+        `它们决定「首页今天的 12 张」与「今日一抽」用的是不是同一个「今天」`
+    );
+  }
+}
+const STEP = /hash01\(seed \+ k \* 0x9e3779b1\)/;
+if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
+  failures.push('✗ 洗牌步长的那个黄金比例常数（0x9e3779b1）在两份副本里对不上');
 }
 
 for (const line of notes) console.log(line);

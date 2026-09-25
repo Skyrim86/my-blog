@@ -47,6 +47,11 @@
      data-zoom="{{ i18n "deckZoom" }}" data-close="{{ i18n "deckClose" }}"
      data-credit="{{ i18n "deckCredit" }}" data-dialog="{{ i18n "deckDialogLabel" }}"
      data-flip="{{ i18n "deckFlip" }}" data-flip-back="{{ i18n "deckFlipBack" }}"
+     {{- /* 弹层那两个新控件（2026-09-25）：近观按钮与信息卡。首页的卡组同样开弹层，
+             所以两条文案要一起给 —— 少了只是退回英文兜底，页面上不报错。 */}}
+     data-inspect="{{ i18n "deckInspect" }}" data-inspect-off="{{ i18n "deckInspectOff" }}"
+     data-info-work="{{ i18n "deckInfoWork" }}" data-info-role="{{ i18n "deckInfoRole" }}"
+     data-info-added="{{ i18n "deckInfoAdded" }}"
      data-rotate="{{ i18n "deckRotate" }}" data-gl-fail="{{ i18n "deckGlFail" }}">
     <div class="home-card home-card--{{ $first.style }} home-card-rank--{{ $first.rank }}" style="--art: url('{{ $first.l }}'){{ with $first.ring }}; --ring-ink: {{ . | safe.CSS }}{{ end }}{{ with $first.bumpLit }}; --bump-lit: url('{{ . }}'){{ end }}{{ with $first.bumpSpec }}; --bump-spec: url('{{ . }}'){{ end }}">
         {{- /* fetchpriority=high 是给它一个「先下」的提示：这是首屏唯一的卡面，也是 LCP 候选。

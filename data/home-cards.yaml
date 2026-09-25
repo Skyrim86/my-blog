@@ -55,6 +55,14 @@
 #           能推导的都补上了（pixiv → /artworks/<id>、safebooru → post&id=<id>、twitter/wallhaven
 #           同理）；**官方立绘与站点自己的看板娘没有可点的出处**，那两张就留空 —— 别硬编一个主页
 #           链接上去，那等于指错地方。
+#   work    作品（可选，2026-09-25 加）：这张卡的角色出自哪部作品。**按系列映射填的，
+#           混源的那一组逐张写** —— 「黑长直少女」那 4 张里有原创、有本站看板娘、有合成
+#           素材切片，统一写一个作品名就是错的。
+#   role    角色（可选）：同上，默认取系列对应的角色。
+#   added   收录日期（可选，YYYY-MM-DD）：**由 git 现取**（`git log -S <src> --
+#           data/home-cards.yaml` 最早那一笔），不是按印象写的。它只有两个值
+#           （2026-09-20 × 29、2026-09-21 × 28）—— 建库与 3D 化两个批量提交，
+#           所以**别拿它做时间线**（会是一根柱子），只作弹层信息卡的一行。
 
 # ---- 2026-09-24 工艺收敛：十六 → 八，逐张映射（**只改 style，不动 rank、不重出图**）----
 # 依据 brief §八 / §十六 / §十八：每张卡按**观感方向**并到最近的保留项，且必须落在它明度档的
@@ -101,27 +109,36 @@
   src: tools/backgrounds/source-ayaka-sword.jpg
   crop: [0.29, 0.0, 0.77, 1.0]          # 手量：自动取景把横过来的刀也算进内容，人被缩到很小
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 木刀
   style: pearl
   rank: collector
+  added: 2026-09-20
   credit: pixiv 98079154
   credit_url: https://www.pixiv.net/artworks/98079154
 - image: images/cards/ayaka-kimono.webp
   src: tools/backgrounds/source-ayaka-kimono.png
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 墨羽
   style: emboss
   rank: miracle
+  added: 2026-09-20
   credit: pixiv 91546278
   credit_url: https://www.pixiv.net/artworks/91546278
 - image: images/cards/ayaka-veil.webp
   src: tools/backgrounds/source-ayaka-veil.jpg
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 花簪
   style: goldfoil
   rank: legend
+  added: 2026-09-20
   credit: twitter wani_Dile
   credit_url: https://twitter.com/wani_Dile
 - image: images/cards/ayaka-desk.webp
@@ -129,71 +146,95 @@
   crop: figure
   flat: [[244, 241, 249], [220, 214, 234]]   # 透明源图：显式给底色（脚本也会按 alpha 采四角）
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 书案
   style: pearl
   rank: legend
+  added: 2026-09-20
   credit: 官方春季立绘 Springbloom Missive
 - image: images/cards/ayaka-03.webp
   src: tools/cards/sources/ayaka-03.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 霜华
   style: silver
   rank: legend
+  added: 2026-09-20
   credit: safebooru 4194498
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4194498
 - image: images/cards/ayaka-04.webp
   src: tools/cards/sources/ayaka-04.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 白鹭
   style: pearl
   rank: collector
+  added: 2026-09-20
   credit: safebooru 5815913
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5815913
 - image: images/cards/ayaka-05.webp
   src: tools/cards/sources/ayaka-05.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 星夜
   style: starnight
   rank: arcane
+  added: 2026-09-20
   credit: safebooru 4806294
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4806294
 - image: images/cards/ayaka-09.webp
   src: tools/cards/sources/ayaka-09.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 玄袖
   style: emboss
   rank: rare
+  added: 2026-09-20
   credit: safebooru 6134135
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=6134135
 - image: images/cards/ayaka-11.webp
   src: tools/cards/sources/ayaka-11.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 樱琴
   style: pearl
   rank: collector
+  added: 2026-09-20
   credit: safebooru 4843454
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4843454
 - image: images/cards/ayaka-14.webp
   src: tools/cards/sources/ayaka-14.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 甲刃
   style: foil
   rank: epic
+  added: 2026-09-20
   credit: safebooru 4546356
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4546356
 - image: images/cards/ayaka-23.webp
   src: tools/cards/sources/ayaka-23.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 蝶羽
   style: pearl
   rank: arcane
+  added: 2026-09-20
   credit: safebooru 5359394
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5359394
 - image: images/cards/ayaka-16.webp
@@ -201,45 +242,60 @@
   crop: figure
   pad: 1.3
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 闲坐
   style: pearl
   rank: epic
+  added: 2026-09-20
   credit: safebooru 4021132
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4021132
 - image: images/cards/ayaka-18.webp
   src: tools/cards/sources/ayaka-18.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 晨食
   style: pearl
   rank: rare
+  added: 2026-09-20
   credit: safebooru 4012375
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4012375
 - image: images/cards/ayaka-20.webp
   src: tools/cards/sources/ayaka-20.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 雪舞
   style: silver
   rank: collector
+  added: 2026-09-20
   credit: safebooru 3987957
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3987957
 - image: images/cards/ayaka-21.webp
   src: tools/cards/sources/ayaka-21.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 流水
   style: pearl
   rank: rare
+  added: 2026-09-20
   credit: safebooru 5700504
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5700504
 - image: images/cards/ayaka-28.webp
   src: tools/cards/sources/ayaka-28.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 夏荫
   style: foil
   rank: arcane
+  added: 2026-09-20
   credit: safebooru 4573787
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4573787
 # ---- 绫华补的 6 张（2026-09-20）：这 6 张源图上一轮就压好放在 sources/ 里、一直没进清单 ----
@@ -247,18 +303,24 @@
   src: tools/cards/sources/ayaka-22.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 花礼
   style: goldfoil
   rank: arcane
+  added: 2026-09-20
   credit: safebooru 5672112
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=5672112
 - image: images/cards/ayaka-32.webp
   src: tools/cards/sources/ayaka-32.webp
   crop: figure
   series: 绫华
+  work: 原神
+  role: 神里绫华
   name: 糖霜
   style: silver
   rank: arcane
+  added: 2026-09-20
   credit: safebooru 4498197
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4498197
 
@@ -267,18 +329,24 @@
   src: assets/images/bg-daylight-girl.webp
   crop: [0.50, 0.02, 0.92, 0.96]        # 人物在横向 66% 处（见 features.md ⑫ 的取景说明）
   series: 黑长直少女
+  work: 原创
+  role: 原创角色
   name: 日间
   style: emboss
   rank: epic
+  added: 2026-09-20
   credit: pixiv 87155937（壁纸套·日间）
   credit_url: https://www.pixiv.net/artworks/87155937
 - image: images/cards/girl-night.webp
   src: assets/images/bg-night-girl.webp
   crop: [0.54, 0.06, 0.96, 1.0]         # 夜间那张人物在 76% 处
   series: 黑长直少女
+  work: 原创
+  role: 原创角色
   name: 夜间
   style: starnight
   rank: epic
+  added: 2026-09-20
   credit: pixiv 77002104（壁纸套·夜间）
   credit_url: https://www.pixiv.net/artworks/77002104
 - image: images/cards/girl-ojou.webp
@@ -286,17 +354,23 @@
   crop: figure
   flat: [[248, 245, 250], [222, 216, 232]]
   series: 黑长直少女
+  work: 本站
+  role: 看板娘
   name: 大小姐
   style: goldfoil
   rank: collector
+  added: 2026-09-20
   credit: 站点看板娘（source-ojou-chibi.png，非商用同人）
 - image: images/cards/girl-lantern.webp
   src: tools/backgrounds/source-lady-slice.webp
   crop: figure
   series: 黑长直少女
+  work: 原创
+  role: 原创角色
   name: 提灯
   style: inkwash
   rank: collector
+  added: 2026-09-20
   credit: wallhaven 6lwmy7（夜城合成版的人物切片，方案已撤回、素材留着）
   credit_url: https://wallhaven.cc/w/6lwmy7
 
@@ -310,63 +384,84 @@
   src: tools/cards/sources/kafka-01.webp
   crop: figure
   series: 卡夫卡
+  work: 崩坏：星穹铁道
+  role: 卡夫卡
   name: 观星
   style: holo-prism
   rank: collector
+  added: 2026-09-20
   credit: safebooru 4601052
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4601052
 - image: images/cards/kafka-02.webp
   src: tools/cards/sources/kafka-02.webp
   crop: figure
   series: 卡夫卡
+  work: 崩坏：星穹铁道
+  role: 卡夫卡
   name: 夜思
   style: holo-prism
   rank: collector
+  added: 2026-09-20
   credit: safebooru 4596259
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4596259
 - image: images/cards/kafka-03.webp
   src: tools/cards/sources/kafka-03.webp
   crop: figure
   series: 卡夫卡
+  work: 崩坏：星穹铁道
+  role: 卡夫卡
   name: 独奏
   style: goldfoil
   rank: epic
+  added: 2026-09-20
   credit: safebooru 4396840
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4396840
 - image: images/cards/kafka-04.webp
   src: tools/cards/sources/kafka-04.webp
   crop: figure
   series: 卡夫卡
+  work: 崩坏：星穹铁道
+  role: 卡夫卡
   name: 夜宴
   style: inkwash
   rank: collector
+  added: 2026-09-20
   credit: safebooru 4050848
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4050848
 - image: images/cards/kafka-05.webp
   src: tools/cards/sources/kafka-05.webp
   crop: figure
   series: 卡夫卡
+  work: 崩坏：星穹铁道
+  role: 卡夫卡
   name: 待发
   style: holo-prism
   rank: epic
+  added: 2026-09-20
   credit: safebooru 4018682
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4018682
 - image: images/cards/kafka-07.webp
   src: tools/cards/sources/kafka-07.webp
   crop: figure
   series: 卡夫卡
+  work: 崩坏：星穹铁道
+  role: 卡夫卡
   name: 雨幕
   style: starnight
   rank: rare
+  added: 2026-09-20
   credit: safebooru 4092477
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4092477
 - image: images/cards/kafka-08.webp
   src: tools/cards/sources/kafka-08.webp
   crop: figure
   series: 卡夫卡
+  work: 崩坏：星穹铁道
+  role: 卡夫卡
   name: 绯光
   style: holo-prism
   rank: epic
+  added: 2026-09-20
   credit: safebooru 4395286
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4395286
 
@@ -377,224 +472,308 @@
 - image: images/cards/emilia-01.webp
   src: tools/cards/sources/emilia-01.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 夜翎
   style: inkwash
   rank: legend
+  added: 2026-09-21
   credit: safebooru 2948619
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2948619
 - image: images/cards/emilia-02.webp
   src: tools/cards/sources/emilia-02.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 紫绫
   style: goldfoil
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3193715
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3193715
 - image: images/cards/emilia-03.webp
   src: tools/cards/sources/emilia-03.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 初醒
   style: silver
   rank: rare
+  added: 2026-09-21
   credit: safebooru 3370906
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3370906
 - image: images/cards/emilia-04.webp
   src: tools/cards/sources/emilia-04.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 嫁衣
   style: goldfoil
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3295664
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3295664
 - image: images/cards/emilia-05.webp
   src: tools/cards/sources/emilia-05.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 芳辰
   style: foil
   rank: arcane
+  added: 2026-09-21
   credit: safebooru 3285846
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3285846
 - image: images/cards/emilia-06.webp
   src: tools/cards/sources/emilia-06.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 星眸
   style: foil
   rank: rare
+  added: 2026-09-21
   credit: safebooru 3220250
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3220250
 - image: images/cards/emilia-07.webp
   src: tools/cards/sources/emilia-07.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 花冠
   style: pearl
   rank: legend
+  added: 2026-09-21
   credit: safebooru 3145481
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3145481
 - image: images/cards/emilia-08.webp
   src: tools/cards/sources/emilia-08.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 霓裳
   style: emboss
   rank: collector
+  added: 2026-09-21
   credit: safebooru 2776515
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2776515
 - image: images/cards/emilia-09.webp
   src: tools/cards/sources/emilia-09.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 轻絮
   style: emboss
   rank: rare
+  added: 2026-09-21
   credit: safebooru 2757756
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2757756
 - image: images/cards/emilia-10.webp
   src: tools/cards/sources/emilia-10.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 女侍
   style: goldfoil
   rank: arcane
+  added: 2026-09-21
   credit: safebooru 2349791
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2349791
 - image: images/cards/emilia-11.webp
   src: tools/cards/sources/emilia-11.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 惊鸿
   style: pearl
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3629666
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3629666
 - image: images/cards/emilia-12.webp
   src: tools/cards/sources/emilia-12.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 猫兜
   style: silver
   rank: collector
+  added: 2026-09-21
   credit: safebooru 4195947
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=4195947
 - image: images/cards/emilia-14.webp
   src: tools/cards/sources/emilia-14.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 狐耳
   style: goldfoil
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3978940
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3978940
 - image: images/cards/emilia-15.webp
   src: tools/cards/sources/emilia-15.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 青萝
   style: silver
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3954029
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3954029
 - image: images/cards/emilia-16.webp
   src: tools/cards/sources/emilia-16.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 春眠
   style: silver
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3849608
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3849608
 - image: images/cards/emilia-17.webp
   src: tools/cards/sources/emilia-17.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 朱领
   style: foil
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3748589
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3748589
 - image: images/cards/emilia-18.webp
   src: tools/cards/sources/emilia-18.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 蝶澜
   style: goldfoil
   rank: epic
+  added: 2026-09-21
   credit: safebooru 3744471
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3744471
 - image: images/cards/emilia-19.webp
   src: tools/cards/sources/emilia-19.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 玫露
   style: silver
   rank: rare
+  added: 2026-09-21
   credit: safebooru 3711031
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3711031
 - image: images/cards/emilia-20.webp
   src: tools/cards/sources/emilia-20.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 墨褶
   style: goldfoil
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3392378
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3392378
 - image: images/cards/emilia-21.webp
   src: tools/cards/sources/emilia-21.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 云梦
   style: silver
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3367232
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3367232
 - image: images/cards/emilia-22.webp
   src: tools/cards/sources/emilia-22.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 桃夭
   style: pearl
   rank: collector
+  added: 2026-09-21
   credit: safebooru 3176237
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3176237
 - image: images/cards/emilia-23.webp
   src: tools/cards/sources/emilia-23.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 白露
   style: pearl
   rank: collector
+  added: 2026-09-21
   credit: safebooru 2881553
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2881553
 - image: images/cards/emilia-24.webp
   src: tools/cards/sources/emilia-24.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 寒蕊
   style: emboss
   rank: collector
+  added: 2026-09-21
   credit: safebooru 2855461
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2855461
 - image: images/cards/emilia-25.webp
   src: tools/cards/sources/emilia-25.webp
   series: 艾米莉亚
+  work: Re:Zero
+  role: 艾米莉亚
   name: 花织
   style: emboss
   rank: epic
+  added: 2026-09-21
   credit: safebooru 2837256
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2837256
 - image: images/cards/miku-01.webp
   src: tools/cards/sources/miku-01.webp
   series: 初音未来
+  work: VOCALOID
+  role: 初音未来
   name: 初始之音
   style: goldfoil
   rank: epic
+  added: 2026-09-21
   credit: safebooru 1869610
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=1869610
 - image: images/cards/miku-02.webp
   src: tools/cards/sources/miku-02.webp
   series: 初音未来
+  work: VOCALOID
+  role: 初音未来
   name: 旋律
   style: goldfoil
   rank: arcane
+  added: 2026-09-21
   credit: safebooru 1485416
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=1485416
 - image: images/cards/miku-03.webp
   src: tools/cards/sources/miku-03.webp
   series: 初音未来
+  work: VOCALOID
+  role: 初音未来
   name: 电波
   style: holo-prism
   rank: legend
+  added: 2026-09-21
   credit: safebooru 3561974
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=3561974
 - image: images/cards/miku-04.webp
   src: tools/cards/sources/miku-04.webp
   series: 初音未来
+  work: VOCALOID
+  role: 初音未来
   name: 琉璃音
   style: holo-prism
   rank: epic
+  added: 2026-09-21
   credit: safebooru 2466422
   credit_url: https://safebooru.org/index.php?page=post&s=view&id=2466422

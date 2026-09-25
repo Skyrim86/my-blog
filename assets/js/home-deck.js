@@ -121,6 +121,11 @@
   var closeLabel = deck.dataset.close || 'close';
   var creditLabel = deck.dataset.credit || 'credit';
   var dialogTpl = deck.dataset.dialog || '{label}';
+  var inspectLabel = deck.dataset.inspect || 'inspect';
+  var inspectOffLabel = deck.dataset.inspectOff || inspectLabel;
+  var infoWork = deck.dataset.infoWork || 'work';
+  var infoRole = deck.dataset.infoRole || 'role';
+  var infoAdded = deck.dataset.infoAdded || 'added';
   var AUTO_MS = 6000;
   var FADE_MS = 340;     // 与 CSS 里 deck-in / deck-art-in / deck-ghost-out 的时长一致（0.34s）
   var i = 0;
@@ -134,6 +139,40 @@
   function pad(n) {
     return (n < 10 ? '0' : '') + n;
   }
+
+  /* ---------- 探索进度（2026-09-25）----------
+     按**卡的 id**（清单里 image 去扩展名，如 ayaka-sword）记在 localStorage，**不用下标** ——
+     清单中间插一张卡，它后面每一张的下标都会挪，进度就串到别人身上去了。两位掩码：
+     1 = 看过正面，2 = 翻过卡背。**写入只在 home-deck.js**（打开弹层、翻到背面两处），
+     读与画全在 deck-wall.js（收藏库那支）—— 这里只记 + 广播 `deck:progress`。
+     首页那支没有卡片墙，广播出去没人听，但记下的 id 与收藏库是同一套，两边通用。 */
+  var SEEN_KEY = 'deck:seen';
+  function readSeen() {
+    try { return JSON.parse(window.localStorage.getItem(SEEN_KEY)) || {}; }
+    catch (e) { return {}; }   // 隐私模式下 localStorage 会抛：进度静默失效，不影响别的功能
+  }
+  // 「看过」的记账点：**弹层真打开着**才算（apply 在首页轮播里也跑，那不算看过）
+  function noteSeen() {
+    if (dlg.hidden) return;
+    var it = items[i];
+    if (it) markSeen(it.id, 1);
+  }
+  function markSeen(id, flag) {
+    if (!id) return;
+    var all = readSeen(), v = all[id] | 0;
+    if (v & flag) return;      // 记过了就不写（省一次 localStorage 写入 + 无意义的广播）
+    all[id] = v | flag;
+    try { window.localStorage.setItem(SEEN_KEY, JSON.stringify(all)); } catch (e) { return; }
+    try {
+      document.dispatchEvent(new CustomEvent('deck:progress', { detail: { id: id, flags: all[id] } }));
+    } catch (e) { /* 老浏览器没有 CustomEvent 构造器：墙上那一格不更新，其它照旧 */ }
+  }
+
+  // 卡背这件事由 card-3d.js 广播（它只知道「现在停在背面」，不知道这是哪张卡，也不该知道）
+  document.addEventListener('deck:face', function (e) {
+    var it = items[i];
+    if (e && e.detail && e.detail.back && it) markSeen(it.id, 2);
+  });
 
   /* ---------- 播报节点（换卡是纯视觉变化，读屏用户什么都得不到） ---------- */
   var live = document.createElement('span');
@@ -255,10 +294,28 @@
     flipBtn.setAttribute('aria-pressed', back ? 'true' : 'false');
     flipBtn.textContent = (back ? deck.dataset.flipBack : deck.dataset.flip) || flipBtn.textContent;
   });
+  /* 看工艺按钮（2026-09-25）：切到固定斜角 + 1.8× 近观 —— 浮雕、箔纹、珠光这些**材料**在
+     正常机位上看不清。与翻面同一类开关（viewer 里的一个状态），所以也用 aria-pressed；
+     近观只对正面有意义，进去时 card-3d 会把卡拉到正面，翻面按钮那两个字要跟着改回来。 */
+  var inspectBtn = document.createElement('button');
+  inspectBtn.type = 'button';
+  inspectBtn.className = 'home-deck-flip home-deck-inspect';
+  inspectBtn.setAttribute('aria-pressed', 'false');
+  inspectBtn.textContent = inspectLabel;
+  inspectBtn.addEventListener('click', function () {
+    if (!viewer) return;
+    var on = viewer.setInspect(!viewer.isInspect());
+    inspectBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    inspectBtn.textContent = on ? inspectOffLabel : inspectLabel;
+    var back = viewer.isBack();
+    flipBtn.setAttribute('aria-pressed', back ? 'true' : 'false');
+    flipBtn.textContent = (back ? deck.dataset.flipBack : deck.dataset.flip) || flipBtn.textContent;
+  });
   var actions = document.createElement('div');
   actions.className = 'home-deck-actions';
   actions.hidden = true;              // 只有 3D 可用时才现身（见 ensureViewer）
   actions.appendChild(flipBtn);
+  actions.appendChild(inspectBtn);
 
   // 只在**第一次打开**时才建 WebGL 上下文：绝大多数访客不会点 ⤢，
   // 为他们每人建一个 GL 上下文 + 上传两张纹理会白占显存。
@@ -291,6 +348,10 @@
   metaSeries.className = 'home-deck-dialog-series';
   var metaIndex = document.createElement('span');
   metaIndex.className = 'home-deck-dialog-index';
+  // 信息卡（2026-09-25）：作品 / 角色 / 收录日期，值来自清单；三样都缺就整块不出现。
+  var metaInfo = document.createElement('span');
+  metaInfo.className = 'home-deck-dialog-info';
+  metaInfo.hidden = true;
   var creditLink = document.createElement('a');
   creditLink.className = 'home-deck-dialog-credit';
   creditLink.target = '_blank';
@@ -300,6 +361,7 @@
   meta.appendChild(metaName);
   meta.appendChild(metaSeries);
   meta.appendChild(metaIndex);
+  meta.appendChild(metaInfo);
   meta.appendChild(creditLink);
   meta.appendChild(creditText);
 
@@ -382,6 +444,12 @@
     metaName.textContent = item.label || '';
     metaSeries.textContent = item.series || '';
     metaIndex.textContent = pad(i + 1) + ' / ' + pad(items.length);
+    var bits = [];
+    if (item.work) bits.push(infoWork + ' ' + item.work);
+    if (item.role) bits.push(infoRole + ' ' + item.role);
+    if (item.added) bits.push(infoAdded + ' ' + item.added);
+    metaInfo.textContent = bits.join(' · ');
+    metaInfo.hidden = !bits.length;
     // 卡背上的信息与这里**是同一份**：卡背是 canvas 画出来的，对比度脚本与读屏都看不见它，
     // 所以这一行 DOM 文本必须留着（少了它，卡背上的字就成了只有看得见的人拿得到的信息）。
     var credit = item.url ? creditLabel + ' ' + (item.credit || '') : (item.credit ? creditLabel + ' ' + item.credit : '');
@@ -432,6 +500,8 @@
       }
       flipBtn.setAttribute('aria-pressed', 'false');
       flipBtn.textContent = deck.dataset.flip || flipBtn.textContent;
+      inspectBtn.setAttribute('aria-pressed', 'false');    // 换卡 = 退出近观（card-3d 的 setItem 会 reset）
+      inspectBtn.textContent = inspectLabel;
     }
   }
 
@@ -442,6 +512,7 @@
     ensureViewer();
     dlg.hidden = false;
     deck.classList.add('is-dialog');
+    noteSeen();            // 打开弹层 = 这张卡「看过」（apply 早于这一步跑，所以在这里补一次）
     // 弹层是模态：页面上的浮动控件（返回顶部 / 滚到底部，z-index 比弹层高）要收起来。
     // 实测窄屏下「滚到底部」那个圆正好盖住弹层右下角的「01 / 32」，而且它们在模态里还可点 ——
     // 点一下会把背后的页面滚走。用 html 上的类控制（CSS 里一条规则收掉它们）。
@@ -603,7 +674,7 @@
     // go → apply 这条路，所以「在弹层里按 →」在收藏库上一样能翻到下一张。
     if (!carousel) {
       i = j;
-      if (!dlg.hidden) fillDialog(it);
+      if (!dlg.hidden) { fillDialog(it); markSeen(it.id, 1); }
       return;
     }
     img.src = it.s;
@@ -628,7 +699,7 @@
     });
     card.classList.add('home-card-rank--' + (it.rank || 'collector'));
     if (other) announce(it);
-    if (!dlg.hidden) fillDialog(it);   // 弹层开着时换卡：大图跟着换
+    if (!dlg.hidden) { fillDialog(it); markSeen(it.id, 1); }   // 弹层开着时换卡：大图跟着换
     restartProgress();                 // 新的一张开始计时，进度条从头走
   }
 

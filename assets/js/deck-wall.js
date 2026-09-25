@@ -89,6 +89,24 @@
     if (!it.rankWallLabel) it.rankWallLabel = it.rankLabel || it.rankWall;
   });
 
+  /* ---------- 探索进度（2026-09-25）----------
+     数据由 home-deck.js 写（打开弹层 = 看过、翻到背面 = 看过卡背），这一页**只读与画**。
+     键是卡的 id（清单里 image 去扩展名），不是下标 —— 理由见 deck-manifest.html 那段：
+     清单中间插一张卡，后面每一张的下标都会挪，进度就会串到别人身上。
+     两个去处：结果行下面那一条「已探 n / 57」，以及每个格子角上的一个小点。 */
+  var SEEN_KEY = 'deck:seen';
+  function loadSeen() {
+    try { return JSON.parse(window.localStorage.getItem(SEEN_KEY)) || {}; }
+    catch (e) { return {}; }   // 隐私模式下 localStorage 会抛：进度静默失效，不影响别的
+  }
+  var seen = loadSeen();
+  function seenOf(it) { return (it && it.id ? seen[it.id] : 0) | 0; }
+  function seenTotal() {
+    var n = 0;
+    items.forEach(function (it) { if (seenOf(it)) n++; });
+    return n;
+  }
+
   function attr(key, fallback) {
     return wall.dataset[key] || fallback || '';
   }
@@ -417,6 +435,22 @@
   draw.appendChild(drawText);
   result.appendChild(draw);
 
+  // 探索进度那一条：数字 + 一条细进度条。**不是 aria-live** —— 在弹层里翻卡时它一直在变，
+  // 播报会把真正要紧的那几声（换卡播报、奇迹显形）淹掉；读屏用户靠格子上那个隐藏的
+  // 「已看过 / 看过卡背」拿状态（见 paintSeen）。
+  var prog = document.createElement('p');
+  prog.className = 'deck-progress';
+  prog.hidden = true;                       // 一张都没探过时不出现
+  var progText = document.createElement('span');
+  progText.className = 'deck-progress-text';
+  var progTrack = document.createElement('span');
+  progTrack.className = 'deck-progress-track';
+  var progBar = document.createElement('span');
+  progBar.className = 'deck-progress-bar';
+  progTrack.appendChild(progBar);
+  prog.appendChild(progText);
+  prog.appendChild(progTrack);
+
   var empty = document.createElement('p');
   empty.className = 'deck-empty';
   empty.textContent = attr('empty');
@@ -474,6 +508,27 @@
     });
   }
 
+  // 把 seen 画到界面上：进度行 + 每个格子的两点状态 + （分组时）组头那一行。
+  // 换卡之后由 `deck:progress` 事件驱动，**不重排网格** —— 只动 class 与文字。
+  function paintSeen() {
+    var total = items.length, n = seenTotal();
+    var tpl = attr('progress', '已探 {seen} / {total}');
+    progText.textContent = tpl.replace('{seen}', String(n)).replace('{total}', String(total));
+    progBar.style.width = (total ? Math.round((n / total) * 100) : 0) + '%';
+    prog.hidden = n === 0;
+    prog.setAttribute('aria-label', attr('progressAria', '已看过 {seen} 张，共 {total} 张')
+      .replace('{seen}', String(n)).replace('{total}', String(total)));
+    tiles.forEach(function (b, idx) {
+      if (!b) return;
+      var v = seenOf(items[idx]);
+      b.classList.toggle('is-seen', !!v);
+      b.classList.toggle('is-backseen', !!(v & 2));
+      var st = b.querySelector('.deck-tile-state');
+      if (st) st.textContent = (v & 2) ? attr('backSeen', '看过卡背') : (v ? attr('seen', '已看过') : '');
+    });
+    if (grouped && seriesSpec) applyGrouping();   // 组头那一行也带进度
+  }
+
   // 「共 12 张（艾米莉亚 · 金边+玻璃 · 传世）」：把当前选中的项按维度顺序摊开，
   // 同一个维度内用 +（OR）、维度之间用 ·（AND）—— 与筛选的语义同一个读法。
   function summary(shown) {
@@ -500,6 +555,33 @@
       });
   }
   function tileIndex(t) { return parseInt(t.getAttribute('data-i'), 10) || 0; }
+
+  // 与 home-deck.js 逐行相同的三小段（见上面 draw 的注释）
+  function todaySeed(d) {
+    d = d || new Date();
+    var yearStart = new Date(d.getFullYear(), 0, 1);
+    var dayOfYear = Math.floor((d - yearStart) / 86400000) + 1;
+    return d.getFullYear() * 1000 + dayOfYear;
+  }
+  function hash01(n) {
+    var x = n | 0;
+    x = Math.imul(x ^ (x >>> 16), 0x85ebca6b);
+    x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
+    x ^= x >>> 16;
+    return (x >>> 0) / 4294967296;
+  }
+  function pickToday(vis) {
+    var seed = todaySeed(), n = vis.length, idx = [], i, k, t, j;
+    for (i = 0; i < n; i++) idx.push(i);
+    for (k = n - 1; k > 0; k--) {
+      j = Math.floor(hash01(seed + k * 0x9e3779b1) * (k + 1));
+      t = idx[k]; idx[k] = idx[j]; idx[j] = t;
+    }
+    for (i = 0; i < n; i++) {
+      if (!seenOf(items[tileIndex(vis[idx[i]])])) return vis[idx[i]];
+    }
+    return vis[idx[0]];
+  }
 
   function apply() {
     var shown = 0;
@@ -545,12 +627,19 @@
     // 分组标题：那一组当前还剩几张（全被筛掉时标题也不该留着）
     if (grouped && seriesSpec) {
       heads.forEach(function (h) {
-        var n = 0;
+        var n = 0, got = 0;
         items.forEach(function (it, idx) {
-          if (valOf(it, seriesSpec) === h.value && tiles[idx] && !tiles[idx].classList.contains('is-filtered')) n++;
+          if (valOf(it, seriesSpec) === h.value && tiles[idx] && !tiles[idx].classList.contains('is-filtered')) {
+            n++;
+            if (seenOf(it)) got++;
+          }
         });
-        h.el.textContent = attr('groupHead', '{series} · {n} 张')
+        var head = attr('groupHead', '{series} · {n} 张')
           .replace('{series}', h.value).replace('{n}', String(n));
+        // 这一组探了多少（一张都没探过就不加这一截，免得组头堆满「0 / 24」）
+        if (got) head += ' · ' + attr('progress', '已探 {seen} / {total}')
+          .replace('{seen}', String(got)).replace('{total}', String(n));
+        h.el.textContent = head;
         h.el.hidden = n === 0;
       });
     }
@@ -597,6 +686,7 @@
   wall.insertBefore(srStatus, grid);
   wall.insertBefore(empty, grid);
   wall.insertBefore(result, empty);
+  wall.insertBefore(prog, empty);
   wall.insertBefore(bar, result);
 
   /* ---------- 筛选状态 ↔ 地址栏 ----------
@@ -667,6 +757,15 @@
       b.setAttribute('aria-label', meta ? name + '（' + meta + '）' : name);
       b.setAttribute('title', it.label || '');
       while (tile.firstChild) b.appendChild(tile.firstChild);
+      // 探索进度的状态节点：肉眼看到的是角上一个小点（CSS 的 ::after），
+      // 读屏用户拿不到那个点 —— 这句隐藏文本就是它的无障碍那一半。
+      var dot = document.createElement('span');
+      dot.className = 'deck-tile-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      b.appendChild(dot);
+      var state = document.createElement('span');
+      state.className = 'deck-tile-state sr-only';
+      b.appendChild(state);
       tile.parentNode.replaceChild(b, tile);
       return b;
     });
@@ -755,11 +854,16 @@
       if (tile && grid.contains(tile)) setTabStop(tile);
     });
 
-    // 抽卡：从**当前看得见的**那些里随机开一张（文件头第 11 条）
+    /* 抽卡（2026-09-25 从「随机」改成「今日一抽」）：按**访客本地日期**洗一遍当前看得见的
+       那些，取第一张还没看过的 —— 同一天里顺序固定，点几次就是沿这条线往后走；全看过之后
+       退回洗出来的第一张（那时就等于随机）。
+       种子与洗牌**与 home-deck.js 的 hash01 / daySeed / pickDailySubset 同一套**：那边管
+       「首页今天的 12 张」。两处改一处必须改另一处 —— 目前是各自一份副本（都是经典脚本，
+       没有模块可共享），复制时对照过逐行一致。 */
     draw.addEventListener('click', function () {
       var vis = navList();
       if (!vis.length) return;
-      var pick = vis[Math.floor(Math.random() * vis.length)];
+      var pick = pickToday(vis);
       window.homeDeck.openAt(tileIndex(pick), pick);
     });
 
@@ -781,6 +885,14 @@
        显形只发生在 card-3d.js 的闭包里，它广播 `deck:reveal`（见那里的注释）。
        筛选项**不动**：隐藏档不进筛选条是这一页刻意的口径（deck-manifest.html 里写着），
        这里只更新那一格自己 —— 而且它就是「你找到了什么」的回报。 */
+    // 探索进度：home-deck.js 记完账广播一次（它不知道墙上有几格、也不该知道）
+    document.addEventListener('deck:progress', function (e) {
+      var d = (e && e.detail) || {};
+      if (!d.id) return;
+      seen[d.id] = d.flags | 0;
+      paintSeen();
+    });
+
     document.addEventListener('deck:reveal', function (e) {
       var d = (e && e.detail) || {};
       items.forEach(function (it, n) {
@@ -816,6 +928,7 @@
   // 落点跟着变会让「进墙后第一个方向键从哪里开始」不可预测；固定第一格，方向键再走到想去的地方。
   if (upgraded) tiles.forEach(function (t, n) { t.tabIndex = n === 0 ? 0 : -1; });
   apply();
+  paintSeen();          // 格子就位之后画一次进度（之后靠 deck:progress 驱动）
   inited = true;
   syncURL();
   if (openFromHash) openFromHash();
