@@ -11,7 +11,9 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">博客管理</div>
+  <!-- h1：整页唯一的一级标题。读屏从「标题列表」进页面时原来第一档直接是空的（面板头都是 h2）。
+       样式仍由 .brand 一条控制，别在这加类名以免两处打架。 -->
+  <h1 class="brand">博客管理</h1>
   <nav class="tabs" id="tabs">
     <button type="button" data-tab="create" class="active">新建</button>
     <button type="button" data-tab="edit">编辑</button>

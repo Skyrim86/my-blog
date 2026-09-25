@@ -2139,7 +2139,13 @@
          另外 `texDepthFor` 记下归属，`stats()` 会报出来给探针断言（不然只能靠肉眼）。 */
       if (texDepth && texDepth.tex) GL.gl.deleteTexture(texDepth.tex);
       texDepth = null; texDepthFor = '';
-      if (next.d) {
+      /* `d === null` = **调用方明确说「这一张不要深度图」**（预热那条路：它只借这张卡
+         编着色器、传第一张贴图，深度图留给真打开那次，见 home-deck.js 的 warmViewer）。
+         与「清单里查不到深度图」必须分开 —— 否则首页与收藏库每访问一次就报一次假告警，
+         真缺图那次混在噪声里反而看不见了。`''` / undefined 仍是真缺。 */
+      if (next.d === null) {
+        /* 故意的，什么都不做 */
+      } else if (next.d) {
         jobs.push(loadImage(next.d).then(function (im) {
           if (seq !== faceSeq) return;
           texDepth = { tex: makeTex(im), w: im.naturalWidth, h: im.naturalHeight };
