@@ -1,4 +1,4 @@
-/* 搜索结果的读屏播报。
+/* 搜索结果的两处反馈：① 读屏播报 ② 没结果时的可见提示（同一个判据的两个出口）。
  *
  * 背景：#searchResults 在主题模板里（themes/PaperMod/layouts/search.html），它没有 aria-live，
  * 而结果又由主题的 fastsearch.js 异步写入 —— 读屏用户敲完关键词听不到任何反馈，
@@ -14,6 +14,12 @@
  * 与没有匹配结果（results.length === 0）。两种情况产生的 DOM 都是「零个 li」，
  * 所以零条时必须回头看输入框：为空说明是清空操作，什么都不该播报；
  * 有输入才是真的没搜到。
+ *
+ * ---- 可见提示 ----
+ * 主题在「搜了但没结果」时只把列表清空，看得见的人**什么都看不到**（只有读屏能听到播报）。
+ * 同一份状态因此再接一个出口：列表为空且输入框非空时露出一句 .search-empty。
+ * 判据与播报逐字相同 —— 分别是两个出口自己重算一遍，两处不一致会表现为
+ * 「读屏听得到、屏幕上没有」这类没人会发现的错，所以写成同一个变量。
  *
  * 只由 extend_head.html 在 layout == "search" 的页面加载。
  */
@@ -35,6 +41,13 @@
   status.setAttribute('role', 'status');
   list.parentNode.insertBefore(status, list.nextSibling);
 
+  /* 可见提示节点：插在结果列表**之前**（列表是空的，提示要出现在输入框下方而不是页面底部）。 */
+  var hint = document.createElement("p");
+  hint.className = "search-empty";
+  hint.hidden = true;
+  hint.textContent = noneText;
+  list.parentNode.insertBefore(hint, list);
+
   var last = null;
 
   function announce(text) {
@@ -45,8 +58,11 @@
 
   function update() {
     var n = list.querySelectorAll("li").length;
+    /* 唯一的那个判据：空列表且输入框非空 = 真的没搜到（输入框为空只是清空操作）。 */
+    var empty = n === 0 && input.value.trim() !== '';
+    hint.hidden = !empty;
     if (n === 0) {
-      announce(input.value.trim() ? noneText : '');
+      announce(empty ? noneText : '');
       return;
     }
     announce(countTpl.replace('{count}', String(n)));

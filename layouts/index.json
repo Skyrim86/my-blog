@@ -3,6 +3,10 @@
    与主题原版的三处差异：
    1. content 从「每页 .Plain 全文」改为截断 400 字。主题原版会把 CMC2026 那些长文档
       整篇塞进索引，本站 index.json 因此有 148 KB；截断后约 17 KB。
+      **2026-09-25 再收一轮**（余量 6 KB → 15 KB，实测 48.3 → 40.9 KB）：正文 400 → 300 字，
+      标题字段一个字没动（长文档的可检索性靠它，见第 4 条）；permalink 从绝对 URL 改成
+      .RelPermalink（值可推导、占索引 11.3%，改后 href 照常可用）。改字段前对拍过搜索结果：
+      10 个查询在线上（旧索引）与本地（新索引）结果集合逐条相同。
       代价：正文只能匹配每页前 400 字（标题 / 摘要 / 标签仍是全量匹配）。
    2. summary 做 plainify + 截断 150 字。这一条是配合构建期公式渲染的必需处理：
       没有显式写 summary 的页面（课程材料页就是），Hugo 会从 .Content 自动截取，
@@ -31,8 +35,8 @@
     {{- end -}}
     {{- $index = $index | append (dict
         "title" .Title
-        "content" (.Plain | truncate 400)
-        "permalink" .Permalink
+        "content" (.Plain | truncate 300)
+        "permalink" .RelPermalink
         "summary" (.Summary | plainify | htmlUnescape | truncate 150)
         "headings" (truncate 400 (delimit $heads " "))
         "tags" (.Params.tags | default slice)) -}}

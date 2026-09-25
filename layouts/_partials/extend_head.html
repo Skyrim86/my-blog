@@ -63,6 +63,10 @@
 {{- /* 搜索结果的读屏播报：只挂在搜索页。结果列表由**主题**的 fastsearch.js 异步写入
        且没有 aria-live，这份脚本用 MutationObserver 观察条数变化并写进一个 .sr-only 的
        role="status" 节点（不覆盖主题模板的理由见脚本头部注释）。 */ -}}
+{{- /* 404 页显式 noindex：GitHub Pages 对 /404.html 的**直接访问**返回 200（只有兜底的错址才带
+       404 状态码），不声明就可能被收录。与搜索页那条（content/search.md 的 robotsNoIndex 参数）
+       同一个理由，区别是 404 这条渲染路径上没有任何 Params 可设，只能在这里按 Kind 判。 */ -}}
+{{- if eq .Kind "404" }}<meta name="robots" content="noindex">{{ end }}
 {{- if eq .Layout "search" }}
 {{- $a11y := resources.Get "js/a11y-announce.js" | minify | fingerprint }}
 <script defer src="{{ $a11y.RelPermalink }}" integrity="{{ $a11y.Data.Integrity }}" crossorigin="anonymous"
@@ -328,6 +332,22 @@ var q=localStorage.getItem("pref-bg-dyn");
 if(q&&"|{{ delimit $dynIds "|" }}|".indexOf("|"+q+"|")>-1)w=q;else if(!q&&!hasStatic&&!rm&&"{{ $dynDefault }}")w="{{ $dynDefault }}"}
 catch(e){}
 document.documentElement.setAttribute("data-bg",w)})()</script>
+{{- /* 壁纸 preload —— 紧跟在上面那段之后：它已经算出了「这一屏是哪一套、哪个主题」，
+       而壁纸的 URL 只写在生成出来的 css/bg-image.css 里（浏览器要等样式表链解析完才发现，
+       线上实测 start 3719 ms / initiator=css）。这里就地补一条 preload，让请求与主样式并行。
+       **只对静态套做**：默认访客走动态背景（--bg-image-* = none），给他们加 preload 是白下 97 KB；
+       主题判据与 CSS 那条 `:root[data-theme="dark"] body::before` 是同一条 —— PaperMod 的首屏
+       脚本在同一批次里已经把 data-theme 定成 dark/light，这里读到的一定是结果值。
+       与 CSS 发现的那条请求是同一个 URL，浏览器会去重，不会下两次。 */ -}}
+{{- if $ids }}
+<script>(function(){var el=document.documentElement,id=el.getAttribute("data-bg");
+var M={ {{- range $i, $q := $presetJs }}{{ if $i }},{{ end }}"{{ $q.id }}":["{{ $q.light }}","{{ $q.dark }}"]{{- end }} };
+var e=M[id]; if(!e) return;
+var dark=el.getAttribute("data-theme")==="dark";
+var href=dark?(e[1]||e[0]):(e[0]||e[1]); if(!href) return;
+var l=document.createElement("link"); l.rel="preload"; l.as="image"; l.href=href;
+document.head.appendChild(l)})()</script>
+{{- end }}
 {{- /* 两个按钮由同一个文件接线（bg-switch.js）：数据同源、交叉淡入只有一份实现，
        静态与动态两侧的 id 集合也是同一处解析的。**shader 必须排在它前面** ——
        bg-switch.js 只在 window.__bg.ok 为真时才建动态按钮。后面这个 ok 是**乐观**语义

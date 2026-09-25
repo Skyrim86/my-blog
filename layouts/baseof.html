@@ -5,7 +5,7 @@
    —— 前三个分别落在 <head> 内与 </body> 之前，够不到这两个位置；404 那种「原件极短所以覆盖」
    的理由在这里不成立，真正的理由是位置本身就不可达。
 
-   与 themes/PaperMod/layouts/baseof.html 的差异只有四处，其余逐字保留（便于升级时逐行对拍）：
+   与 themes/PaperMod/layouts/baseof.html 的差异只有五处，其余逐字保留（便于升级时逐行对拍）：
      1. lang：site.Language（输出语言键 zh）→ site.Language.Locale（输出 hugo.toml 里
         [languages.zh] 的 locale = 'zh-CN'）。实测 og:locale 早就是 zh_CN、RSS 是 zh-CN，
         只有这里没跟上；改它不会连带改动别处的输出。
@@ -17,6 +17,8 @@
      2. <body> 的首个子元素插入跳过导航链接。
      3. <main> 加 id="main-content" 与 tabindex="-1"。tabindex 不能省：只加 id 的话锚点跳转
         只移动滚动位置、不移动焦点，键盘用户再按 Tab 仍然从页首开始。
+     4. 搜索页的 <main> 开头插一段 <noscript>（无 JS 时的解释，文案走 i18n searchNoScript），
+        由 {{ if eq .Layout "search" }} 守着，其余页面不产出任何字节。
 
    样式见 assets/css/extended/17-a11y.css。主题升级时这个文件要跟主题那份对一遍。 */ -}}
 {{- if lt hugo.Version "0.146.0" }}
@@ -46,6 +48,12 @@
     <a class="skip-link" href="#main-content">{{ i18n "skipToContent" }}</a>
     {{ partialCached "header.html" . .Page -}}
     <main class="main" id="main-content" tabindex="-1">
+        {{- /* 搜索页是纯客户端功能：关掉 JS 时主题那份把输入框留在 disabled 上，访客只看得到一个
+               灰框、没有任何解释。<noscript> 放这里而不是 <head>：<head> 内的 <noscript> 只允许
+               装 link/style/meta，装一段文字是非法结构。 */ -}}
+        {{- if eq .Layout "search" }}
+        <noscript><p class="search-noscript">{{ i18n "searchNoScript" }}</p></noscript>
+        {{- end }}
         {{- block "main" . }}{{ end }}
     </main>
     {{ partialCached "footer.html" . .Layout .Kind (.Param "hideFooter") (.Param "ShowCodeCopyButtons") -}}

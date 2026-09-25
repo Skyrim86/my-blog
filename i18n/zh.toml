@@ -154,6 +154,11 @@ other = "搜索"
 [searchResultsLabel]
 other = "搜索结果"
 
+# 搜索页是纯客户端功能（主题 fastsearch.js）：关掉 JS 时输入框留在 disabled 上，
+# 访客看不到任何解释。这句由 layouts/baseof.html 的 <noscript> 输出，只在 layout == "search" 时产出。
+[searchNoScript]
+other = "搜索在浏览器里跑，需要 JavaScript。关掉它的话，可以用顶部导航里的「标签」页找内容。"
+
 # ---------- 首页（见 layouts/_partials/index_profile.html） ----------
 # 快捷入口（复用主导航，aria-label 用）
 [homeQuickLinks]

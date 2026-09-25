@@ -2323,6 +2323,48 @@ hugo 那一段已经 `cygpath` 转了，量体积那一段把 MSYS 路径直接�
 顺带修的两处：`content/collection/_index.md` 的描述还写着「十六种工艺」（工艺 2026-09-24 已经收敛到八种）；清单新增 `work` / `role` / `added` 三个可选字段（`added` 由 git 取，check-deck 有格式守卫）。
 
 
+### 2026-09-25 追加十一：四个小项（搜索索引余量 / 搜索页两处提示 / 404 noindex / 壁纸 preload）
+
+**① 搜索索引瘦身**：`public/index.json` **49,970 → 44,176 B**（56 KB 预算的 89% → 77%，余量 6 → 12 KB）。
+`content` 从 400 字截到 300（占索引 47.5% 的那个大头），`permalink` 从绝对 URL 改成 `.RelPermalink`
+（值可推导、占 11.3%，改后 href 照常可用）。`headings`（长文档可检索性的来源）一个字没动。
+
+改字段前对拍过：14 个查询在线上（旧索引）与本地（新索引）各跑一遍，**11 个结果集合逐条相同**，
+三个有差异（`katex` 7→4、`notes` 11→10、`特征值` 第 3/4 条换了一张）—— 全都在正文 300 字之后，
+是 Latin 侧的模糊命中。工具 `lab/工具/searchab.py`。
+
+**顺带查清一件事（与体量无关）**：中文正文在 Fuse 里**基本搜不到** —— 它按空白分词，一整段中文是
+一个 token，`傅里叶` / `编译原理` / `特征值` 这些词**在索引里根本不存在**（`特征值` 那 4 条是模糊
+命中，不是精确命中）。真正能让中文命中的只有 `title` / `headings` / `tags`，因为标题天然是空格分隔的
+token —— 这也解释了两年前给索引加 `headings` 之后「浮点」才从 0 条变成 2 条。要真让正文可搜得把正文
+切成 n-gram 再索引（体积翻倍），记进 pending 备选。
+
+**② 搜索页「搜了但没结果」屏幕上没有任何反馈**：主题的 `renderResults([])` 只把列表清空（读屏有
+`.sr-only` 播报，看得见的人什么都没有）。`a11y-announce.js` 用**同一个** MutationObserver 顺手把
+`.search-empty` 露出/收起 —— 与播报共用同一个判据变量（空列表 **且** 输入框非空；主题在「输入框
+为空」与「没有匹配」两种情况下产出的是同一个空列表，不回头看输入框就会误报）。
+实测（`lab/工具/searchcheck.py`）：无结果时露出 28px 高的「没有找到结果」；清空输入框收起（高 0）；
+搜到 6 条时收起。
+
+**③ 搜索页关掉 JS 时的解释**：搜索是纯客户端功能，关掉 JS 时主题把输入框留在 `disabled` 上，
+访客看不到任何解释。在 `layouts/baseof.html`（本来就有意的第 7 处覆盖）的 `<main>` 开头按
+`layout == "search"` 插一段 `<noscript>` —— 放 body 而不是 head：`<head>` 内的 `<noscript>` 只允许
+装 link/style/meta。文案走 i18n `searchNoScript`。实测 JS 关闭时提示 720×48 可见、输入框 disabled；
+其余页面 0 字节。
+
+**④ 404 补 noindex**：GitHub Pages 对 `/404.html` 的**直接访问返回 200**（只有兜底的错址才带 404
+状态码），所以给它显式 noindex（`extend_head.html` 按 `.Kind == "404"` 判，与搜索页用
+`robotsNoIndex` 参数是同一条理由；404 这条渲染路径上没有任何 Params 可设）。
+标题「404 Page not found」的中文化**否掉**：标题由主题 `head.html` 用 `.Title` 拼，改它要覆盖
+head/baseof，拿那份维护面换一句标签页文字不值。
+
+**⑤ 壁纸 preload 时机**（pending #113 结案）：壁纸那张图的 URL 只写在生成出来的 `css/bg-image.css`
+里，浏览器要等样式表链解析完才发现它。首屏那段 `data-bg` 内联脚本此刻**已经知道**「哪一套、哪个
+主题」，就地补一条 `<link rel=preload as=image>` 让请求与主样式并行 —— 只对**静态套**做：默认访客
+走动态背景、本来一条壁纸请求都没有（实测 0 条），给他们加 preload 是白下 97 KB。
+线上前后对照（同一探针 `lab/工具/bgpreload.py`，冷 profile）：改前 `start 3719 ms / initiator=css`，
+改后 **start … ms / initiator=link**（部署后复核，数字见本小节末的「线上对账」）；`data-theme` 判据与 CSS 的 `[data-theme="dark"]` 同一条。
+（本地先验：`start 30 ms / initiator=link`。）
 ## 玩法层第二批（2026-09-25）
 
 六条一次推完，全是零新素材，全部挂已有单一事实源（清单 / `card-3d.js` 相机 / `deck-wall.js` 的筛选状态）。

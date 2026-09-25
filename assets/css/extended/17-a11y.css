@@ -5,6 +5,7 @@
      · .skip-link   —— <body> 的第一个可聚焦元素，结构在 layouts/baseof.html（第 7 处主题覆盖）
      · .sr-only     —— 视觉隐藏但读屏可读，给动态列表的播报节点用
                        （assets/js/{a11y-announce,list-tools,terms-filter}.js）
+     · .search-empty / .search-noscript —— 搜索页的两处提示，见文件末的两段注释
    ============================================ */
 
 /* ---------- 跳过导航链接 ----------
@@ -61,4 +62,32 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+/* ---------- 搜索页的两处提示 ----------
+
+   ① .search-empty —— 搜了但没结果时的可见提示（脚本：assets/js/a11y-announce.js）。
+      它与 .sr-only 那个 role="status" 节点是**同一份状态的两个出口**：主题在「输入框为空」
+      与「没有匹配」两种情况下产出的是同一个空列表，所以判据要回头看输入框。
+      `[hidden]` 那条必须显式写：本仓库踩过一次 [hidden] 被自己的 display 规则压过去的坑
+      （见 assets/css/decks/21-card-deck.css 里 .home-deck-loadbar 那段）。
+   ② .search-noscript —— 无 JS 时的解释，结构在 layouts/baseof.html 的 <noscript> 里。
+      JS 打开时浏览器**根本不会渲染**它，所以这里可以放心写静态样式。 */
+.search-empty {
+  margin: .75rem 0 0;
+  color: var(--secondary);
+  font-size: .95rem;
+}
+
+.search-empty[hidden] {
+  display: none;
+}
+
+.search-noscript {
+  margin: 0 0 1.25rem;
+  padding: .7rem .9rem;
+  border-left: 3px solid var(--accent);
+  background: var(--entry);
+  color: var(--secondary);
+  font-size: .95rem;
+  line-height: 1.7;
 }
