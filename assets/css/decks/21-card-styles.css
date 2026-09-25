@@ -39,7 +39,7 @@
   --cfilter: url(#deck-rough);
 }
 
-/* silver：烫银：与烫金是**同一套结构**（两条高光 + 拉丝 + 压深四边），只把色相换到冷端。
+/* silver：烫银：与烫金是**同一套结构**（两条高光 + 拉丝 + 压深四边），只把色相换到冷端。3D 侧的缠枝卷草与烫金同参数（见 goldfoil 那条，2026-09-25）。
    生成产物 —— 由 data/card-styles.yaml 出（tools/cards/render-styles.mjs）。不要手改。 */
 .home-card--silver {
   --fret-line: #eaf0f8;
@@ -135,7 +135,7 @@
   --cfilter: none;
 }
 
-/* goldfoil：烫金箔（goldfoil）：**金属感来自渐变本身**（brief §八.2 的实测结论）—— 暗底 + 一条窄高光 + 一道斜向镜面扫光 + 96° 拉丝，色相落在暖金端。云纹 SVG（lab 的烫金云纹）还没接进来；接进来时把渐变烘进它的 stroke，别退回「渐变层 + mask」那套（那样在小尺寸下会脏）。
+/* goldfoil：烫金箔（goldfoil）：**金属感来自渐变本身**（brief §八.2 的实测结论）—— 暗底 + 一条窄高光 + 一道斜向镜面扫光 + 96° 拉丝，色相落在暖金端。**3D 侧的缠枝卷草已接上**（2026-09-25，上面的 `reliefPattern`：由 `tools/cards/make-depth.py` 叠进浮雕高度图，并按高度给主体降权）—— 这是 **3D 表面**那一层，与卡面的 CSS 渐变是两回事。CSS 侧的云纹 SVG 还没接进来；接进来时把渐变烘进它的 stroke，别退回「渐变层 + mask」那套（那样在小尺寸下会脏）。
    生成产物 —— 由 data/card-styles.yaml 出（tools/cards/render-styles.mjs）。不要手改。 */
 .home-card--goldfoil {
   --fret-line: #f0d9a0;

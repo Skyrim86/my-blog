@@ -43,7 +43,7 @@ os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")   # 必须在这�
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 import yaml  # noqa: E402
-from PIL import Image, ImageDraw  # noqa: E402
+from PIL import Image, ImageDraw, ImageFilter  # noqa: E402
 from scipy.ndimage import gaussian_filter, median_filter  # noqa: E402
 from transformers import AutoImageProcessor, AutoModelForDepthEstimation  # noqa: E402
 
@@ -77,6 +77,87 @@ FILLET = 0.027        # 圆角半径 = 卡面宽度 × 这个比例（600px 上�
 # 两成、我们是百分之几 —— 坡不够宽，位移一加大就还是「一堵墙」。代价是轮廓向内缩同样多，
 # 所以「损失」那个体检数要盯着；真要改，一键重出 63 张只要 13 秒，别怕试。
 LOSS_WARN = 1.5       # 倒角把多少比例的画面「压掉」算异常（%，超过就在接触表上盯着看）
+STYLES = os.path.join(ROOT, "data", "card-styles.yaml")
+PATTERN_AMP = 0.11    # 纹样的默认峰值抬升。**这是判读出来的数**：0.055 太浅、0.11 是峰值、
+                      # 0.18 过头（糊 + 交点过曝 + 轮廓被切 + 削顶）—— 见 docs/pending.md「候选样张轮」。
+
+
+def _pat_vine(w, h):
+    """缠枝卷草：横枝 + 上下交替的小叶。烫金箔/烫银的正对家族（那份 note 里一直写着「云纹还没接进来」）。"""
+    m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
+    N = 5
+    for k in range(N):
+        y0 = int(h * (k + 0.5) / N)
+        pts = [(x, y0 + 26 * np.sin(2 * np.pi * x / 150.0)) for x in range(-5, w + 5, 5)]
+        d.line(pts, fill=255, width=3, joint="curve")
+        for x in range(20, w - 10, 75):
+            s = 1 if (x // 75) % 2 == 0 else -1
+            yc = y0 + 26 * np.sin(2 * np.pi * x / 150.0)
+            d.arc([x - 16, yc + s * 4 - 20, x + 16, yc + s * 4 + 20],
+                  start=0 if s > 0 else 180, end=180 if s > 0 else 360, fill=255, width=3)
+    d.rectangle([12, 12, w - 13, h - 13], outline=255, width=3)
+    m = m.filter(ImageFilter.GaussianBlur(0.5))
+    return np.asarray(m).astype(np.float32) / 255.0
+
+
+def _pat_cloison(w, h):
+    """掐丝格：圆角、线宽 2~4px 交替、交点加厚、双线外框。
+    判读最好的一版（「像金属掐丝或真实压印工艺」）；照它反推的规矩是**有结点、有线宽变化、有边框**。"""
+    m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
+    C = 46
+    for i, x in enumerate(range(23, w, C)):
+        d.line([(x, 0), (x, h)], fill=255, width=4 if i % 2 == 0 else 2)
+    for j, y in enumerate(range(23, h, C)):
+        d.line([(0, y), (w, y)], fill=255, width=4 if j % 2 else 3)
+    for x in range(23, w, C):
+        for y in range(23, h, C):
+            d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=255)
+    d.rectangle([13, 13, w - 14, h - 14], outline=255, width=3)
+    d.rectangle([21, 21, w - 22, h - 22], outline=255, width=2)
+    m = m.filter(ImageFilter.GaussianBlur(0.6))
+    return np.asarray(m).astype(np.float32) / 255.0
+
+
+PATTERNS = {"vine": _pat_vine, "cloison": _pat_cloison}
+
+
+def apply_relief_pattern(hf, kind, amp, fade=(0.40, 0.80, 0.08)):
+    """把一层工艺纹样叠进高度场。**调用点必须在滤波之后** —— 中值 3×3 + 高斯会把这层图案摊成
+    软脊，而「软脊」的判读是「画面发糊」，不是「压出的纹样」（纹样要靠脆边界读出来）。
+    峰值按 mask 自身归一化，于是 `amp` 恒等于峰值抬升，与模糊无关。
+
+    `fade=(from, to, floor)`：**按高度给主体降权**。1:1 判读（2026-09-25）明确说全局均匀铺时
+    「线条横穿眼睛、脸颊、脖子」会被读成「脸上被压了线/划痕」，是缺陷而不是工艺 ——
+    而高度场里最高的那一层就是离眼睛最近的**人物**，所以按它衰减：背景/边框/衣物（低处）全强度，
+    主体面部降到 floor。三个数不是拍脑袋：0.45 起衰、0.85 到底，正好落在产物的主体高度上
+    （生成时打出的削顶比与背景占比可复核）。"""
+    m = PATTERNS[kind](hf.shape[1], hf.shape[0])
+    mx = float(m.max()) or 1.0
+    m /= mx
+    f0, f1, fl = fade
+    t = np.clip((hf - f0) / max(1e-6, f1 - f0), 0.0, 1.0)
+    w = 1.0 - (1.0 - fl) * (t * t * (3.0 - 2.0 * t))
+    raw = hf + amp * m * w
+    info = {"kind": kind, "amp": amp,
+            "cover": float((m > 0.05).mean()) * 100.0,
+            "clip": float((raw > 1.0).mean()) * 100.0,
+            "wmin": float(w.min())}
+    return np.clip(raw, 0.0, 1.0), info
+
+
+def pattern_params(card, styles, override):
+    """按卡的 style 从 card-styles.yaml 的 reliefPattern 取参数（单一事实源在 YAML）。
+    override：'auto' 照 YAML；'none' 强制关掉（做前后对照）；其它值当 kind，用 YAML 里的 amp。"""
+    st = (styles.get("styles") or {}).get(card.get("style")) or {}
+    p = st.get("reliefPattern") or {}
+    kind, amp = p.get("kind", "none"), float(p.get("amp", 0.0) or 0.0)
+    if override != "auto":
+        if override == "none":
+            return "none", 0.0
+        kind, amp = override, (amp or PATTERN_AMP)
+    if kind not in PATTERNS:
+        return "none", 0.0
+    return kind, amp
 
 
 def label_font(size=13):
@@ -202,10 +283,15 @@ def main():
                     help="换深度模型（做对照用，例如 depth-anything/Depth-Anything-V2-Base-hf）")
     ap.add_argument("--out", default=DEPTH,
                     help="产物目录（默认 assets/images/cards/depth；做模型对照时写到临时目录）")
+    ap.add_argument("--pattern", default="auto",
+                    help="纹样覆盖：auto 按 data/card-styles.yaml 的 reliefPattern；none 强制关（前后对照）；"
+                         "或直接给 kind（vine/cloison）")
     args = ap.parse_args()
 
     with open(MANIFEST, encoding="utf-8") as f:
         cards = yaml.safe_load(f)
+    with open(STYLES, encoding="utf-8") as f:
+        styles = yaml.safe_load(f) or {}
 
     want = set()
     for n in args.names:
@@ -266,6 +352,11 @@ def main():
             # 但那把 6 像素级的真细节（发丝、花瓣边）一起糊了。中值是保边的，专治 1 像素台阶。
             hf = median_filter(hf.astype(np.float32), 3, mode="nearest")
             hf = gaussian_filter(hf, BLUR, mode="nearest")
+        # 工艺纹样层：**必须在这个位置**（滤波之后、量化之前）。理由见 apply_relief_pattern 的注释。
+        pkind, pamp = pattern_params(c, styles, args.pattern)
+        pinfo = None
+        if pkind != "none" and pamp > 0:
+            hf, pinfo = apply_relief_pattern(hf, pkind, pamp)
         h8 = (hf * 255.0).round().astype(np.uint8)
         Image.fromarray(h8, "L").save(dest, "WEBP", quality=args.quality, method=6)
         kb = os.path.getsize(dest) // 1024
@@ -274,12 +365,16 @@ def main():
         # 说明这张卡几乎没有背景可钳 —— 两种情况都该在接触表上多看一眼，而不是等渲染出来才发现。
         flat = float((h8 == 0).mean()) * 100
         flag = '  ⚠ 细节损失偏多' if lost >= LOSS_WARN else ''
+        # 纹样那一路的体检数：覆盖率与**削顶比例**。削顶是静默的（只是那一带少了一层起伏，
+        # 读作「平顶/死白」），所以必须打出来，不能靠眼睛在 63 张里找。
+        ptxt = (f"  纹样 {pinfo['kind']} {pinfo['amp']:.2f} 覆盖 {pinfo['cover']:.0f}%"
+                f" 削顶 {pinfo['clip']:.1f}% 主体权重 {pinfo['wmin']:.2f}") if pinfo else ""
         pairs.append((
             im, Image.fromarray(h8, "L"),
-            f"{base}  {c.get('name') or c['series']}  bg={bg:.2f}  背景 {flat:.0f}%  损失 {lost:.1f}%{flag}"))
+            f"{base}  {c.get('name') or c['series']}  bg={bg:.2f}  背景 {flat:.0f}%  损失 {lost:.1f}%{flag}{ptxt}"))
         print(f"  {base:22s} {im.size[0]}x{im.size[1]}  {kb:3d} KB  背景基准 {bg:.2f}  "
               f"背景占比 {flat:3.0f}%  倒角 {radius}px 损失 {lost:.1f}%  "
-              f"{c.get('name') or c['series']}{flag}")
+              f"{c.get('name') or c['series']}{flag}{ptxt}")
 
     if skipped:
         print(f"（跳过 {skipped} 张：深度图比卡面新，--force 可强制重出）")
