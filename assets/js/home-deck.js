@@ -367,8 +367,10 @@
   cmpClose.addEventListener('click', function () { cmpPanel.hidden = true; });
   saveBtn.addEventListener('click', saveShot);
 
-  // 只在**第一次打开**时才建 WebGL 上下文：绝大多数访客不会点 ⤢，
-  // 为他们每人建一个 GL 上下文 + 上传两张纹理会白占显存。
+  // 2026-09-25 起：不再等到「第一次打开」才建 GL —— 见 warmViewer()。原决定是「绝大多数访客
+  // 不会点 ⤢，为他们建上下文 + 传两张纹理会白占显存」；实测这笔钱是**同步**的（建上下文 +
+  // 编 POM/浮雕着色器 + 首帧，430×900@2x 下 0.75–0.87 s 才让弹层出现），白板上停一秒钟比
+  // 多占几 MB 显存更糟。折中：只在**空闲且非省流**时预热，而且只传页内那一档、不传深度图。
   var viewer = null, viewerTried = false;
   function ensureViewer() {
     if (viewerTried) return viewer;
@@ -651,9 +653,13 @@
 
   function openDialog(opener, opts) {
     lastOpener = opener || zoomBtn;
-    // 顺序要紧：viewer 必须先建好（attach 之后 setItem 才有效），而 setOpen 要在弹层**可见之后**
-    // 再调 —— 画布尺寸取自 clientWidth，hidden 的时候它是 0。
-    ensureViewer();
+    // 顺序（2026-09-25 改，见下）：**弹层先亮，3D 后建**。
+    // 老写法是「先 ensureViewer() 再 unhide」，因为 setOpen 必须等弹层可见（画布尺寸取自
+    // clientWidth，hidden 时是 0）。但 attach 自己（建 GL 上下文 + 编译那套 POM/浮雕着色器）
+    // 是同步的：430×900@2x 实测**首开 740–870 ms 弹层才出现** —— 白板一秒钟。
+    // 现在把 attach 挪到「这一帧已经上屏」之后：先亮弹层 + 平面大图（fillDialog 在没有
+    // viewer 时是安全的，见那里的 if (viewer) 分支），再用 rAF×2 建 GL，建好补一次
+    // fillDialog 把这张卡推给 3D。空闲预热（模块末尾）命中时这条快路径用不上，直接瞬时。
     dlg.hidden = false;
     deck.classList.add('is-dialog');
     noteSeen();            // 打开弹层 = 这张卡「看过」（apply 早于这一步跑，所以在这里补一次）
@@ -661,8 +667,17 @@
     // 实测窄屏下「滚到底部」那个圆正好盖住弹层右下角的「01 / 32」，而且它们在模态里还可点 ——
     // 点一下会把背后的页面滚走。用 html 上的类控制（CSS 里一条规则收掉它们）。
     document.documentElement.classList.add('is-deck-dialog');
-    fillDialog(items[i], opts);
-    if (viewer) viewer.setOpen(true);
+    fillDialog(items[i], opts);        // opts 必须传：开包那条靠它带 done 钩子
+    if (viewer) {
+      viewer.setOpen(true);
+    } else {
+      // 这一帧画完再付「建 GL」那笔钱；期间舞台上是那张平面大图（l/s 档，多半已在缓存里）
+      afterPaint(function () {
+        var v = ensureViewer();
+        if (!v) return;
+        if (!dlg.hidden) { fillDialog(items[i], opts); v.setOpen(true); }
+      });
+    }
     stop();                        // 弹层开着时不要在背后换卡
     // 背景 shader 与卡的 rAF 之间没有任何协调（各跑各的），而卡的调速器判据是它自己的
     // p75 > refresh×1.25 就降档 —— 弹层期间把帧预算全留给卡是零风险的选择：背景是缓慢流动的，
@@ -990,6 +1005,57 @@
 
      不检查 busy（正在做交叉淡入）：apply 只是换 src 与类，那个等待中的 320ms 回调也只会清掉
      ghost / is-in 并把 busy 放掉，不会把卡片换回去。 */
+  /* 等这一帧真的上屏再干活：rAF 两次 = 当前帧的绘制已经提交，下一帧才轮到我们。
+     用 setTimeout(0) 会在绘制前插队，白板还是会露出来。 */
+  function afterPaint(fn) {
+    if (!window.requestAnimationFrame) { window.setTimeout(fn, 32); return; }
+    window.requestAnimationFrame(function () { window.requestAnimationFrame(fn); });
+  }
+
+  /* 空闲预热（2026-09-25）：把「建 GL + 编着色器」这笔固定开销挪到用户还没点卡的时候 ——
+     它跟看哪张卡无关，只跟机器有关。判据：还没建过、弹层没开。requestIdleCallback 在
+     1.2 s 内没空就超时兜底；没有这个 API 的浏览器退到 setTimeout。 */
+  function warmViewer() {
+    if (viewerTried || !dlg.hidden) return;
+    // 省流模式与 2 GB 级设备不预热：这笔开销是为「点得爽」付的，不该让按流量计费的访客来付。
+    // （`saveData` / `deviceMemory` 都只在部分浏览器上有，取不到就当允许。）
+    var cn = navigator.connection || {};
+    if (cn.saveData) return;
+    if (typeof navigator.deviceMemory === 'number' && navigator.deviceMemory > 0 && navigator.deviceMemory <= 2) return;
+    var v = ensureViewer();
+    if (!v || !v.setItem) return;
+    // **光建上下文不够**：真正贵的是「第一次 setItem + 第一次画」——编 POM/浮雕那套着色器、
+    // 传贴图、第一帧浮雕。2026-09-25 实测：只 attach 的话第一次点开还要 666 ms 才出帧；
+    // 预热真画两帧之后同一台机上降到 66 ms。所以预热借当前这张卡画两帧，画完就停。
+    // 弹层此刻是 hidden 的（display:none）→ 画布尺寸是 0，但着色器编译与贴图上传跟尺寸无关，
+    // 这笔钱照样付掉；等真打开时 fillDialog/setOpen 会按真实尺寸再 resize 一次。
+    var warmItem = items[i] || items[0];
+    if (!warmItem) return;
+    // **只用页内那一档**（`s`/`l`）：收藏库里它就是格子上那张，多半已在缓存里 —— 预热一帧
+    // 不该为了「可能不点卡」的访客多下 90 KB。深度图也留给真打开那次（它只影响浮雕细节，
+    // 不影响力气最大的那两笔：编着色器、传第一张贴图）。
+    var wp = payloadOf(warmItem);
+    wp.xl = ''; wp.d = '';
+    v.setItem(wp);
+    v.setOpen(true);
+    var left = 3;
+    function tick() {
+      left -= 1;
+      if (left > 0) { window.requestAnimationFrame(tick); return; }
+      v.setOpen(false);            // 立刻停：弹层关着时不该留着一个帧循环
+    }
+    window.requestAnimationFrame(tick);
+  }
+  if (document.readyState === 'complete') {
+    if ('requestIdleCallback' in window) window.requestIdleCallback(warmViewer, { timeout: 2500 });
+    else window.setTimeout(warmViewer, 1200);
+  } else {
+    window.addEventListener('load', function () {
+      if ('requestIdleCallback' in window) window.requestIdleCallback(warmViewer, { timeout: 2500 });
+      else window.setTimeout(warmViewer, 1200);
+    }, { once: true });
+  }
+
   window.homeDeck = {
     /* **当前这一页真正在用的那份清单**（下标口径的唯一来源）。
        首页那支是「今天的 12 张」（见上面 data-deck-daily 那段），收藏库那支是全部 63 张。

@@ -783,3 +783,41 @@ outline 的拐角不跟 `border-radius` 缩半径、出现方角小方块/断口
 3. **`var` 只提升声明** —— 新按钮的创建语句必须排在接线之前，否则 `X.addEventListener` 在读取时是 undefined（这次真踩了，整页白屏）。
 4. **文字都走 `data-*` + i18n 键名** —— 少一个键是**静默**的（`data-save` 没绑 → 按钮上出现 `save`），
    所以 `check-deck.mjs` 按整串绑定查：`data-x="{{ i18n "key" }}"`，两边（键在不在 toml、模板有没有绑）都查。
+
+## 四十五、点开卡「白板」的根因 + 开卡性能（2026-09-25，已落地）
+
+### 1 白板（用户截图报的那个）
+
+`.home-deck-compare-panel` 里写了 `display: flex`。**作者写的 display 会盖掉 UA 的 `[hidden] { display: none }`**
+—— 于是这块「隐藏着」的实底面板一直按 flex 铺在弹层上：实测 `hidden === true` 而计算样式 `display: "flex"`、
+盒子 663×454、屏幕正中心那个点是 `home-deck-compare-close`。点开一张卡只看得到一块白板 + 一颗关闭键。
+修法一行：`.home-deck-compare-panel[hidden] { display: none; }`。
+
+**教训**：凡是带 `hidden` 又要自己设 `display` 的浮层，必须跟一条 `[hidden]` 规则。判据不能靠「我以为它隐藏了」，
+要看 `getComputedStyle(el).display`（探针固化为 `lab/工具/whiteboard.py`）。
+
+### 2 开卡耗时（430×900、dpr 2、headless Edge，同一台机同一命令）
+
+| 量 | 改前 | 改后 |
+|---|---|---|
+| 点开 → 弹层出现 | **740–870 ms** | **4–27 ms** |
+| 点开 → 3D 出帧 | 906 ms | 66–75 ms（预热命中）/ 396–452 ms（预热未命中） |
+| 关掉后 1.5 s 内帧增量 | 0 | 0（本来就不空转，改造没有引入空转） |
+| 保存卡图（同步 `toDataURL`） | — | 21–29 ms，输出 836×1170 / 1.3 MB |
+| 卡片墙空闲帧间隔 p50/p95 | — | 6.1 / 6.2 ms |
+
+改前那 740–870 ms 全在 `attach()` 里：建 GL 上下文 + 编译 POM/浮雕那套着色器 + 传第一张贴图，
+**同步**执行 —— 弹层必须等它，于是白板停一秒。两条改造：
+
+1. **先亮弹层、后建 3D**（`openDialog`）：`dlg.hidden = false` 提到最前 → `fillDialog` 先摆平面大图
+   （没有 viewer 时本就是安全的）→ `requestAnimationFrame ×2`（这一帧已经上屏）之后才 `attach`，
+   建好再补一次 `fillDialog` 把这卡推给 3D。
+2. **空闲预热**（`warmViewer`）：`requestIdleCallback`（2.5 s 超时兜底）里 `attach` + **真画两帧** ——
+   只 attach 不够，第一次 `setItem` 与首帧浮雕自己还要 ~600 ms。预热只用页内那一档贴图、不传深度图；
+   `connection.saveData` 与 `deviceMemory <= 2` 直接跳过（这笔钱是为「点得爽」付的，不该让省流访客付）。
+
+### 3 顺手修掉的回归（性能改造自己撞出来的）
+
+拆 `openDialog` 的分支时，第一条写成 `fillDialog(items[i])` —— **漏了 `opts`**。于是「今日一抽」的开包动画
+（靠 `opts.deal` 带 done 钩子）在**热路径静默失效**：冷路径正常、预热命中后 `setItem` 的 `done` 变 `undefined`。
+这种漏参不报错、四守卫也不管，只能靠 e2e 探针量出来（`lab/工具/dealprobe.py` 采 `face`/`is-dealing` 时序）。

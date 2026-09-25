@@ -2338,3 +2338,14 @@ hugo 那一段已经 `cygpath` 转了，量体积那一段把 MSYS 路径直接�
 | 开包（今日一抽） | `home-deck.js` | 起手 `setAngle(π, 0, true)` 亮卡背 → 320ms 后 `flip()`；`prefers-reduced-motion` 时整段跳过 |
 
 守卫：`scripts/check-deck.mjs` 增「i18n 键 + 模板整串绑定」两段（反向验过：缺键、摘绑定各报一次）。
+
+### 开卡性能与「白板」修复（2026-09-25）
+
+- **弹层底衬与 `[hidden]`**：`.home-deck-compare-panel` 的 `display: flex` 压过了 UA 的 `[hidden]`，实底面板
+  一直盖在弹层上（表现：点开卡只有一块白板 + 关闭键）。新增 `.home-deck-compare-panel[hidden] { display: none; }`。
+  **新增浮层时，凡自己设 `display` 的都要配一条 `[hidden]` 规则。**
+- **开卡不再卡一秒**：`attach()`（建 GL + 编着色器 + 传首张纹理）是同步的，原先在 `openDialog` 开头调用 ——
+  430×900@2x 实测 740–870 ms 才让弹层出现。现在弹层先亮（平面大图顶 16–27 ms），GL 在 `rAF×2` 之后建；
+  另外空闲时预热（`requestIdleCallback`，真画两帧）：预热命中时点开到 3D 出帧只要 66–75 ms。
+- **预热只在非省流设备上跑**：`connection.saveData` 或 `deviceMemory <= 2` 跳过；只传页内那一档，不传深度图。
+- 量法与读数：`lab/工具/perf3.py`（冷/热路径 + 关闭后空转）、`lab/工具/fixshot.py`（150 ms 与 2.5 s 两张对照图）。

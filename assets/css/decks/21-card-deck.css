@@ -784,6 +784,11 @@ html.is-deck-dialog #bottom-link {
   background: linear-gradient(var(--surface), var(--surface)), var(--theme);
 }
 
+/* [hidden] 是 UA 规则（display:none），**任何作者写的 display 都会盖掉它** —— 上面那条
+   `display: flex` 就真的把「隐藏」的对比面板一直按 flex 排布铺在弹层上：点开卡只看得到
+   一块白板 + 一颗关闭键（2026-09-25 用户截图报的 bug）。要隐藏的浮层，这句必须跟一条。 */
+.home-deck-compare-panel[hidden] { display: none; }
+
 .home-deck-compare-row {
   display: flex;
   gap: .8rem;
