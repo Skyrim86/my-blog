@@ -419,6 +419,53 @@ other = "看工艺"
 [deckInspectOff]
 other = "退出近观"
 
+# 卡片墙的搜索框（2026-09-25）：输入即筛，命中名字 / 系列 / 工艺 / 等级 / 作品 / 角色。
+# 结果行末尾会补一句搜索词（deckSearchHit），免得「怎么少了这么多张」看起来像 bug。
+[deckSearch]
+other = "搜索"
+
+[deckSearchHint]
+other = "搜名字 / 作品 / 角色"
+
+[deckSearchHit]
+other = "· 搜「{q}」"
+
+# 卡册视图（2026-09-25）：3 列 × 每页 9 张，配套的翻页器。与「按系列分组」可以叠着用。
+[deckBookOn]
+other = "卡册"
+
+[deckBookOff]
+other = "退出卡册"
+
+[deckPage]
+other = "第 {n} / {m} 页"
+
+[deckPagePrev]
+other = "上一页"
+
+[deckPageNext]
+other = "下一页"
+
+# 弹层里那三颗新按钮（2026-09-25）：存图、设为对照 / 与《X》对比。
+# 对比是**一人拍一张**再并排（只有一个 GL 实例），所以失败时会给一句兜底文字。
+[deckSave]
+other = "保存卡图"
+
+[deckCompare]
+other = "设为对照"
+
+[deckCompareClear]
+other = "取消对照"
+
+[deckCompareGo]
+other = "与《{label}》对比"
+
+[deckCompareTitle]
+other = "对比：{label}"
+
+[deckCompareFail]
+other = "这张没拍出来"
+
 # 弹层信息卡的三行标签（值来自清单的 work / role / added）。
 [deckInfoWork]
 other = "作品"

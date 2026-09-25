@@ -2321,3 +2321,20 @@ hugo 那一段已经 `cygpath` 转了，量体积那一段把 MSYS 路径直接�
 读数（真站、1:1、同一姿势开关浮雕）：正常机位 **7.66 均值 / 38.4% 像素**，近观 **21.54 / 80.9%**，卡面覆盖率 0.593 → 1.00。做法与三个判断见 `card-redesign-brief.md` 四十三。
 
 顺带修的两处：`content/collection/_index.md` 的描述还写着「十六种工艺」（工艺 2026-09-24 已经收敛到八种）；清单新增 `work` / `role` / `added` 三个可选字段（`added` 由 git 取，check-deck 有格式守卫）。
+
+
+## 玩法层第二批（2026-09-25）
+
+六条一次推完，全是零新素材，全部挂已有单一事实源（清单 / `card-3d.js` 相机 / `deck-wall.js` 的筛选状态）。
+
+| 玩法 | 落点 | 关键实现 |
+|---|---|---|
+| 「看工艺」近观 | `card-3d.js` | `INSPECT_YAW = 0.40` / `INSPECT_ZOOM = 1.8`，`setInspect` / `zoomTo` |
+| 卡册（每页 9 张） | `deck-wall.js` + `21-card-deck.css` | `PER_PAGE = 9`；页外的格子加 `is-offpage` 藏起来；`?book=1&page=2` 进地址 |
+| 文本搜索 | `deck-wall.js` | 输入即筛；命中名字 / 系列 / 工艺 / 等级 / 作品 / 角色；`searchText()` 一处拼口径 |
+| 系列点亮 | `deck-wall.js` + CSS | 该系列**探满**时 chip 加 `is-complete` |
+| 对比（同角并排） | `home-deck.js` + `card-3d.js` | `snapshot()` 现画一帧再 `toDataURL`；`setItem(payload, {done})` 等贴图；固定 `CMP_YAW` |
+| 保存卡图 | 同上 | 同一条 `snapshot()`，`download="card-<id>.png"` |
+| 开包（今日一抽） | `home-deck.js` | 起手 `setAngle(π, 0, true)` 亮卡背 → 320ms 后 `flip()`；`prefers-reduced-motion` 时整段跳过 |
+
+守卫：`scripts/check-deck.mjs` 增「i18n 键 + 模板整串绑定」两段（反向验过：缺键、摘绑定各报一次）。

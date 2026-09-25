@@ -763,6 +763,92 @@ html.is-deck-dialog #bottom-link {
   border-color: var(--accent);
 }
 
+/* 对比面板（2026-09-25）：两张同角度的快照并排。它是**不透明**的 ——
+   底下那两次换卡（同一个 GL 实例，只能一张一张拍）因此看不见。
+   面板里的两张图各带一行说明（卡名 · 工艺 · 等级），这才是「比得出差别」的前提。 */
+.home-deck-compare-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  padding: 1rem;
+  border-radius: inherit;
+  /* **必须不透**：底下是还在转的活卡片，--surface 自己只有 .80 —— 直接用它会出现
+     「两张快照后面透出一张动着的卡」的重影（第一版就是这样，截图里看得出来）。
+     做法是把同一个半透明面**叠在实底**（--theme 是页面底色）上，而不是换一个更黑的颜色：
+     这样浅色/深色两套主题各自维持原来的色相，只是把它坐实。 */
+  background: linear-gradient(var(--surface), var(--surface)), var(--theme);
+}
+
+.home-deck-compare-row {
+  display: flex;
+  gap: .8rem;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.home-deck-compare-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+  min-width: 0;
+}
+
+.home-deck-compare-cell img {
+  display: block;
+  width: auto;
+  max-width: 42vw;
+  max-height: 58vh;
+  border-radius: 6px;
+  border: 1px solid var(--edge);
+}
+
+.home-deck-compare-cap,
+.home-deck-compare-fail {
+  font-size: .78rem;
+  color: var(--secondary);
+  text-align: center;
+}
+
+.home-deck-compare-close {
+  padding: .2rem .8rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-size: .8rem;
+  cursor: pointer;
+}
+
+/* 开包（今日一抽）：卡先亮背面、再翻回正面，正面这一下配一道扫光。
+   纯表演 —— 减少动态时 JS 整段跳过（见 home-deck.js 的 dealDone）。 */
+.home-deck-dialog.is-dealing .home-deck-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .34) 50%, transparent 65%);
+  animation: deck-deal-sweep .85s ease-out;
+}
+
+@keyframes deck-deal-sweep {
+  from { transform: translateX(-60%); opacity: 0; }
+  45% { opacity: 1; }
+  to { transform: translateX(60%); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-deck-dialog.is-dealing .home-deck-stage::after { animation: none; }
+}
+
 /* 「看工艺」按下时（aria-pressed=true）：边框与字都走强调色 —— 与翻面按钮同一个开关写法，
    但它是一个**模式**（进去就停在那个机位），所以比 hover 更实一档。 */
 .home-deck-inspect[aria-pressed="true"] {
@@ -1773,6 +1859,15 @@ a.home-deck-dialog-credit:hover {
 
 .deck-tile.is-seen .deck-tile-dot { opacity: .82; }
 
+/* 卡册视图：一行三张（与「一页 9 张」配套），页外的格子不占格 */
+.deck-wall.is-book .deck-wall-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-tile.is-offpage {
+  display: none;
+}
+
 .deck-tile.is-backseen .deck-tile-dot {
   opacity: 1;
   box-shadow: 0 0 0 1px rgba(12, 11, 16, .45), 0 0 0 3px rgba(250, 249, 252, .32);
@@ -1962,6 +2057,69 @@ a.home-deck-dialog-credit:hover {
 
 .deck-chip:disabled:hover {
   border-color: var(--edge);
+}
+
+/* 搜索框（2026-09-25）：与 chip 同族的外观，宽度按内容；行首那个「搜索」与三排的排头对齐 */
+.deck-search-row {
+  margin-bottom: .45rem;
+}
+
+.deck-search {
+  flex: 1 1 16rem;
+  max-width: 22rem;
+  padding: .18rem .6rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-size: .84rem;
+}
+
+.deck-search:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 卡册视图的翻页器 */
+.deck-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .82rem;
+}
+
+.deck-page-btn {
+  padding: .1rem .5rem;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.deck-page-btn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+/* 系列 chip 的「探满」记号：**只在真的探完时才亮**，与 chip 上的实时计数无关。
+   走一个点 + 描边，不换色相 —— 与卡片墙上那两个状态同一条纪律。 */
+.deck-chip.is-complete {
+  border-color: var(--accent);
+}
+
+.deck-chip.is-complete::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-left: .3rem;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* 探索进度那一条：数字 + 细进度条。只在探过至少一张之后现身（JS 管 hidden）。 */

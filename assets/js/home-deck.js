@@ -126,6 +126,12 @@
   var infoWork = deck.dataset.infoWork || 'work';
   var infoRole = deck.dataset.infoRole || 'role';
   var infoAdded = deck.dataset.infoAdded || 'added';
+  var saveLabel = deck.dataset.save || 'save';
+  var cmpSetLabel = deck.dataset.compare || 'compare';
+  var cmpClearLabel = deck.dataset.compareClear || cmpSetLabel;
+  var cmpGoTpl = deck.dataset.compareGo || 'compare {label}';
+  var cmpTitleTpl = deck.dataset.compareTitle || '{label}';
+  var cmpFailLabel = deck.dataset.compareFail || 'n/a';
   var AUTO_MS = 6000;
   var FADE_MS = 340;     // 与 CSS 里 deck-in / deck-art-in / deck-ghost-out 的时长一致（0.34s）
   var i = 0;
@@ -311,11 +317,55 @@
     flipBtn.setAttribute('aria-pressed', back ? 'true' : 'false');
     flipBtn.textContent = (back ? deck.dataset.flipBack : deck.dataset.flip) || flipBtn.textContent;
   });
+  /* 设为对照 / 与《X》对比（2026-09-25）。只有**一个** GL 实例（card-3d.js 的 attach 是
+     单例），所以「两张同角度并排」不能靠两个活着的 3D 卡 —— 走的是一人拍一张：
+     基线卡按下的那一刻记下参数，对比时把两张卡在**同一个固定斜角**下各渲染一帧、
+     读成 dataURL，再并排摆出来。拍的时候把台面暂时藏起来，不然会看到两次换卡闪烁。 */
+  var compareBtn = document.createElement('button');
+  compareBtn.type = 'button';
+  compareBtn.className = 'home-deck-flip home-deck-compare';
+  compareBtn.setAttribute('aria-pressed', 'false');
+  compareBtn.textContent = cmpSetLabel;
+  var cmpGoBtn = document.createElement('button');
+  cmpGoBtn.type = 'button';
+  cmpGoBtn.className = 'home-deck-flip home-deck-compare-go';
+  cmpGoBtn.hidden = true;
+  var saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'home-deck-flip home-deck-save';
+  saveBtn.textContent = saveLabel;
+
+  var cmpPanel = document.createElement('div');
+  cmpPanel.className = 'home-deck-compare-panel';
+  cmpPanel.hidden = true;
+  cmpPanel.setAttribute('role', 'group');
+  var cmpRow = document.createElement('div');
+  cmpRow.className = 'home-deck-compare-row';
+  cmpPanel.appendChild(cmpRow);
+  var cmpClose = document.createElement('button');
+  cmpClose.type = 'button';
+  cmpClose.className = 'home-deck-compare-close';
+  cmpClose.textContent = closeLabel;
+  cmpPanel.appendChild(cmpClose);
+
   var actions = document.createElement('div');
   actions.className = 'home-deck-actions';
   actions.hidden = true;              // 只有 3D 可用时才现身（见 ensureViewer）
   actions.appendChild(flipBtn);
   actions.appendChild(inspectBtn);
+  actions.appendChild(compareBtn);
+  actions.appendChild(cmpGoBtn);
+  actions.appendChild(saveBtn);
+
+  compareBtn.addEventListener('click', function () {
+    var cur = items[i];
+    if (!cur) return;
+    compareBase = (compareBase === cur) ? null : cur;
+    syncCompareButtons();
+  });
+  cmpGoBtn.addEventListener('click', openCompare);
+  cmpClose.addEventListener('click', function () { cmpPanel.hidden = true; });
+  saveBtn.addEventListener('click', saveShot);
 
   // 只在**第一次打开**时才建 WebGL 上下文：绝大多数访客不会点 ⤢，
   // 为他们每人建一个 GL 上下文 + 上传两张纹理会白占显存。
@@ -387,6 +437,7 @@
   });
 
   panel.appendChild(stage);
+  panel.appendChild(cmpPanel);
   panel.appendChild(actions);
   panel.appendChild(meta);
   panel.appendChild(closeBtn);
@@ -422,7 +473,109 @@
     return item.l || item.s || item.xl || '';
   }
 
-  function fillDialog(item) {
+  /* 3D 查看器要的那份参数（2026-09-25 抽出来）：原来它是内联在 fillDialog 里的，
+     于是隐含依赖了「当前这张卡」的下标与出处 —— 对比那条路要为**另一张卡**发同一份参数，
+     所以这里一律从传入的 it 现算，不再读闭包里的 i / credit。extra 用来塞 done 之类的钩子。 */
+  function payloadOf(it, extra) {
+    var n = items.indexOf(it);
+    var cred = it.url ? creditLabel + ' ' + (it.credit || '')
+      : (it.credit ? creditLabel + ' ' + it.credit : '');
+    var o = {
+      s: it.s, l: it.l, xl: it.xl || '', d: it.d || '', low: lowTierOf(it),
+      label: it.label || '', series: it.series || '', style: it.style || 'foil',
+      rank: it.rank || 'collector', rankLabel: it.rankLabel || '', rankNo: it.rankNo || '',
+      indexText: pad(n + 1) + ' / ' + pad(items.length),
+      creditText: cred
+    };
+    if (extra) { for (var k in extra) { if (Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k]; } }
+    return o;
+  }
+
+  /* ---------- 对比 / 存图 / 开包（2026-09-25） ---------- */
+  var compareBase = null;     // 基线卡的**清单条目**（不是下标：换筛选、翻页都不影响它）
+  var CMP_YAW = 0.34;         // 两张都拍这个斜角 —— 条件相同才叫对照
+
+  function syncCompareButtons() {
+    var cur = items[i];
+    var isBase = !!(compareBase && cur && compareBase === cur);
+    compareBtn.setAttribute('aria-pressed', isBase ? 'true' : 'false');
+    compareBtn.textContent = isBase ? cmpClearLabel : cmpSetLabel;
+    var can = !!(compareBase && cur && compareBase !== cur && viewer && viewer.snapshot);
+    cmpGoBtn.hidden = !can;
+    if (can) cmpGoBtn.textContent = cmpGoTpl.replace('{label}', compareBase.label || '');
+  }
+
+  // 拍一张：换到这张卡的贴图 → 完成回调里把卡**钉在同一个斜角**（pin：同一帧画完、同一任务里读，
+  // WebGL 的绘图缓冲出了那一帧就是空的）→ 读 dataURL。1200ms 兜底，贴图不来也不卡住流程。
+  function shoot(it, cb) {
+    var fired = false;
+    function once(url) { if (fired) return; fired = true; cb(url || ''); }
+    viewer.setItem(payloadOf(it, { done: function () {
+      viewer.setAngle(CMP_YAW, 0, true);
+      once(viewer.snapshot());
+    } }));
+    window.setTimeout(function () { once(''); }, 1200);
+  }
+
+  function openCompare() {
+    var base = compareBase, cur = items[i];
+    if (!base || !cur || base === cur || !viewer) return;
+    cmpRow.textContent = '';
+    cmpPanel.hidden = false;      // 先把面板盖上（它是不透明的）—— 底下那两次换卡就看不见了
+    cmpRow.setAttribute('aria-busy', 'true');
+    shoot(base, function (a) {
+      shoot(cur, function (b) {
+        viewer.setItem(payloadOf(cur));    // 把当前这张放回去（顺带解除 pin）
+        viewer.reset();
+        [[base, a], [cur, b]].forEach(function (pair) {
+          var cell = document.createElement('div');
+          cell.className = 'home-deck-compare-cell';
+          if (pair[1]) {
+            var im = document.createElement('img');
+            im.src = pair[1];
+            im.alt = pair[0].label || '';
+            cell.appendChild(im);
+          } else {
+            var p = document.createElement('p');
+            p.className = 'home-deck-compare-fail';
+            p.textContent = cmpFailLabel;
+            cell.appendChild(p);
+          }
+          var cap = document.createElement('span');
+          cap.className = 'home-deck-compare-cap';
+          cap.textContent = [pair[0].label, pair[0].styleLabel, pair[0].rankLabel]
+            .filter(Boolean).join(' · ');
+          cell.appendChild(cap);
+          cmpRow.appendChild(cell);
+        });
+        cmpRow.setAttribute('aria-busy', 'false');
+        cmpPanel.setAttribute('aria-label', cmpTitleTpl.replace('{label}', base.label || ''));
+      });
+    });
+  }
+
+  function saveShot() {
+    if (!viewer || !viewer.snapshot) return;
+    var url = viewer.snapshot();
+    if (!url) return;
+    var cur = items[i] || {};
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'card-' + (cur.id || 'shot') + '.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);     // 立刻摘掉：它只是个「点一下」的替身
+  }
+
+  // 开包（今日一抽专用）：先亮卡背、再翻回正面。**减少了动态就整段跳过** —— 这条是纯表演。
+  function dealDone() {
+    viewer.setAngle(Math.PI, 0, true);
+    dlg.classList.add('is-dealing');
+    window.setTimeout(function () { viewer.flip(); }, 320);
+    window.setTimeout(function () { dlg.classList.remove('is-dealing'); }, 1300);
+  }
+
+  function fillDialog(item, opts) {
     if (!item) return;
     // 平面大图用 xl（760px）那一档：台面 2026-09-21 放大到 600px 之后，544px 的 2x 会被拉到
     // 1.9 倍（2x 屏上更糊），而这张图是「没有 WebGL 时」访客唯一能看到的东西。
@@ -450,6 +603,7 @@
     if (item.added) bits.push(infoAdded + ' ' + item.added);
     metaInfo.textContent = bits.join(' · ');
     metaInfo.hidden = !bits.length;
+    syncCompareButtons();
     // 卡背上的信息与这里**是同一份**：卡背是 canvas 画出来的，对比度脚本与读屏都看不见它，
     // 所以这一行 DOM 文本必须留着（少了它，卡背上的字就成了只有看得见的人拿得到的信息）。
     var credit = item.url ? creditLabel + ' ' + (item.credit || '') : (item.credit ? creditLabel + ' ' + item.credit : '');
@@ -480,17 +634,7 @@
       window.setTimeout(function () { prefetch(2, true); }, 1200);
     });
     if (viewer) {
-      viewer.setItem({
-        // `xl` 这一档**只给 3D 查看器用**（760×1064，不生进 srcset）。2026-09-21 之前这里
-        // 漏了它 —— 于是 card-3d.js 里 `next.xl || next.l || next.s` 每次都回退到 544 宽
-        // 的 l 档，760 档那 63 张 2.4 MB 从头到尾没有任何页面加载过：既是「卡面糊」的
-        // 头号根因，也让那份产物白白占着体积（见 docs/traps.md 的「静默回退」一节）。
-        s: item.s, l: item.l, xl: item.xl || '', d: item.d || '', low: low,
-        label: item.label || '', series: item.series || '', style: item.style || 'foil',
-        rank: item.rank || 'collector', rankLabel: item.rankLabel || '', rankNo: item.rankNo || '',
-        indexText: pad(i + 1) + ' / ' + pad(items.length),
-        creditText: credit
-      });
+      viewer.setItem(payloadOf(item, (opts && opts.deal) ? { done: dealDone } : null));
       // 读屏用户看不到画布，用 aria-label 把「这张卡是谁、能怎么操作」说全
       var c = stage.querySelector('canvas');
       if (c) {
@@ -505,7 +649,7 @@
     }
   }
 
-  function openDialog(opener) {
+  function openDialog(opener, opts) {
     lastOpener = opener || zoomBtn;
     // 顺序要紧：viewer 必须先建好（attach 之后 setItem 才有效），而 setOpen 要在弹层**可见之后**
     // 再调 —— 画布尺寸取自 clientWidth，hidden 的时候它是 0。
@@ -517,7 +661,7 @@
     // 实测窄屏下「滚到底部」那个圆正好盖住弹层右下角的「01 / 32」，而且它们在模态里还可点 ——
     // 点一下会把背后的页面滚走。用 html 上的类控制（CSS 里一条规则收掉它们）。
     document.documentElement.classList.add('is-deck-dialog');
-    fillDialog(items[i]);
+    fillDialog(items[i], opts);
     if (viewer) viewer.setOpen(true);
     stop();                        // 弹层开着时不要在背后换卡
     // 背景 shader 与卡的 rAF 之间没有任何协调（各跑各的），而卡的调速器判据是它自己的
@@ -856,12 +1000,12 @@
        withXL 时连 xl + 深度图 —— 收藏库那一页的卡片墙自己不带 xl，点开弹层才要，
        所以「指针停在哪张上」是这一页唯一可靠的预取信号（见 prefetchAt 的注释）。 */
     prefetchAt: prefetchAt,
-    openAt: function (index, opener) {
+    openAt: function (index, opener, opts) {
       if (typeof index !== 'number' || index < 0 || index >= items.length) return false;
       i = index;
       apply(index);
       prefetch();
-      openDialog(opener || zoomBtn);     // 与放大按钮走同一条路（它自己会 stop() 停轮播）
+      openDialog(opener || zoomBtn, opts);     // 与放大按钮走同一条路（它自己会 stop() 停轮播）
       return true;
     }
   };

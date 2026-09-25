@@ -100,6 +100,10 @@
     catch (e) { return {}; }   // 隐私模式下 localStorage 会抛：进度静默失效，不影响别的
   }
   var seen = loadSeen();
+  var query = '';        // 搜索词（小写，空 = 不筛）
+  var book = false;      // 卡册视图：3 列 × 每页 9 张，别的不占格也不参与键盘漫游
+  var bookPage = 1;
+  var PER_PAGE = 9;
   function seenOf(it) { return (it && it.id ? seen[it.id] : 0) | 0; }
   function seenTotal() {
     var n = 0;
@@ -227,7 +231,15 @@
   var grouped = false;   // 分组视图（按系列）是否开着
 
   // 一张卡是否通过筛选。`skipKey` 那一个维度跳过 —— 统计某颗 chip 上的数字时用（同排是 OR）。
+  // 搜索命中的字段：名字、系列、工艺、等级、作品、角色。**不索引出处与日期** ——
+  // 「pixiv」「2026-09」不是访客会拿来搜的东西，进了索引反而让命中看起来没道理。
+  function searchText(it) {
+    return [it.label, it.series, it.styleLabel, it.rankLabel, it.work, it.role]
+      .filter(Boolean).join(' ').toLowerCase();
+  }
+
   function matches(it, skipKey) {
+    if (query && searchText(it).indexOf(query) < 0) return false;
     return facets.every(function (spec) {
       if (spec.key === skipKey) return true;
       var sel = state[spec.key];
@@ -246,6 +258,7 @@
   function selectFacet(spec) { return state[spec.key]; }
 
   function toggle(spec, value) {
+    bookPage = 1;
     var sel = selectFacet(spec);
     var n = sel.indexOf(value);
     if (n >= 0) sel.splice(n, 1);
@@ -255,6 +268,7 @@
   // 组标签：整档选中 / 整档取消。**只收「够得着的」**（在其它两排的当前组合下张数 > 0，
   // 或者本来就选着）—— 否则会一次点亮几颗 0 张的 chip，看着像坏了。
   function toggleTier(spec, tier) {
+    bookPage = 1;
     var sel = selectFacet(spec);
     var vals = tierValues(spec, tier);
     var reach = vals.filter(function (v) {
@@ -278,6 +292,31 @@
   bar.className = 'deck-filters';
   bar.setAttribute('role', 'group');
   bar.setAttribute('aria-label', attr('filterLabel'));
+
+  /* 搜索行（2026-09-25）：放最前面 —— 它是「先缩小范围」的那一步，chip 是「按维度挑」。
+     输入即筛（57 张不需要防抖），并写进地址栏（`?q=`），于是搜出来的那一页也能分享。
+     用 type=search 而不是 text：手机键盘给「搜索」键、浏览器自带清除叉。 */
+  var searchRow = document.createElement('div');
+  searchRow.className = 'deck-filter-row deck-search-row';
+  var searchCap = document.createElement('span');
+  searchCap.className = 'deck-filter-name';
+  searchCap.textContent = attr('search', '搜索');
+  var searchBox = document.createElement('input');
+  searchBox.type = 'search';
+  searchBox.className = 'deck-search';
+  searchBox.id = 'deck-search';
+  searchBox.placeholder = attr('searchHint', '搜名字 / 作品 / 角色');
+  searchBox.setAttribute('aria-label', attr('search', '搜索'));
+  searchCap.setAttribute('for', 'deck-search');
+  searchRow.appendChild(searchCap);
+  searchRow.appendChild(searchBox);
+  bar.appendChild(searchRow);
+  searchBox.addEventListener('input', function () {
+    query = searchBox.value.trim().toLowerCase();
+    bookPage = 1;
+    apply();
+    syncURL();
+  });
 
   var rankBar = [];   // 等级那条比例条的分段（{value, seg}）；顺序 = chip 的顺序
 
@@ -413,6 +452,32 @@
   result.appendChild(clear);
   result.appendChild(groupBtn);
 
+  var bookBtn = document.createElement('button');
+  bookBtn.type = 'button';
+  bookBtn.className = 'deck-group-toggle';
+  bookBtn.textContent = attr('bookOn', '卡册');
+  bookBtn.setAttribute('aria-pressed', 'false');
+  var pager = document.createElement('span');
+  pager.className = 'deck-pager';
+  pager.hidden = true;
+  var pagePrev = document.createElement('button');
+  pagePrev.type = 'button';
+  pagePrev.className = 'deck-page-btn';
+  pagePrev.textContent = '‹';
+  pagePrev.setAttribute('aria-label', attr('pagePrev', '上一页'));
+  var pageLabel = document.createElement('span');
+  pageLabel.className = 'deck-page-label';
+  var pageNext = document.createElement('button');
+  pageNext.type = 'button';
+  pageNext.className = 'deck-page-btn';
+  pageNext.textContent = '›';
+  pageNext.setAttribute('aria-label', attr('pageNext', '下一页'));
+  pager.appendChild(pagePrev);
+  pager.appendChild(pageLabel);
+  pager.appendChild(pageNext);
+  result.appendChild(bookBtn);
+  result.appendChild(pager);
+
   // 抽卡按钮：角落那枚像素小人（图与文字都来自站点自己的导航图标语言）。
   // **没有 JS 时它不存在**（脚本注入）—— 与「按钮由脚本注入」同一条口径。
   var drawIcon = attr('drawIcon');
@@ -526,7 +591,52 @@
       var st = b.querySelector('.deck-tile-state');
       if (st) st.textContent = (v & 2) ? attr('backSeen', '看过卡背') : (v ? attr('seen', '已看过') : '');
     });
-    if (grouped && seriesSpec) applyGrouping();   // 组头那一行也带进度
+    // 系列 chip 的**点亮**：这一系列全看过时给 chip 加一个记号（与 chip 上的实时计数无关，
+    // 它讲的是「探完没」而不是「筛出几张」）—— 这就是「集齐一个系列」的那点回报。
+    chips.forEach(function (ch) {
+      if (ch.spec.key !== 'series') return;
+      var tot = 0, got = 0;
+      items.forEach(function (it) {
+        if (it.series !== ch.value) return;
+        tot++;
+        if (seenOf(it)) got++;
+      });
+      ch.btn.classList.toggle('is-complete', tot > 0 && got === tot);
+      if (tot) ch.btn.setAttribute('data-seen', got + '/' + tot);
+    });
+    if (grouped && seriesSpec && !book) applyGrouping();   // 组头那一行也带进度
+  }
+
+  /* 卡册视图的分页（2026-09-25）：只让当前这一页的 9 张占格。
+     顺序取 navList()（分组时是分组顺序、平铺时是清单原序），所以卡册与筛选、分组都能叠。
+     **不搬 DOM**：靠 is-offpage 这类名藏起来，`data-i` 与清单下标的对应关系一个字不动 ——
+     与分组视图同一条纪律（见上面 buildHeads 的注释）。 */
+  function visibleList() {
+    return tiles
+      .filter(function (t) { return t && !t.classList.contains('is-filtered'); })
+      .sort(function (a, b) {
+        var oa = parseInt(a.style.order, 10) || 0, ob = parseInt(b.style.order, 10) || 0;
+        return oa !== ob ? oa - ob : tileIndex(a) - tileIndex(b);
+      });
+  }
+
+  function paintPages() {
+    var vis = visibleList();
+    var pages = Math.max(1, Math.ceil(vis.length / PER_PAGE));
+    if (bookPage > pages) bookPage = pages;
+    if (bookPage < 1) bookPage = 1;
+    var from = (bookPage - 1) * PER_PAGE, to = from + PER_PAGE;
+    tiles.forEach(function (t) { if (t) t.classList.remove('is-offpage'); });
+    if (book) {
+      vis.forEach(function (t, idx) { if (idx < from || idx >= to) t.classList.add('is-offpage'); });
+    }
+    pager.hidden = !book;
+    pageLabel.textContent = attr('page', '第 {n} / {m} 页')
+      .replace('{n}', String(bookPage)).replace('{m}', String(pages));
+    pagePrev.disabled = bookPage <= 1;
+    pageNext.disabled = bookPage >= pages;
+    // 卡册里没有组头的位置（一行只放三张），所以分组标题在卡册模式下收起来
+    if (heads.length) heads.forEach(function (h) { if (book) h.el.hidden = true; });
   }
 
   // 「共 12 张（艾米莉亚 · 金边+玻璃 · 传世）」：把当前选中的项按维度顺序摊开，
@@ -544,16 +654,14 @@
 
   // 当前**看得见**的格子，按视觉顺序（分组时是 order，平铺时是清单原序）。
   // 键盘漫游与「随机翻一张」都走它 —— 少一处口径，就少一次「抽到一张看不见的卡」。
+  // 当前**看得见**的格子（分组时是 order，平铺时是清单原序）—— 键盘漫游与抽取都走它。
+  // 卡册模式下再把不在这一页上的排掉：键盘不该漫游到看不见的格子上。
   function navList() {
-    return tiles
-      .filter(function (t) { return !t.classList.contains('is-filtered'); })
-      .sort(function (a, b) {
-        var oa = parseInt(a.style.order, 10) || 0;
-        var ob = parseInt(b.style.order, 10) || 0;
-        if (oa !== ob) return oa - ob;
-        return tileIndex(a) - tileIndex(b);
-      });
+    var v = visibleList();
+    if (!book) return v;
+    return v.filter(function (t) { return !t.classList.contains('is-offpage'); });
   }
+
   function tileIndex(t) { return parseInt(t.getAttribute('data-i'), 10) || 0; }
 
   // 与 home-deck.js 逐行相同的三小段（见上面 draw 的注释）
@@ -644,7 +752,9 @@
       });
     }
 
+    paintPages();
     resultText.textContent = summary(shown);
+    if (query) resultText.textContent += attr('searchHit', ' · 搜「{q}」').replace('{q}', query);
     clear.hidden = !facets.some(function (spec) { return selectFacet(spec).length; });
     empty.hidden = shown > 0;
     draw.disabled = shown === 0;
@@ -683,6 +793,19 @@
     apply();
   });
 
+  bookBtn.addEventListener('click', function () {
+    book = !book;
+    bookPage = 1;
+    bookBtn.setAttribute('aria-pressed', book ? 'true' : 'false');
+    bookBtn.textContent = attr(book ? 'bookOff' : 'bookOn', book ? '退出卡册' : '卡册');
+    wall.classList.toggle('is-book', book);
+    if (!book && grouped) applyGrouping();
+    apply();
+  });
+
+  pagePrev.addEventListener('click', function () { bookPage--; paintPages(); syncURL(); });
+  pageNext.addEventListener('click', function () { bookPage++; paintPages(); syncURL(); });
+
   wall.insertBefore(srStatus, grid);
   wall.insertBefore(empty, grid);
   wall.insertBefore(result, empty);
@@ -704,6 +827,9 @@
       parts.push(spec.key + '=' + sel.map(encodeURIComponent).join(','));
     });
     if (grouped && seriesSpec) parts.push('group=series');
+    if (query) parts.push('q=' + encodeURIComponent(query));
+    if (book) parts.push('book=1');
+    if (book && bookPage > 1) parts.push('page=' + bookPage);
     return parts.length ? '?' + parts.join('&') : '';
   }
 
@@ -724,6 +850,9 @@
       var key = pair.slice(0, eq);
       var raw = pair.slice(eq + 1);
       if (key === 'group') { grouped = raw === 'series'; return; }
+      if (key === 'q') { query = decodeURIComponent(raw).toLowerCase(); searchBox.value = decodeURIComponent(raw); return; }
+      if (key === 'book') { book = raw === '1'; return; }
+      if (key === 'page') { bookPage = parseInt(raw, 10) || 1; return; }
       var spec = specBy(key);
       if (!spec) return;
       var known = facetValues(spec).keys;
@@ -861,10 +990,16 @@
        「首页今天的 12 张」。两处改一处必须改另一处 —— 目前是各自一份副本（都是经典脚本，
        没有模块可共享），复制时对照过逐行一致。 */
     draw.addEventListener('click', function () {
-      var vis = navList();
+      // 池子取 visibleList()（**不受卡册分页限制**）：抽到的卡可能在别的页上，
+      // 那就先把卡册翻到它那一页再开 —— 不然「抽了一张，墙上没有它」。
+      var vis = visibleList();
       if (!vis.length) return;
       var pick = pickToday(vis);
-      window.homeDeck.openAt(tileIndex(pick), pick);
+      if (book) {
+        var at = vis.indexOf(pick);
+        if (at >= 0) { bookPage = Math.floor(at / PER_PAGE) + 1; paintPages(); syncURL(); }
+      }
+      window.homeDeck.openAt(tileIndex(pick), pick, { deal: true });   // 开包动画只在抽卡这条路
     });
 
     /* ---------- 深链：/collection/#deck-07 直接开那一张 ----------

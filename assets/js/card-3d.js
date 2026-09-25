@@ -1335,6 +1335,14 @@
   var proj = mat4(), view = mat4(), model = mat4(), rot = mat4(), rot2 = mat4();
   var yaw = 0, pitch = 0, vy = 0, vp = 0, baseYaw = 0;
   var zoom = 1, zoomTo = 1, inspect = false;
+  var itemDone = null;
+  // 换贴图完成时叫一声（一次性）。**没人在等就什么都不做** —— 产品路径不用它，
+  // 只有「对比」与「开包」两条路会传 done 进来（见 home-deck.js）。
+  function fireItemDone() {
+    var f = itemDone;
+    itemDone = null;
+    if (f) { try { f(); } catch (e) { console.warn('[card3d] setItem 回调抛了：' + (e && e.message)); } }
+  }
   var faceWasBack = false;
   var dragging = false, pinned = false, inertia = false;
   var lastX = 0, lastY = 0, lastT = 0;
@@ -2032,10 +2040,11 @@
     },
     setItem: function (next) {
       item = next;
+      itemDone = (next && next.done) || null;   // 换完贴图叫一声（对比 / 开包那两条路要等它）
       revealed = false; backSince = 0; backKey = '';
       govWarm = GOV_WARM; govSamples.length = 0; lastFrameRaw = 0;   // 新贴图的尖峰不算渲染成本
       api.reset();
-      if (!GL) return;
+      if (!GL) { fireItemDone(); return; }
       var jobs = [];
       // 面贴图优先用 **xl 那一档（760px）**：台面 2026-09-21 放大到 600px 之后，卡面要占到
       // 517px 宽、2x 屏上就是 1034 个物理像素，而 544px 那档是给页内 272px 的卡用的 ——
@@ -2081,7 +2090,7 @@
         console.warn('[card3d] 这张卡缺深度图（跑 tools/cards/make-depth.py）——它会渲染成平的');
         texDepth = null;
       }
-      Promise.all(jobs).then(function () { rebuildBack(); kick(); });
+      Promise.all(jobs).then(function () { rebuildBack(); kick(); fireItemDone(); });
     },
     setOpen: function (isOpen) {
       open = !!isOpen;
@@ -2181,6 +2190,16 @@
       return inspect;
     },
     isInspect: function () { return inspect; },
+    /* 现画一帧、同一任务里把画布读成 dataURL（**给「存图」与「对比」用**）。
+       为什么必须现画：WebGL 的绘图缓冲在同一帧之外读是空的 —— lab 那边踩过一次
+       （见 lab/README.md 里 readPixels 那条坑），所以这里 resize 完立刻 draw、再立刻 toDataURL，
+       中间不回到事件循环。取不到（没 GL / 画布被污染）时返回空串，调用方自己兜。 */
+    snapshot: function () {
+      if (!GL || !canvas || !canvas.width) return '';
+      resize();
+      draw();
+      try { return canvas.toDataURL('image/png'); } catch (e) { return ''; }
+    },
     // 把卡钉在指定角度（lab 拍照用；pin=true 时不起弹簧，不会被拉回正面）。
     // pin 时**同步画一帧**而不是排进 rAF：lab 里紧接着就要把画布 drawImage 到合成图上，
     // 而 WebGL 的绘图缓冲在同一帧之外读是空的（见 lab/README.md 里那条 readPixels 的坑）。
