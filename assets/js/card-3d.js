@@ -1195,6 +1195,12 @@
     return new Promise(function (res, rej) {
       var im = new Image();
       im.crossOrigin = 'anonymous';
+      // **弹层贴图插队**（2026-09-25，线上 512 kbit/s 实测）：收藏墙自己在慢网下要下
+      // 0.9 MB（57 格 × 11~19 KB），那是十几秒的窗口；用户在窗口里点开一张，default
+      // 优先级下它排在队尾 —— 同一档两次量到 1324 / 6735 ms，而让墙下完再点只要 263 ms
+      // （= 16.6 KB 在 512 kbit/s 下的物理传输时间）。给 high 之后它跳到**还没发出**的
+      // 墙图前面；墙自己的加载不受影响（不给墙降优先级：它是 LCP 候选）。
+      if ('fetchPriority' in im) im.fetchPriority = 'high';
       im.onload = function () { res(im); };
       im.onerror = function () { rej(new Error('image load failed: ' + url)); };
       im.src = url;
