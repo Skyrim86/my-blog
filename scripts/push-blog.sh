@@ -15,7 +15,9 @@
 #      这套校验与 CI 的 .github/actions/validate 同源，所以本地过了 CI 基本就过。
 #   4. git add -A（含删除）→ git commit
 #   5. git push origin main
-#   6. 若 gh 已安装并登录，打印最近一次 Actions 结果；否则提示去 Actions 页面看
+#   6. CI 复核（不等 gh）：tools/ci-status.mjs 按这次 SHA 等 GitHub Actions 跑完 ——
+#      绿了报绿，红了列出失败的 job/step 与注解并以非零退出，问不到就明写「未复核」。
+#      它需要能直连 api.github.com（匿名即可，public 仓库不需要 token）。
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -326,11 +328,20 @@ fi
 echo "▸ 推送到 origin/main"
 git push origin main
 
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  echo "▸ 最近一次 Actions 运行："
-  gh run list --limit 1 2>/dev/null || true
+# CI 结果复核：**按这次推上去的 SHA 等它跑完**，不是「顺便看一眼最近一次」。
+# 2026-09-25 之前这里只有 `gh run list`，而本机没装、也没登录 gh —— 那句「请到 Actions 页面
+# 查看」跟着 13 次红色 run 一路打了 13 遍：本地每次都显示「推送完成」，线上从 09-24 中午起
+# 就没再部署过。复核一旦是可选的、静默的，它就等于没有，所以这一段现在会**等**：
+# 绿了报绿；红了把失败的 job/step 与注解打出来并以非零退出；问不到就明写「未复核」。
+# 工具在 tools/ci-status.mjs（匿名 GitHub API，不需要 gh 或 token），最长等 CI_WAIT 秒（默认 600）。
+if command -v node >/dev/null 2>&1 && [ -f tools/ci-status.mjs ]; then
+  if node tools/ci-status.mjs "$(git rev-parse HEAD)"; then
+    echo "✓ 推送完成，CI 已部署到 https://skyrim86.github.io/my-blog/"
+  else
+    echo "⚠ 推送已完成，但 CI 没通过 —— Pages 上还是上一个版本（这次的东西没上线）。"
+    exit 1
+  fi
 else
-  echo "· 未检测到可用的 gh（未安装或未登录），CI 状态请到仓库 Actions 页面查看"
+  echo "⚠ 找不到 node 或 tools/ci-status.mjs，这次推送的 CI 状态**未复核**。"
+  echo "  去 $(git remote get-url origin | sed -E 's#^git@[^:]+:##; s#\.git$##')/actions 看这次 SHA"
 fi
-
-echo "✓ 推送完成，CI 会自动部署到 https://skyrim86.github.io/my-blog/"
