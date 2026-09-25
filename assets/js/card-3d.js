@@ -967,6 +967,18 @@
     };
   }
 
+  // 五角星路径（星级用；只用路径，不带素材）
+  function starPath(g, x, y, r) {
+    g.beginPath();
+    for (var i = 0; i < 10; i++) {
+      var rr = (i % 2) ? r * 0.44 : r;
+      var a = -Math.PI / 2 + i * Math.PI / 5;
+      var px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+      if (i) g.lineTo(px, py); else g.moveTo(px, py);
+    }
+    g.closePath();
+  }
+
   function drawBack(canvas, data, C) {
     var g = canvas.getContext('2d');
     var fam = getComputedStyle(document.body).fontFamily || 'sans-serif';
@@ -989,7 +1001,7 @@
     rrect(g, 52, 52, BW - 104, BH - 104, 18); g.stroke();
     g.globalAlpha = 1;
 
-    emblem(g, data.series, BW / 2, BH * 0.36, BW * 0.17, C.accent);
+    emblem(g, data.series, BW / 2, BH * 0.50, BW * 0.17, C.accent);   // 2026-09-25：0.36 → 0.50，居中
     // 等级：徽记加环、传世及以上加双环与等级带；奇迹再加一层背光。
     // 卡背是 canvas 现画的，所以「分级」在这里只是多几条绘制路径，不引入任何新素材。
     // **这里读的是清单里的原档（data.rank），不是 rankOf()**：奇迹的「看不出来」只管**正面**
@@ -1001,46 +1013,74 @@
       g.strokeStyle = C.accent;
       g.globalAlpha = BACK_RING_A[tier];
       g.lineWidth = BACK_RING_W[tier];
-      g.beginPath(); g.arc(BW / 2, BH * 0.36, BW * 0.215, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.arc(BW / 2, BH * 0.50, BW * 0.215, 0, Math.PI * 2); g.stroke();
       if (tier >= 4) {
         g.globalAlpha = 0.42; g.lineWidth = 2;
-        g.beginPath(); g.arc(BW / 2, BH * 0.36, BW * 0.248, 0, Math.PI * 2); g.stroke();
+        g.beginPath(); g.arc(BW / 2, BH * 0.50, BW * 0.248, 0, Math.PI * 2); g.stroke();
       }
       g.restore();
     }
     if (tier >= 5) {
-      var rg = g.createRadialGradient(BW / 2, BH * 0.36, 8, BW / 2, BH * 0.36, BW * 0.44);
+      var rg = g.createRadialGradient(BW / 2, BH * 0.50, 8, BW / 2, BH * 0.50, BW * 0.44);
       rg.addColorStop(0, 'rgba(255,233,172,.62)');
       rg.addColorStop(1, 'rgba(255,233,172,0)');
       g.save(); g.globalCompositeOperation = 'screen'; g.fillStyle = rg;
-      g.fillRect(0, BH * 0.06, BW, BH * 0.60); g.restore();
+      g.fillRect(0, BH * 0.20, BW, BH * 0.60); g.restore();
     }
 
     g.textAlign = 'center';
-    g.fillStyle = C.fg; g.font = '700 66px ' + fam;
-    g.fillText(clampText(g, data.label || '', BW - 190), BW / 2, BH * 0.62);
-    g.font = '400 34px ' + fam; g.fillStyle = C.dim;
-    g.fillText(data.series || '', BW / 2, BH * 0.675);
-    g.save();
-    g.globalAlpha = 0.5; g.strokeStyle = C.line; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(BW * 0.30, BH * 0.72); g.lineTo(BW * 0.70, BH * 0.72); g.stroke();
-    g.restore();
-    if (data.rankLabel && tier >= 4) {
-      g.font = '600 30px ' + fam; g.fillStyle = C.accent; g.globalAlpha = tier >= 5 ? 1 : 0.9;
-      g.fillText(data.rankLabel, BW / 2, BH * 0.845);
+    // ---- 第二识别通道（2026-09-25）：星级 + 同一金色的强度阶梯 ----
+    // 判读给的方向是「六档能分清、但不够快：小尺寸下六张先被看成同一张卡」。星数是**不依赖
+    // 金色强弱**的那条通道 —— 扫一眼数星星，收藏 1 颗 → 奇迹 6 颗。金色的明度/外发光按档递增
+    // 只作辅料（低档哑金 → 顶档亮金），因为它要靠对比才读得出，慢。
+    // **星条画在文字栈里**（上下各一份）：只画一份会破坏对称 —— 徽记与环在正中心是对称的，
+    // 而一条「只在中心下方」的星条不是。第一版就是这么漏的。
+    // ⚠ 只有**文字与星条**能这样对称：整张卡背做到 180° 对称已被实测否掉（2026-09-25，用新加的
+    // api.backCanvas() 直接量纹理：差异 67%）。主导项不是暗纹（把斜格步长改成整除 0.45·BH 后
+    // 读数一点没动），而是①底色那道斜向渐变 —— 设计要的「斜向反光」，②奇对称的系列徽记
+    // （5 瓣彼岸花这类）。要真对称就得改这两样，那等于重做卡背。
+    var stars = tier + 1;
+
+    // ---- 文字栈：**上下各一份**，上份绕卡心 180° ----
+    // 「卡背的旋转对称性（现为上下定向）」那条升级项，走实物卡背的老办法（UNO / Bicycle）：
+    // 同一组标识印两遍、互为 180°，转到哪一面看都是正着的。小字（出处、卡片组）也一起镜像 ——
+    // 留下两行单向文字，「转过来」就不成立了。
+    function stack(dir) {
+      g.save();
+      if (dir < 0) { g.translate(BW / 2, BH / 2); g.rotate(Math.PI); g.translate(-BW / 2, -BH / 2); }
+      g.fillStyle = C.fg; g.font = '700 62px ' + fam;
+      g.fillText(clampText(g, data.label || '', BW - 200), BW / 2, BH * 0.688);
+      g.font = '400 32px ' + fam; g.fillStyle = C.dim;
+      g.fillText(data.series || '', BW / 2, BH * 0.737);
+      var sr = 10 + tier * 0.8, sp = sr * 2.7;
+      var sx0 = BW / 2 - (stars - 1) * sp / 2;
+      g.save();
+      g.globalAlpha = 0.60 + 0.07 * tier; g.fillStyle = C.accent;
+      for (var si = 0; si < stars; si++) { starPath(g, sx0 + si * sp, BH * 0.772, sr); g.fill(); }
+      g.restore();
+      g.save();
+      g.globalAlpha = 0.34 + 0.11 * tier; g.strokeStyle = C.accent; g.lineWidth = 2 + tier * 0.6;
+      g.beginPath(); g.moveTo(BW * 0.31, BH * 0.801); g.lineTo(BW * 0.69, BH * 0.801); g.stroke();
+      g.restore();
+      if (data.rankLabel) {                               // 六档都有档位字（原来只有传世/奇迹有）
+        g.font = '600 30px ' + fam; g.fillStyle = C.accent;
+        g.globalAlpha = 0.72 + 0.06 * tier;
+        g.fillText(data.rankLabel, BW / 2, BH * 0.840);
+        g.globalAlpha = 1;
+      }
+      if (data.creditText) {
+        g.font = '400 26px ' + fam; g.fillStyle = C.dim;
+        g.fillText(clampText(g, data.creditText, BW - 160), BW / 2, BH * 0.880);
+      }
+      g.font = '400 24px ' + fam; g.globalAlpha = 0.7; g.fillStyle = C.dim;
+      g.fillText('KAGAMI · 卡片组', BW / 2, BH * 0.918);
       g.globalAlpha = 1;
+      g.restore();
     }
+    stack(1); stack(-1);
     // 「07 / 63」这个序号**不印在卡背上**（2026-09-21 用户要求）：卡背是一张卡，不是一条记录 ——
     // 编号那种「x / y」样式的元数据属于信息栏。信息本身没丢：弹层里那条 DOM 文本照样有它
     // （home-deck.js 的 indexText，见文件头第 5 条「卡背文字必须有等价的 DOM 文本」）。
-    // 空出来的位置让给下面那条装饰线到出处之间的一段呼吸。
-    if (data.creditText) {
-      g.font = '400 26px ' + fam; g.fillStyle = C.dim;
-      g.fillText(clampText(g, data.creditText, BW - 160), BW / 2, BH * 0.90);
-    }
-    g.font = '400 24px ' + fam; g.globalAlpha = 0.7; g.fillStyle = C.dim;
-    g.fillText('KAGAMI · 卡片组', BW / 2, BH * 0.955);
-    g.globalAlpha = 1;
   }
 
   /* ============================================================
@@ -1825,6 +1865,10 @@
       }
     },
     setTheme: function () { backKey = ''; rebuildBack(); kick(); },
+    // **lab 用**：取卡背那张 canvas（它在 DOM 之外，只有它能证明「纹理本身」的性质）。
+    // 卡背由 drawBack 现画，渲染出来的图还叠着方向性光照（扫光/环境反射/自阴影），
+    // 拿截图量对称性会把手电筒的方向算进来 —— 2026-09-25 就是先在截图上量错的。
+    backCanvas: function () { return backCanvas; },
     reset: function () {
       yaw = 0; pitch = 0; vy = 0; vp = 0; baseYaw = 0; pinned = false; inertia = false;
       turned = 0; backSince = 0;
