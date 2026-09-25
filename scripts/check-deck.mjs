@@ -1128,6 +1128,20 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
       failures.push(`✗ ${rel} 少了 ${binding} —— 收藏库说明段的摘要会退回默认值`);
     }
   }
+  {
+    // 2026-09-25：首页轮播卡的名牌有三个字段（名字 / 系列 / 卡号），apply() 每换一张都要写一遍。
+    // 「系列」那个节点被写成条件渲染过一次 —— 首卡系列==名字时它不存在，之后每张卡的系列都无处
+    // 可写，表现是换到别的角色了系列还停在首卡上（用户报的「首页卡片名字不对」）。
+    // 所以这里核两件事：模板无条件给出那个节点、主页那支脚本引用它。
+    const tmpl = readFileSync(join('layouts', '_partials', 'home-cards.html'), 'utf8');
+    const js = readFileSync(join('assets', 'js', 'home-deck.js'), 'utf8');
+    if (!tmpl.includes('<span class="home-card-series')) {
+      failures.push('✗ home-cards.html 没有无条件渲染 .home-card-series —— 轮播换卡时系列无处可写');
+    }
+    if (!js.includes("'.home-card-series'")) {
+      failures.push('✗ home-deck.js 没有引用 .home-card-series —— 换卡时系列不会跟着换');
+    }
+  }
   for (const [rel, pairs] of need) {
     const src = readFileSync(rel, 'utf8');
     for (const [attr, key] of pairs) {

@@ -54,6 +54,7 @@
   var ghost = card && card.querySelector('.home-card-ghost');
   var label = card && card.querySelector('.home-card-label');
   var indexEl = card && card.querySelector('.home-card-index');
+  var seriesEl = card && card.querySelector('.home-card-series');
   // **有没有页内轮播卡**：由模板显式声明（首页那个容器带 data-deck-carousel），而不是靠
   // 「容器里有没有 .home-card」去猜 —— 卡片墙的每一格里就有一个 .home-card，那种判据会让它
   // 误入轮播分支，表现是**点一格开弹层的同时，墙根节点上的点击监听又把卡翻到下一张**
@@ -901,6 +902,17 @@
     // 与 src 同一个 URL，所以不多一次请求；换卡时必须一起换，否则厚度层还停在上一张画上。
     card.style.setProperty('--art', "url('" + (it.l || it.s) + "')");
     if (label) label.textContent = it.label || '';
+    /* 系列**必须跟着换**（2026-09-25 用户报「首页卡片名字不对」）：这一栏原先只有模板
+       渲染的那一次，换卡时不动 —— 实测轮播到第 4 张（girl-ojou「大小姐」）时右边还写着
+       「绫华」，第 5 张（kafka-04「夜宴」）也还是「绫华」。判据与模板首屏那条一致：
+       系列与名字相同就不重复显示，用类名 is-empty 而不是 [hidden]（`.home-card-series`
+       自己有 display，[hidden] 会被它压过去，features ⑫ 那个坑）。 */
+    if (seriesEl) {
+      var ser = it.series || '';
+      var dup = !ser || ser === (it.label || '');
+      seriesEl.textContent = dup ? '' : ser;
+      seriesEl.classList.toggle('is-empty', dup);
+    }
     if (indexEl) indexEl.textContent = pad(j + 1) + ' / ' + pad(items.length);
     // 风格类：**按前缀清掉旧的**，不写死风格清单 —— 写死过一次（新增 glass/gothic/… 时忘了同步），
     // 结果是四个风格类叠在同一个元素上、由样式表顺序决定谁赢，换卡拉不动观感，且不报错。

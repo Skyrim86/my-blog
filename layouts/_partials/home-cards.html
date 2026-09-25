@@ -93,7 +93,12 @@
         <span class="home-card-plate">
             <span class="home-card-label">{{ $first.label }}</span>
             <span class="home-card-foot">
-                {{- if ne $first.series $first.label }}<span class="home-card-series">{{ $first.series }}</span>{{ end }}
+                {{- /* 系列**无条件渲染**（2026-09-25）：轮播换卡时 apply() 要往这个节点里写。
+                      条件渲染的话，首卡「系列 == 名字」时这一格根本不存在，之后每张卡的系列
+                      都无处可写 —— 表现就是换到别的角色了、系列还停在首卡上（「大小姐」顶着
+                      「绫华」）。相等或为空时加 is-empty 让它不占位置，判据与 apply() 里那条一致。 */}}
+                {{- $ser := $first.series | default "" }}
+                <span class="home-card-series{{ if or (eq $ser "") (eq $ser (string $first.label)) }} is-empty{{ end }}">{{ $ser }}</span>
                 <span class="home-card-index">01 / {{ printf "%02d" $shown }}</span>
             </span>
         </span>

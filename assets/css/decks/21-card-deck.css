@@ -2648,3 +2648,5 @@ a.home-deck-dialog-credit:hover {
 @media (prefers-reduced-motion: reduce) {
     .deck-facets-toggle::after { transition: none; }
 }
+/* 系列与名字相同（或清单里没写系列）时不占位置。判据同 apply()：模板与轮播两侧都加这个类。 */
+.home-card-series.is-empty { display: none; }
