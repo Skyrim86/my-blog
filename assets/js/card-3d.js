@@ -931,8 +931,8 @@
     // uHoloC = 0 时 field 恒等于 diag（那两档与加这批之前逐像素一致）；越高档越沿对数螺线：
     // 色带不再是「一条固定斜线扫过」，而是绕卡心旋出去，转动时读作「光在螺线里流」。
   '    float field = mix(diag, spiralField(uv - vec2(0.5)), uHoloC);',
-  '    float wave = sin(field * 8.0 - uTime * 0.8 + f * 0.8);',
-  '    float hc = fract(field * 0.35 + f * 0.10 + wave * 0.12 + uTime * 0.04);',
+  '    float wave = sin(field * 8.0 - uTime * 0.55 + f * 0.8);',
+  '    float hc = fract(field * 0.35 + f * 0.10 + wave * 0.12 + uTime * 0.03);',
   '    vec3 holo = 0.5 + 0.5 * cos(6.28318 * (hc + vec3(0.0, 0.33, 0.67)));',
   // 权重压到 0.20 而且**只在掠射角**（fres）才明显：卡面是一张浅色插画，权重一高就把它洗成
   // 一层脏紫雾（第一版 0.35 就是这样，对比图上一眼可见）。要的是「转起来掠过一道彩」，
@@ -940,14 +940,28 @@
   '    col += holo * uTint * uHolo * foilMask * (0.10 + 0.90 * fres) * 0.20;',
   '    // ② 星屑闪点：哈希网格 + pow(n,110) 取稀疏点 + 闪烁门。**稀疏是关键**（见下一条注释）：',
   '    //    偶尔闪一下才像箔膜里的晶体，只长在**抬起来的地方**（hv 门），背景不撒点。',
-  '    vec2 cell = floor(puv * 280.0);',
-  '    float n = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);',
-  '    float tw = sin(uTime * 3.0 + n * 6.28318) * 0.5 + 0.5;',
+  // 2026-09-25 改（用户报「光晕与全息别莫名其妙地闪」）：这一段原来是**每格一个白噪声**的
+  // pow(n,110)，亮点直径就一格（≈2 px），加上 tw 与 hv 两道硬门 —— 逐帧量出来**单像素一帧跳
+  // 满 255**、按住不动也一直在闪。四处改成软的：
+  //   · **格间双线性**（取 4 个格点哈希再插值）：亮点有 2–3 格的过渡，不会一帧冒出来；
+  //   · **门放宽**：hv 从 (0.15,0.60) 放到 (0.10,0.95)，渐变段拉长；
+  //   · **慢闪**：周期 2.1 s → 6.3 s（uTime*3 → *1），底色 0.15 → 0.25；
+  //   · **峰值** 2.5 → 1.8、夹到 1.1。
+  // 密度不动（还是 pow(n,110)）：上面的注释量过它 ≈470 颗，插值会让边缘变软、颗数基本不变。
+  '    vec2 gsp = puv * 280.0;',
+  '    vec2 gi = floor(gsp), gf = gsp - gi;',
+  '    gf = gf * gf * (3.0 - 2.0 * gf);',
+  '    float h00 = fract(sin(dot(gi, vec2(12.9898, 78.233))) * 43758.5453);',
+  '    float h10 = fract(sin(dot(gi + vec2(1.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);',
+  '    float h01 = fract(sin(dot(gi + vec2(0.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453);',
+  '    float h11 = fract(sin(dot(gi + vec2(1.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453);',
+  '    float n = mix(mix(h00, h10, gf.x), mix(h01, h11, gf.x), gf.y);',
+  '    float tw = sin(uTime * 1.0 + n * 6.28318) * 0.5 + 0.5;',
   // 密度是量出来的：280×280 个格子里 n^110 > 1/2.5 的约 0.6%（≈470 颗），摊在 600×840 上
   // 约等于每 32×32 一颗 —— 那是「闪」的密度。pow 从 32 一路提到 110 全是因为对比图上
   // 浅色插画被撒成了沙地：**亮点要稀疏且亮**，密了就只剩「脏」。
-  '    float sp = pow(n, 110.0) * 2.5 * uSparkle * (0.15 + 0.85 * tw) * smoothstep(0.15, 0.60, hv);',
-  '    col += mix(vec3(1.0), uTint, 0.25) * min(sp, 1.5) * foilMask;',
+  '    float sp = pow(n, 110.0) * 1.8 * uSparkle * (0.25 + 0.75 * tw) * smoothstep(0.10, 0.95, hv);',
+  '    col += mix(vec3(1.0), uTint, 0.25) * min(sp, 1.1) * foilMask;',
   '    // ③ 深度背光晕：光**只出现在凸起处**（乘 hv）——「这是浮起来的一层」最直接的线索，',
   '    //    也是最便宜的一条（没有额外采样）。',
   '    float rimD = pow(1.0 - max(dot(N, V), 0.0), 2.5) * (0.25 + 0.75 * hv);',
@@ -1368,12 +1382,21 @@
   var standEl = null;          // 展示台上的投影（DOM，attach 时建；无 GL 时不存在）
   var sweepPos = -0.5;         // 亮带当前位置（uv 空间，负值 = 还在卡外）
   var sweepK = 0;              // 亮带强度：只在转动时升起，停下衰减到 0
+  // 时间通道的**包络**（2026-09-25，用户报「莫名其妙地闪」）：进/出都不许「啪」一下。
+  // 进入 0.45 s 升到 1；退出在余韵的最后 0.9 s 里收到 0 —— 循环要等它收完才停（见 active()），
+  // 于是「停」不再是把动画冻在半相位，「再点开」也不是从半相位跳回满值。这两条正是「莫名其妙」
+  // 的来源：量出来单帧跳像素数在两种情况下都是全卡级。
+  var fxEnv = 0, FX_ENV_IN = 0.45, FX_ENV_OUT = 0.30, FX_TAIL_FADE = 0.90;
+  // 跟手高光的生效值：按下不动就整张亮起来也是「莫名其妙地闪」（一帧 0 → 0.6、52% 像素同时变），
+  // 所以①只有真拖过（位移 > GLINT_MIN_PX）才亮 ②亮/灭都走斜坡。
+  var glintK = 0, dragMoved = false, pressX = 0, pressY = 0, GLINT_MIN_PX = 3;
   var fxTime = 0;              // 时间相位（秒）：只在动画循环活着时推进，所以静止的卡上是冻结的
   var lastInput = 0;           // 最后一次交互的时刻（松手后的余韵以它为起点，见 FX_TAIL_MS）
   var ptrX = 0, ptrY = 0;      // 指针在台面里的位置（-1~1 的视图空间坐标，用于跟手高光）
   // 送进着色器的**生效值**（draw 每帧填）。stats().fx 直接回它 —— 让 lab 读「真正生效的数」
   // 而不是回读参数表：表到着色器之间还夹着调速器档位与编译期上限两道，回读表会假绿。
   var fxEff = { relief: 0, disp: 0, sharp: 0, steps: 0, sparkle: 0, holo: 0, halo: 0, cliff: 0, glint: 0,
+               env: 1, sparkleLive: 0, holoLive: 0,
               bgZoom: 0, bgParMax: 0, wall: 0, cast: 0, lid: 0, cone: 0, drift: 0,
              coneC: 0, holoC: 0,
              // flat = 这一帧的收平系数（转角把它从 1 收到 0）、bgParNow = 这一帧真挪了多少。
@@ -1610,8 +1633,14 @@
     fxEff.lid = R.lid  * G.lid;
     fxEff.cone = R.cone ;
     gl.uniform1f(U.uSteps, fxEff.steps);
-    gl.uniform1f(U.uSparkle, fxEff.sparkle);
-    gl.uniform1f(U.uHolo, fxEff.holo);
+    // 送进着色器的是**过包络之后**的值（时间通道才过：halo/cliff 是静态的，不该跟着淡）。
+    // fx.* 仍报表值（档位单调性那些断言读它），过完包络的报在 env/sparkleLive/holoLive 里 ——
+    // 读数必须写「真正送进着色器的数」这条纪律照旧。
+    fxEff.env = fxEnv;
+    fxEff.sparkleLive = fxEff.sparkle * fxEnv;
+    fxEff.holoLive = fxEff.holo * fxEnv;
+    gl.uniform1f(U.uSparkle, fxEff.sparkleLive);
+    gl.uniform1f(U.uHolo, fxEff.holoLive);
     gl.uniform1f(U.uHalo, fxEff.halo);
     gl.uniform1f(U.uCliff, fxEff.cliff);
     gl.uniform1f(U.uBgZoom, bgZoom);
@@ -1628,7 +1657,7 @@
     gl.uniform1f(U.uHoloC, fxEff.holoC);
     // 跟手高光只在**按住拖动**时给。这条正好卡在「鼠标划过卡片不会让它动」那条要求的边界上：
     // 光可以跟手，卡不能跟手。
-    fxEff.glint = dragging ? R.glint : 0;
+    fxEff.glint = glintK * R.glint;  // 生效值：斜坡（frame 里推）× 档位表里的强度
     gl.uniform1f(U.uGlint, fxEff.glint);
     // 指针灯：把指针在台面里的位置换算成视图空间的一盏灯，再与两盏主灯一样转到模型空间。
     // 不拖时把它摆在视线方向上（N·H≈1），但那时 uGlint 是 0，所以不会有任何贡献。
@@ -1870,6 +1899,7 @@
       // 放宽成 2.5 秒余韵，读数相应改成「松开 3s 后 0 帧」——**这条改动只影响余韵，不影响
       // 「没人动时不烧 GPU」那条铁律**（余韵最多 2.5 秒，之后一定停）。
       if (performance.now() - lastInput < FX_TAIL_MS) return true;
+      if (fxEnv > 0.01) return true;  // 包络还在收：停在动画中途就是「闪」（见 fxEnv 的声明）
       return false;                  // ← 这一条就是「静止就停掉动画循环」
     }
     integrate(dt);
@@ -1918,6 +1948,27 @@
     // 时间相位只在**循环活着**的时候走（而且 reduced-motion 下冻结）：新效果里那两条时间驱动的
     // 因此退化成静态的，静止的卡不会自己亮起来，也没有「一直在闪」的动效。
     if (!reduced()) fxTime += dt;
+    // 包络推进。reduced() 下**不衰减也不停用**：时间本身已经不走了（fxTime 冻结），
+    // 再乘个 0 会让这批用户直接把星屑丢掉 —— 他们要的是「不动」，不是「没有」。
+    if (reduced()) {
+      fxEnv = 1;
+    } else {
+      // 手还按在卡上（或惯性还在滑）时不计余韵：按住不动 2 s 之后效果自己暗下去，
+      // 量到过 env 从 1.0 掉到 0.39 —— 手指下头的东西不该自己褪色。
+      var tailLeft = FX_TAIL_MS - (performance.now() - lastInput);
+      var envWant = (dragging || inertia) ? 1
+        : (tailLeft < FX_TAIL_FADE * 1000 ? Math.max(0, tailLeft / (FX_TAIL_FADE * 1000)) : 1);
+      if (envWant > fxEnv) fxEnv = Math.min(envWant, fxEnv + dt / FX_ENV_IN);
+      else fxEnv = Math.max(envWant, fxEnv - dt / FX_ENV_OUT);
+    }
+    // 跟手高光的斜坡（0.2 s 上、0.25 s 下）。**这里不能读 R**：R 是 draw() 里的局部
+    // （`var R = selectRank()`），在 frame() 里它是未定义标识符 —— 而且 `&&` 短路让它
+    // 「没拖的时候」一直不报错，第一帧真拖动才 ReferenceError，把整个循环静默带走
+    // （2026-09-25 量到 frames 停在 467、drag 还是 1、之后全静止）。所以这里只推进
+    // 0..1 的权重，乘不乘 R.glint 交给 draw()。
+    var glintWant = (dragging && dragMoved) ? 1 : 0;
+    glintK += (glintWant - glintK) * Math.min(1, dt / 0.14);
+    if (glintK < 0.002 && !glintWant) glintK = 0;
     var more = update(dt);
     draw();
     // **静止就停**：没有这一条，弹层开着（哪怕没人碰）就一直占着一个 GPU 帧循环。
@@ -1946,6 +1997,7 @@
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       dragging = true; pinned = false; inertia = false;
       vy = 0; vp = 0;
+      dragMoved = false; pressX = e.clientX; pressY = e.clientY;
       setPtr(e);
       lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
       noteInput();
@@ -1959,6 +2011,7 @@
         var now = performance.now();
         var dx = e.clientX - lastX, dy = e.clientY - lastY;
         var dtms = Math.max(8, now - lastT);
+        if (!dragMoved && Math.abs(e.clientX - pressX) + Math.abs(e.clientY - pressY) > GLINT_MIN_PX) dragMoved = true;
         setPtr(e);
         yaw += dx * YAW_GAIN;
         pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, pitch + dy * PITCH_GAIN));
@@ -2179,6 +2232,10 @@
           sparkle: +fxEff.sparkle.toFixed(4), holo: +fxEff.holo.toFixed(4),
           halo: +fxEff.halo.toFixed(4), cliff: +fxEff.cliff.toFixed(4),
           glint: +fxEff.glint.toFixed(4),
+          // 时间通道的包络与**过完包络的值**：探针断言「进/出不跳」读它（lab/工具/flicker2.py）
+          env: +fxEnv.toFixed(3), envSent: +fxEff.env.toFixed(3), drag: dragging ? 1 : 0, inertia: inertia ? 1 : 0,
+          sparkleLive: +fxEff.sparkleLive.toFixed(4),
+          holoLive: +fxEff.holoLive.toFixed(4),
           bgZoom: +fxEff.bgZoom.toFixed(4), bgParMax: +fxEff.bgParMax.toFixed(4),
           wall: +fxEff.wall.toFixed(4), cast: +fxEff.cast.toFixed(4),
           lid: +fxEff.lid.toFixed(4), cone: +fxEff.cone.toFixed(4), drift: +fxEff.drift.toFixed(4),
