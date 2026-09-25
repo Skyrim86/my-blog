@@ -126,7 +126,6 @@
   var infoWork = deck.dataset.infoWork || 'work';
   var infoRole = deck.dataset.infoRole || 'role';
   var infoAdded = deck.dataset.infoAdded || 'added';
-  var saveLabel = deck.dataset.save || 'save';
   var cmpSetLabel = deck.dataset.compare || 'compare';
   var cmpClearLabel = deck.dataset.compareClear || cmpSetLabel;
   var cmpGoTpl = deck.dataset.compareGo || 'compare {label}';
@@ -330,10 +329,6 @@
   cmpGoBtn.type = 'button';
   cmpGoBtn.className = 'home-deck-flip home-deck-compare-go';
   cmpGoBtn.hidden = true;
-  var saveBtn = document.createElement('button');
-  saveBtn.type = 'button';
-  saveBtn.className = 'home-deck-flip home-deck-save';
-  saveBtn.textContent = saveLabel;
 
   var cmpPanel = document.createElement('div');
   cmpPanel.className = 'home-deck-compare-panel';
@@ -355,7 +350,6 @@
   actions.appendChild(inspectBtn);
   actions.appendChild(compareBtn);
   actions.appendChild(cmpGoBtn);
-  actions.appendChild(saveBtn);
 
   compareBtn.addEventListener('click', function () {
     var cur = items[i];
@@ -365,7 +359,6 @@
   });
   cmpGoBtn.addEventListener('click', openCompare);
   cmpClose.addEventListener('click', function () { cmpPanel.hidden = true; });
-  saveBtn.addEventListener('click', saveShot);
 
   // 2026-09-25 起：不再等到「第一次打开」才建 GL —— 见 warmViewer()。原决定是「绝大多数访客
   // 不会点 ⤢，为他们建上下文 + 传两张纹理会白占显存」；实测这笔钱是**同步**的（建上下文 +
@@ -554,19 +547,6 @@
         cmpPanel.setAttribute('aria-label', cmpTitleTpl.replace('{label}', base.label || ''));
       });
     });
-  }
-
-  function saveShot() {
-    if (!viewer || !viewer.snapshot) return;
-    var url = viewer.snapshot();
-    if (!url) return;
-    var cur = items[i] || {};
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'card-' + (cur.id || 'shot') + '.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);     // 立刻摘掉：它只是个「点一下」的替身
   }
 
   // 开包（今日一抽专用）：先亮卡背、再翻回正面。**减少了动态就整段跳过** —— 这条是纯表演。

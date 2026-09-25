@@ -1326,6 +1326,7 @@
   var canvas = null, host = null, deckEl = null;
   var item = null;
   var texFace = null, texBack = null, texDepth = null;
+  var texDepthFor = '';         // 这张深度图属于哪一张卡（防「前一张的模型贴在新卡上」）
   var faceSeq = 0;                   // setItem 的序号：晚到的图不许盖住后来居上的那一张
   // 卡面贴图被换掉过几次（低清一次、xl 一次）。给 lab 的读数用：等它自增 = 「画面换人了」，
   // 比等某张图下完更贴近访客感知 —— 低清先上之后，这两件事不再是同一时刻（见 setItem 的注释）。
@@ -2077,18 +2078,27 @@
       }).catch(function (err) {
         console.error('[card3d] 卡面图读取失败：' + (err && err.message));
       }));
+      /* 深度图（= 这一张的「模型」）整块单独处理，两条纪律：
+         ① **换卡的一刻先清掉**：上一张的深度留在场上，新卡就会顶着前一张的浮雕渲染 ——
+            用户看到的是「前一张卡的模型留在下一张卡上」（2026-09-25 报的）。清掉之后新图到达
+            之前这张渲染成平的，观感是「先平面、再浮雕」，比叠着上一张好太多。
+         ② **补 `seq` 守卫**：面贴图那两条早就有了（见上），深度这条路一直漏着 —— 快速翻页时
+            上一张的深度图后到，就会把这一张的浮雕换掉，而且**看不出是错的**（卡面是对的）。
+         另外 `texDepthFor` 记下归属，`stats()` 会报出来给探针断言（不然只能靠肉眼）。 */
+      if (texDepth && texDepth.tex) GL.gl.deleteTexture(texDepth.tex);
+      texDepth = null; texDepthFor = '';
       if (next.d) {
         jobs.push(loadImage(next.d).then(function (im) {
-          if (texDepth && texDepth.tex) GL.gl.deleteTexture(texDepth.tex);
+          if (seq !== faceSeq) return;
           texDepth = { tex: makeTex(im), w: im.naturalWidth, h: im.naturalHeight };
+          texDepthFor = next.d;
         }).catch(function (err) {
           // 深度图取不到：这一张就没有浮雕。不报错的话会被当成「这张卡本来就平的」。
           console.warn('[card3d] 深度图读取失败，这张卡没有浮雕：' + (err && err.message));
-          texDepth = null;
+          if (seq === faceSeq) { texDepth = null; texDepthFor = ''; }
         }));
       } else {
         console.warn('[card3d] 这张卡缺深度图（跑 tools/cards/make-depth.py）——它会渲染成平的');
-        texDepth = null;
       }
       Promise.all(jobs).then(function () { rebuildBack(); kick(); fireItemDone(); });
     },
@@ -2133,7 +2143,7 @@
         supported: api.supported, running: !!raf, frames: frames, faceSwaps: faceSwaps,
         yaw: +yaw.toFixed(3), pitch: +pitch.toFixed(3), base: +baseYaw.toFixed(3),
         face: faceOf(baseYaw),
-        pom: GL ? GL.pom : 0, relief: !!texDepth, pinned: pinned,
+        pom: GL ? GL.pom : 0, relief: !!texDepth, depthFor: texDepthFor, pinned: pinned,
         disp: fxEff.disp, sharp: fxEff.sharp, facePx: texFaceW,
         rank: (item && item.rank) || '', rankEff: rankOf(), revealed: revealed, turned: +turned.toFixed(2),
         canvas: canvas ? canvas.width + 'x' + canvas.height : '',

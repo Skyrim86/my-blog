@@ -2349,3 +2349,11 @@ hugo 那一段已经 `cygpath` 转了，量体积那一段把 MSYS 路径直接�
   另外空闲时预热（`requestIdleCallback`，真画两帧）：预热命中时点开到 3D 出帧只要 66–75 ms。
 - **预热只在非省流设备上跑**：`connection.saveData` 或 `deviceMemory <= 2` 跳过；只传页内那一档，不传深度图。
 - 量法与读数：`lab/工具/perf3.py`（冷/热路径 + 关闭后空转）、`lab/工具/fixshot.py`（150 ms 与 2.5 s 两张对照图）。
+
+### 换卡贴图的归属（2026-09-25）
+
+- **深度图（= 这一张的「模型」）必须跟着卡走**：`setItem()` 换卡时先 `deleteTexture` 并置 `texDepth = null`，
+  深度任务补 `seq` 守卫 —— 否则上一张的深度图后到会盖在新卡上（表现：卡面是新的、浮雕是上一张的）。
+- `stats().depthFor` = 当前深度图的 URL，供探针断言（限速下 60 ms 处应为空）。
+- **「保存卡图」已下掉**（按钮 + `saveShot()` + i18n 键 + 模板绑定 + 守卫条目）；要存图用
+  `card3d.snapshot()`（对比功能仍在用）。
