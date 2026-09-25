@@ -222,18 +222,29 @@ def skin_mask(im, blur=6.0, boost=2.2):
     return np.clip(gaussian_filter(hard, blur) * boost, 0.0, 1.0)
 
 
-def pattern_weight(hf, skin=None, fade=(0.40, 0.80, 0.06), skin_floor=0.05):
-    """纹样在各像素上的强度权重 w ∈ [skin_floor, 1]，两条相乘：
+def subject_mask(hf, lo=0.22, hi=0.36):
+    """「主体」= 高度高于背景的那一整块（阈值化 + 窄过渡）。
 
-    · **高度安全网**：高度场里最高的一层就是离眼睛最近的**人物**，那里降到 fade[2]（0.06）。
-      它不认得脸，只认得「最近」—— 但 1:1 判读（2026-09-25，第二轮）说得很清楚：**长而直的线
-      即使避开了皮肤，穿过头发/兜帽也照样读成「脸上被压了线」**，所以主体必须整体压住，
-      不能只压皮肤。0.14 → 0.06 是第二轮判读逼出来的：0.14 在菱格、星点这类**强对比**家族上仍读得出压线。
-    · **皮肤掩码**：把皮肤再压到 skin_floor（0.05）。它盖住脸时（多数卡成立）面部是两者的乘积
-      （0.06 × 0.05 ≈ 0.3%）；掩码漏判时仍由上面那条兜住 —— 两张网都要，缺一张就有卡会露。"""
-    f0, f1, fl = fade
-    t = smoothstep01((hf - f0) / max(1e-6, f1 - f0))
-    w = 1.0 - (1.0 - fl) * t
+    **为什么不用分割模型**（2026-09-25 试过，工具 `lab/工具/subjectmask_preview.py`）：
+    `jonathandinu/face-parsing` 在这套插画卡上域外**过覆盖** —— 把整个人（头发、脸、脖子、
+    躯干、手臂、连衣服）都判成脸/皮肤类，占了 80% 画面；`mattmdjaga/segformer_b2_clothes`
+    则**严重漏检** —— 只切出发顶和墨镜，脸和脖子都没有。两个都不合用。
+    而高度场**本身就是一张前景/背景图**（`to_height` 已把背景钳平到 0），阈值化就够。
+
+    窄过渡是这次的真正修法：上一版用 0.40→0.80 的**宽**过渡，人物手臂与衣物的中灰落在过渡带里，
+    那些地方还留着 30~70% 的纹样 —— 判读看到的「线从手臂、领口穿过去」就是这么来的。
+    0.22→0.36 只留一条窄边，主体内部一律压到 floor。"""
+    return smoothstep01((hf - lo) / max(1e-6, hi - lo))
+
+
+def pattern_weight(hf, skin=None, subject=(0.22, 0.36), floor=0.06, skin_floor=0.05):
+    """纹样在各像素上的强度权重 w ∈ [0, 1]，两条相乘：
+
+    · **主体遮罩**（阈值化的高度场）：人物那一整块压到 floor（0.06）—— 1:1 判读要的是
+      「人物上干净、背景与边框留工艺」，主体不必分得比这更细。
+    · **皮肤掩码**：皮肤再压到 skin_floor（0.05），给面部一道额外保险（掩码漏判时上面那条兜着）。"""
+    subj = subject_mask(hf, *subject)
+    w = 1.0 - (1.0 - floor) * subj
     if skin is not None:
         s = skin if skin.shape == hf.shape else np.asarray(
             Image.fromarray((skin * 255).astype(np.uint8)).resize(
@@ -255,6 +266,7 @@ def apply_relief_pattern(hf, kind, amp, skin=None):
             "cover": float((m > 0.05).mean()) * 100.0,
             "clip": float((raw > 1.0).mean()) * 100.0,
             "wmin": float(w.min()),
+            "subj": float((subject_mask(hf) > 0.5).mean()) * 100.0,
             "skin": float((skin > 0.5).mean()) * 100.0 if skin is not None else 0.0}
     return np.clip(raw, 0.0, 1.0), info
 

@@ -77,8 +77,8 @@ styles:
 
   holo-prism:
     labelKey: "deckStyleHoloPrism"
-    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）（2026-09-25 先关掉：放射线穿过脸/领口/手臂仍可见）
-      kind: none
+    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）：星芒全息·放射线+同心环
+      kind: none        # 形态问题，不是遮罩问题：阈值化遮罩后人物上只剩「极淡」，但均匀白线+同心环在 1:1 读成**几何干扰**（像 CAD 线框/蛛网，缺全息该有的衍射与层次）—— 要重做成星芒形+衍射晕，见 docs/pending.md
     tier: "advanced"
     note: "星芒全息（holo-prism）：以画面上方三分之一处为中心的**放射虹彩** + 几颗星点 + 大扫光。"
     fretLine: "linear-gradient(100deg, #ffd9a0, #ff9ec4 28%, #a0e8ff 52%, #c9a0ff 76%, #ffe6b0)"
@@ -271,8 +271,9 @@ styles:
   # ---------------------------------------------------------------- deckStyleStarnight
   starnight:
     labelKey: "deckStyleStarnight"
-    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）（2026-09-25 先关掉：星点落在脸/颈侧仍可见（1:1 判读））
-      kind: none
+    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）：星屑夜天·星点
+      kind: starfield  # 主体遮罩改阈值化后重开（2026-09-25）：人物主体压到 6%，背景/边框留全强度
+      amp: 0.07  # 峰值抬升
     tier: "basic"
     note: "星屑夜天：深蓝紫的框 + 一层疏密不匀的星点与流星痕。"
     fretLine: "rgba(206, 216, 255, .90)"
@@ -576,8 +577,8 @@ styles:
   # ---------------------------------------------------------------- deckStyleInkwash
   inkwash:
     labelKey: "deckStyleInkwash"
-    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）（2026-09-25 先关掉：飞白笔触仍读成数字扫描线（形态问题，降幅度解决不了））
-      kind: none
+    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）：墨染·飞白
+      kind: none        # 形态问题，不是遮罩问题：笔触细而匀，1:1 仍读成**数字扫描线**、且偏弱 —— 要按毛笔重做（分段粗细、起收笔、墨团、更疏更重）
     tier: "basic"
     note: "墨染（inkwash）：**水墨晕染** —— 底部压深 + 一滴浓淡不匀的晕（新加的径向层）+ 一道飞白 + 纸颗粒。冷灰黑、亚光；**只适合暗卡面**（亮卡上读成漏墨，brief §十六）。"
     fretLine: "rgba(196, 200, 214, .85)"
