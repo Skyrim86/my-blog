@@ -101,9 +101,14 @@
   }
   var seen = loadSeen();
   var query = '';        // 搜索词（小写，空 = 不筛）
-  var book = false;      // 卡册视图：3 列 × 每页 9 张，别的不占格也不参与键盘漫游
+  var book = false;      // 卡册视图：3 列 × 每页 9 张（一整跨页），别的不占格也不参与键盘漫游
   var bookPage = 1;
-  var PER_PAGE = 9;
+  /* 平铺一页 12 张（2026-09-25 用户口径：「一次最多展示 12 张，多的要切换下一页」）。
+     卡册视图照旧 3×3 = 9 张 —— 那是「一整跨页」的形态，9 本身也满足「最多 12」。
+     两个数都留在这里，别散到调用点去。 */
+  var PER_PAGE = 12;
+  var PER_PAGE_BOOK = 9;
+  function pageSize() { return book ? PER_PAGE_BOOK : PER_PAGE; }
   function seenOf(it) { return (it && it.id ? seen[it.id] : 0) | 0; }
   function seenTotal() {
     var n = 0;
@@ -653,21 +658,33 @@
 
   function paintPages() {
     var vis = visibleList();
-    var pages = Math.max(1, Math.ceil(vis.length / PER_PAGE));
+    var size = pageSize();
+    var pages = Math.max(1, Math.ceil(vis.length / size));
     if (bookPage > pages) bookPage = pages;
     if (bookPage < 1) bookPage = 1;
-    var from = (bookPage - 1) * PER_PAGE, to = from + PER_PAGE;
+    var from = (bookPage - 1) * size, to = from + size;
     tiles.forEach(function (t) { if (t) t.classList.remove('is-offpage'); });
-    if (book) {
-      vis.forEach(function (t, idx) { if (idx < from || idx >= to) t.classList.add('is-offpage'); });
-    }
-    pager.hidden = !book;
+    // 平铺与卡册**都分页**（2026-09-25）。只在一页时下面的 pager 会自己收起来，
+    // 所以「57 张一次铺满」那种长页面不会再出现，而单页筛选结果也不会多出一条没用的控件。
+    vis.forEach(function (t, idx) { if (idx < from || idx >= to) t.classList.add('is-offpage'); });
+    pager.hidden = pages <= 1;
     pageLabel.textContent = attr('page', '第 {n} / {m} 页')
       .replace('{n}', String(bookPage)).replace('{m}', String(pages));
     pagePrev.disabled = bookPage <= 1;
     pageNext.disabled = bookPage >= pages;
-    // 卡册里没有组头的位置（一行只放三张），所以分组标题在卡册模式下收起来
-    if (heads.length) heads.forEach(function (h) { if (book) h.el.hidden = true; });
+    // 组标题：卡册里没有它的位置（一行只放三张）一律收起；平铺时按「本页有没有这一组的格子」
+    // 判 —— 分页之后某一组可能整组都在别的页上，不收的话页首会挂着一条没有内容的标题。
+    if (heads.length) {
+      heads.forEach(function (h) {
+        if (book) { h.el.hidden = true; return; }
+        var any = vis.some(function (t, idx) {
+          if (idx < from || idx >= to) return false;
+          var m = t.querySelector('.deck-tile-meta');
+          return !!m && m.getAttribute('data-series') === h.value;
+        });
+        h.el.hidden = !any;
+      });
+    }
   }
 
   // 「共 12 张（艾米莉亚 · 金边+玻璃 · 传世）」：把当前选中的项按维度顺序摊开，
@@ -685,12 +702,10 @@
 
   // 当前**看得见**的格子，按视觉顺序（分组时是 order，平铺时是清单原序）。
   // 键盘漫游与「随机翻一张」都走它 —— 少一处口径，就少一次「抽到一张看不见的卡」。
-  // 当前**看得见**的格子（分组时是 order，平铺时是清单原序）—— 键盘漫游与抽取都走它。
-  // 卡册模式下再把不在这一页上的排掉：键盘不该漫游到看不见的格子上。
+  // 当前**看得见**的格子（分组时是 order，平铺时是清单原序）—— 键盘漫游走它。
+  // **分页之后一律排掉不在本页的**（平铺也排，2026-09-25）：键盘不该漫游到看不见的格子上。
   function navList() {
-    var v = visibleList();
-    if (!book) return v;
-    return v.filter(function (t) { return !t.classList.contains('is-offpage'); });
+    return visibleList().filter(function (t) { return !t.classList.contains('is-offpage'); });
   }
 
   function tileIndex(t) { return parseInt(t.getAttribute('data-i'), 10) || 0; }
@@ -868,7 +883,8 @@
     if (grouped && seriesSpec) parts.push('group=series');
     if (query) parts.push('q=' + encodeURIComponent(query));
     if (book) parts.push('book=1');
-    if (book && bookPage > 1) parts.push('page=' + bookPage);
+    // 页码不分视图：平铺也一样写（分享出去的链接要能落到同一页）
+    if (bookPage > 1) parts.push('page=' + bookPage);
     return parts.length ? '?' + parts.join('&') : '';
   }
 
@@ -1034,10 +1050,10 @@
       var vis = visibleList();
       if (!vis.length) return;
       var pick = pickToday(vis);
-      if (book) {
-        var at = vis.indexOf(pick);
-        if (at >= 0) { bookPage = Math.floor(at / PER_PAGE) + 1; paintPages(); syncURL(); }
-      }
+      // 抽到的卡可能在别的页上 —— 不管哪种视图都先翻到它那一页，
+      // 否则会出现「抽了一张，墙上没有它」。
+      var at = vis.indexOf(pick);
+      if (at >= 0) { bookPage = Math.floor(at / pageSize()) + 1; paintPages(); syncURL(); }
       window.homeDeck.openAt(tileIndex(pick), pick, { deal: true });   // 开包动画只在抽卡这条路
     });
 
@@ -1052,6 +1068,13 @@
       var idx = parseInt(m[1], 10) - 1;
       if (!(idx >= 0 && idx < items.length)) return;
       if (tiles[idx] && tiles[idx].classList.contains('is-filtered')) return;  // 筛掉了就不开
+      /* 深链那张可能在别的页上（平铺分页之后常态）：先把墙翻到它那一页再开 ——
+         否则弹层里是一张墙上找不到的卡，与抽卡那条同一个理由。 */
+      var pos = visibleList().indexOf(tiles[idx]);
+      if (pos >= 0) {
+        var want = Math.floor(pos / pageSize()) + 1;
+        if (want !== bookPage) { bookPage = want; paintPages(); syncURL(); }
+      }
       window.homeDeck.openAt(idx, tiles[idx] || null);
     }
 
