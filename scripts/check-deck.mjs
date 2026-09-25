@@ -175,13 +175,10 @@ for (const [idx, c] of entries.entries()) {
   }
   if (c.style) usedStyles.add(String(c.style));
 
-  // 2026-09-25 加的三个字段（work / role / added）：都**可选**，但写了就得合法 ——
-  // added 走弹层信息卡，格式错了页面上不报错、只是印出一串怪字符串；work/role 写了空值
+  // 2026-09-25 加的两个字段（work / role）：都**可选**，但写了就得合法 ——
+  // 格式错了页面上不报错、只是印出一串怪字符串；work/role 写了空值
   // 会让信息卡多出一截没有内容的标签。
 
-  if (c.added && !/^\d{4}-\d{2}-\d{2}$/.test(String(c.added))) {
-    failures.push(`✗ ${where}：added「${c.added}」不是 YYYY-MM-DD`);
-  }
   for (const key of ['work', 'role']) {
     if (key in c && !String(c[key]).trim()) {
       failures.push(`✗ ${where}：${key} 写了但值是空的 —— 要么删掉这一行，要么写值`);

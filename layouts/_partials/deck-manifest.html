@@ -16,7 +16,7 @@
        credit/url 出处文字与可点链接
        id 卡的**稳定标识**（image 去扩展名，如 ayaka-sword）：探索进度按它记。**不能用下标**
           —— 清单中间插一张卡，它后面每一张的下标都会挪，进度就串到别人身上。
-       work/role/added 作品 / 角色 / 收录日期（2026-09-25 加）：弹层信息卡用，缺失留空。
+       work/role 作品 / 角色（2026-09-25 加；同日的 `added` 收录日期已于当天晚些时候下掉）：弹层信息卡用，缺失留空。
 
      为什么把两个中文名也放进条目：卡片墙的筛选项（收藏库）是按系列/工艺/等级现算的，
      而工艺**至今只有代码名没有中文名**（foil 全息 / washi 和纸 / kintsugi 金继…）——
@@ -137,7 +137,7 @@
     "d" $durl
     "bumpLit" $blit "bumpSpec" $bspec
     "id" (path.Base .image | strings.TrimSuffix (path.Ext .image))
-    "work" (.work | default "") "role" (.role | default "") "added" (.added | default "")
+    "work" (.work | default "") "role" (.role | default "")
     "label" (.name | default .series) "series" .series "style" $style
     "styleLabel" (index (dict
         "foil" (i18n "deckStyleFoil") "holo-prism" (i18n "deckStyleHoloPrism")

@@ -905,7 +905,7 @@ html.is-deck-dialog #bottom-link {
   color: var(--secondary);
 }
 
-/* 信息卡那一行（作品 / 角色 / 收录）：与系列同一行，弱一档 —— 它是补注不是标题 */
+/* 信息卡那一行（作品 / 角色）：与系列同一行，弱一档 —— 它是补注不是标题 */
 .home-deck-dialog-info {
   color: var(--muted-foreground, var(--secondary));
   font-size: .96em;

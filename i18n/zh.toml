@@ -463,17 +463,13 @@ other = "对比：{label}"
 [deckCompareFail]
 other = "这张没拍出来"
 
-# 弹层信息卡的三行标签（值来自清单的 work / role / added）。
+# 弹层信息卡的标签（值来自清单的 work / role）。
 [deckInfoWork]
 other = "作品"
 
 [deckInfoRole]
 other = "角色"
 
-[deckInfoAdded]
-other = "收录"
-
-# 显形是**纯视觉**的变化（画布上那点光），读屏用户什么都得不到 —— 这条由 role="status" 播报。
 [deckRevealAnnounce]
 other = "《{label}》显形了：{rank}"
 

@@ -125,7 +125,6 @@
   var inspectOffLabel = deck.dataset.inspectOff || inspectLabel;
   var infoWork = deck.dataset.infoWork || 'work';
   var infoRole = deck.dataset.infoRole || 'role';
-  var infoAdded = deck.dataset.infoAdded || 'added';
   var cmpSetLabel = deck.dataset.compare || 'compare';
   var cmpClearLabel = deck.dataset.compareClear || cmpSetLabel;
   var cmpGoTpl = deck.dataset.compareGo || 'compare {label}';
@@ -393,7 +392,7 @@
   metaSeries.className = 'home-deck-dialog-series';
   var metaIndex = document.createElement('span');
   metaIndex.className = 'home-deck-dialog-index';
-  // 信息卡（2026-09-25）：作品 / 角色 / 收录日期，值来自清单；三样都缺就整块不出现。
+  // 信息卡（2026-09-25）：作品 / 角色，值来自清单；两样都缺就整块不出现。
   var metaInfo = document.createElement('span');
   metaInfo.className = 'home-deck-dialog-info';
   metaInfo.hidden = true;
@@ -581,8 +580,13 @@
     metaIndex.textContent = pad(i + 1) + ' / ' + pad(items.length);
     var bits = [];
     if (item.work) bits.push(infoWork + ' ' + item.work);
-    if (item.role) bits.push(infoRole + ' ' + item.role);
-    if (item.added) bits.push(infoAdded + ' ' + item.added);
+    /* 角色与系列重复时**不显示**（2026-09-25 用户要求清冗余）：57 张里 35 张是「系列 == 角色」
+       （卡夫卡 / 卡夫卡），18 张是「系列 ⊂ 角色」（绫华 ⊂ 神里绫华）—— 那两种情况下这一行等于把
+       系列徽记又说一遍，而它上面一格就是系列。只有 4 张（黑长直少女那批：原创角色 / 看板娘）
+       角色是独立信息。判据写成「role 与 series 相同、或 contains」，别硬编码哪一批。 */
+    var roleDup = item.role && item.series &&
+      (item.role === item.series || String(item.role).indexOf(String(item.series)) >= 0);
+    if (item.role && !roleDup) bits.push(infoRole + ' ' + item.role);
     metaInfo.textContent = bits.join(' · ');
     metaInfo.hidden = !bits.length;
     syncCompareButtons();
