@@ -156,41 +156,79 @@ def _pat_laid(w, h):
 
 
 def _pat_rays(w, h):
-    """星芒全息：从画面上方三分之一中心放射的细线 + 几道同心环（对齐那个工艺的 CSS 版）。"""
+    """星芒全息：**衍射星芒**，不是均匀白线。
+
+    第一版是 24 条等宽直线 + 3 道完整同心环，1:1 判读的原话是「像 CAD 线框/蛛网，是几何干扰」——
+    全息该有的是**有光源、有衍射层次、强度随距离衰减**的星芒。所以这一版：
+    · 长芒画成**锥形多边形**（根细 → 中段最宽 → 末端收尖），长度、宽度、亮度逐条不同；
+    · 短芒插在长芒之间，起「闪烁」作用；
+    · 同心环改成**断成小段的弧**，每段的线宽与亮度都不同（衍射条纹的碎亮），不再是一圈连续的线；
+    · 中心一团柔晕（让人读出「有光源」）。"""
     m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
     cx, cy = w / 2.0, h / 3.0
-    R = int((w ** 2 + h ** 2) ** 0.5)
-    for k in range(24):
-        a = k * (2 * np.pi / 36)
-        d.line([(cx + 40 * np.cos(a), cy + 40 * np.sin(a)),
-                (cx + R * np.cos(a), cy + R * np.sin(a))], fill=255, width=3)
-    for r in (170, 235, 310):
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=200, width=2)
-    return np.asarray(m).astype(np.float32) / 255.0
+    R = (w ** 2 + h ** 2) ** 0.5
+    rng = np.random.default_rng(7)
+
+    def spike(ang, L, hw, vmax):
+        n = 44
+        top, bot = [], []
+        for i in range(n + 1):
+            t = i / n
+            x, y = cx + L * t * np.cos(ang), cy + L * t * np.sin(ang)
+            prof = np.sin(np.pi * min(1.0, t * 0.82 + 0.14)) ** 1.3      # 根细 → 中宽
+            wid = hw * prof * (1.0 - 0.5 * t)                            # → 尖收
+            px, py = -np.sin(ang) * wid, np.cos(ang) * wid
+            top.append((x + px, y + py)); bot.append((x - px, y - py))
+        d.polygon(bot[::-1] + top, fill=int(rng.integers(int(vmax * 0.8), vmax + 1)))
+
+    for k in range(4):                                                   # 长芒（更少更宽 → 一眼是星芒）
+        spike(k * (np.pi / 2) + 0.18, R * float(rng.uniform(0.62, 1.0)),
+              float(rng.uniform(16, 30)), 255)
+    for k in range(2):                                                   # 只留两道细的次芒（增加层次，不成网）
+        spike(k * np.pi + 1.1, R * float(rng.uniform(0.30, 0.45)),
+              float(rng.uniform(3, 5)), 200)
+    yy, xx = np.mgrid[0:h, 0:w]
+    glow = np.exp(-(((xx - cx) ** 2 + (yy - cy) ** 2) / (2 * (0.055 * w) ** 2)))  # 中心柔晕（紧而亮）
+    return np.clip(np.asarray(m).astype(np.float32) / 255.0 + 1.0 * glow, 0.0, 1.0)
 
 
 def _pat_brush(w, h):
-    """墨染的飞白：**每一笔的长短、粗细、倾角都不同**，带飞白断口与溅点。
+    """墨染·飞白：按**毛笔**的写法重做。
 
-    第一版是等距横扫，1:1 判读说它「像数字扫描线、不像墨染」—— 排布太规整就丢掉水墨味，
-    所以这里把规整性拆掉：笔数固定、位置随机、每笔自己带倾角、六段里随机断口。"""
+    前两版都读成「数字扫描线」—— 病在细、匀、平。毛笔的特征是：一笔之内**粗细与浓淡都在变**、
+    起笔重收笔尖、干笔时沿笔画方向留断口与飞白、偶尔甩出墨点。所以一笔画成沿路径的**变径圆盘序列**
+    （半径按弧线起伏），墨色逐点抖动，尾部更容易断；再叠少量墨团与溅点。"""
     m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
-    rng = np.random.default_rng(11)
-    for _ in range(26):
-        y = int(rng.integers(20, h - 20))
-        x0, L = int(rng.integers(-60, w // 2)), int(rng.integers(90, 330))
-        lw, tilt = int(rng.integers(1, 6)), float(rng.uniform(-0.09, 0.09))
-        seg = L // 6
-        for k in range(6):
-            if rng.random() < 0.30:                      # 飞白断口
+    rng = np.random.default_rng(23)
+
+    def stroke(x0, y0, ang, L, rmax, ink):
+        n = max(12, int(L / 4))
+        bend = float(rng.uniform(-0.25, 0.25))
+        for i in range(n + 1):
+            t = i / n
+            x = x0 + L * t * np.cos(ang) + bend * L * t * t * -np.sin(ang)
+            y = y0 + L * t * np.sin(ang) + bend * L * t * t * np.cos(ang)
+            prof = np.sin(np.pi * min(1.0, t * 0.8 + 0.1)) ** 0.7       # 起笔细 → 中段粗 → 收笔尖
+            r = max(0.7, rmax * prof)
+            if rng.random() < 0.14 + 0.5 * t:                            # 干笔：越靠尾部越容易断
                 continue
-            xa = x0 + k * seg
-            d.line([(xa, y + tilt * k * seg), (xa + seg + 4, y + tilt * (k + 1) * seg)],
-                   fill=255 - int(rng.integers(0, 40)), width=lw)
-    for _ in range(18):                                  # 溅点
-        x, y = int(rng.integers(0, w)), int(rng.integers(0, h))
-        r = int(rng.integers(1, 3))
-        d.ellipse([x - r, y - r, x + r, y + r], fill=200)
+            v = int(np.clip(ink * (0.75 + 0.5 * rng.random()), 40, 255))
+            d.ellipse([x - r, y - r, x + r, y + r], fill=v)
+
+    for _ in range(8):                                                   # 长笔（更少更粗）
+        stroke(float(rng.uniform(-40, w * 0.7)), float(rng.uniform(0, h)),
+               float(rng.uniform(-0.5, 0.5)), float(rng.uniform(180, 460)),
+               float(rng.uniform(10, 22)), 250)
+    for _ in range(9):                                                   # 短笔
+        stroke(float(rng.uniform(0, w)), float(rng.uniform(0, h)),
+               float(rng.uniform(-3.14, 3.14)), float(rng.uniform(40, 130)),
+               float(rng.uniform(6, 14)), 235)
+    for _ in range(8):                                                   # 墨团（更大更实）
+        x, y = float(rng.uniform(0, w)), float(rng.uniform(0, h)); r = float(rng.uniform(9, 22))
+        d.ellipse([x - r, y - r * 0.65, x + r, y + r * 0.65], fill=int(rng.integers(200, 256)))
+    for _ in range(24):                                                  # 溅点
+        x, y = float(rng.uniform(0, w)), float(rng.uniform(0, h)); r = float(rng.uniform(0.8, 2.6))
+        d.ellipse([x - r, y - r, x + r, y + r], fill=int(rng.integers(150, 230)))
     return np.asarray(m).astype(np.float32) / 255.0
 
 
@@ -222,7 +260,7 @@ def skin_mask(im, blur=6.0, boost=2.2):
     return np.clip(gaussian_filter(hard, blur) * boost, 0.0, 1.0)
 
 
-def subject_mask(hf, lo=0.22, hi=0.36):
+def subject_mask(hf, lo=None, hi=None):
     """「主体」= 高度高于背景的那一整块（阈值化 + 窄过渡）。
 
     **为什么不用分割模型**（2026-09-25 试过，工具 `lab/工具/subjectmask_preview.py`）：
@@ -233,7 +271,16 @@ def subject_mask(hf, lo=0.22, hi=0.36):
 
     窄过渡是这次的真正修法：上一版用 0.40→0.80 的**宽**过渡，人物手臂与衣物的中灰落在过渡带里，
     那些地方还留着 30~70% 的纹样 —— 判读看到的「线从手臂、领口穿过去」就是这么来的。
-    0.22→0.36 只留一条窄边，主体内部一律压到 floor。"""
+    0.22→0.36 只留一条窄边，主体内部一律压到 floor。
+
+    **阈值按卡自适应**（2026-09-25 第二轮）：固定 0.22 在**深度对比低**的卡上会失效 ——
+    夜宴那张的高度分位 p70 = 0.220，正好卡在阈值上，主体遮罩只覆盖 6% 的像素，等于没有；
+    而离线对比（不经过 dev server）能测出人物上确实还留着纹样。改成
+    `hi = min(0.36, p62)`、`lo = 0.62*hi`：深度分得开的卡（观星 p62≈0.62）维持原样，
+    分不开的卡（夜宴 p62≈0.18）自动下移把人物那 ~40% 收进遮罩。"""
+    if hi is None:
+        hi = min(0.36, float(np.percentile(hf, 62)))
+        lo = 0.62 * hi
     return smoothstep01((hf - lo) / max(1e-6, hi - lo))
 
 
