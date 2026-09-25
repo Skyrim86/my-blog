@@ -118,30 +118,144 @@ def _pat_cloison(w, h):
     return np.asarray(m).astype(np.float32) / 255.0
 
 
-PATTERNS = {"vine": _pat_vine, "cloison": _pat_cloison}
+def _pat_starfield(w, h):
+    """星屑夜天：疏密不匀的点 + 几道流星痕。点是**硬边小盘**（软过渡判读是「糊」）。"""
+    m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
+    rng = np.random.default_rng(20260925)
+    for _ in range(70):
+        x, y = int(rng.integers(0, w)), int(rng.integers(0, h))
+        r = int(rng.integers(2, 6))
+        d.ellipse([x - r, y - r, x + r, y + r], fill=255)
+    for _ in range(4):
+        x, y = int(rng.integers(0, w)), int(rng.integers(0, h))
+        L, a = int(rng.integers(60, 170)), float(rng.uniform(-0.5, 0.5))
+        d.line([(x, y), (x + L * np.cos(a), y + L * np.sin(a))], fill=225, width=2)
+    m = m.filter(ImageFilter.GaussianBlur(0.4))      # 只圆掉像素锯齿
+    return np.asarray(m).astype(np.float32) / 255.0
 
 
-def apply_relief_pattern(hf, kind, amp, fade=(0.40, 0.80, 0.08)):
+def _pat_lattice(w, h):
+    """凸印压痕：45° 硬菱格（线宽 3、不模糊）—— 压痕靠脆边界读出来，软脊读成糊。"""
+    m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
+    S = 64
+    for k in range(-h, w + h, S):
+        d.line([(k, 0), (k + h, h)], fill=255, width=3)
+        d.line([(k, h), (k + h, 0)], fill=255, width=3)
+    d.rectangle([10, 10, w - 11, h - 11], outline=255, width=2)
+    return np.asarray(m).astype(np.float32) / 255.0
+
+
+def _pat_laid(w, h):
+    """珠光纸：帘纹（细横线 + 稀疏竖线）。纸纹要**细而密、幅度低**，否则整张像塑料格。"""
+    m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
+    for y in range(3, h, 6):
+        d.line([(0, y), (w, y)], fill=255, width=1)
+    for x in range(45, w, 90):
+        d.line([(x, 0), (x, h)], fill=180, width=2)
+    return np.asarray(m).astype(np.float32) / 255.0
+
+
+def _pat_rays(w, h):
+    """星芒全息：从画面上方三分之一中心放射的细线 + 几道同心环（对齐那个工艺的 CSS 版）。"""
+    m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
+    cx, cy = w / 2.0, h / 3.0
+    R = int((w ** 2 + h ** 2) ** 0.5)
+    for k in range(24):
+        a = k * (2 * np.pi / 36)
+        d.line([(cx + 40 * np.cos(a), cy + 40 * np.sin(a)),
+                (cx + R * np.cos(a), cy + R * np.sin(a))], fill=255, width=3)
+    for r in (170, 235, 310):
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=200, width=2)
+    return np.asarray(m).astype(np.float32) / 255.0
+
+
+def _pat_brush(w, h):
+    """墨染的飞白：**每一笔的长短、粗细、倾角都不同**，带飞白断口与溅点。
+
+    第一版是等距横扫，1:1 判读说它「像数字扫描线、不像墨染」—— 排布太规整就丢掉水墨味，
+    所以这里把规整性拆掉：笔数固定、位置随机、每笔自己带倾角、六段里随机断口。"""
+    m = Image.new("L", (w, h), 0); d = ImageDraw.Draw(m)
+    rng = np.random.default_rng(11)
+    for _ in range(26):
+        y = int(rng.integers(20, h - 20))
+        x0, L = int(rng.integers(-60, w // 2)), int(rng.integers(90, 330))
+        lw, tilt = int(rng.integers(1, 6)), float(rng.uniform(-0.09, 0.09))
+        seg = L // 6
+        for k in range(6):
+            if rng.random() < 0.30:                      # 飞白断口
+                continue
+            xa = x0 + k * seg
+            d.line([(xa, y + tilt * k * seg), (xa + seg + 4, y + tilt * (k + 1) * seg)],
+                   fill=255 - int(rng.integers(0, 40)), width=lw)
+    for _ in range(18):                                  # 溅点
+        x, y = int(rng.integers(0, w)), int(rng.integers(0, h))
+        r = int(rng.integers(1, 3))
+        d.ellipse([x - r, y - r, x + r, y + r], fill=200)
+    return np.asarray(m).astype(np.float32) / 255.0
+
+
+PATTERNS = {"vine": _pat_vine, "cloison": _pat_cloison, "starfield": _pat_starfield,
+            "lattice": _pat_lattice, "laid": _pat_laid, "rays": _pat_rays, "brush": _pat_brush}
+
+
+def smoothstep01(x):
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3.0 - 2.0 * x)
+
+
+def skin_mask(im, blur=6.0, boost=2.2):
+    """从**卡面图**算「皮肤」软掩码（YCbCr 经典区间，无新依赖）。
+
+    为什么要它：1:1 判读（2026-09-25）说纹样横穿脸/脖子会被读成「脸上被压了线」，是缺陷；
+    但只按高度降权会连**头发、衣物、发饰**一起压掉（它们也是「最近的一层」），而那些地方
+    恰恰是判读允许保留工艺的（「背景、边框、发饰、衣物可以保留 0.5~0.8」）。
+    所以再加一层靶向的皮肤掩码。
+
+    已知偏差：**粉/橙色头发会被误判成皮肤**（浅肤色与粉发在 Cb/Cr 上几乎重合）。这是有意的
+    取舍 —— 漏判（把皮肤当非皮肤）才会出缺陷，误判只是少给一块地方加纹样，安全方向。"""
+    a = np.asarray(im.convert("RGB")).astype(np.float32)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    yy = 0.299 * r + 0.587 * g + 0.114 * b
+    cb = 128.0 + (b - yy) * 0.564
+    cr = 128.0 + (r - yy) * 0.713
+    hard = ((cb >= 77) & (cb <= 127) & (cr >= 133) & (cr <= 173) & (yy >= 80)).astype(np.float32)
+    return np.clip(gaussian_filter(hard, blur) * boost, 0.0, 1.0)
+
+
+def pattern_weight(hf, skin=None, fade=(0.40, 0.80, 0.06), skin_floor=0.05):
+    """纹样在各像素上的强度权重 w ∈ [skin_floor, 1]，两条相乘：
+
+    · **高度安全网**：高度场里最高的一层就是离眼睛最近的**人物**，那里降到 fade[2]（0.06）。
+      它不认得脸，只认得「最近」—— 但 1:1 判读（2026-09-25，第二轮）说得很清楚：**长而直的线
+      即使避开了皮肤，穿过头发/兜帽也照样读成「脸上被压了线」**，所以主体必须整体压住，
+      不能只压皮肤。0.14 → 0.06 是第二轮判读逼出来的：0.14 在菱格、星点这类**强对比**家族上仍读得出压线。
+    · **皮肤掩码**：把皮肤再压到 skin_floor（0.05）。它盖住脸时（多数卡成立）面部是两者的乘积
+      （0.06 × 0.05 ≈ 0.3%）；掩码漏判时仍由上面那条兜住 —— 两张网都要，缺一张就有卡会露。"""
+    f0, f1, fl = fade
+    t = smoothstep01((hf - f0) / max(1e-6, f1 - f0))
+    w = 1.0 - (1.0 - fl) * t
+    if skin is not None:
+        s = skin if skin.shape == hf.shape else np.asarray(
+            Image.fromarray((skin * 255).astype(np.uint8)).resize(
+                (hf.shape[1], hf.shape[0]), Image.BILINEAR)).astype(np.float32) / 255.0
+        w = w * (1.0 - (1.0 - skin_floor) * s)
+    return w
+
+
+def apply_relief_pattern(hf, kind, amp, skin=None):
     """把一层工艺纹样叠进高度场。**调用点必须在滤波之后** —— 中值 3×3 + 高斯会把这层图案摊成
     软脊，而「软脊」的判读是「画面发糊」，不是「压出的纹样」（纹样要靠脆边界读出来）。
-    峰值按 mask 自身归一化，于是 `amp` 恒等于峰值抬升，与模糊无关。
-
-    `fade=(from, to, floor)`：**按高度给主体降权**。1:1 判读（2026-09-25）明确说全局均匀铺时
-    「线条横穿眼睛、脸颊、脖子」会被读成「脸上被压了线/划痕」，是缺陷而不是工艺 ——
-    而高度场里最高的那一层就是离眼睛最近的**人物**，所以按它衰减：背景/边框/衣物（低处）全强度，
-    主体面部降到 floor。三个数不是拍脑袋：0.45 起衰、0.85 到底，正好落在产物的主体高度上
-    （生成时打出的削顶比与背景占比可复核）。"""
+    峰值按 mask 自身归一化，于是 `amp` 恒等于峰值抬升，与模糊无关。权重见 pattern_weight。"""
     m = PATTERNS[kind](hf.shape[1], hf.shape[0])
     mx = float(m.max()) or 1.0
     m /= mx
-    f0, f1, fl = fade
-    t = np.clip((hf - f0) / max(1e-6, f1 - f0), 0.0, 1.0)
-    w = 1.0 - (1.0 - fl) * (t * t * (3.0 - 2.0 * t))
+    w = pattern_weight(hf, skin)
     raw = hf + amp * m * w
     info = {"kind": kind, "amp": amp,
             "cover": float((m > 0.05).mean()) * 100.0,
             "clip": float((raw > 1.0).mean()) * 100.0,
-            "wmin": float(w.min())}
+            "wmin": float(w.min()),
+            "skin": float((skin > 0.5).mean()) * 100.0 if skin is not None else 0.0}
     return np.clip(raw, 0.0, 1.0), info
 
 
@@ -356,7 +470,7 @@ def main():
         pkind, pamp = pattern_params(c, styles, args.pattern)
         pinfo = None
         if pkind != "none" and pamp > 0:
-            hf, pinfo = apply_relief_pattern(hf, pkind, pamp)
+            hf, pinfo = apply_relief_pattern(hf, pkind, pamp, skin_mask(im))
         h8 = (hf * 255.0).round().astype(np.uint8)
         Image.fromarray(h8, "L").save(dest, "WEBP", quality=args.quality, method=6)
         kb = os.path.getsize(dest) // 1024
@@ -368,7 +482,8 @@ def main():
         # 纹样那一路的体检数：覆盖率与**削顶比例**。削顶是静默的（只是那一带少了一层起伏，
         # 读作「平顶/死白」），所以必须打出来，不能靠眼睛在 63 张里找。
         ptxt = (f"  纹样 {pinfo['kind']} {pinfo['amp']:.2f} 覆盖 {pinfo['cover']:.0f}%"
-                f" 削顶 {pinfo['clip']:.1f}% 主体权重 {pinfo['wmin']:.2f}") if pinfo else ""
+                f" 削顶 {pinfo['clip']:.1f}% 权重最低 {pinfo['wmin']:.2f}"
+                f" 皮肤 {pinfo['skin']:.0f}%") if pinfo else ""
         pairs.append((
             im, Image.fromarray(h8, "L"),
             f"{base}  {c.get('name') or c['series']}  bg={bg:.2f}  背景 {flat:.0f}%  损失 {lost:.1f}%{flag}{ptxt}"))

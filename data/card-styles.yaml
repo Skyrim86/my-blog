@@ -77,6 +77,8 @@ styles:
 
   holo-prism:
     labelKey: "deckStyleHoloPrism"
+    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）（2026-09-25 先关掉：放射线穿过脸/领口/手臂仍可见）
+      kind: none
     tier: "advanced"
     note: "星芒全息（holo-prism）：以画面上方三分之一处为中心的**放射虹彩** + 几颗星点 + 大扫光。"
     fretLine: "linear-gradient(100deg, #ffd9a0, #ff9ec4 28%, #a0e8ff 52%, #c9a0ff 76%, #ffe6b0)"
@@ -269,6 +271,8 @@ styles:
   # ---------------------------------------------------------------- deckStyleStarnight
   starnight:
     labelKey: "deckStyleStarnight"
+    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）（2026-09-25 先关掉：星点落在脸/颈侧仍可见（1:1 判读））
+      kind: none
     tier: "basic"
     note: "星屑夜天：深蓝紫的框 + 一层疏密不匀的星点与流星痕。"
     fretLine: "rgba(206, 216, 255, .90)"
@@ -325,6 +329,9 @@ styles:
   # ---------------------------------------------------------------- deckStyleEmboss
   emboss:
     labelKey: "deckStyleEmboss"
+    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）
+      kind: lattice   # 45° 硬菱格（压痕靠脆边界读出来）
+      amp: 0.08
     tier: "basic"
     note: "凸印压痕（emboss）：**纸白压印，只改光不改色** —— 左上受光、右下落影，再给主体一圈接触阴影。那圈阴影是它与珠光纸在 205px 下分得开的那一笔（brief §八「两者的视觉签名在小尺寸下要不同」）。深度图派生的受力图**已接进来**（2026-09-25）：`tools/cards/make-emboss.py` 由深度图算高度场梯度出两张灰图（受光走 soft-light、脊线镜面走 screen），挂在 `.home-card-bump` / `::after` 上，见 21-card-deck.css；下面 print 里那两条 135deg 的光影**保留**（它们是整张的朝向感，与沿起伏走的受力图不是一回事）。"
     fretLine: "rgba(247, 243, 235, .92)"
@@ -393,6 +400,9 @@ styles:
   # ---------------------------------------------------------------- deckStylePearl
   pearl:
     labelKey: "deckStylePearl"
+    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）
+      kind: laid      # 帘纹（纸纹要细密、幅度低）
+      amp: 0.08
     tier: "basic"
     note: "珠光纸（pearl）：暖白底 + **各向异性**的细密丝光（只朝一个方向，不是织布）+ 一道宽而柔的珠光扫光 + 纸纹颗粒。整体**偏暖** —— 这正是它在 205px 下与凸印压痕分得开的那一笔（brief §八）。"
     fretLine: "rgba(252, 246, 234, .92)"
@@ -566,6 +576,8 @@ styles:
   # ---------------------------------------------------------------- deckStyleInkwash
   inkwash:
     labelKey: "deckStyleInkwash"
+    reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）（2026-09-25 先关掉：飞白笔触仍读成数字扫描线（形态问题，降幅度解决不了））
+      kind: none
     tier: "basic"
     note: "墨染（inkwash）：**水墨晕染** —— 底部压深 + 一滴浓淡不匀的晕（新加的径向层）+ 一道飞白 + 纸颗粒。冷灰黑、亚光；**只适合暗卡面**（亮卡上读成漏墨，brief §十六）。"
     fretLine: "rgba(196, 200, 214, .85)"
