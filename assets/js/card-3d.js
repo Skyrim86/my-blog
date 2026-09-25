@@ -177,13 +177,17 @@
                  steps: 16, sparkle: 0.48, holo: 0.40, halo: 0.34, cliff: 0.52, glint: 0.40, bgZoom: 0.042, bgPar: 0.014,
                  wall: 0.00, cast: 0.00, lid: 0.00, cone: 0.00, drift: 0.44, coneC: 0.45, holoC: 0.60, disp: 0.12, sharp: 0.18,
                  layer: 0.00 },
-    legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 1.90, back: 4, shadow: 1.00, sweep: 0.85,
+    // relief 1.90 → **1.60**、cast 0.65 → **0.00**：2026-09-25 用户按对照图拍板（见 docs/pending.md
+    // 「3D 取值拍板」）。cast 是**实测零效应**的旋钮（关掉它逐像素 0.00 差异），留着只会让人以为
+    // 调它有用 —— 置 0 并在守卫的单调性检查里保持「不减」。
+    legend:    { metal: 0.85, emis: 0.05, diff: 0.48, relief: 1.60, back: 4, shadow: 1.00, sweep: 0.85,
                  steps: 20, sparkle: 0.78, holo: 0.70, halo: 0.70, cliff: 0.78, glint: 0.60, bgZoom: 0.050, bgPar: 0.022,
-                 wall: 0.70, cast: 0.65, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82, disp: 0.26, sharp: 0.24,
+                 wall: 0.70, cast: 0.00, lid: 0.75, cone: 0.70, drift: 0.60, coneC: 0.75, holoC: 0.82, disp: 0.26, sharp: 0.24,
                  layer: 0.55 },
-    miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 2.20, back: 5, shadow: 1.15, sweep: 1.00,
+    // 同上：relief 2.20 → **1.90**、cast 1.00 → **0.00**（2026-09-25 拍板）。
+    miracle:   { metal: 0.90, emis: 0.18, diff: 0.72, relief: 1.90, back: 5, shadow: 1.15, sweep: 1.00,
                  steps: 24, sparkle: 1.00, holo: 1.00, halo: 1.00, cliff: 1.00, glint: 0.80, bgZoom: 0.075, bgPar: 0.030,
-                 wall: 1.00, cast: 1.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00, disp: 0.35, sharp: 0.30,
+                 wall: 1.00, cast: 0.00, lid: 1.00, cone: 1.00, drift: 1.00, coneC: 1.00, holoC: 1.00, disp: 0.35, sharp: 0.30,
                  layer: 1.00 },
   };
   // 卡背徽记那圈环：按档位序号取不透明度与线宽（下标 0 是素背，用不到）。这两张表是卡背
