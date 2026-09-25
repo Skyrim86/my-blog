@@ -125,6 +125,7 @@
   var inspectOffLabel = deck.dataset.inspectOff || inspectLabel;
   var infoWork = deck.dataset.infoWork || 'work';
   var infoRole = deck.dataset.infoRole || 'role';
+  var loadLabel = deck.dataset.loading || 'loading';
   var cmpSetLabel = deck.dataset.compare || 'compare';
   var cmpClearLabel = deck.dataset.compareClear || cmpSetLabel;
   var cmpGoTpl = deck.dataset.compareGo || 'compare {label}';
@@ -358,6 +359,64 @@
   });
   cmpGoBtn.addEventListener('click', openCompare);
   cmpClose.addEventListener('click', function () { cmpPanel.hidden = true; });
+
+  /* ---- 加载条（2026-09-25）--------------------------------------------------------
+     等的是「这一张的贴图到位」这段时间。三个决定：
+
+     ① **只在慢的时候露头**（`BAR_DELAY` 120 ms）：页内那一档多数已在缓存里，几百毫秒内就好，
+        露一下就闪走比不露更烦。120 ms 内完事的，条根本不显示。
+     ② **进度是真进度**，来自 card-3d `setItem` 的 `progress(done, total)`（低清 / xl / 深度
+        三格），不是定时器假走动 —— 假走动在「卡在最后一张图上」时反而更让人等。第一条
+        任务落地前条先按 8% 亮着，别从 0 开始。
+     ③ **关掉就收**：翻页/关弹层都会 `barFinish()`，否则上一次那个 120 ms 的定时器回来时
+        往一张已经换掉的卡上画条（`barSeq` 就是干这个的）。
+     平面大图那条路（没有 WebGL）也挂：那时「加载」= `<img>` 的 load，一样有等待。 */
+  var BAR_DELAY = 120;
+  var loadBar = document.createElement('div');
+  loadBar.className = 'home-deck-loadbar';
+  loadBar.hidden = true;
+  loadBar.setAttribute('role', 'progressbar');
+  loadBar.setAttribute('aria-label', loadLabel);
+  loadBar.setAttribute('aria-valuemin', '0');
+  loadBar.setAttribute('aria-valuemax', '100');
+  var loadFill = document.createElement('i');
+  loadBar.appendChild(loadFill);
+  stage.appendChild(loadBar);
+  var barSeq = 0, barTimer = 0;
+
+  function barStart() {
+    barSeq++;
+    var my = barSeq;
+    if (barTimer) { window.clearTimeout(barTimer); barTimer = 0; }
+    loadBar.classList.remove('is-done');
+    loadBar.hidden = true;
+    loadFill.style.width = '8%';
+    loadBar.setAttribute('aria-valuenow', '0');
+    barTimer = window.setTimeout(function () {
+      barTimer = 0;
+      if (my !== barSeq) return;         // 这中间翻页/关了：这次作废
+      loadBar.hidden = false;
+    }, BAR_DELAY);
+  }
+
+  function barProgress(done, total) {
+    if (loadBar.hidden) return;          // 还没露头就别动它（露头时按 8% 起步）
+    var f = total ? done / total : 1;
+    f = Math.max(0, Math.min(1, f));
+    loadFill.style.width = Math.round(8 + 92 * f) + '%';
+    loadBar.setAttribute('aria-valuenow', String(Math.round(100 * f)));
+  }
+
+  function barFinish() {
+    barSeq++;
+    if (barTimer) { window.clearTimeout(barTimer); barTimer = 0; }
+    if (loadBar.hidden) return;
+    loadBar.classList.add('is-done');
+    loadFill.style.width = '100%';
+    window.setTimeout(function () {
+      if (loadBar.classList.contains('is-done')) loadBar.hidden = true;
+    }, 220);
+  }
 
   // 2026-09-25 起：不再等到「第一次打开」才建 GL —— 见 warmViewer()。原决定是「绝大多数访客
   // 不会点 ⤢，为他们建上下文 + 传两张纹理会白占显存」；实测这笔钱是**同步**的（建上下文 +
@@ -620,7 +679,12 @@
       window.setTimeout(function () { prefetch(2, true); }, 1200);
     });
     if (viewer) {
-      viewer.setItem(payloadOf(item, (opts && opts.deal) ? { done: dealDone } : null));
+      var deal0 = (opts && opts.deal) ? dealDone : null;
+      barStart();
+      viewer.setItem(payloadOf(item, {
+        progress: barProgress,
+        done: function () { barFinish(); if (deal0) deal0(); },
+      }));
       // 读屏用户看不到画布，用 aria-label 把「这张卡是谁、能怎么操作」说全
       var c = stage.querySelector('canvas');
       if (c) {
@@ -632,6 +696,15 @@
       flipBtn.textContent = deck.dataset.flip || flipBtn.textContent;
       inspectBtn.setAttribute('aria-pressed', 'false');    // 换卡 = 退出近观（card-3d 的 setItem 会 reset）
       inspectBtn.textContent = inspectLabel;
+    } else {
+      /* 没有 3D 这条路（脚本没加载 / 首次打开时 GL 还没建）：等的就是这张平面大图。
+         `bigImg.src` 在上面已经设过，可能**已经完成**（缓存命中），所以先看 complete。 */
+      barStart();
+      if (bigImg.complete) barFinish();
+      else {
+        bigImg.addEventListener('load', barFinish, { once: true });
+        bigImg.addEventListener('error', barFinish, { once: true });
+      }
     }
   }
 

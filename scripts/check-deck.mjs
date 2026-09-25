@@ -1085,13 +1085,14 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
   failures.push('✗ 洗牌步长的那个黄金比例常数（0x9e3779b1）在两份副本里对不上');
 }
 
-// 2026-09-25：玩法层那几条（搜索 / 卡册翻页 / 对比 / 存图 / 开包）的文字都靠 data-* 从
+// 2026-09-25：玩法层那几条（搜索 / 卡册翻页 / 对比 / 开包 / 加载条）的文字都靠 data-* 从
 // 模板传进 JS，模板里写的又是 i18n 的**键名**。少一个键的后果是静默的：段落的默认值会
 // 退回英文（少绑一条 → 按钮上出现英文默认值），构建全绿、守卫也全绿。
 // 所以这里两边都查：键在不在 zh.toml、用到的模板有没有声明这个值。
 {
   const toml = readFileSync(join('i18n', 'zh.toml'), 'utf8');
-  const DIALOG_KEYS = ['deckCompare', 'deckCompareClear', 'deckCompareGo', 'deckCompareTitle', 'deckCompareFail'];
+  const DIALOG_KEYS = ['deckCompare', 'deckCompareClear', 'deckCompareGo', 'deckCompareTitle', 'deckCompareFail',
+    'deckLoading'];
   const WALL_KEYS = ['deckSearch', 'deckSearchHint', 'deckSearchHit', 'deckBookOn', 'deckBookOff',
     'deckPage', 'deckPagePrev', 'deckPageNext'];
   for (const key of DIALOG_KEYS.concat(WALL_KEYS)) {
@@ -1103,6 +1104,7 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
     ['layouts/_partials/home-cards.html', [
       ['data-compare', 'deckCompare'], ['data-compare-clear', 'deckCompareClear'],
       ['data-compare-go', 'deckCompareGo'], ['data-compare-title', 'deckCompareTitle'], ['data-compare-fail', 'deckCompareFail'],
+      ['data-loading', 'deckLoading'],
     ]],
     ['layouts/_partials/deck-wall.html', [
       ['data-search', 'deckSearch'], ['data-search-hint', 'deckSearchHint'], ['data-search-hit', 'deckSearchHit'],
@@ -1110,6 +1112,7 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
       ['data-page', 'deckPage'], ['data-page-prev', 'deckPagePrev'], ['data-page-next', 'deckPageNext'],
       ['data-compare', 'deckCompare'], ['data-compare-clear', 'deckCompareClear'],
       ['data-compare-go', 'deckCompareGo'], ['data-compare-title', 'deckCompareTitle'], ['data-compare-fail', 'deckCompareFail'],
+      ['data-loading', 'deckLoading'],
     ]],
   ];
   for (const [rel, pairs] of need) {

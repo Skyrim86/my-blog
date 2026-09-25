@@ -1337,12 +1337,25 @@
   var yaw = 0, pitch = 0, vy = 0, vp = 0, baseYaw = 0;
   var zoom = 1, zoomTo = 1, inspect = false;
   var itemDone = null;
+  var itemProgress = null;
   // 换贴图完成时叫一声（一次性）。**没人在等就什么都不做** —— 产品路径不用它，
   // 只有「对比」与「开包」两条路会传 done 进来（见 home-deck.js）。
   function fireItemDone() {
     var f = itemDone;
     itemDone = null;
+    itemProgress = null;
     if (f) { try { f(); } catch (e) { console.warn('[card3d] setItem 回调抛了：' + (e && e.message)); } }
+  }
+  /* 换卡时「贴图到了几成」的回报（给弹层的加载条用）。整块进度的口径是**这一次 setItem
+     排出去的贴图任务数**（低清 / xl / 深度各算一个），不是为了精确到字节 —— 加载条只要
+     能说明「还在动、快好了」，别在最后 10% 上停住不动就行。
+     `seq` 要和 faceSeq 比：翻页很快时上一次 setItem 的任务还在落地，它的进度不该驱动
+     现在这条卡上的进度条（2026-09-25 加）。 */
+  function fireItemProgress(doneN, total, seq) {
+    if (seq !== faceSeq) return;
+    var f = itemProgress;
+    if (!f) return;
+    try { f(doneN, total); } catch (e) { console.warn('[card3d] 进度回调抛了：' + (e && e.message)); }
   }
   var faceWasBack = false;
   var dragging = false, pinned = false, inertia = false;
@@ -2041,7 +2054,8 @@
     },
     setItem: function (next) {
       item = next;
-      itemDone = (next && next.done) || null;   // 换完贴图叫一声（对比 / 开包那两条路要等它）
+      itemDone = (next && next.done) || null;
+      itemProgress = (next && next.progress) || null;   // 换完贴图叫一声（对比 / 开包那两条路要等它）
       revealed = false; backSince = 0; backKey = '';
       govWarm = GOV_WARM; govSamples.length = 0; lastFrameRaw = 0;   // 新贴图的尖峰不算渲染成本
       api.reset();
@@ -2100,6 +2114,13 @@
       } else {
         console.warn('[card3d] 这张卡缺深度图（跑 tools/cards/make-depth.py）——它会渲染成平的');
       }
+      /* 进度：每个任务自己的 `.catch` 已经吞了失败，所以它们**都会** resolve —— 把每条
+         链尾接一个计数即可（失败也算「这一格走完了」，否则那格永远不落地，条会卡住）。 */
+      var totalN = jobs.length, doneN = 0;
+      jobs = jobs.map(function (pr) {
+        return pr.then(function () { doneN++; fireItemProgress(doneN, totalN, seq); });
+      });
+      fireItemProgress(0, totalN, seq);      // 先报 0：条上先有动静，别等第一个任务落地
       Promise.all(jobs).then(function () { rebuildBack(); kick(); fireItemDone(); });
     },
     setOpen: function (isOpen) {

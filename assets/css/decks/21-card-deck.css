@@ -721,6 +721,53 @@ html.is-deck-dialog #bottom-link {
    台面是 `position: relative` 而大图/画布是 `inset: 0` 的绝对定位子元素，缩放不会打乱布局；
    动画结束 transform 回 none，台面的包含块语义也复原。
    时长 340ms 与换卡一致（JS 到点摘类）；reduced-motion 下 JS 直接不触发。 */
+/* 加载条（2026-09-25）：等贴图那段时间的提示。位置**贴着台面下沿、压在卡的最下面一条**，
+   不另起一行 —— 另起一行会在露出/收起时把下面的按钮顶一下（布局跳动比一条细线烦多了）。
+   颜色走 --accent，与主题深浅两套各自成立；`pointer-events: none` 免得挡住拖拽旋转。 */
+.home-deck-loadbar {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  translate: -50% 0;
+  width: min(62%, 240px);
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 30%, transparent);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-deck-loadbar > i {
+  display: block;
+  width: 8%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width .2s linear;
+  /* 还在走的时候给一道扫光：4px 的细线光看宽度不好判「是条进度条还是条分隔线」，
+     有东西在动才读得出「在等」。（不是假进度 —— 宽度仍来自真任务数，见 home-deck.js。） */
+  background-image: linear-gradient(90deg, transparent, color-mix(in oklab, var(--accent) 45%, white) 50%, transparent);
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: loadbar-sweep 1.5s linear infinite;
+}
+
+@keyframes loadbar-sweep {
+  from { background-position: -120% 0; }
+  to   { background-position: 220% 0; }
+}
+
+/* 到位之后压暗一点再收走：直接把条抹掉会像「出错了」，留半拍更像「正好」。 */
+.home-deck-loadbar.is-done > i {
+  background: color-mix(in oklab, var(--accent) 55%, transparent);
+  background-image: none;
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-deck-loadbar > i { transition: none; animation: none; background-image: none; }
+}
+
 .home-deck-stage.is-swapping {
   animation: deck-stage-swap .34s cubic-bezier(.22, .8, .24, 1);
 }

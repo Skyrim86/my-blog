@@ -470,6 +470,8 @@ other = "作品"
 [deckInfoRole]
 other = "角色"
 
+[deckLoading]
+other = "加载中"
 [deckRevealAnnounce]
 other = "《{label}》显形了：{rank}"
 

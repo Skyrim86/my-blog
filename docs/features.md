@@ -2362,3 +2362,6 @@ hugo 那一段已经 `cygpath` 转了，量体积那一段把 MSYS 路径直接�
   不显示角色，只留 `作品 X`；只有角色真的带新信息时才显示（黑长直那 4 张）。判据在 `home-deck.js` 的 `roleDup`。
 - **`added`（收录日期）整链已下掉**：清单字段、模板字典、两个模板的 `data-info-added`、i18n `[deckInfoAdded]`、
   守卫的日期格式检查全部移除（见 brief 四十七）。
+
+- **弹层加载条**：点开后等贴图那段时间有真进度条（任务数当分母，`progress(done,total)`），120 ms 内
+  加载完不露头（缓存命中时一次都不闪）；位置在台面下沿、不顶动按钮；`prefers-reduced-motion` 下无扫光（brief 四十八）。
