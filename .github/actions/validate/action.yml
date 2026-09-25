@@ -54,12 +54,27 @@ runs:
       run: node scripts/check-cards.mjs
 
     # 工艺 × 卡面明度那条守卫（check-deck.mjs 的 ⑨）要**现算**每张卡面的明度，
-    # 算法与阈值在 scripts/deck-edit.py 里（用 Pillow）—— ubuntu 镜像不保证带 Pillow，
+    # 算法与阈值在 scripts/deck-edit.py 里（用 Pillow + numpy）—— ubuntu 镜像不保证带它们，
     # 所以这里显式装一次。不装的话 check-deck.mjs 会明确报「找不到装了 Pillow 的 Python」拦下，
     # 不会静默跳过那一条（那正是这个仓库最怕的失败方式）。
-    - name: 装 Pillow（check-deck 的工艺 × 明度守卫要用）
+    #
+    # 2026-09-25 修（这一处让 CI 从 09-24 起每一次都红）：原来只 `pip install pillow`，两个坑叠着 ——
+    #   ① 探测函数查的是 `import PIL, numpy` 两个都在（deck-edit.py 的 lum() 用 numpy 取均值），
+    #      只装 pillow 换不来通过；
+    #   ② ubuntu 24.04 的 system python 带 EXTERNALLY-MANAGED 标记，裸 `pip install` 直接以
+    #      externally-managed-environment 退出 1 —— 这一步一死，后面十几步全不跑，
+    #      而 job 只报「校验并构建 failure」，看不出死在哪儿。
+    # 现在：两个包一起装 + 三级回退（默认 → --break-system-packages → --user）+ 装完立刻断言
+    # 两个都 import 得到，并把解释器名交给 check-deck（DECK_PYTHON），
+    # 免得它去猜 ubuntu 上并不存在的 `python`。
+    - name: 装 Pillow + numpy（check-deck 的工艺 × 明度守卫要用）
       shell: bash
-      run: python3 -m pip install --quiet --disable-pip-version-check pillow
+      run: |
+        python3 -m pip install --quiet --disable-pip-version-check pillow numpy \
+          || python3 -m pip install --quiet --disable-pip-version-check --break-system-packages pillow numpy \
+          || python3 -m pip install --quiet --disable-pip-version-check --user pillow numpy
+        python3 -c "import PIL, numpy; print('Pillow', PIL.__version__, '| numpy', numpy.__version__)"
+        echo "DECK_PYTHON=python3" >> "$GITHUB_ENV"
 
     # 首页卡片组的清单（data/home-cards.yaml）不变量：阻断。它和上面那条管的不是一套卡 ——
     # 这条只管首页 hero 底部那副牌。清单是那副牌的**单一事实源**，但此前没有任何脚本读它：
