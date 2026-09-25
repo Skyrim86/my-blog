@@ -2256,31 +2256,3 @@ a.home-deck-dialog-credit:hover {
 .home-card-rank--legend    { --strip-ink: rgba(11, 8, 15, .90); }
 .home-card-rank--miracle:not(.is-revealed) { --strip-ink: rgba(11, 8, 15, .90); }
 .home-card-rank--miracle.is-revealed       { --strip-ink: rgba(6, 4, 10, .92); }
-
-/* ---------- 真无框（2026-09-25 用户口径）：卡面上除画面本体之外没有装饰 ----------
-   口径原文：「去掉卡框指的是去掉卡面中除了本体画面之外的装饰」。所以这里是**纯减法** ——
-   上一版自作主张补的 2px 内描边与 3px 等级色带本身就是新装饰，方向错了，已去掉。
-
-   卡面原本有 8 层装饰，逐层关掉（无替代件）：
-     ::before        工艺纹样（--coverlay-op × --rank-craft）      → 归零
-     .home-card-rank 虹彩覆膜（--rank-foil）                       → 归零
-     .home-card-mat  画面内衬线（--rank-ring-op）                  → 隐藏
-     .home-card-strip 框内缘等级色带（--rank-band）                → 隐藏
-     .home-card-motif 自然花纹                                    → 隐藏
-     .home-card-corners 四角卷草角                                → 隐藏
-     .home-card-lens  玻璃厚度/釉面反光                            → 隐藏
-     .home-card-bump  凸印受力图                                  → 隐藏
-   另加框棱/衬边/内缩归零 ⇒ 画面满幅（img 矩形 == 格子）。
-
-   **保留**：插画、`.home-card-plate`（名牌：名字/系列/等级那行文字 —— 它是信息不是装饰）、
-   `.home-card-ghost`（换卡交叉淡入的上一张，功能件）、::after（悬浮扫光，交互反馈）。
-   等级信号由此只剩下名牌底板色与文字。
-
-   ⚠ 本块必须留在文件最末：与 `.home-card-mat` 等基础定义同权重，靠后写才生效。 */
-.home-card[class*="home-card-rank--"] {
-  --cart-inset: 0px; --rank-frame: 0px; --rank-mat: 0px;
-  --rank-band: 0px; --rank-band-a: 0; --rank-line: transparent; --rank-orn: 0;
-  --fret-w: 0px; --rank-ring-op: 0; --coverlay-op: 0; --rank-foil: 0;
-}
-.home-card-mat, .home-card-strip, .home-card-motif,
-.home-card-corners, .home-card-lens, .home-card-bump { display: none; }
