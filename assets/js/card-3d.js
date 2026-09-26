@@ -902,7 +902,17 @@
     '  vec3 H1 = normalize(uL1 + V);',
     '  // 高光的指数要**窄**（72 太宽，卡面是一大片平面，N·H 整片都很高，于是整卡泛白），',
     '  // 并且只在抬起来的部位才强：压凸的亮点本来就只出现在凸起的顶上。',
-    '  col += mix(vec3(1.0, 0.99, 0.96), uEdge, uEdgeMetal) * pow(max(dot(N, H1), 0.0), 150.0) * uSpec * 0.5 * (0.25 + 0.75 * hv);',
+    // ②a 箔各向异性高光（2026-09-26，3D 工艺 B「spec 标量 → 方向」）：拉丝箔的高光
+    //    不是圆点、是**沿拉丝方向的亮刃**（Kajiya-Kay：spec = sin(T,H)^150，亮带沿 T
+    //    拉长）。拉丝方向 = uFoilAxis（与 irid 同一光学轴）投影到切平面；uFoil 越高、
+    //    圆点高光越整根换成亮刃（goldfoil .34→0.95、pearl .26→0.73、holo .72→1.00）。
+    //    兜底：N 与拉丝轴几乎平行时切向投影退化，换固定切向，避免 normalize(0)=NaN。
+    '  vec3 bt = uFoilAxis - N * dot(uFoilAxis, N);',
+    '  float btl = length(bt);',
+    '  bt = btl > 1e-4 ? bt / btl : vec3(1.0, 0.0, 0.0);',
+    '  float blade = pow(max(1.0 - dot(bt, H1) * dot(bt, H1), 0.0), 75.0);',
+    '  float hspec = mix(pow(max(dot(N, H1), 0.0), 150.0), blade, clamp(uFoil * 2.8, 0.0, 1.0));',
+    '  col += mix(vec3(1.0, 0.99, 0.96), uEdge, uEdgeMetal) * hspec * uSpec * 0.5 * (0.25 + 0.75 * hv);',
     '  // 箔膜：虹彩由**反射向量**驱动 —— 卡片一转，色带就流过卡面。',
     '  // 这正是「全息」与「一张静态渐变贴图」的全部差别。',
     '  vec3 R = reflect(-V, N);',
