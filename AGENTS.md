@@ -105,7 +105,7 @@ python tools/course-import/import_course.py           # 课程项目 → 博客�
 python tools/course-import/import_course.py --check   # 只比对：博客是否落后于课程项目
 ```
 
-跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-consistency.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`check-css-split.mjs`、`report-size.sh --fresh`；公式相关的都在**构建前**跑：`node scripts/fix-math-escapes.mjs`（机械修复，`--fix` 修、`--selftest` 自测规则）、`node scripts/check-math-syntax.mjs`（快检）、`node scripts/check-math-katex.mjs`（真检，`--selftest` 自测机制；`--fix` 验证后才写盘地修双重转义）。
+跑完构建后单独校验：`check-sections.sh`、`check-frontmatter.sh`、`check-tags.sh`、`check-editor-schema.mjs`、`check-consistency.mjs`、`check-i18n.mjs`、`check-katex-pairing.sh`、`check-links.mjs`、`check-css-split.mjs`、`report-size.sh --fresh`；公式相关的都在**构建前**跑：`node scripts/fix-math-escapes.mjs`（机械修复，`--fix` 修、`--selftest` 自测规则）、`node scripts/check-math-syntax.mjs`（快检）、`node scripts/check-math-katex.mjs`（真检，`--selftest` 自测机制；`--fix` 验证后才写盘地修双重转义）。
 
 ## 6. 别做
 

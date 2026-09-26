@@ -195,6 +195,19 @@ if [ -n "$dirty" ]; then
     fi
   fi
 
+  # 模板 i18n 键：**阻断**。layouts 里 i18n "键" 拼错或改名时 Hugo 不报错，页面静默渲染成空串。
+  # 与 CI 同口径（CI 有就必须本地也跑），否则本地全绿、推上去才被拦。
+  if [ -f scripts/check-i18n.mjs ]; then
+    echo "▸ 模板 i18n 键校验"
+    if i18n_log="$(node scripts/check-i18n.mjs 2>&1)"; then
+      printf '%s\n' "$i18n_log" | tail -1 | sed 's/^/  /'
+    else
+      printf '%s\n' "$i18n_log" | sed 's/^/  /'
+      echo "✗ 有 i18n 键缺失或空值，已中止（未提交、未推送）。"
+      exit 1
+    fi
+  fi
+
   # 公式内容预检：**阻断**。数学区里再嵌一个 `$`（区域被提前截断）、数学区里的 `§` 与圈号 `①②③`
   # 都会让 KaTeX 报错、整站构建中止，而且没法自动修。排在构建之前，是为了给出公式本体的
   # 文件:行:列——Hugo 为这类错误报的行列号是模板渲染位置（实测两个坏页都报 19:13，真缺陷在

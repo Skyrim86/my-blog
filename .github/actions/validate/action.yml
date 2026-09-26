@@ -87,6 +87,13 @@ runs:
       shell: bash
       run: node scripts/check-deck.mjs
 
+    # 模板 i18n 键：阻断。layouts 里 i18n "键" 引用的字面量键必须在 i18n/zh.toml（或主题译文）
+    # 里存在且非空 —— Hugo 对缺失键不报错，拼错/改名时页面静默渲染成空串，而构建全绿。
+    # 只读 layouts/ 与 i18n/，不依赖构建产物，属快校验。
+    - name: 模板 i18n 键校验（阻断）
+      shell: bash
+      run: node scripts/check-i18n.mjs
+
     # section 结构：阻断。断言每个 section 目录都有 _index.md（列表页）。
     # 缺了它，该分区会退化成「隐式 section」——页面能不能存在取决于下面还有没有子页面，
     # 子页面一删空，/posts/ 这类列表页就连同导航栏、首页指向它的入口一起 404。

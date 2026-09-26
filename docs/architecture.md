@@ -198,6 +198,7 @@ my-blog/
 │   ├── check-consistency.mjs  # 阻断：三处校验清单 / 阻断口径 / 时区 / front matter 键表的漂移
 │   ├── check-cards.mjs        # 阻断：卡片数据的字段与 id 唯一性（两个库一起查）
 │   ├── check-deck.mjs         # 阻断：卡片组的清单 vs 源图 vs 产物 vs CSS 类，以及纹样令牌
+│   ├── check-i18n.mjs         # 阻断：模板里 i18n "键" 引用的字面量键必须在 zh.toml（或主题译文）里存在且非空（缺失键静默渲染成空串）
 │   ├── gen-cards.mjs          # 阻断（--check）：从 data/<库>.json 生成卡片页（CS 库用）
 │   ├── rank-deck.py           # 生成 data/rank-scores.json（卡片等级评分，不参与 CI）
 │   ├── report-size.sh         # 阻断：页面体积预算（raw 与 gzip 双轨；--fresh 消除 public/ 陈旧产物影响）

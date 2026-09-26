@@ -61,6 +61,15 @@ const ITEMS = [
     hint: 'data/home-cards.yaml 是首页那副牌的单一事实源：style 拼错会静默退回全息 foil、crop 拼错会静默改成硬裁、产物路径写错会跳过整张牌 —— 全是构建全绿的那种坏',
   },
   {
+    id: 'i18n',
+    label: '模板 i18n 键',
+    runtime: 'node',
+    argv: ['scripts/check-i18n.mjs'],
+    fast: true,
+    blocking: true,
+    hint: 'layouts 里 i18n "键" 引用的字面量键必须在 zh.toml（或主题译文）里存在且非空 —— Hugo 对缺失键不报错，页面静默渲染成空串，构建全绿',
+  },
+  {
     id: 'wiki',
     label: '知识库同步',
     runtime: 'python',
