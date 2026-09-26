@@ -131,6 +131,36 @@ styles:
             at: "38.4deg 41deg"
           - color: "rgba(204, 156, 255, 0)"
             at: "42deg 48deg"
+      # 衍射层（2026-09-26 批 2-2「星芒形 + 衍射层」）：衍射光栅的**级次**结构 —— 两组
+      # 有序光谱带（一阶细密、二阶宽而弱），是全息箔「有物理结构」的那一笔。刻意压在
+      # .12 以下：它是底纹层，签名仍是上面的放射虹彩。浮雕纹样定案不做（reliefPattern
+      # 那条路三轮已否），衍射层次就长在工艺本体上。
+      - kind: repeating-linear
+        direction: "118deg"
+        stops:
+          - color: "rgba(255, 120, 120, .12)"
+            at: "0px"
+          - color: "rgba(255, 196, 120, .10)"
+            at: "4px"
+          - color: "rgba(150, 255, 170, .12)"
+            at: "9px"
+          - color: "rgba(120, 210, 255, .12)"
+            at: "14px"
+          - color: "rgba(190, 140, 255, .10)"
+            at: "18px"
+          - color: "rgba(255, 120, 120, 0)"
+            at: "22px"
+      - kind: repeating-linear
+        direction: "112deg"
+        stops:
+          - color: "rgba(255, 150, 170, .08)"
+            at: "0px"
+          - color: "rgba(160, 220, 255, .08)"
+            at: "13px"
+          - color: "rgba(200, 160, 255, .08)"
+            at: "28px"
+          - color: "rgba(255, 150, 170, 0)"
+            at: "46px"
       - kind: radial
         size: "64% 40%"
         at: "50% 34%"
@@ -138,6 +168,9 @@ styles:
           - color: "rgba(255, 255, 255, .22)"
           - color: "rgba(255, 255, 255, 0)"
             at: "74%"
+      # 星芒形（2026-09-26）：箔面上的星芒**不是圆点**——核心之外要有十字芒光。用两条
+      # 细长椭圆径向渐变拼横竖芒（rx 大 ry 小），短轴 1.2~1.5px 就是细芒，两端自然衰减。
+      # 只给两颗最亮的星点装芒：三颗全装会像撒了一把星，克制是这轮的总口径。
       - kind: radial
         size: "circle 3.2px"
         at: "22% 78%"
@@ -147,11 +180,43 @@ styles:
           - color: "rgba(255, 255, 255, 0)"
             at: "100%"
       - kind: radial
+        size: "52px 1.5px"
+        at: "22% 78%"
+        stops:
+          - color: "rgba(255, 255, 255, .8)"
+            at: "0 8%"
+          - color: "rgba(255, 255, 255, 0)"
+            at: "100%"
+      - kind: radial
+        size: "1.5px 34px"
+        at: "22% 78%"
+        stops:
+          - color: "rgba(255, 255, 255, .66)"
+            at: "0 8%"
+          - color: "rgba(255, 255, 255, 0)"
+            at: "100%"
+      - kind: radial
         size: "circle 2.2px"
         at: "74% 22%"
         stops:
           - color: "rgba(255, 255, 255, .75)"
             at: "0 26%"
+          - color: "rgba(255, 255, 255, 0)"
+            at: "100%"
+      - kind: radial
+        size: "38px 1.2px"
+        at: "74% 22%"
+        stops:
+          - color: "rgba(255, 255, 255, .62)"
+            at: "0 8%"
+          - color: "rgba(255, 255, 255, 0)"
+            at: "100%"
+      - kind: radial
+        size: "1.2px 26px"
+        at: "74% 22%"
+        stops:
+          - color: "rgba(255, 255, 255, .5)"
+            at: "0 8%"
           - color: "rgba(255, 255, 255, 0)"
             at: "100%"
       - kind: radial

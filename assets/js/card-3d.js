@@ -915,6 +915,14 @@
   '  // 常驻一道亮带会像印上去的，而转动时扫过一道才像光。',
   '  vec3 irid2 = 0.5 + 0.5 * cos(6.28318 * (f * uFoilScale * 1.7 + vec3(0.15, 0.48, 0.82)));',
   "  col += irid2 * uTint * uFoil * foilMask * 0.45 * fres;",
+  // ②b 卡面视角衍射（2026-09-26「diff 从卡边扩到卡面」，与卡面全息同批）：把卡边那条
+  //    视角驱动的衍射彩虹（dcol，dot(N,V) 驱动）带到卡面，门控 = uEdgeDiff（等级强度）
+  //    × uFoil（工艺资格）—— 收藏档 diff=0 逐像素不变，非箔工艺几乎不动。与 irid 的
+  //    分工要分清：irid 由反射轴驱动、色带**流过**卡面；这条由视角驱动、**整片同相**
+  //    换色 ——「整片随视角变色」说的就是它。也是治「全息静态发白」的根：静止时它是
+  //    一层薄薄的有色衍射，不是白雾。
+  '  vec3 fcol = 0.5 + 0.5 * cos(6.28318 * (dot(N, V) * 1.6 + vec3(0.0, 0.33, 0.67)));',
+  '  col += fcol * uEdgeDiff * uFoil * foilMask * 0.55;',
   '  float sweep = exp(-pow((uvOf(vModel).x * 1.7 - uSweepPos) * 3.0, 2.0));',
   '  col += mix(vec3(1.0), uTint, 0.35) * sweep * uSweepK * foilMask * 0.55;',
   // ---------- 等级驱动的立体通道（2026-09-21，照 holo3D-card 那套搬过来）----------
