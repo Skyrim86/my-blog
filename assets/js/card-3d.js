@@ -119,13 +119,13 @@
   // 一一对应，少一种就会静默套用兜底参数（首页看着是它、转起来不是它），check-deck.mjs 有守卫。
   var STYLE_3D = {
     // ↓ 以下条目由 data/card-styles.yaml 生成（tools/cards/render-styles.mjs）—— 不要手改，check-deck.mjs 会核
-    'holo-prism': { foil: 0.72, scale: 4.6, tint: [1.00, 0.97, 1.00], spec: 0.50, relief: 1.00, sparkle: 1.30, edge: [0.95, 0.93, 0.88] },
-    silver:       { foil: 0.38, scale: 1.6, tint: [0.94, 0.96, 1.00], spec: 0.95, relief: 0.95, sparkle: 0.90, edge: [0.88, 0.91, 0.95] },
-    starnight:    { foil: 0.26, scale: 3.4, tint: [0.78, 0.84, 1.00], spec: 0.45, relief: 1.00, sparkle: 1.45, edge: [0.30, 0.34, 0.66] },
-    emboss:       { foil: 0.08, scale: 1.2, tint: [1.00, 0.99, 0.96], spec: 0.30, relief: 1.30, sparkle: 0.30, edge: [0.93, 0.91, 0.87] },
-    pearl:        { foil: 0.26, scale: 1.8, tint: [1.00, 0.97, 0.92], spec: 0.78, relief: 0.85, sparkle: 1.05, edge: [0.95, 0.92, 0.86] },
-    goldfoil:     { foil: 0.34, scale: 1.5, tint: [1.00, 0.84, 0.45], spec: 0.90, relief: 0.90, sparkle: 1.00, edge: [0.90, 0.75, 0.40] },
-    inkwash:      { foil: 0.18, scale: 1.9, tint: [0.70, 0.70, 0.82], spec: 0.35, relief: 1.00, sparkle: 1.00, edge: [0.28, 0.28, 0.34] },
+    'holo-prism': { foil: 0.72, scale: 4.6, tint: [1.00, 0.97, 1.00], spec: 0.50, relief: 1.00, sparkle: 1.30, edge: [0.95, 0.93, 0.88], interf: 0.00 },
+    silver:       { foil: 0.38, scale: 1.6, tint: [0.94, 0.96, 1.00], spec: 0.95, relief: 0.95, sparkle: 0.90, edge: [0.88, 0.91, 0.95], interf: 0.00 },
+    starnight:    { foil: 0.26, scale: 3.4, tint: [0.78, 0.84, 1.00], spec: 0.45, relief: 1.00, sparkle: 1.45, edge: [0.30, 0.34, 0.66], interf: 0.00 },
+    emboss:       { foil: 0.08, scale: 1.2, tint: [1.00, 0.99, 0.96], spec: 0.30, relief: 1.30, sparkle: 0.30, edge: [0.93, 0.91, 0.87], interf: 0.00 },
+    pearl:        { foil: 0.26, scale: 1.8, tint: [1.00, 0.97, 0.92], spec: 0.78, relief: 0.85, sparkle: 1.05, edge: [0.95, 0.92, 0.86], interf: 1.00 },
+    goldfoil:     { foil: 0.34, scale: 1.5, tint: [1.00, 0.84, 0.45], spec: 0.90, relief: 0.90, sparkle: 1.00, edge: [0.90, 0.75, 0.40], interf: 0.00 },
+    inkwash:      { foil: 0.18, scale: 1.9, tint: [0.70, 0.70, 0.82], spec: 0.35, relief: 1.00, sparkle: 1.00, edge: [0.28, 0.28, 0.34], interf: 0.00 },
     foil:         { foil: 0.50, scale: 2.2, tint: [1.00, 1.00, 1.00], spec: 0.55, relief: 1.00, sparkle: 1.00, edge: [0.95, 0.93, 0.88] },
     // 2026-09-24：工艺层收敛到八种，汰掉的十种（和纸 / 雪华 / 冰裂 / 珍珠母贝 / 绸缎 / 玻璃 /
     // 金继 / 雕花金 / 珐琅彩 / 极光）的 3D 行连同它们的 CSS 块一起删了 —— 逐张卡的映射写在
@@ -672,7 +672,7 @@
     'uniform vec2 uFaceTexel;',      // 卡面纹理的 texel（锐化的邻域步长）
     'uniform float uRelief, uPom;',
     'uniform float uDisp, uSharp;', // 主体色散 / 卡面锐化（都由 RANK_3D 给，低档为 0）
-    'uniform float uFoil, uFoilScale, uSpec;',
+    'uniform float uFoil, uFoilScale, uSpec, uInterf;',
 'uniform float uEdgeMetal, uEdgeEmis, uEdgeDiff;',
 'uniform float uShadow, uSweepPos, uSweepK;',
     'uniform vec3 uTint, uEdge;',
@@ -923,6 +923,15 @@
   //    一层薄薄的有色衍射，不是白雾。
   '  vec3 fcol = 0.5 + 0.5 * cos(6.28318 * (dot(N, V) * 1.6 + vec3(0.0, 0.33, 0.67)));',
   '  col += fcol * uEdgeDiff * uFoil * foilMask * 0.55;',
+  // ②c 珠光视角干涉（2026-09-26，3D 工艺 C「珠光视角干涉」，与卡面珠光同批）：薄膜
+  //    干涉的视角色移 —— 光程随 cosθ 变、色调沿光谱滑。与 irid（uFoil 的箔彩虹）、
+  //    ②b（等级衍射）三分工；uInterf 只在 pearl 给 1，别的工艺全是 0。幅度挂
+  //    (1-ct)：**平处正视为零**（实测 head 均值 0.29/255，只在浮雕起伏处留微光，恰是
+  //    珠光纹理的微观反光）—— 已验收的珠光静态皮相不被打扰，干涉是转一下才看得见的
+  //    那层游色，不是又一层彩虹箔。力度自 head→p50→p100 递增（0.29/0.87/1.37 均值）。
+  '  float ct = max(dot(N, V), 0.0);',
+  '  vec3 interf = 0.5 + 0.5 * cos(6.28318 * (pow(1.0 - ct, 1.3) * 2.4 + vec3(0.10, 0.42, 0.75)));',
+  '  col += interf * uTint * uInterf * foilMask * 0.16 * (1.0 - ct);',
   '  float sweep = exp(-pow((uvOf(vModel).x * 1.7 - uSweepPos) * 3.0, 2.0));',
   '  col += mix(vec3(1.0), uTint, 0.35) * sweep * uSweepK * foilMask * 0.55;',
   // ---------- 等级驱动的立体通道（2026-09-21，照 holo3D-card 那套搬过来）----------
@@ -1486,7 +1495,7 @@
     // 返回 null，而 gl.uniform1f(null, x) 只是静默无效（不报错、不崩，那个效果就是不会出现）。
     // 所以 check-deck.mjs 有一条守卫把这两边对起来核（名单里的都要被 set 过，set 过的都要在名单里）。
     ['uProj', 'uView', 'uModel', 'uDepth', 'uFace', 'uBack', 'uRelief', 'uPom', 'uFoil',
-      'uFoilScale', 'uSpec', 'uTint', 'uEdge', 'uEye', 'uL1', 'uL2', 'uLp', 'uFoilAxis',
+      'uFoilScale', 'uSpec', 'uInterf', 'uTint', 'uEdge', 'uEye', 'uL1', 'uL2', 'uLp', 'uFoilAxis',
       'uEdgeMetal', 'uEdgeEmis', 'uEdgeDiff', 'uShadow', 'uSweepPos', 'uSweepK',
       'uTime', 'uSteps', 'uSparkle', 'uHolo', 'uHalo', 'uCliff', 'uGlint',
       'uBgZoom', 'uBgPar', 'uLid', 'uWall', 'uCast', 'uDrift', 'uCone',
@@ -1614,6 +1623,7 @@
     gl.uniform1f(U.uFoil, S.foil);
     gl.uniform1f(U.uFoilScale, S.scale);
     gl.uniform1f(U.uSpec, S.spec);
+    gl.uniform1f(U.uInterf, S.interf || 0);   // 珠光视角干涉（3D 工艺 C，2026-09-26）
     gl.uniform1f(U.uEdgeMetal, R.metal);
     gl.uniform1f(U.uEdgeEmis, R.emis);
     gl.uniform1f(U.uEdgeDiff, R.diff);

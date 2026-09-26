@@ -44,7 +44,7 @@ const T3_SENTINEL =
   '    // ↓ 以下条目由 data/card-styles.yaml 生成（tools/cards/render-styles.mjs）—— 不要手改，check-deck.mjs 会核';
 
 const PRINT_KINDS = new Set(['linear', 'radial', 'repeating-linear', 'repeating-radial', 'conic', 'repeating-conic', 'token']);
-const THREE_D_KEYS = ['foil', 'scale', 'tint', 'spec', 'relief', 'sparkle', 'edge'];
+const THREE_D_KEYS = ['foil', 'scale', 'tint', 'spec', 'relief', 'sparkle', 'edge', 'interf'];
 
 /* ============================================================ 迷你 YAML 读取
    只支持 data/card-styles.yaml 用到的那一小撮：缩进映射 / 块序列（含 `- key: v` 开头的映射项）/ 标量。
