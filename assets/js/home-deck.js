@@ -609,11 +609,14 @@
   }
 
   // 开包（今日一抽专用）：先亮卡背、再翻回正面。**减少了动态就整段跳过** —— 这条是纯表演。
+  // 节奏 2026-09-26 拍板加长（600 / 1800，原 320 / 1300）：卡背停久一点再翻、扫光的窗口也
+  // 拉长 —— 「开包」那口停顿是这个表演的全部意义。扫光动画在 CSS 里配了同值的 .6s 延迟
+  // （21-card-deck.css 的 deck-deal-sweep），**两处要一起改**，否则光先扫完、卡还在背。
   function dealDone() {
     viewer.setAngle(Math.PI, 0, true);
     dlg.classList.add('is-dealing');
-    window.setTimeout(function () { viewer.flip(); }, 320);
-    window.setTimeout(function () { dlg.classList.remove('is-dealing'); }, 1300);
+    window.setTimeout(function () { viewer.flip(); }, 600);
+    window.setTimeout(function () { dlg.classList.remove('is-dealing'); }, 1800);
   }
 
   function fillDialog(item, opts) {

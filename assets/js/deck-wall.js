@@ -236,10 +236,11 @@
   var grouped = false;   // 分组视图（按系列）是否开着
 
   // 一张卡是否通过筛选。`skipKey` 那一个维度跳过 —— 统计某颗 chip 上的数字时用（同排是 OR）。
-  // 搜索命中的字段：名字、系列、工艺、等级、作品、角色。**不索引出处与日期** ——
-  // 「pixiv」「2026-09」不是访客会拿来搜的东西，进了索引反而让命中看起来没道理。
+  // 搜索命中的字段：名字、系列、工艺、等级、作品、角色、**出处**（credit，2026-09-26 拍板拉进
+  // 索引 —— 按作者/来源找卡是真实浏览行为，credit 字段独特、误命中低）。日期不再存在（「收录
+  // 日期」整链已于 2026-09-25 删掉），所以这里天然没有日期可搜。
   function searchText(it) {
-    return [it.label, it.series, it.styleLabel, it.rankLabel, it.work, it.role]
+    return [it.label, it.series, it.styleLabel, it.rankLabel, it.work, it.role, it.credit]
       .filter(Boolean).join(' ').toLowerCase();
   }
 
@@ -627,8 +628,9 @@
       var st = b.querySelector('.deck-tile-state');
       if (st) st.textContent = (v & 2) ? attr('backSeen', '看过卡背') : (v ? attr('seen', '已看过') : '');
     });
-    // 系列 chip 的**点亮**：这一系列全看过时给 chip 加一个记号（与 chip 上的实时计数无关，
-    // 它讲的是「探完没」而不是「筛出几张」）—— 这就是「集齐一个系列」的那点回报。
+    // 系列 chip 的**点亮**（2026-09-26 拍板改判据）：**过六成起淡亮（is-near）、探满全亮
+    // （is-complete）** —— 原来「探满才亮」对多数访客等于永远不亮（系列多、凑齐一个系列要
+    // 把它每一张都翻过）。与 chip 上的实时计数无关，它讲的是「探到哪了」。
     chips.forEach(function (ch) {
       if (ch.spec.key !== 'series') return;
       var tot = 0, got = 0;
@@ -637,7 +639,9 @@
         tot++;
         if (seenOf(it)) got++;
       });
-      ch.btn.classList.toggle('is-complete', tot > 0 && got === tot);
+      var full = tot > 0 && got === tot;
+      ch.btn.classList.toggle('is-complete', full);
+      ch.btn.classList.toggle('is-near', !full && tot > 0 && got * 5 >= tot * 3);  // got/tot ≥ 60%，整数比不走浮点
       if (tot) ch.btn.setAttribute('data-seen', got + '/' + tot);
     });
     if (grouped && seriesSpec && !book) applyGrouping();   // 组头那一行也带进度

@@ -880,7 +880,9 @@ html.is-deck-dialog #bottom-link {
 }
 
 /* 开包（今日一抽）：卡先亮背面、再翻回正面，正面这一下配一道扫光。
-   纯表演 —— 减少动态时 JS 整段跳过（见 home-deck.js 的 dealDone）。 */
+   纯表演 —— 减少动态时 JS 整段跳过（见 home-deck.js 的 dealDone）。
+   延迟 .6s = dealDone 的翻面时刻（2026-09-26 拍板的节奏 600 / 1800）：扫光与翻正面同起，
+   光正好横过刚翻过来的正面 —— **改 dealDone 的第一个常数就同步改这里**。 */
 .home-deck-dialog.is-dealing .home-deck-stage::after {
   content: "";
   position: absolute;
@@ -888,7 +890,7 @@ html.is-deck-dialog #bottom-link {
   border-radius: inherit;
   pointer-events: none;
   background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .34) 50%, transparent 65%);
-  animation: deck-deal-sweep .85s ease-out;
+  animation: deck-deal-sweep .85s ease-out .6s;
 }
 
 @keyframes deck-deal-sweep {
@@ -2157,8 +2159,25 @@ a.home-deck-dialog-credit:hover {
   cursor: default;
 }
 
-/* 系列 chip 的「探满」记号：**只在真的探完时才亮**，与 chip 上的实时计数无关。
-   走一个点 + 描边，不换色相 —— 与卡片墙上那两个状态同一条纪律。 */
+/* 系列 chip 的**点亮**（2026-09-26 改判据）：**过六成起淡亮（is-near）、探满全亮
+   （is-complete）** —— 原来「探满才亮」对多数访客等于永不亮。淡亮 = 描边与点都走 accent
+   的六成，不换色相、不改字号 —— 与卡片墙上那两个状态同一条纪律；判据在 deck-wall.js 的
+   paintSeen 里（整数比 got*5 >= tot*3）。 */
+.deck-chip.is-near {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.deck-chip.is-near::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-left: .3rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .deck-chip.is-complete {
   border-color: var(--accent);
 }
