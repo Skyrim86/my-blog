@@ -558,7 +558,7 @@ styles:
       amp: 0.09               # 峰值抬升。1:1 判读定的（0.12 在查看器尺寸下偏强、且人脸被读成「压了线」）
                               # 上限 ~0.15；纹样按高度给主体降权（见 apply_relief_pattern 的 fade）
     tier: "advanced"
-    note: "烫金箔（goldfoil）：**金属感来自渐变本身**（brief §八.2 的实测结论）—— 暗底 + 一条窄高光 + 一道斜向镜面扫光 + 96° 拉丝，色相落在暖金端。**3D 侧的缠枝卷草已接上**（2026-09-25，上面的 `reliefPattern`：由 `tools/cards/make-depth.py` 叠进浮雕高度图，并按高度给主体降权）—— 这是 **3D 表面**那一层，与卡面的 CSS 渐变是两回事。CSS 侧的云纹 SVG 还没接进来；接进来时把渐变烘进它的 stroke，别退回「渐变层 + mask」那套（那样在小尺寸下会脏）。"
+    note: "烫金箔（goldfoil）：**金属感来自渐变本身**（brief §八.2 的实测结论）—— 暗底 + 一条窄高光 + 一道斜向镜面扫光 + 96° 拉丝，色相落在暖金端。**3D 侧的缠枝卷草已接上**（2026-09-25，上面的 `reliefPattern`：由 `tools/cards/make-depth.py` 叠进浮雕高度图，并按高度给主体降权）—— 这是 **3D 表面**那一层，与卡面的 CSS 渐变是两回事。**CSS 侧纹样 stroke 已烘进箔渐变**（2026-09-26：`tools/cards/make-foil-strokes.py` 生成 `--pat-ink/branch-gold|-silver` 变体，多 stop 明暗交替 + stop-opacity 对齐原 .46/.42 压印对，只换 paint 不动几何，未退回「渐变层 + mask」）；方向性反光（随悬停角度）列增强、未单独拍板。"
     fretLine: "#f0d9a0"
     gemColor: "#ffd891"
     finish:
