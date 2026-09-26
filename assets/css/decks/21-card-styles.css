@@ -171,7 +171,7 @@
   --cfilter: url(#deck-rough);
 }
 
-/* inkwash：墨染（inkwash）：**水墨晕染** —— 底部压深 + 一滴浓淡不匀的晕（新加的径向层）+ 一道飞白 + 纸颗粒。冷灰黑、亚光；**只适合暗卡面**（亮卡上读成漏墨，brief §十六）。
+/* inkwash：墨染（inkwash）：**水墨晕染** —— 底部压深 + 墨团**浓淡三层**（浓心 → 晕环 → 淡底，2026-09-26 按配方 §4 拆层）+ blur/contrast 融层（`url(#deck-inkwash-soft)`：feGaussianBlur 0.5 + 斜率 1.22 线性对比）+ 一道飞白 + 纸颗粒。冷灰黑、亚光；**只适合暗卡面**（亮卡上读成漏墨，brief §十六）。毛笔墨团素材列增强、未单独拍板。
    生成产物 —— 由 data/card-styles.yaml 出（tools/cards/render-styles.mjs）。不要手改。 */
 .home-card--inkwash {
   --fret-line: rgba(196, 200, 214, .85);
@@ -183,11 +183,14 @@
   --cplate-accent: var(--accent);
   --coverlay:
     linear-gradient(0deg, rgba(0, 0, 0, .34), rgba(0, 0, 0, 0) 54%),
-    radial-gradient(150% 106% at 36% 78%, rgba(6, 6, 10, .38), rgba(6, 6, 10, 0) 62%),
+    radial-gradient(28% 22% at 36% 78%, rgba(6, 6, 10, .52), rgba(6, 6, 10, .30) 55%,
+      rgba(6, 6, 10, 0) 78%),
+    radial-gradient(62% 46% at 36% 78%, rgba(8, 8, 14, .20), rgba(8, 8, 14, 0) 72%),
+    radial-gradient(130% 95% at 36% 78%, rgba(10, 10, 16, .10), rgba(10, 10, 16, 0) 100%),
     linear-gradient(122deg, rgba(255, 255, 255, 0) 56%, rgba(255, 255, 255, .10) 68%,
       rgba(255, 255, 255, 0) 80%),
     var(--grain);
   --cblend: overlay;
   --coverlay-op: .65;
-  --cfilter: none;
+  --cfilter: url(#deck-inkwash-soft);
 }

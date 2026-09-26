@@ -651,7 +651,7 @@ styles:
     reliefPattern:            # 工艺纹样进浮雕高度图（2026-09-25）：毛笔笔触：变径圆盘序列 + 墨色抖动 + 干笔断口 + 墨团（前两版判读为数字扫描线）
       kind: none        # **这一路不通**（2026-09-25 三轮形态重做后定案）：卡面本体是水墨画，等宽细线 → 变径毛笔笔触 → 更少更粗，1:1 判读三次都是「扫描线/噪点、偏弱」。同类结论：高频线状/点状形态靠**形状语义**读出来，加幅度只变成更亮的噪点。
     tier: "basic"
-    note: "墨染（inkwash）：**水墨晕染** —— 底部压深 + 一滴浓淡不匀的晕（新加的径向层）+ 一道飞白 + 纸颗粒。冷灰黑、亚光；**只适合暗卡面**（亮卡上读成漏墨，brief §十六）。"
+    note: "墨染（inkwash）：**水墨晕染** —— 底部压深 + 墨团**浓淡三层**（浓心 → 晕环 → 淡底，2026-09-26 按配方 §4 拆层）+ blur/contrast 融层（`url(#deck-inkwash-soft)`：feGaussianBlur 0.5 + 斜率 1.22 线性对比）+ 一道飞白 + 纸颗粒。冷灰黑、亚光；**只适合暗卡面**（亮卡上读成漏墨，brief §十六）。毛笔墨团素材列增强、未单独拍板。"
     fretLine: "rgba(196, 200, 214, .85)"
     finish:
       kind: linear
@@ -672,7 +672,7 @@ styles:
     plateAccent: "var(--accent)"
     blend: "overlay"
     opacity: ".65"
-    filter: "none"
+    filter: "url(#deck-inkwash-soft)"   # 配方 §4 的 blur+contrast（SVG 版）：融三层、浓心不糊（2026-09-26）
     print:
       - kind: linear
         direction: "0deg"
@@ -680,13 +680,29 @@ styles:
           - color: "rgba(0, 0, 0, .34)"
           - color: "rgba(0, 0, 0, 0)"
             at: "54%"
-      - kind: radial
-        size: "150% 106%"
+      - kind: radial                       # 墨团浓淡三层（配方 §4：浓心 → 晕环 → 淡底，2026-09-26）
+        size: "28% 22%"
         at: "36% 78%"
         stops:
-          - color: "rgba(6, 6, 10, .38)"
+          - color: "rgba(6, 6, 10, .52)"   # 浓心：短半径、高 alpha
+          - color: "rgba(6, 6, 10, .30)"
+            at: "55%"
           - color: "rgba(6, 6, 10, 0)"
-            at: "62%"
+            at: "78%"
+      - kind: radial
+        size: "62% 46%"
+        at: "36% 78%"
+        stops:
+          - color: "rgba(8, 8, 14, .20)"   # 晕环：中半径、低 alpha
+          - color: "rgba(8, 8, 14, 0)"
+            at: "72%"
+      - kind: radial
+        size: "130% 95%"
+        at: "36% 78%"
+        stops:
+          - color: "rgba(10, 10, 16, .10)" # 淡底：大面积、极淡
+          - color: "rgba(10, 10, 16, 0)"
+            at: "100%"
       - kind: linear
         direction: "122deg"
         stops:

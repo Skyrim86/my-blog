@@ -6,7 +6,7 @@
      CSS 不会报错、只是那张卡悄悄没有手绘边（docs/traps.md 里记着这个静默失败）。
      两页共用一份的定义写在这里，谁用谁 include。
 
-     零尺寸、不占位；两个：普通纹样（scale 3）与裂缝/扇骨（scale 5）。
+     零尺寸、不占位；三个：普通纹样（scale 3）、裂缝/扇骨（scale 5）、墨染墨团（blur+contrast 融三层）。
      check-deck.mjs 会拿本文件里的 id 去核对 CSS 里的每个 url(#…)。 */ -}}
 <svg class="home-deck-filters" width="0" height="0" aria-hidden="true" focusable="false">
     <filter id="deck-rough" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
@@ -16,5 +16,14 @@
     <filter id="deck-rough-crack" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
         <feTurbulence type="fractalNoise" baseFrequency="0.035 0.05" numOctaves="2" seed="11" result="n"/>
         <feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- 墨染墨团（配方 §4）：blur 融三层 + contrast 抬浓心。斜率 1.22 ≈ CSS contrast(1.22)（截距 -(s-1)/2 保中灰不动）。 -->
+    <filter id="deck-inkwash-soft" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+        <feGaussianBlur stdDeviation="0.5"/>
+        <feComponentTransfer>
+            <feFuncR type="linear" slope="1.22" intercept="-0.11"/>
+            <feFuncG type="linear" slope="1.22" intercept="-0.11"/>
+            <feFuncB type="linear" slope="1.22" intercept="-0.11"/>
+        </feComponentTransfer>
     </filter>
 </svg>
