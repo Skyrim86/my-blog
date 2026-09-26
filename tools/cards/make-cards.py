@@ -36,6 +36,17 @@ CARD_W, CARD_H = 600, 840
 QUALITY = 82
 AUTO_T = 45          # 内容判据：与四角底色差异大于它才算「内容」
 
+# ---- 明度收极端（2026-09-26，docs/pending.md「卡面明度散度」方案①）----
+# 只收两个尾巴、不动中段：L < DARK_KNEE 的抬、L > BRIGHT_KNEE 的压。两边都是
+# f(knee)=knee、斜率 1−gain 的连续单调映射 —— 「只动极端」是结构性的，不是阈值硬跳
+# （硬跳会让 114.9 与 115.1 的两张卡在墙上差出一截）。
+# L 的口径 = scripts/deck-edit.py 的 card_lum（灰度 → 60×84 双线性 → 均值），
+# 与管理页「明度体检」同一把尺。为什么不是全局拉平：lum12-norm 那版会把 #33 银霜 /
+# #03 花信洗成白雾，判读已否；这里只把 57 张的两个尾巴收回来（37→103 起、230→217 止）。
+DARK_KNEE, DARK_GAIN = 115.0, 0.85
+BRIGHT_KNEE, BRIGHT_GAIN = 215.0, 0.85
+HILITE_Y, HILITE_DESAT = 225.0, 0.35   # 亮卡「极轻中性底」：近白像素向自身亮度灰混的强度
+
 
 def load():
     with open(MANIFEST, encoding="utf-8") as f:
@@ -153,11 +164,58 @@ def gradient(size, top, bottom):
     return Image.fromarray(np.repeat(arr, w, axis=1).astype(np.uint8), "RGB")
 
 
+def face_lum(img):
+    """与 scripts/deck-edit.py 的 card_lum 同款：灰度 → 60×84 双线性 → 均值（管理页那把尺）。"""
+    return float(np.asarray(img.convert("L").resize((60, 84), Image.BILINEAR), dtype="float32").mean())
+
+
+def lum_target(L):
+    """这张卡的均值该落到哪：只收两端，中段原样返回。"""
+    if L < DARK_KNEE:
+        return L + DARK_GAIN * (DARK_KNEE - L)
+    if L > BRIGHT_KNEE:
+        return L - BRIGHT_GAIN * (L - BRIGHT_KNEE)
+    return L
+
+
+def apply_lum(face):
+    """把一张成卡的均值收进区间（常数段注释见文件头）。返回 (新 face, 旧 L, 新 L)。"""
+    L = face_lum(face)
+    target = lum_target(L)
+    if abs(target - L) < 1.0:
+        return face, L, L
+    rgb = np.asarray(face, dtype=np.float32)
+    if L > BRIGHT_KNEE:
+        # 亮卡：线性乘（luma 线性 → 均值精确落标、色相不动），再做「极轻中性底」——
+        # 近白像素向自身亮度灰混，高调卡的纸底不再带色偏，贴白底页面时融不进去。
+        out = np.clip(rgb * (target / max(L, 1.0)), 0, 255)
+        luma = out[..., 0] * 0.299 + out[..., 1] * 0.587 + out[..., 2] * 0.114
+        m = luma > HILITE_Y
+        if m.any():
+            for ch in range(3):
+                v = out[..., ch]
+                v[m] = v[m] * (1 - HILITE_DESAT) + luma[m] * HILITE_DESAT
+    else:
+        # 暗卡：线性抬黑场（levels，白点锚 255）—— out = RGB·a + b, a = 1 − b/255。
+        # 为什么不是伽马：miku-01 初始之音是「大面积纯黑 + 亮主体」的双峰图，
+        # 乘性变换抬不动纯黑（0×s=0），gamma 为凑均值会把亮部打曝，且解在 60×84 上、
+        # 用在全分辨率上会差出 32 点。线性变换动黑护白，均值恒等 mean = a·L + b →
+        # 闭式解 b = (target−L)·255/(255−L)，模型=实测，没有任何降采样交换误差；
+        # y' = y + b(1−y/255) 恒 ≤ 255，也不会削顶。副作用是暗部往灰走一点
+        # （纯黑→b 的中性灰），这正是「抬中间调」本身该有的样子。
+        b = (target - L) * 255.0 / (255.0 - L)
+        a = 1.0 - b / 255.0
+        out = np.clip(rgb * a + b, 0, 255)
+    new = Image.fromarray(out.astype(np.uint8), "RGB")
+    return new, L, face_lum(new)
+
+
 def main():
     cards = load()
     out_dir = os.path.join(ROOT, "assets", "images", "cards")
     os.makedirs(out_dir, exist_ok=True)
     faces, total = [], 0
+    tuned = []
     for c in cards:
         src = os.path.join(ROOT, c["src"])
         if not os.path.exists(src):
@@ -186,6 +244,9 @@ def main():
         else:
             crop = crop.convert("RGB")
         face = crop.resize((CARD_W, CARD_H), Image.LANCZOS)
+        face, L0, L1 = apply_lum(face)          # 明度收极端：只收尾巴（见 DARK_KNEE 注释）
+        if L1 != L0:
+            tuned.append(c["series"])
         dest = os.path.join(ROOT, "assets", c["image"])   # image 是相对 assets/ 的路径
         face.save(dest, "WEBP", quality=QUALITY, method=6)
         kb = os.path.getsize(dest) // 1024
@@ -195,9 +256,16 @@ def main():
         head = f"头顶 {b2[1] / CARD_H * 100:4.1f}%" if b2 else "头顶  n/a"
         if b2 and b2[1] < CARD_H * 0.015:
             print(f"  ⚠ {c['image']} 的头顶几乎贴着卡的上边缘（{b2[1]}px）—— 看一眼取景")
+        lum = f"  L {L0:.0f}→{L1:.0f}" if L1 != L0 else ""
         print(f"  {c['image']:26s} {face.size[0]}x{face.size[1]}  {kb:3d} KB  {c['style']:6s} "
-              f"{c.get('name') or c['series']}  ({note}, {head})")
+              f"{c.get('name') or c['series']}  ({note}, {head}){lum}")
     print(f"共 {len(faces)} 张，合计 {total} KB")
+    # 明度对账（deck-edit.card_lum 同口径）：收完的 min/std 要落在「无黑洞、无白洞」区间，
+    # 具体卡面的观感仍以接触表 + 管理页「明度体检」的判读为准。
+    Ls = [face_lum(f) for f, _ in faces]
+    if Ls:
+        print(f"明度体检：min {min(Ls):.1f} / max {max(Ls):.1f} / std {np.std(Ls):.1f}"
+              f"（收极端 {len(tuned)} 张：{'、'.join(tuned)}）")
 
     # 清单里有、但没出图的（源图缺失在上面逐条报过，这里兜住别的失败路径）
     missing = [c["image"] for c in cards
