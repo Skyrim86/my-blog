@@ -109,7 +109,7 @@
   --cfilter: url(#deck-rough);
 }
 
-/* pearl：珠光纸（pearl）：暖白底 + **各向异性**的细密丝光（只朝一个方向，不是织布）+ 一道宽而柔的珠光扫光 + 纸纹颗粒。整体**偏暖** —— 这正是它在 205px 下与凸印压痕分得开的那一笔（brief §八）。
+/* pearl：珠光纸（pearl）：暖白底 + **各向异性**的细密丝光（只朝一个方向，不是织布）+ 一道宽而柔的珠光扫光 + 纸纹颗粒。整体**偏暖** —— 这正是它在 205px 下与凸印压痕分得开的那一笔（brief §八）。2026-09-26 批 2-2「真实珠光光泽层」：印纹力度上调（丝光/扫光/底光全升一档、径向底光白→暖）+ 颗粒换专用令牌 --grain-pearl（高对比+暖偏；中灰噪点在 soft-light 印纹摞里读不出，判读「缺纸纹颗粒」就是它）。
    生成产物 —— 由 data/card-styles.yaml 出（tools/cards/render-styles.mjs）。不要手改。 */
 .home-card--pearl {
   --fret-line: rgba(252, 246, 234, .92);
@@ -121,15 +121,15 @@
   --cplate-text: #fdf7ec;
   --cplate-accent: #e6cfa8;
   --coverlay:
-    linear-gradient(108deg, rgba(255, 246, 228, 0) 22%, rgba(255, 246, 230, .26) 44%,
-      rgba(255, 252, 244, .34) 52%, rgba(248, 232, 206, .22) 62%, rgba(255, 246, 228, 0) 80%),
+    linear-gradient(108deg, rgba(255, 246, 228, 0) 22%, rgba(255, 246, 230, .34) 44%,
+      rgba(255, 252, 244, .40) 52%, rgba(248, 232, 206, .28) 62%, rgba(255, 246, 228, 0) 80%),
     repeating-linear-gradient(92deg, rgba(255, 248, 236, 0) 0 2.4px,
-      rgba(255, 246, 228, .13) 3.1px 4.2px, rgba(214, 190, 158, .10) 5.3px 6.4px,
+      rgba(255, 246, 228, .18) 3.1px 4.2px, rgba(214, 190, 158, .15) 5.3px 6.4px,
       rgba(255, 248, 236, 0) 7.6px 10.2px),
-    linear-gradient(88deg, rgba(255, 252, 244, 0) 30%, rgba(255, 252, 244, .20) 46%,
+    linear-gradient(88deg, rgba(255, 252, 244, 0) 30%, rgba(255, 252, 244, .28) 46%,
       rgba(255, 252, 244, 0) 64%),
-    radial-gradient(120% 90% at 44% 34%, rgba(255, 255, 255, .20), rgba(255, 255, 255, 0) 64%),
-    var(--grain);
+    radial-gradient(120% 90% at 44% 34%, rgba(255, 238, 206, .26), rgba(255, 238, 206, 0) 64%),
+    var(--grain-pearl);
   --cblend: soft-light;
   --coverlay-op: 1;
   --cfilter: none;
