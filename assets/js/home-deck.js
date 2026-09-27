@@ -679,10 +679,13 @@
       .replace('{series}', it.series || '').replace('{n}', String(count)));
     el.style.setProperty('--pack-accent', it.seriesAccent || it.tint || '#2a2b33');
     el.style.setProperty('--pack-ink', inkOn(it.seriesAccent || it.tint));
+    // 裂口原点：没按下之前先在正中（键盘回车、直接点一下都从中间裂开）
+    el.style.setProperty('--rip-x', '50%');
 
-    /* 两片：**顶上那条**（撕口以上 = 撕下来丢掉的那条，带小字标签）与**袋身**（撕口以下 = 剩下的
-       主体，带大号系列名 + 提示语）。分界线就是撕口，所以撕开时不会有哪个字被切成两半
-       （这是「两片分离」这个画法唯一的硬约束）。 */
+    /* 两片 + 一条**封口条**：顶上那条（撕口以上 = 撕下来丢掉的那条，带小字标签）、袋身（撕口以下
+       = 剩下的主体，带大号系列名 + 提示语）、封口条（横跨撕口那 12px 纸，静止时它把撕口盖住，
+       包看着是完整的 —— 用户口径「不要开始就是撕开的样子」）。分界线就是撕口，所以撕开时
+       不会有哪个字被切成两半（这是「两片分离」这个画法唯一的硬约束）。 */
     var top = document.createElement('div');
     top.className = 'home-deck-pack-top';
     var kicker = document.createElement('span');
@@ -708,8 +711,13 @@
     bot.appendChild(name);
     bot.appendChild(foot);
 
+    var seal = document.createElement('div');
+    seal.className = 'home-deck-pack-seal';      // 封口条：静止时盖住撕口那道缝
+    seal.setAttribute('aria-hidden', 'true');
+
     el.appendChild(top);
     el.appendChild(bot);
+    el.appendChild(seal);
     el.addEventListener('pointerdown', onPackDown);
     el.addEventListener('pointermove', onPackMove);
     el.addEventListener('pointerup', onPackUp);
@@ -724,6 +732,12 @@
     var el = packDeal.el;
     if (!el) return;
     el.style.setProperty('--tear', packDeal.tear.toFixed(4));
+    // 封口条的 mask 只在「有人动手」之后挂（静止时挂着 mask，渐变的过渡段会让包底透出来一个亮点）
+    var seal = packDeal.seal || (packDeal.seal = el.querySelector('.home-deck-pack-seal'));
+    if (seal) {
+      if (packDeal.tear > .002) seal.classList.add('is-ripping');
+      else seal.classList.remove('is-ripping');
+    }
     // 两半是在后半程才淡出的（前半程是「撕口裂开」，还没到离场）
     el.style.setProperty('--tear-out', clamp01((packDeal.tear - .62) / .38).toFixed(4));
   }
@@ -811,10 +825,22 @@
     }, PACK_BACK_MS);
   }
 
+  /* 裂口原点：从**手指按下的那一处**开始向两侧跑（写成 0~100% 的包宽），别固定从正中裂 ——
+     点左边就从左边裂开。键盘那条不走这里，`--rip-x` 保持 buildPack 里的 50%。 */
+  function ripFrom(e) {
+    var el = packDeal && packDeal.el;
+    if (!el) return;
+    var rect = el.getBoundingClientRect();
+    if (!rect.width) return;
+    var rx = ((e.clientX - rect.left) / rect.width) * 100;
+    el.style.setProperty('--rip-x', Math.max(2, Math.min(98, rx)).toFixed(2) + '%');
+  }
+
   function onPackDown(e) {
     if (!packDeal || packDeal.torn) return;
+    if (e.pointerType !== 'touch' && e.button !== 0) return;
+    ripFrom(e);
     if (e.pointerType === 'touch') return;            // 触屏走「点一下即撕开」（在 pointerup 里判）
-    if (e.button !== 0) return;
     e.preventDefault();
     var el = packDeal.el;
     // 手还按着时人就接管了 --tear：这一帧的进度当起点，往下拖为正（撕的是顶上那一条）

@@ -888,20 +888,25 @@ html.is-deck-dialog #bottom-link {
 
 /* ---------- 卡包与撕开（2026-09-27）----------
 
-   结构是 JS 建的（home-deck.js 的 buildPack）：一层 .home-deck-pack，里面**两半** ——
-   上盖（.home-deck-pack-top，撕口以上、带系列名）与下袋（-bot，撕口以下、带提示语）。
-   分界线就是撕口，所以撕开时不会把哪个字切成两半。
+   结构是 JS 建的（home-deck.js 的 buildPack）：一层 .home-deck-pack，里面**两片 + 一条封口** ——
+   顶上那条（.home-deck-pack-top，撕口以上、带小字标签）、袋身（-bot，撕口以下、带系列名与口令）、
+   **封口条**（-seal，横跨撕口，只有 2×齿高那么高）。分界线就是撕口，所以撕开时不会把哪个字切成两半。
 
-   全部动作只由一个数驱动：`--tear`（0→1，JS 写）。跟手撕与自动撕因此共用同一套视觉 ——
+   全部动作只由两个数驱动：`--tear`（0→1，JS 写）与 `--rip-x`（撕口从包的哪儿开始裂，JS 在
+   按下那一刻写，默认 50%）。CSS 里由它们再推出两个量：
+     · `--rip` = 已经裂开的半宽（`--tear × 150%`）—— 封口条的 mask 窗口按它张开；
+     · `--sep` = 两片**真正分开**的进度（`--tear` 过 0.3 才开始）—— 撕裂要先跑一截，纸才分家。
    `--tear-out` 是后半程的淡出（JS 一并算好写进来，省得在 CSS 里堆 max()）。
 
-   三条几何上的硬约束：
-     · 两片纸的网点参数必须一样（`repeating-linear-gradient` 那两层），否则撕开时纹理对不上，
-       看上去是两块色块被切开、不是一张纸被撕开；
-     · 锯齿用 mask 的 conic 三角做（15×9 一格）：上盖朝下的齿、下袋朝上的齿，错半格咬合 ——
-       未撕时看着是封口，撕开后是两道撕痕；
-     · 上盖往上左走、下袋往下右走（两半侧滑离场），外面那层 `overflow: hidden` 负责在包的边界
-       内把它们裁掉 —— 不让碎片飞到面板上。 */
+   四条几何/观感上的硬约束：
+     · **静止时必须是一张没开过的封口**（用户口径：「不要开始就是撕开的样子」）：封口条的纸面
+       与两片的纸**参数逐字相同**（同一串 `repeating-linear-gradient`），拼起来看不见接缝，
+       只有一道压痕在中间；那两道毛边齿带在 `--tear` 到 0.125 之前是**全透明**的。
+     · 撕开的第一段是**裂口在跑**（封口条被 mask 从抓点向两侧吃掉），第二段才是两片分家
+       （`--sep`）—— 一上来就分家会读成「包被切开」，不是「撕开」。
+     · 两片纸的网点参数必须一样（`repeating-linear-gradient` 那两层），否则撕开时纹理对不上；
+     · 毛边是**手写的不规则轮廓**（下面 `clip-path` 那两串），`--sep` 也带着各自的 `drop-shadow`
+       当厚度 —— 外面那层 `overflow: hidden` 负责在包的边界内裁掉碎片，不让它们飞到面板上。 */
 .home-deck-pack {
   position: absolute;
   inset: 0;
@@ -913,6 +918,9 @@ html.is-deck-dialog #bottom-link {
   color: var(--pack-ink, #f6f4f1);
   --tear: 0;
   --tear-out: 0;
+  --rip-x: 50%;                /* 裂口原点（按下那一刻的 x，见 home-deck.js 的 onPackDown） */
+  --rip: calc(var(--tear) * 200%);   /* 已裂开的半宽：0.25 就把整条封口吃光（抓在边上也不会剩半条） */
+  --sep: clamp(0, calc((var(--tear) - .3) / .7), 1);  /* 两片分家的进度：撕裂跑一截之后才动 */
   --pack-strip: 15%;           /* 撕口离包顶的高度：顶上那一条 = 撕下来丢掉的部分（像游戏王卡包） */
   --pack-accent: #2a2b33;
   --pack-ink: #f6f4f1;
@@ -932,9 +940,9 @@ html.is-deck-dialog #bottom-link {
   left: 0;
   right: 0;
   will-change: transform, opacity;
-  /* **厚度**：两片一分开就各自投一道影（挂 `--tear`，贴合时零偏移零模糊 = 看不见）。
+  /* **厚度**：两片一分家就各自投一道影（挂 `--sep`，还连在一起时零偏移零模糊 = 看不见）。
      用 drop-shadow 而不是 box-shadow：box-shadow 只认矩形，锯齿毛边投不出来。 */
-  filter: drop-shadow(0 calc(var(--tear) * 5px) calc(var(--tear) * 11px) rgba(0, 0, 0, .5));
+  filter: drop-shadow(0 calc(var(--sep) * 5px) calc(var(--sep) * 11px) rgba(0, 0, 0, .5));
 }
 
 /* 顶上那条（撕下来的）：**往下扯**、往右下甩开并淡出。z-index 2 是为了让它从袋身**前面**掠过 ——
@@ -949,7 +957,7 @@ html.is-deck-dialog #bottom-link {
   justify-content: center;
   gap: .5rem;
   z-index: 2;
-  transform: translate(calc(var(--tear) * 6%), calc(var(--tear) * 96%)) rotate(calc(var(--tear) * 4.5deg));
+  transform: translate(calc(var(--sep) * 6%), calc(var(--sep) * 96%)) rotate(calc(var(--sep) * 4.5deg));
   opacity: calc(1 - var(--tear-out));
 }
 
@@ -961,7 +969,7 @@ html.is-deck-dialog #bottom-link {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  transform: translate(calc(var(--tear) * -4%), calc(var(--tear) * -7%)) rotate(calc(var(--tear) * -.8deg));
+  transform: translate(calc(var(--sep) * -4%), calc(var(--sep) * -7%)) rotate(calc(var(--sep) * -.8deg));
   opacity: calc(1 - var(--tear-out));
 }
 
@@ -991,12 +999,91 @@ html.is-deck-dialog #bottom-link {
     linear-gradient(104deg, rgba(255, 255, 255, .16) 0 20%, rgba(255, 255, 255, 0) 44%),
     repeating-linear-gradient(45deg, rgba(255, 255, 255, .055) 0 2px, transparent 2px 5px),
     repeating-linear-gradient(-45deg, rgba(0, 0, 0, .05) 0 2px, transparent 2px 5px),
-    linear-gradient(180deg, color-mix(in oklab, var(--pack-accent) 68%, #14141a), color-mix(in oklab, var(--pack-accent) 52%, #0e0e12));
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pack-ink) 26%, transparent);
+    var(--pack-paper);
 }
 
-.home-deck-pack-top::before { inset: 0 0 var(--pack-toothh) 0; border-radius: 10px 10px 0 0; }
-.home-deck-pack-bot::before { inset: var(--pack-toothh) 0 0 0; border-radius: 0 0 10px 10px; }
+/* 1px 内边框只画**外圈三边**：朝向撕口那一边不画 —— 那两道线会正好落在封口条的上下沿，
+   跟封口线挤成三条线（判读会读成「两道划痕夹一道缝」）。
+   竖向渐变（`--pack-paper`）**在撕口处必须接上**：上片 68%→64%、下片 64%→52%、
+   封口条恒 64% —— 三处收尾都是同一个数。两片都走 68%→52% 时，缝上会差 16% 的色阶，
+   判读逐字写的是「上下两块色差明显」，那不是错觉。 */
+.home-deck-pack-top::before {
+  --pack-paper: linear-gradient(180deg,
+      color-mix(in oklab, var(--pack-accent) 68%, #14141a),
+      color-mix(in oklab, var(--pack-accent) 64%, #131319));
+  inset: 0 0 var(--pack-toothh) 0;
+  border-radius: 10px 10px 0 0;
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklab, var(--pack-ink) 26%, transparent),
+    inset 1px 0 0 0 color-mix(in oklab, var(--pack-ink) 26%, transparent),
+    inset -1px 0 0 0 color-mix(in oklab, var(--pack-ink) 26%, transparent);
+}
+
+.home-deck-pack-bot::before {
+  --pack-paper: linear-gradient(180deg,
+      color-mix(in oklab, var(--pack-accent) 64%, #131319),
+      color-mix(in oklab, var(--pack-accent) 52%, #0e0e12));
+  inset: var(--pack-toothh) 0 0 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow:
+    inset 0 -1px 0 0 color-mix(in oklab, var(--pack-ink) 26%, transparent),
+    inset 1px 0 0 0 color-mix(in oklab, var(--pack-ink) 26%, transparent),
+    inset -1px 0 0 0 color-mix(in oklab, var(--pack-ink) 26%, transparent);
+}
+
+/* 封口条：横跨撕口的那 12px 纸。**静止时它就是「还没开过的包」的全部秘密** ——
+   用户口径「不要开始就是撕开的样子」：包一出现必须是完整的封口，那道毛边要等撕的时候才长出来。
+     · 纸面参数与两片**逐字相同**，竖向取两片收尾的那个中间色（恒 64%）—— 三处拼起来是一条纸，
+       既没有接缝也没有色阶；
+     · 封口线不是「刻痕」而是**叠边**：撕条的下沿有一道 1px 亮边（纸厚）+ 往下一道软影落在袋身上。
+       一开始写成上暗下亮的 1px 一对，判读读成「平直拼接缝」—— 对称的暗+亮等于告诉人这里有缝，
+       而叠边的影只往一侧走，读起来才是「压着」；
+     · 撕口靠 mask 从 `--rip-x` 向两侧张开（`--rip` 是半宽）：吃到哪儿，哪儿才露出下面的毛边齿带。
+       羽化只留 .1%（600px 包宽上不到 1px）：.5% 时静止状态会在正中留下一个 3px 宽的亮斑
+       （实测那一点比周围蓝 b−r 从 −25 跳到 +13），等于封口上多了一个小洞，别放大回去。 */
+.home-deck-pack-seal {
+  --pack-paper: linear-gradient(180deg,
+      color-mix(in oklab, var(--pack-accent) 64%, #131319),
+      color-mix(in oklab, var(--pack-accent) 64%, #131319));
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--pack-strip) - var(--pack-toothh));
+  height: calc(var(--pack-toothh) * 2);
+  z-index: 3;
+  pointer-events: none;
+  background-image:
+    /* ① 撕条下沿的 1px 亮边（半个字高：正好压在撕口那条线上） */
+    linear-gradient(180deg, transparent 0 calc(50% - 1px),
+      color-mix(in oklab, var(--pack-ink) 30%, transparent) calc(50% - 1px) 50%, transparent 50%),
+    /* ② 叠边投影：亮边下方 1→5px 的软影，落在袋身上 */
+    linear-gradient(180deg, transparent 0 50%, rgba(0, 0, 0, .26) 50% calc(50% + 1px),
+      rgba(0, 0, 0, .12) calc(50% + 3px), transparent calc(50% + 5px)),
+    linear-gradient(104deg, rgba(255, 255, 255, .16) 0 20%, rgba(255, 255, 255, 0) 44%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .055) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .05) 0 2px, transparent 2px 5px),
+    var(--pack-paper);
+  /* 兜底：抓在包边上时 mask 要跑更远才吃得干净，那时两片已经动了、残留的封口条会浮在缝里 ——
+     所以两片一开始分家（`--sep`）它就同时淡出。 */
+  opacity: clamp(0, calc(1 - var(--sep) * 2.4), 1);
+}
+
+/* mask 只在上手之后才挂（JS 在 `setTear` 里按 `--tear > 0` 切 `is-ripping`）。
+   不这么切的话，静止状态也带着 mask，而渐变的过渡段必然有一段半透明 —— 那一小段（哪怕只有
+   .1%、不到 1px）会让包的底透出来，在撕口正中留一个亮点（实测 b−r 从 −25 跳到 +68，
+   判读会把它读成「封口上有个小洞/一个蓝色小标记」）。渐变型的窗口做不到「完全闭合」。 */
+.home-deck-pack-seal.is-ripping {
+  -webkit-mask-image: linear-gradient(90deg,
+      #000 calc(var(--rip-x) - var(--rip) - .1%),
+      transparent calc(var(--rip-x) - var(--rip)),
+      transparent calc(var(--rip-x) + var(--rip)),
+      #000 calc(var(--rip-x) + var(--rip) + .1%));
+  mask-image: linear-gradient(90deg,
+      #000 calc(var(--rip-x) - var(--rip) - .1%),
+      transparent calc(var(--rip-x) - var(--rip)),
+      transparent calc(var(--rip-x) + var(--rip)),
+      #000 calc(var(--rip-x) + var(--rip) + .1%));
+}
 
 /* 撕口：**毛边** = 手写的不规则轮廓。`clip-path` 的多边形是一串齿，宽度、深度、齿谷**逐个手写**
    （约 24 颗 / 37 颗，深度 1.5~5.5px，没有两处一样）—— 不规则是这一切的全部来源，所以别把它
@@ -1004,7 +1091,12 @@ html.is-deck-dialog #bottom-link {
    为什么不用「两层互质周期的 mask 取并集」：conic 的 90° 扇面是**自相似**的，两层取并集时
    细齿处处压过粗齿，结果还是等距齿 —— 实测（lab/工具/packprobe.py 的 6 倍微距）仍读作印花花边。
    为什么不用 JS 随机生成：这层是纯 CSS，构建时不许有随机（每次构建结果要一致）。
-   **厚度** = 齿带里那道「纸芯」亮边（下面这条渐变）+ 两片各自挂 `--tear` 的投影。 */
+   **厚度** = 齿带里那道「纸芯」亮边（下面这条渐变）+ 两片各自挂 `--sep` 的投影。
+   **静止时这两条齿带是全透明的**（`--tear` 到 0.0025 之前 opacity 恒 0）：封口没开，就不该有断口 ——
+   它们只在撕的时候才「长出来」，所以这两个 `opacity` 的算式是这一条的关键，别删。
+   系数取 40（2.5% 的行程内就完全不透明）是量出来的：原来取 8 时，裂口刚起那一段齿带才 25% 不透明，
+   而两片纸在缝上本来就让开了 6px —— 于是裂口里透出的是包底（蓝底），判读读成「一个深灰色小方块」。
+   齿带必须在封口条被吃掉的同时就位。 */
 .home-deck-pack-top::after,
 .home-deck-pack-bot::after {
   content: "";
@@ -1012,6 +1104,7 @@ html.is-deck-dialog #bottom-link {
   left: 0;
   right: 0;
   height: var(--pack-toothh);
+  opacity: clamp(0, calc(var(--tear) * 40 - .02), 1);
   background-image: linear-gradient(180deg,
       color-mix(in oklab, var(--pack-accent) 62%, #0c0c10) 0 42%,
       color-mix(in oklab, var(--pack-ink) 66%, var(--pack-accent)) 100%);
