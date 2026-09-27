@@ -913,6 +913,7 @@ html.is-deck-dialog #bottom-link {
   color: var(--pack-ink, #f6f4f1);
   --tear: 0;
   --tear-out: 0;
+  --pack-strip: 15%;           /* 撕口离包顶的高度：顶上那一条 = 撕下来丢掉的部分（像游戏王卡包） */
   --pack-accent: #2a2b33;
   --pack-ink: #f6f4f1;
   --pack-toothh: 6px;
@@ -936,29 +937,45 @@ html.is-deck-dialog #bottom-link {
   filter: drop-shadow(0 calc(var(--tear) * 5px) calc(var(--tear) * 11px) rgba(0, 0, 0, .5));
 }
 
+/* 顶上那条（撕下来的）：**往下扯**、往右下甩开并淡出。z-index 2 是为了让它从袋身**前面**掠过 ——
+   同层里后写的兄弟元素画在上面，不给 z-index 就会被袋身盖住。
+   横向漂 6% 就够：16% 时半撕状态看着像「图层没对齐」（视觉判读原话），不是撕开的甩动。 */
 .home-deck-pack-top {
   top: 0;
-  height: 42%;
+  height: var(--pack-strip);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: .5rem;
-  transform: translate(calc(var(--tear) * -30%), calc(var(--tear) * -78%)) rotate(calc(var(--tear) * -6deg));
+  z-index: 2;
+  transform: translate(calc(var(--tear) * 6%), calc(var(--tear) * 96%)) rotate(calc(var(--tear) * 4.5deg));
   opacity: calc(1 - var(--tear-out));
 }
 
+/* 袋身（主体）：被扯掉顶上那条之后留在原地，只往左上让开一点点并淡出 */
 .home-deck-pack-bot {
-  top: 42%;
+  top: var(--pack-strip);
   bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  gap: .9rem;
-  padding-bottom: 46px;
-  transform: translate(calc(var(--tear) * 30%), calc(var(--tear) * 46%)) rotate(calc(var(--tear) * 5deg));
+  justify-content: center;
+  transform: translate(calc(var(--tear) * -4%), calc(var(--tear) * -7%)) rotate(calc(var(--tear) * -.8deg));
   opacity: calc(1 - var(--tear-out));
+}
+
+/* 徽记 + 口令贴在袋身**下沿**（游戏王那条口令也在底部，不在撕口上）：顶上那条包小字标签、
+   袋身正中放系列名、底下一行口令 —— 三段各占一处，名字仍是最大的一层。 */
+.home-deck-pack-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .9rem;
 }
 
 /* 纸面：底色是**系列配色**的深浅两级（一条竖向渐变给包的体积感），上面压同一组细网点
@@ -1073,7 +1090,9 @@ html.is-deck-dialog #bottom-link {
   text-shadow: 0 1px 3px rgba(0, 0, 0, .3);
 }
 
-/* 封印徽记：纯 CSS 的菱形（不引新素材），环与内芯各一层 */
+/* 封印徽记：纯 CSS 的菱形（不引新素材），环与内芯各一层。
+   它同时是**招手的口令**（用户口径：不自动撕，要点击动作）—— 轻轻呼吸一下，提示「这儿可以点」。
+   减少动态时整个包都不建（`startDeal` 第一行就返回），所以这里不必再写一份守卫。 */
 .home-deck-pack-mark {
   width: 32px;
   height: 32px;
@@ -1083,6 +1102,12 @@ html.is-deck-dialog #bottom-link {
   background:
     linear-gradient(135deg, color-mix(in oklab, var(--pack-ink) 20%, transparent), transparent 62%);
   box-shadow: inset 0 0 0 4px rgba(0, 0, 0, .12);
+  animation: pack-mark-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pack-mark-pulse {
+  0%, 58%, 100% { transform: rotate(45deg) scale(1); }
+  76% { transform: rotate(45deg) scale(1.16); }
 }
 
 .home-deck-pack-hint {

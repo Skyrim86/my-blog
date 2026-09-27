@@ -618,13 +618,14 @@
 
       1. **包是 DOM，不是画布**。3D 卡在 canvas 里，而包只是一张会分开的图：用 DOM，
          「跟手撕」就只剩一个 `--tear` 变量要管，也不必把包塞进查看器的渲染循环
-         （那个循环的每一帧都很贵，见 card-3d.js 的调速器）。
-      2. **手动撕是主场，自动只是替代**：细指针（鼠标/触控板）按住往上拖，撕口跟着手的位移走；
-         触屏与键盘走「点一下 / 回车即撕开」。拖动用 Pointer Events + `touch-action: none`
-         —— 与 canvas 转卡同一套写法，不然触屏上这一拖会变成滚页面。
-      3. **一个 `--tear` 驱动全部**（0→1）：两半的位移/旋转/淡出、提示语的消失全是 CSS 里对
-         `--tear` / `--tear-out` 的 calc。手动（跟手）与自动（rAF 走完）两条路因而共用同一套
-         视觉 —— 不可能出现「自动那条慢慢走样」。松手不够远就回弹，不是硬判「没撕成」。
+         （那个循环的每一帧都贵，见 card-3d.js 的调速器）。
+      2. **只有人动手才撕，没有自动**（用户口径「不要自动撕开，要点击动作之类的」）：
+         撕口在**顶上那条**，细指针按住往下拖、撕口跟手的位移走；点一下（鼠标或触屏）或回车
+         即撕开。拖动用 Pointer Events + `touch-action: none` —— 与 canvas 转卡同一套写法，
+         不然触屏上这一拖会变成滚页面。
+      3. **一个 `--tear` 驱动全部**（0→1）：两片的位移/旋转/淡出、提示语的消失全是 CSS 里对
+         `--tear` / `--tear-out` 的 calc。跟手与「点一下撕到底」两条路因而共用同一套视觉 ——
+         不可能出现「收口那条慢慢走样」。松手不够远就回弹，不是硬判「没撕成」。
       4. **撕完不等于能翻**：贴图（card-3d 的 setItem）可能还在路上，所以「撕到底」与「图到位」
          两个条件都满足才翻面（`torn && ready`）。撕得快的人会先看到卡背等一小会儿 ——
          那正是原来那 600ms 停顿在做的事，不新增等待；加载条仍露在包**上面**（见 CSS 的 z-index）。
@@ -637,10 +638,12 @@
       7. **包面用的是抽到那张卡的系列配色**（清单字段 `seriesAccent`，算法见 deck-manifest.html）：
          该系列画里彩度最高的那个颜色 —— 抽卡时不预告等级，但预告「这是哪一批」。
          与「系列」这个名字配套。字色按主色亮度现算（`inkOn`）—— 系列主色从 #080a0b 到
-         #f1eced 都有，写死一种字色总有一半的包看不清。 */
-  var PACK_IN = 140;         // 落包（淡入 + 缩放到位）
-  var PACK_HOLD = 180;       // 落定之后停一拍：让人看清这是个包，而不是闪一下
-  var PACK_TEAR_MS = 900;    // 自动撕开这一段（跟手那条由手的速度决定）
+         #f1eced 都有，写死一种字色总有一半的包看不清。
+      8. **撕口在顶上那条**（用户口径「像游戏王那样，从上边撕开」）：撕下来的那一条只有包高的
+         `--pack-strip`（17%），大号系列名留在**袋身**上。手往下拖（或点一下、或回车）才撕 —— 
+         **没有自动撕**（原来那条「落包 320ms 后自己撕开」已按用户口径删掉）：包摆在那儿等人动手，
+         等多久都行。所以「往下」= 正方向，判据在 `onPackMove` 的 `dy`。 */
+  var PACK_TEAR_MS = 900;    // 「点一下 / 回车」之后撕到底这一段（跟手那条由手的速度决定）
   var PACK_BACK_MS = 500;    // 撕开之后、翻面之前：卡背露着的那一拍
   var PACK_SPRING_MS = 220;  // 松手不够远 → 回弹
   var PACK_DRAG = .55;       // 拖满包高的这个比例算「撕到底」
@@ -677,30 +680,33 @@
     el.style.setProperty('--pack-accent', it.seriesAccent || it.tint || '#2a2b33');
     el.style.setProperty('--pack-ink', inkOn(it.seriesAccent || it.tint));
 
-    /* 两半：**上盖**（撕口以上，带系列名）与**下袋**（撕口以下，带提示语）。
-       分界线就是撕口 —— 大号名字在上盖里、提示语在下袋里，所以撕开时不会有哪个字被切成两半
-       （这是「两半侧滑」这个画法唯一的硬约束）。 */
+    /* 两片：**顶上那条**（撕口以上 = 撕下来丢掉的那条，带小字标签）与**袋身**（撕口以下 = 剩下的
+       主体，带大号系列名 + 提示语）。分界线就是撕口，所以撕开时不会有哪个字被切成两半
+       （这是「两片分离」这个画法唯一的硬约束）。 */
     var top = document.createElement('div');
     top.className = 'home-deck-pack-top';
     var kicker = document.createElement('span');
     kicker.className = 'home-deck-pack-kicker';
     kicker.textContent = (deck.dataset.packKind || '收藏卡 · {n} 张').replace('{n}', String(count));
-    var name = document.createElement('span');
-    name.className = 'home-deck-pack-name';
-    name.textContent = it.series || '';
     top.appendChild(kicker);
-    top.appendChild(name);
 
     var bot = document.createElement('div');
     bot.className = 'home-deck-pack-bot';
+    var name = document.createElement('span');
+    name.className = 'home-deck-pack-name';
+    name.textContent = it.series || '';
+    var foot = document.createElement('div');
+    foot.className = 'home-deck-pack-foot';       // 徽记 + 口令贴袋身下沿
     var mark = document.createElement('span');
     mark.className = 'home-deck-pack-mark';       // 纯 CSS 的封印徽记（不引新素材）
     var hint = document.createElement('span');
     hint.className = 'home-deck-pack-hint';
     var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     hint.textContent = (coarse ? deck.dataset.packHintTouch : deck.dataset.packHint) || '';
-    bot.appendChild(mark);
-    bot.appendChild(hint);
+    foot.appendChild(mark);
+    foot.appendChild(hint);
+    bot.appendChild(name);
+    bot.appendChild(foot);
 
     el.appendChild(top);
     el.appendChild(bot);
@@ -734,21 +740,17 @@
     if (viewer) viewer.setAngle(Math.PI, 0, true);
     // 先摆上去、下一帧再加类：同一帧里追加节点又加类，浏览器的过渡会当作初始态、什么都不动
     window.setTimeout(function () { if (livePack(seq) && packDeal.el) packDeal.el.classList.add('is-in'); }, 24);
-    // 自动那条：落包 + 停一拍之后开始 —— 但人只要已经动手（按下过、或手还按着、或已在撕）
-    // 就让位给手。判据取 `byHand`（一按下就置位、此后不再复位）而不只是 `drag`：
-    // 实测（lab/工具/packprobe.py）「按下 + 一次多余的 pointerup」会让 drag 变 null，
-    // 自动那条于是趁手还停在包上时自己跑起来 —— 手一拖就发现包已经撕完了。
-    window.setTimeout(function () {
-      if (!livePack(seq) || packDeal.byHand || packDeal.drag || packDeal.torn || packDeal.moving) return;
-      autoTear(seq);
-    }, PACK_IN + PACK_HOLD);
+    /* **没有自动撕**（用户口径：不自动，要点击动作）。包摆上去就等人：点一下、回车、或按住往下拖。
+       所以这里没有任何定时器 —— 摆多久都不会自己动。 */
     if (el.focus) el.focus({ preventScroll: true });
   }
 
-  function autoTear(seq) {
-    // `drag` 也在判据里：手还按在包上时不许自动那条插进来（它只负责「没人动手」那一档）
+  /* 往下拖、点一下、回车都汇到这一条：把 `--tear` 从当前位置推到 1 再收尾。
+     名字不再叫 autoTear —— 它现在是「人做的动作」那条路的收口，不是无人值守的自动。 */
+  function tearThru(seq) {
+    // `drag` 在判据里：手还按在包上时不许抢先（跟手那条正拿着 --tear）
     if (!livePack(seq) || packDeal.torn || packDeal.moving || packDeal.drag) return;
-    packDeal.moving = true;          // 自动与跟手两条不许同时在跑（不然两个 rAF 会互相抢 --tear）
+    packDeal.moving = true;          // 跟手与收口两条不许同时在跑（不然两个 rAF 会互相抢 --tear）
     var from = packDeal.tear;
     if (from >= 1) { tearDone(seq); return; }
     var dur = Math.max(200, PACK_TEAR_MS * (1 - from));   // 撕过一半再松手 → 剩下的那一半更快走完
@@ -815,9 +817,8 @@
     if (e.button !== 0) return;
     e.preventDefault();
     var el = packDeal.el;
-    // 这一帧里如果自动那条已经在跑，人一按下就抢过来：把当前进度当成起点
+    // 手还按着时人就接管了 --tear：这一帧的进度当起点，往下拖为正（撕的是顶上那一条）
     packDeal.drag = { y: e.clientY, from: packDeal.tear, span: Math.max(140, (el.clientHeight || 600) * PACK_DRAG), moved: false };
-    packDeal.byHand = true;          // 人接过去了：自动那条此后不再插手（见 startDeal 里那段注释）
     el.classList.add('is-grabbing');
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* 没有捕获也能撕：事件仍落在包上 */ }
   }
@@ -826,7 +827,7 @@
     var d = packDeal && packDeal.drag;
     if (!packDeal || !d || packDeal.torn) return;
     e.preventDefault();
-    var dy = d.y - e.clientY;                        // 往上拖 = 正
+    var dy = e.clientY - d.y;                        // 往下拖 = 正（像游戏王：捏住顶上那条往下扯）
     if (Math.abs(dy) > 3) d.moved = true;
     setTear(d.from + dy / d.span);
   }
@@ -838,15 +839,15 @@
     if (packDeal.el) packDeal.el.classList.remove('is-grabbing');
     /* 三个出口：几乎没动（= 点一下，触屏与鼠标点击都走这条）→ 撕到底；
        撕过一半 → 撕到底；其余 → 回弹（「还没撕开」也算一种反馈，比硬判死好）。 */
-    if (!d || !d.moved || tear >= .5) autoTear(seq);
+    if (!d || !d.moved || tear >= .5) tearThru(seq);
     else springBack(seq);
   }
 
   function onPackKey(e) {
     if (!packDeal || packDeal.torn) return;
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowUp') {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowDown') {
       e.preventDefault();
-      autoTear(packDeal.seq);
+      tearThru(packDeal.seq);
     }
   }
 
