@@ -10,7 +10,7 @@
 //      rankLabel，数一遍就有了 —— 加一张新系列的卡，筛选条自己多一项，不必回头改模板、也不会
 //      出现「筛选条里挂了零张的项」（写死的清单会）。
 //
-//   2. **没有 JS 时不留点不动的控件**：格子由模板渲染成 <div>（静态卡册：63 张卡与名字都在），
+//   2. **没有 JS 时不留点不动的控件**：格子由模板渲染成 <div>（静态卡册：57 张卡与名字都在），
 //      这里才把它们换成 <button> 并插筛选条 —— 与首页卡片组「按钮由脚本注入」同一条口径。
 //      换不成按钮的两种情况（卡片墙脚本先跑、或 home-deck.js 没加载）下**只插筛选条**：
 //      筛还是能筛，只是点不开弹层（见下面 upgrade 的判据）。
@@ -56,8 +56,9 @@
 //      筛完的墙能分享、能刷新。用 replaceState 而不是 pushState —— 每点一颗 chip 都塞一条历史，
 //      后退键就废了。深链（`#deck-07`）同理，两者互不干扰（查询串管筛选、hash 管「打开哪一张」）。
 //
-//   11. **「随机翻一张」只从当前筛出来的那些里抽**（2026-09-21 晚加）：先筛「绫华的 · 玻璃」再
-//      抽，抽出来的必然在眼前这批里 —— 否则那颗按钮与筛选条会互相打脸，抽到一张看不见的卡。
+//   11. **「抽卡」只从当前筛出来的那些里抽**（2026-09-21 晚加；2026-09-27 起口径是等级加权 +
+//      软保底，见 gachaPick）：先筛「绫华的 · 烫金箔」再抽，抽出来的必然在眼前这批里 ——
+//      否则那颗按钮与筛选条会互相打脸，抽到一张看不见的卡。
 (function () {
   'use strict';
 
@@ -100,6 +101,9 @@
     catch (e) { return {}; }   // 隐私模式下 localStorage 会抛：进度静默失效，不影响别的
   }
   var seen = loadSeen();
+  // 上一次抽卡抽到的那张卡的 id（只有本次会话有意义 → 不落 localStorage）：
+  // 连点两次同一张看着像按钮坏了，所以它在权重上被压一档（见 gachaPick）。
+  var lastDraw = '';
   var query = '';        // 搜索词（小写，空 = 不筛）
   var book = false;      // 卡册视图：3 列 × 每页 9 张（一整跨页），别的不占格也不参与键盘漫游
   var bookPage = 1;
@@ -517,11 +521,13 @@
 
   // 抽卡按钮：角落那枚像素小人（图与文字都来自站点自己的导航图标语言）。
   // **没有 JS 时它不存在**（脚本注入）—— 与「按钮由脚本注入」同一条口径。
+  // 名字（title）是按钮上那两个字，aria-label 说全动作（2026-09-27：从「今日一抽」改成抽卡，
+  // 两个名字一起换 —— 留一句「今日一抽」的 aria 会让读屏用户以为一天只能点一次）。
   var drawIcon = attr('drawIcon');
   var draw = document.createElement('button');
   draw.type = 'button';
   draw.className = 'deck-draw';
-  draw.setAttribute('aria-label', attr('draw', '随机翻一张'));
+  draw.setAttribute('aria-label', attr('drawAria', attr('draw', '抽卡')));
   draw.title = attr('draw', '');
   if (drawIcon) {
     var di = document.createElement('img');
@@ -533,7 +539,7 @@
     draw.appendChild(di);
   }
   var drawText = document.createElement('span');
-  drawText.textContent = attr('draw', '随机翻一张');
+  drawText.textContent = attr('draw', '抽卡');
   draw.appendChild(drawText);
   result.appendChild(draw);
 
@@ -714,31 +720,87 @@
 
   function tileIndex(t) { return parseInt(t.getAttribute('data-i'), 10) || 0; }
 
-  // 与 home-deck.js 逐行相同的三小段（见上面 draw 的注释）
-  function todaySeed(d) {
-    d = d || new Date();
-    var yearStart = new Date(d.getFullYear(), 0, 1);
-    var dayOfYear = Math.floor((d - yearStart) / 86400000) + 1;
-    return d.getFullYear() * 1000 + dayOfYear;
-  }
-  function hash01(n) {
-    var x = n | 0;
-    x = Math.imul(x ^ (x >>> 16), 0x85ebca6b);
-    x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
-    x ^= x >>> 16;
-    return (x >>> 0) / 4294967296;
-  }
-  function pickToday(vis) {
-    var seed = todaySeed(), n = vis.length, idx = [], i, k, t, j;
-    for (i = 0; i < n; i++) idx.push(i);
-    for (k = n - 1; k > 0; k--) {
-      j = Math.floor(hash01(seed + k * 0x9e3779b1) * (k + 1));
-      t = idx[k]; idx[k] = idx[j]; idx[j] = t;
+  /* ---------- 抽卡（2026-09-27：原来的「今日一抽」改成「抽卡」）----------
+
+     原来那条是「按访客本地日期洗一遍、取下一张没看过的」—— 现在换成**等级加权 + 软保底**：
+     同一天连点就是连抽，与日期无关。日期种子那三小段（hash01 / todaySeed / pickToday）随之从
+     这一支撤掉：它们在本文件里只为那一处存在，撤掉之后「两份副本必须逐行相同」这条负担
+     （check-deck.mjs 的守卫）也不必再扛 —— 首页那一支（home-deck.js 的 hash01 / daySeed /
+     pickDailySubset）仍是**那副牌自己的**口径（今天的 12 张），与抽卡无关。
+
+     三条口径：
+
+       ① **权重按等级**（GACHA_W）：档越高越难出。表里的数字是「相对次数」而不是概率 ——
+          档内还要按张数摊，所以 23 张收藏与 1 张奇迹的实际概率差比这张表更极端。
+          按 `rank` **真值**算，不按 `rankWall`：奇迹在墙上借「收藏」的名字显示
+          （见 deck-manifest.html 那段），拿显示名当权重会让那一张变成「稀有的收藏」，
+          抽中了也永远不显形。
+       ② **软保底**（GACHA_PITY_*）：连抽若干次没出「史诗及以上」就开始给高档加权，到
+          GACHA_PITY_HARD 直接必出。计数记在 localStorage（`deck:gacha`）、**跨会话连续** ——
+          只放内存里的话刷新一下就归零，「快出来了」那口气就没了。
+          硬保底只在池子里真有高档时生效：筛选到只剩收藏档时不该无卡可抽。
+       ③ **刚抽到的那张压权重**（×0.08，不是硬排除）：57 张里连点两次同一张看着像按钮坏了；
+          而硬排除在小池子里会变成「必定换一张」的假随机（那不是随机，是发牌）。
+
+     池子是**当前看得见的那一批**（visibleList）—— 筛完再抽，抽的应当是筛出来的那些。 */
+  var GACHA_W = { collector: 100, rare: 42, epic: 16, arcane: 6, legend: 2, miracle: .5 };
+  var GACHA_PITY_START = 10;   // 第 10 次起开始抬高档权重
+  var GACHA_PITY_HARD = 25;    // 到这一次直接必出「史诗及以上」
+  var GACHA_PITY_STEP = .6;    // 每多空一次，高档权重 +60%
+  var GACHA_REPEAT = .08;      // 上一张重复出现的权重折扣
+  var GACHA_KEY = 'deck:gacha';
+  var HIGH_RANKS = ['epic', 'arcane', 'legend', 'miracle'];
+
+  function loadGacha() {
+    try {
+      var st = JSON.parse(window.localStorage.getItem(GACHA_KEY)) || {};
+      return { pity: st.pity | 0, pulls: st.pulls | 0, high: st.high | 0 };
+    } catch (e) {
+      return { pity: 0, pulls: 0, high: 0 };   // 隐私模式：抽卡照抽，只是保底不跨会话
     }
-    for (i = 0; i < n; i++) {
-      if (!seenOf(items[tileIndex(vis[idx[i]])])) return vis[idx[i]];
+  }
+  function saveGacha(st) {
+    try { window.localStorage.setItem(GACHA_KEY, JSON.stringify(st)); } catch (e) { /* 同上 */ }
+  }
+  function isHigh(it) { return HIGH_RANKS.indexOf(it && it.rank) >= 0; }
+
+  function gachaWeight(it, pity) {
+    var w = GACHA_W[it && it.rank] || GACHA_W.collector;
+    if (isHigh(it) && pity >= GACHA_PITY_START) w *= 1 + (pity - GACHA_PITY_START + 1) * GACHA_PITY_STEP;
+    return w;
+  }
+
+  /* 按权重抽一个 —— 累加 total 再减着走，别写成「先算前缀和数组」：这里的池子最多几十格，
+     一次遍历够用，而少一段中间数组就少一处能写错的边界。 */
+  function pickWeighted(list, weightOf) {
+    var total = 0, i, w;
+    for (i = 0; i < list.length; i++) total += weightOf(list[i]);
+    var r = Math.random() * total;
+    for (i = 0; i < list.length; i++) {
+      w = weightOf(list[i]);
+      if ((r -= w) < 0) return list[i];
     }
-    return vis[idx[0]];
+    return list[list.length - 1];     // 浮点误差的兜底（total 为 0 时也落到这里）
+  }
+
+  /* 抽一张并记账。返回 {tile, item}。 */
+  function gachaPick(vis) {
+    var st = loadGacha();
+    var hi = vis.filter(function (t) { return isHigh(itemOf(t)); });
+    var pool = (st.pity >= GACHA_PITY_HARD && hi.length) ? hi : vis;
+    var last = lastDraw;
+    function weightOf(t) {
+      var it = itemOf(t);
+      var w = gachaWeight(it, st.pity);
+      return (last && it && it.id === last) ? w * GACHA_REPEAT : w;
+    }
+    var tile = pickWeighted(pool, weightOf);
+    var it = itemOf(tile);
+    st.pulls += 1;
+    if (isHigh(it)) { st.pity = 0; st.high += 1; } else { st.pity += 1; }
+    saveGacha(st);
+    lastDraw = (it && it.id) || '';
+    return { tile: tile, item: it };
   }
 
   function apply() {
@@ -1042,23 +1104,23 @@
       if (tile && grid.contains(tile)) setTabStop(tile);
     });
 
-    /* 抽卡（2026-09-25 从「随机」改成「今日一抽」）：按**访客本地日期**洗一遍当前看得见的
-       那些，取第一张还没看过的 —— 同一天里顺序固定，点几次就是沿这条线往后走；全看过之后
-       退回洗出来的第一张（那时就等于随机）。
-       种子与洗牌**与 home-deck.js 的 hash01 / daySeed / pickDailySubset 同一套**：那边管
-       「首页今天的 12 张」。两处改一处必须改另一处 —— 目前是各自一份副本（都是经典脚本，
-       没有模块可共享），复制时对照过逐行一致。 */
+    /* 抽卡（2026-09-27：从「今日一抽」改成按等级加权 + 软保底的抽卡，见 gachaPick）：
+       抽一张 → 翻到它那一页 → 开弹层并**撕开卡包**。
+       池子取 visibleList()（**不受卡册分页限制**）：抽到的卡可能在别的页上，
+       那就先把卡册翻到它那一页再开 —— 不然「抽了一张，墙上没有它」。 */
     draw.addEventListener('click', function () {
-      // 池子取 visibleList()（**不受卡册分页限制**）：抽到的卡可能在别的页上，
-      // 那就先把卡册翻到它那一页再开 —— 不然「抽了一张，墙上没有它」。
       var vis = visibleList();
       if (!vis.length) return;
-      var pick = pickToday(vis);
-      // 抽到的卡可能在别的页上 —— 不管哪种视图都先翻到它那一页，
-      // 否则会出现「抽了一张，墙上没有它」。
-      var at = vis.indexOf(pick);
+      var got = gachaPick(vis);
+      var at = vis.indexOf(got.tile);
       if (at >= 0) { bookPage = Math.floor(at / pageSize()) + 1; paintPages(); syncURL(); }
-      window.homeDeck.openAt(tileIndex(pick), pick, { deal: true });   // 开包动画只在抽卡这条路
+      /* 抽到的是谁，**在弹层开之前**先播一次：撕包、翻面全在画布上，读屏用户拿不到任何信号，
+         而弹层里那些控件名字说的是「这张卡」，不会说「你刚抽到了什么」。
+         显形那条播报（deck:reveal）要等弹层打开、3D 转起来之后才来，晚得多。 */
+      srStatus.textContent = attr('drawAnnounce', '{label}')
+        .replace('{label}', got.item.label || '')
+        .replace('{rank}', got.item.rankLabel || '');
+      window.homeDeck.openAt(tileIndex(got.tile), got.tile, { deal: true });   // 开包动画只在抽卡这条路
     });
 
     /* ---------- 深链：/collection/#deck-07 直接开那一张 ----------

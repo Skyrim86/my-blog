@@ -60,6 +60,14 @@
      data-group-on="{{ i18n "deckGroupOn" }}" data-group-off="{{ i18n "deckGroupOff" }}"
      data-group-head="{{ i18n "deckGroupHead" }}"
      data-draw="{{ i18n "deckDraw" }}"
+     {{- /* 2026-09-27：抽卡（原来是「今日一抽」）+ 卡包（撕开动画）。四条一起走 data-*，
+             少一条只是那一处退回英文兜底（与上一批同口径）。 */}}
+     data-draw-aria="{{ i18n "deckDrawAria" }}"
+     data-draw-announce="{{ i18n "deckDrawAnnounce" }}"
+     data-pack-kind="{{ i18n "deckPackKind" }}"
+     data-pack-hint="{{ i18n "deckPackHint" }}"
+     data-pack-hint-touch="{{ i18n "deckPackHintTouch" }}"
+     data-pack-tear="{{ i18n "deckPackTear" }}"
      data-reveal="{{ i18n "deckRevealAnnounce" }}"
      {{- /* 抽卡按钮上那枚像素小人：用**导航栏同一套图标**（assets/images/nav/*.png，32px 像素画），
             取「收藏库」那一枚 —— 它是这一页自己的图标，不必另做一张。

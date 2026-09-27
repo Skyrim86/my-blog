@@ -50,6 +50,8 @@ const I18N_KEYS = ['deckNext', 'deckPrev', 'deckAnnounce', 'deckZoom', 'deckClos
   'deckFilterCount', 'deckFilterClear', 'deckFilterEmpty', 'deckOpenCard',
   // 卡片墙第二轮（2026-09-21 晚）：序号 / 分组 / 抽卡 / 显形播报 / 出处清单
   'deckTileNo', 'deckGroupOn', 'deckGroupOff', 'deckGroupHead', 'deckDraw',
+  // 抽卡 + 卡包（2026-09-27）：按钮的 aria 与播报、包面的那三条
+  'deckDrawAria', 'deckDrawAnnounce', 'deckPackKind', 'deckPackHint', 'deckPackHintTouch', 'deckPackTear',
   'deckRevealAnnounce', 'deckCredits', 'deckCreditsNote'];
 // 出处里能推出可点链接的几种写法（弹层里 credit_url 就用它核）；官方立绘 / 站点看板娘没有链接，留空是对的
 const CREDIT_URLS = [
@@ -1055,11 +1057,11 @@ notes.push(
   );
 }
 
-/* ---------- 日期种子的**两份副本**（2026-09-25）----------
-   home-deck.js 用它抽「首页今天的 12 张」，deck-wall.js 用它做「今日一抽」的顺序。
-   两处都是经典脚本、没有模块可共享，所以只能靠这条守卫防漂移 ——
-   漂移的表现是两种「今天」给出不同的顺序，**页面上不会有任何报错**。
-   （只比函数体、不比名字：deck-wall 那份叫 todaySeed，名字不同是故意的。） */
+/* ---------- 日期种子（2026-09-27 收窄：墙那份副本撤了）----------
+   原来这条守的是「两份副本逐行相同」：home-deck.js 用它抽「首页今天的 12 张」，deck-wall.js
+   用它做「今日一抽」的顺序。**抽卡改成等级加权之后，卡片墙上那份副本撤掉了**（「今天」这个
+   口径不再管抽卡），于是这条守卫只剩两件事：home-deck.js 自己要有那一套；墙那边**不再留**
+   一份会悄悄过期的副本 —— 留着的表现是「改一处、另一处不动」，而页面上不会有任何报错。 */
 const SEED_A = readFileSync(join('assets', 'js', 'home-deck.js'), 'utf8');
 const SEED_B = readFileSync(join('assets', 'js', 'deck-wall.js'), 'utf8');
 function seedBody(src, name) {
@@ -1069,20 +1071,21 @@ function seedBody(src, name) {
   if (j < 0) return null;
   return src.slice(i, j).replace(/function \w+/, 'function').replace(/\s+/g, ' ').trim();
 }
-for (const [na, nb] of [['hash01', 'hash01'], ['daySeed', 'todaySeed']]) {
-  const a = seedBody(SEED_A, na), b = seedBody(SEED_B, nb);
-  if (!a || !b) {
-    failures.push(`✗ 日期种子的 ${na}() / ${nb}() —— 两份副本里有一份找不到了（home-deck.js 与 deck-wall.js 必须各有一份）`);
-  } else if (a !== b) {
-    failures.push(
-      `✗ 日期种子的两份副本漂移了：home-deck.js 的 ${na}() 与 deck-wall.js 的 ${nb}() 必须逐行相同 —— ` +
-        `它们决定「首页今天的 12 张」与「今日一抽」用的是不是同一个「今天」`
-    );
+for (const name of ['hash01', 'daySeed', 'pickDailySubset']) {
+  if (!seedBody(SEED_A, name)) {
+    failures.push(`✗ home-deck.js 少了 ${name}() —— 「首页今天的 12 张」只有这一处实现，它自己必须有`);
   }
 }
 const STEP = /hash01\(seed \+ k \* 0x9e3779b1\)/;
-if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
-  failures.push('✗ 洗牌步长的那个黄金比例常数（0x9e3779b1）在两份副本里对不上');
+if (!STEP.test(SEED_A)) {
+  failures.push('✗ 洗牌步长的那个黄金比例常数（0x9e3779b1）不见了 —— 首页 12 张的洗牌会退化成固定置换');
+}
+for (const name of ['hash01', 'todaySeed', 'pickToday']) {
+  if (SEED_B.includes('function ' + name + '(')) {
+    failures.push(
+      `✗ deck-wall.js 里还有 ${name}() —— 抽卡已经不按日期，留着这份副本只会再漂移一次`
+    );
+  }
 }
 
 // 2026-09-25：玩法层那几条（搜索 / 卡册翻页 / 对比 / 开包 / 加载条）的文字都靠 data-* 从
@@ -1108,6 +1111,9 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
       ['data-compare', 'deckCompare'], ['data-compare-clear', 'deckCompareClear'],
       ['data-compare-go', 'deckCompareGo'], ['data-compare-title', 'deckCompareTitle'], ['data-compare-fail', 'deckCompareFail'],
       ['data-loading', 'deckLoading'],
+      // 卡包那四条（2026-09-27）：首页的「今日一卡」按下去也会撕包，文案挂在同一个根节点上
+      ['data-pack-kind', 'deckPackKind'], ['data-pack-hint', 'deckPackHint'],
+      ['data-pack-hint-touch', 'deckPackHintTouch'], ['data-pack-tear', 'deckPackTear'],
     ]],
     ['layouts/_partials/deck-wall.html', [
       ['data-search', 'deckSearch'], ['data-search-hint', 'deckSearchHint'], ['data-search-hit', 'deckSearchHit'],
@@ -1117,6 +1123,10 @@ if (!STEP.test(SEED_A) || !STEP.test(SEED_B)) {
       ['data-compare', 'deckCompare'], ['data-compare-clear', 'deckCompareClear'],
       ['data-compare-go', 'deckCompareGo'], ['data-compare-title', 'deckCompareTitle'], ['data-compare-fail', 'deckCompareFail'],
       ['data-loading', 'deckLoading'],
+      // 抽卡（原「今日一抽」）与卡包（2026-09-27）
+      ['data-draw', 'deckDraw'], ['data-draw-aria', 'deckDrawAria'], ['data-draw-announce', 'deckDrawAnnounce'],
+      ['data-pack-kind', 'deckPackKind'], ['data-pack-hint', 'deckPackHint'],
+      ['data-pack-hint-touch', 'deckPackHintTouch'], ['data-pack-tear', 'deckPackTear'],
     ]],
   ];
   {

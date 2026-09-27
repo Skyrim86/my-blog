@@ -734,6 +734,7 @@ html.is-deck-dialog #bottom-link {
   position: absolute;
   left: 50%;
   bottom: 10px;
+  z-index: 4;              /* 包(3)之上：撕包期间「还在加载」这条得看得见（见卡包那一段的取舍 4） */
   translate: -50% 0;
   width: min(62%, 240px);
   height: 4px;
@@ -885,10 +886,177 @@ html.is-deck-dialog #bottom-link {
   cursor: pointer;
 }
 
-/* 开包（今日一抽）：卡先亮背面、再翻回正面，正面这一下配一道扫光。
-   纯表演 —— 减少动态时 JS 整段跳过（见 home-deck.js 的 dealDone）。
-   延迟 .6s = dealDone 的翻面时刻（2026-09-26 拍板的节奏 600 / 1800）：扫光与翻正面同起，
-   光正好横过刚翻过来的正面 —— **改 dealDone 的第一个常数就同步改这里**。 */
+/* ---------- 卡包与撕开（2026-09-27）----------
+
+   结构是 JS 建的（home-deck.js 的 buildPack）：一层 .home-deck-pack，里面**两半** ——
+   上盖（.home-deck-pack-top，撕口以上、带系列名）与下袋（-bot，撕口以下、带提示语）。
+   分界线就是撕口，所以撕开时不会把哪个字切成两半。
+
+   全部动作只由一个数驱动：`--tear`（0→1，JS 写）。跟手撕与自动撕因此共用同一套视觉 ——
+   `--tear-out` 是后半程的淡出（JS 一并算好写进来，省得在 CSS 里堆 max()）。
+
+   三条几何上的硬约束：
+     · 两片纸的网点参数必须一样（`repeating-linear-gradient` 那两层），否则撕开时纹理对不上，
+       看上去是两块色块被切开、不是一张纸被撕开；
+     · 锯齿用 mask 的 conic 三角做（15×9 一格）：上盖朝下的齿、下袋朝上的齿，错半格咬合 ——
+       未撕时看着是封口，撕开后是两道撕痕；
+     · 上盖往上左走、下袋往下右走（两半侧滑离场），外面那层 `overflow: hidden` 负责在包的边界
+       内把它们裁掉 —— 不让碎片飞到面板上。 */
+.home-deck-pack {
+  position: absolute;
+  inset: 0;
+  z-index: 3;                  /* 台面里最上（画布在下）；加载条 4、关闭按钮 5 压在它上面 */
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;          /* 往上拖是撕包，别让触屏把它当滚页面（同 .home-deck-canvas） */
+  color: var(--pack-ink, #f6f4f1);
+  --tear: 0;
+  --tear-out: 0;
+  --pack-accent: #2a2b33;
+  --pack-ink: #f6f4f1;
+  --pack-tooth: 16px;
+  --pack-toothh: 8px;
+  opacity: 0;
+  transform: scale(.965);
+  transition: opacity .14s ease-out, transform .14s ease-out;
+}
+
+.home-deck-pack.is-in { opacity: 1; transform: none; }
+.home-deck-pack.is-gone { pointer-events: none; }
+.home-deck-pack.is-grabbing { cursor: grabbing; }
+
+.home-deck-pack-top,
+.home-deck-pack-bot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  will-change: transform, opacity;
+}
+
+.home-deck-pack-top {
+  top: 0;
+  height: 42%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  transform: translate(calc(var(--tear) * -30%), calc(var(--tear) * -78%)) rotate(calc(var(--tear) * -6deg));
+  opacity: calc(1 - var(--tear-out));
+}
+
+.home-deck-pack-bot {
+  top: 42%;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .9rem;
+  padding-bottom: 46px;
+  transform: translate(calc(var(--tear) * 30%), calc(var(--tear) * 46%)) rotate(calc(var(--tear) * 5deg));
+  opacity: calc(1 - var(--tear-out));
+}
+
+/* 纸面：底色是**系列配色**的深浅两级（一条竖向渐变给包的体积感），上面压同一组细网点
+   （α 网点用两层 45°/-45° 细纹叠出来，省一个半调素材），最上面一道斜向高光当纸的反光。
+   两片纸的参数必须**逐字相同** —— 否则撕开时纹理对不上，看上去是两块色块被切开。 */
+.home-deck-pack-top::before,
+.home-deck-pack-bot::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  background-image:
+    linear-gradient(104deg, rgba(255, 255, 255, .16) 0 20%, rgba(255, 255, 255, 0) 44%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .055) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .05) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg, color-mix(in oklab, var(--pack-accent) 68%, #14141a), color-mix(in oklab, var(--pack-accent) 52%, #0e0e12));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pack-ink) 26%, transparent);
+}
+
+.home-deck-pack-top::before { inset: 0 0 var(--pack-toothh) 0; border-radius: 10px 10px 0 0; }
+.home-deck-pack-bot::before { inset: var(--pack-toothh) 0 0 0; border-radius: 0 0 10px 10px; }
+
+/* 撕口的锯齿：conic 的 90° 扇面就是一格三角。上盖朝下、下袋朝上，错半格。 */
+.home-deck-pack-top::after,
+.home-deck-pack-bot::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--pack-toothh);
+  background-color: color-mix(in oklab, var(--pack-accent) 80%, #101014);
+  -webkit-mask-image: conic-gradient(from 135deg at 50% 0, #000 0 90deg, transparent 0);
+  mask-image: conic-gradient(from 135deg at 50% 0, #000 0 90deg, transparent 0);
+  -webkit-mask-size: var(--pack-tooth) var(--pack-toothh);
+  mask-size: var(--pack-tooth) var(--pack-toothh);
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+}
+
+.home-deck-pack-top::after { bottom: 0; }
+
+.home-deck-pack-bot::after {
+  top: 0;
+  -webkit-mask-image: conic-gradient(from -45deg at 50% 100%, #000 0 90deg, transparent 0);
+  mask-image: conic-gradient(from -45deg at 50% 100%, #000 0 90deg, transparent 0);
+  -webkit-mask-position: -7px 0;
+  mask-position: -7px 0;
+}
+
+/* 包面上那四样文字/图案**必须自己定位**：纸面那层（`::before`）是绝对定位的，而未定位的
+   flex 子元素画在它**下面** —— 不写这两行，系列名会被纸完整盖掉（像素读数里那一块
+   p5/p95 = 94/112，等于一个字都没有）。 */
+.home-deck-pack-kicker,
+.home-deck-pack-name,
+.home-deck-pack-mark,
+.home-deck-pack-hint {
+  position: relative;
+  z-index: 1;
+}
+
+.home-deck-pack-kicker {
+  font-size: .82rem;
+  letter-spacing: .18em;
+  opacity: .85;
+}
+
+.home-deck-pack-name {
+  font-size: clamp(1.4rem, 4.2vw + .5rem, 2.3rem);
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+
+/* 封印徽记：纯 CSS 的菱形（不引新素材），环与内芯各一层 */
+.home-deck-pack-mark {
+  width: 32px;
+  height: 32px;
+  border: 1px solid color-mix(in oklab, var(--pack-ink) 52%, transparent);
+  border-radius: 3px;
+  transform: rotate(45deg);
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--pack-ink) 20%, transparent), transparent 62%);
+  box-shadow: inset 0 0 0 4px rgba(0, 0, 0, .12);
+}
+
+.home-deck-pack-hint {
+  font-size: .78rem;
+  letter-spacing: .22em;
+  opacity: .72;
+}
+
+/* 撕包期间那几颗按钮先让开：包盖在台面上，这时候按「翻到背面」只会把状态弄乱 */
+.home-deck-dialog.is-packing .home-deck-actions,
+.home-deck-dialog.is-packing .home-deck-dialog-step {
+  pointer-events: none;
+  opacity: .5;
+}
+
+/* 扫光（正面那一下）：延迟由 JS 写进 --pack-flip-delay —— 翻面时刻要等**撕完**才确定，
+   写死在 CSS 里就会「光先扫完、卡还在背」（2026-09-27 之前就是这么写死的）。 */
 .home-deck-dialog.is-dealing .home-deck-stage::after {
   content: "";
   position: absolute;
@@ -896,7 +1064,7 @@ html.is-deck-dialog #bottom-link {
   border-radius: inherit;
   pointer-events: none;
   background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .34) 50%, transparent 65%);
-  animation: deck-deal-sweep .85s ease-out .6s;
+  animation: deck-deal-sweep .85s ease-out var(--pack-flip-delay, .5s);
 }
 
 @keyframes deck-deal-sweep {
@@ -994,6 +1162,7 @@ a.home-deck-dialog-credit:hover {
   position: absolute;
   top: .35rem;
   right: .35rem;
+  z-index: 5;              /* 压在卡包(3)与加载条(4)之上：撕包期间也得关得掉 */
   width: 30px;
   height: 30px;
   padding: 0;

@@ -55,6 +55,12 @@
      data-compare="{{ i18n "deckCompare" }}"
      data-compare-clear="{{ i18n "deckCompareClear" }}" data-compare-go="{{ i18n "deckCompareGo" }}"
      data-compare-title="{{ i18n "deckCompareTitle" }}" data-compare-fail="{{ i18n "deckCompareFail" }}"
+     {{- /* 卡包（撕开动画，2026-09-27）：首页的「今日一卡」按那颗微卡也会撕开一个卡包，
+             包是 home-deck.js 建的，所以文案要与卡片墙那一份同样挂在这里。 */}}
+     data-pack-kind="{{ i18n "deckPackKind" }}"
+     data-pack-hint="{{ i18n "deckPackHint" }}"
+     data-pack-hint-touch="{{ i18n "deckPackHintTouch" }}"
+     data-pack-tear="{{ i18n "deckPackTear" }}"
      data-rotate="{{ i18n "deckRotate" }}" data-gl-fail="{{ i18n "deckGlFail" }}">
     <div class="home-card home-card--{{ $first.style }} home-card-rank--{{ $first.rank }}" style="--art: url('{{ $first.l }}'){{ with $first.ring }}; --ring-ink: {{ . | safe.CSS }}{{ end }}{{ with $first.bumpLit }}; --bump-lit: url('{{ . }}'){{ end }}{{ with $first.bumpSpec }}; --bump-spec: url('{{ . }}'){{ end }}">
         {{- /* fetchpriority=high 是给它一个「先下」的提示：这是首屏唯一的卡面，也是 LCP 候选。

@@ -608,15 +608,266 @@
     });
   }
 
-  // 开包（今日一抽专用）：先亮卡背、再翻回正面。**减少了动态就整段跳过** —— 这条是纯表演。
-  // 节奏 2026-09-26 拍板加长（600 / 1800，原 320 / 1300）：卡背停久一点再翻、扫光的窗口也
-  // 拉长 —— 「开包」那口停顿是这个表演的全部意义。扫光动画在 CSS 里配了同值的 .6s 延迟
-  // （21-card-deck.css 的 deck-deal-sweep），**两处要一起改**，否则光先扫完、卡还在背。
-  function dealDone() {
-    viewer.setAngle(Math.PI, 0, true);
+  /* ---------- 卡包（撕开动画，2026-09-27）----------
+
+     两个入口共用这一段：收藏库那颗「抽卡」按钮，与首页时钟的「今日一卡」—— 都走
+     `openAt(idx, opener, { deal: true })`。表演三段：**撕开卡包 → 卡背停一拍 → 翻正面**
+     （正面那一下配一道扫光）。原来是「先亮卡背、600ms 后翻」，没有「包」这个物件。
+
+     七条刻意的取舍：
+
+      1. **包是 DOM，不是画布**。3D 卡在 canvas 里，而包只是一张会分开的图：用 DOM，
+         「跟手撕」就只剩一个 `--tear` 变量要管，也不必把包塞进查看器的渲染循环
+         （那个循环的每一帧都很贵，见 card-3d.js 的调速器）。
+      2. **手动撕是主场，自动只是替代**：细指针（鼠标/触控板）按住往上拖，撕口跟着手的位移走；
+         触屏与键盘走「点一下 / 回车即撕开」。拖动用 Pointer Events + `touch-action: none`
+         —— 与 canvas 转卡同一套写法，不然触屏上这一拖会变成滚页面。
+      3. **一个 `--tear` 驱动全部**（0→1）：两半的位移/旋转/淡出、提示语的消失全是 CSS 里对
+         `--tear` / `--tear-out` 的 calc。手动（跟手）与自动（rAF 走完）两条路因而共用同一套
+         视觉 —— 不可能出现「自动那条慢慢走样」。松手不够远就回弹，不是硬判「没撕成」。
+      4. **撕完不等于能翻**：贴图（card-3d 的 setItem）可能还在路上，所以「撕到底」与「图到位」
+         两个条件都满足才翻面（`torn && ready`）。撕得快的人会先看到卡背等一小会儿 ——
+         那正是原来那 600ms 停顿在做的事，不新增等待；加载条仍露在包**上面**（见 CSS 的 z-index）。
+      5. **扫光与翻面靠一个 CSS 变量对齐**：翻面时刻要等**撕完**才确定（每个人撕得不一样快），
+         所以扫光的延迟由 JS 写进 `--pack-flip-delay`。原来这条延迟在 CSS 里写死 .6s、与 JS 的
+         第一个常数两处各一份，「改一处忘一处」的表现就是光先扫完、卡还在背。
+      6. **减少了动态就整段跳过**（包本身都不建）。原来那条注释说「整段跳过」，代码里却只有
+         CSS 关掉了扫光 —— 真正跑的仍是「亮卡背 + 翻面」。这里按注释的原意落成：
+         减少动态时弹层直接显示正面，没有包、没有卡背、没有翻。
+      7. **包面用的是抽到那张卡的系列配色**（清单字段 `seriesAccent`，算法见 deck-manifest.html）：
+         该系列画里彩度最高的那个颜色 —— 抽卡时不预告等级，但预告「这是哪一批」。
+         与「系列」这个名字配套。字色按主色亮度现算（`inkOn`）—— 系列主色从 #080a0b 到
+         #f1eced 都有，写死一种字色总有一半的包看不清。 */
+  var PACK_IN = 140;         // 落包（淡入 + 缩放到位）
+  var PACK_HOLD = 180;       // 落定之后停一拍：让人看清这是个包，而不是闪一下
+  var PACK_TEAR_MS = 900;    // 自动撕开这一段（跟手那条由手的速度决定）
+  var PACK_BACK_MS = 500;    // 撕开之后、翻面之前：卡背露着的那一拍
+  var PACK_SPRING_MS = 220;  // 松手不够远 → 回弹
+  var PACK_DRAG = .55;       // 拖满包高的这个比例算「撕到底」
+  var packDeal = null;
+  var packSeq = 0;
+
+  function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+  function livePack(seq) { return !!packDeal && packDeal.seq === seq; }
+
+  /* 包面文字用亮字还是暗字：判据是**纸面**的亮度，不是系列色本身的亮度（阈值 0.65）。
+     实测（lab/工具/packprobe.py 的帧图读数）：纸面亮度 ≈ 0.28 × 系列色亮度 ——
+     纸面 = `color-mix(系列色 68%, #14141a)` 再叠两层网点（见 21-card-deck.css），
+     比系列色暗得多。现有 5 个系列的系列色亮度是 0.30~0.40，纸面落在 86~92/255：
+     这里给亮字，实测对比度 6.3:1；按系列色亮度改成暗字反而掉到 2.8:1（踩过）。
+     阈值取 0.65 是「纸面 0.2」的反推 —— 亮字与暗字在那一带的对比度相等，两边都不吃亏。 */
+  function inkOn(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+    if (!m) return '#f6f4f1';
+    var v = parseInt(m[1], 16);
+    function ch(c) { c /= 255; return c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4); }
+    var lum = .2126 * ch((v >> 16) & 255) + .7152 * ch((v >> 8) & 255) + .0722 * ch(v & 255);
+    return lum > .65 ? '#15141a' : '#f6f4f1';
+  }
+
+  function buildPack(item) {
+    var it = item || {};
+    var count = it.seriesCount || (items.length || 0);
+    var el = document.createElement('div');
+    el.className = 'home-deck-pack';
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', (deck.dataset.packTear || '撕开卡包：{series} · {n} 张')
+      .replace('{series}', it.series || '').replace('{n}', String(count)));
+    el.style.setProperty('--pack-accent', it.seriesAccent || it.tint || '#2a2b33');
+    el.style.setProperty('--pack-ink', inkOn(it.seriesAccent || it.tint));
+
+    /* 两半：**上盖**（撕口以上，带系列名）与**下袋**（撕口以下，带提示语）。
+       分界线就是撕口 —— 大号名字在上盖里、提示语在下袋里，所以撕开时不会有哪个字被切成两半
+       （这是「两半侧滑」这个画法唯一的硬约束）。 */
+    var top = document.createElement('div');
+    top.className = 'home-deck-pack-top';
+    var kicker = document.createElement('span');
+    kicker.className = 'home-deck-pack-kicker';
+    kicker.textContent = (deck.dataset.packKind || '收藏卡 · {n} 张').replace('{n}', String(count));
+    var name = document.createElement('span');
+    name.className = 'home-deck-pack-name';
+    name.textContent = it.series || '';
+    top.appendChild(kicker);
+    top.appendChild(name);
+
+    var bot = document.createElement('div');
+    bot.className = 'home-deck-pack-bot';
+    var mark = document.createElement('span');
+    mark.className = 'home-deck-pack-mark';       // 纯 CSS 的封印徽记（不引新素材）
+    var hint = document.createElement('span');
+    hint.className = 'home-deck-pack-hint';
+    var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    hint.textContent = (coarse ? deck.dataset.packHintTouch : deck.dataset.packHint) || '';
+    bot.appendChild(mark);
+    bot.appendChild(hint);
+
+    el.appendChild(top);
+    el.appendChild(bot);
+    el.addEventListener('pointerdown', onPackDown);
+    el.addEventListener('pointermove', onPackMove);
+    el.addEventListener('pointerup', onPackUp);
+    el.addEventListener('pointercancel', onPackUp);
+    el.addEventListener('keydown', onPackKey);
+    return el;
+  }
+
+  function setTear(p) {
+    if (!packDeal) return;
+    packDeal.tear = clamp01(p);
+    var el = packDeal.el;
+    if (!el) return;
+    el.style.setProperty('--tear', packDeal.tear.toFixed(4));
+    // 两半是在后半程才淡出的（前半程是「撕口裂开」，还没到离场）
+    el.style.setProperty('--tear-out', clamp01((packDeal.tear - .62) / .38).toFixed(4));
+  }
+
+  function startDeal(item) {
+    if (reduced()) return;             // 取舍 6
+    clearPack();
+    var seq = ++packSeq;
+    var el = buildPack(item);
+    packDeal = { seq: seq, el: el, tear: 0, torn: false, ready: false, flipped: false, drag: null };
+    stage.appendChild(el);
+    dlg.classList.add('is-packing');
+    setTear(0);
+    if (viewer) viewer.setAngle(Math.PI, 0, true);
+    // 先摆上去、下一帧再加类：同一帧里追加节点又加类，浏览器的过渡会当作初始态、什么都不动
+    window.setTimeout(function () { if (livePack(seq) && packDeal.el) packDeal.el.classList.add('is-in'); }, 24);
+    // 自动那条：落包 + 停一拍之后开始 —— 但人只要已经动手（按下过、或手还按着、或已在撕）
+    // 就让位给手。判据取 `byHand`（一按下就置位、此后不再复位）而不只是 `drag`：
+    // 实测（lab/工具/packprobe.py）「按下 + 一次多余的 pointerup」会让 drag 变 null，
+    // 自动那条于是趁手还停在包上时自己跑起来 —— 手一拖就发现包已经撕完了。
+    window.setTimeout(function () {
+      if (!livePack(seq) || packDeal.byHand || packDeal.drag || packDeal.torn || packDeal.moving) return;
+      autoTear(seq);
+    }, PACK_IN + PACK_HOLD);
+    if (el.focus) el.focus({ preventScroll: true });
+  }
+
+  function autoTear(seq) {
+    // `drag` 也在判据里：手还按在包上时不许自动那条插进来（它只负责「没人动手」那一档）
+    if (!livePack(seq) || packDeal.torn || packDeal.moving || packDeal.drag) return;
+    packDeal.moving = true;          // 自动与跟手两条不许同时在跑（不然两个 rAF 会互相抢 --tear）
+    var from = packDeal.tear;
+    if (from >= 1) { tearDone(seq); return; }
+    var dur = Math.max(200, PACK_TEAR_MS * (1 - from));   // 撕过一半再松手 → 剩下的那一半更快走完
+    var t0 = 0;
+    function step(ts) {
+      if (!livePack(seq)) return;
+      if (!t0) t0 = ts;
+      var p = from + (1 - from) * Math.min(1, (ts - t0) / dur);
+      setTear(p);
+      if (p < 1) window.requestAnimationFrame(step);
+      else tearDone(seq);
+    }
+    window.requestAnimationFrame(step);
+  }
+
+  function springBack(seq) {
+    if (!livePack(seq) || packDeal.moving) return;
+    packDeal.moving = true;
+    var from = packDeal.tear, t0 = 0;
+    function step(ts) {
+      if (!livePack(seq)) return;
+      if (!t0) t0 = ts;
+      var k = Math.min(1, (ts - t0) / PACK_SPRING_MS);
+      setTear(from * (1 - k));
+      if (k < 1) window.requestAnimationFrame(step);
+      else packDeal.moving = false;    // 回弹完还能再撕（手又按下去时 from 取的是 0）
+    }
+    window.requestAnimationFrame(step);
+  }
+
+  function tearDone(seq) {
+    if (!livePack(seq) || packDeal.torn) return;
+    packDeal.torn = true;
+    packDeal.moving = false;
+    setTear(1);
+    var el = packDeal.el;
+    dlg.classList.remove('is-packing');
+    // 翻面与扫光都在这一刻排定（取舍 5）：延迟写进 CSS 变量，扫光与翻面共用同一个数
     dlg.classList.add('is-dealing');
-    window.setTimeout(function () { viewer.flip(); }, 600);
-    window.setTimeout(function () { dlg.classList.remove('is-dealing'); }, 1800);
+    dlg.style.setProperty('--pack-flip-delay', PACK_BACK_MS + 'ms');
+    window.setTimeout(function () { if (livePack(seq)) dlg.classList.remove('is-dealing'); }, PACK_BACK_MS + 1000);
+    // 两半已经在滑走：260ms 后把这一层让开（**不删节点** —— is-gone 只是让它不再吃指针事件，
+    // 状态对象还要留着给 maybeFlip 判「撕到底了没有」）
+    window.setTimeout(function () { if (livePack(seq) && el) el.classList.add('is-gone'); }, 260);
+    maybeFlip();
+  }
+
+  /* 两个条件都齐了才翻（取舍 4）。谁后到由谁来叫这一声。 */
+  function maybeFlip() {
+    if (!packDeal || packDeal.flipped || !packDeal.torn || !packDeal.ready) return;
+    packDeal.flipped = true;
+    var seq = packDeal.seq, el = packDeal.el;
+    window.setTimeout(function () {
+      if (!livePack(seq)) return;
+      if (viewer) viewer.flip();
+      // 焦点交给关闭按钮：包这个控件已经完成使命，模态里该有一个常规落点
+      if (document.activeElement === el) closeBtn.focus({ preventScroll: true });
+    }, PACK_BACK_MS);
+  }
+
+  function onPackDown(e) {
+    if (!packDeal || packDeal.torn) return;
+    if (e.pointerType === 'touch') return;            // 触屏走「点一下即撕开」（在 pointerup 里判）
+    if (e.button !== 0) return;
+    e.preventDefault();
+    var el = packDeal.el;
+    // 这一帧里如果自动那条已经在跑，人一按下就抢过来：把当前进度当成起点
+    packDeal.drag = { y: e.clientY, from: packDeal.tear, span: Math.max(140, (el.clientHeight || 600) * PACK_DRAG), moved: false };
+    packDeal.byHand = true;          // 人接过去了：自动那条此后不再插手（见 startDeal 里那段注释）
+    el.classList.add('is-grabbing');
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* 没有捕获也能撕：事件仍落在包上 */ }
+  }
+
+  function onPackMove(e) {
+    var d = packDeal && packDeal.drag;
+    if (!packDeal || !d || packDeal.torn) return;
+    e.preventDefault();
+    var dy = d.y - e.clientY;                        // 往上拖 = 正
+    if (Math.abs(dy) > 3) d.moved = true;
+    setTear(d.from + dy / d.span);
+  }
+
+  function onPackUp() {
+    if (!packDeal || packDeal.torn) return;
+    var d = packDeal.drag, tear = packDeal.tear, seq = packDeal.seq;
+    packDeal.drag = null;
+    if (packDeal.el) packDeal.el.classList.remove('is-grabbing');
+    /* 三个出口：几乎没动（= 点一下，触屏与鼠标点击都走这条）→ 撕到底；
+       撕过一半 → 撕到底；其余 → 回弹（「还没撕开」也算一种反馈，比硬判死好）。 */
+    if (!d || !d.moved || tear >= .5) autoTear(seq);
+    else springBack(seq);
+  }
+
+  function onPackKey(e) {
+    if (!packDeal || packDeal.torn) return;
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      autoTear(packDeal.seq);
+    }
+  }
+
+  function clearPack() {
+    packSeq++;                     // 让所有在飞的 rAF 与定时器失去意义（livePack 判序号）
+    if (packDeal && packDeal.el && packDeal.el.parentNode) {
+      packDeal.el.parentNode.removeChild(packDeal.el);
+    }
+    packDeal = null;
+    dlg.classList.remove('is-packing');
+    dlg.classList.remove('is-dealing');
+    dlg.style.removeProperty('--pack-flip-delay');
+  }
+
+  /* 贴图到位（fillDialog 的 done 钩子调它）。第一行那条 setAngle 是给「GL 是后建的」那条路
+     补机位：撕包可能早于 viewer 建好，那时 setAngle 无处可调（stage 上还是平面大图）。 */
+  function dealDone() {
+    if (!packDeal) return;                  // 减少动态那条路：没有包，也就不翻
+    if (viewer) viewer.setAngle(Math.PI, 0, true);
+    packDeal.ready = true;
+    maybeFlip();
   }
 
   function fillDialog(item, opts) {
@@ -683,6 +934,8 @@
       window.setTimeout(function () { prefetch(2, true); }, 1200);
     });
     if (viewer) {
+      // 撕包那条：贴图到位后 dealDone 才被叫（它自己判「包撕到底了没有」，两个条件齐了才翻，
+      // 见卡包那一段的取舍 4）。这里只负责把它挂上 done 钩子。
       var deal0 = (opts && opts.deal) ? dealDone : null;
       barStart();
       viewer.setItem(payloadOf(item, {
@@ -747,6 +1000,10 @@
     progress.classList.add('is-paused');
     syncHash(true);                // 收藏库：把「打开的是哪一张」写进地址（首页那支不写，见那个函数）
     closeBtn.focus();
+    /* 撕包（抽卡 / 今日一卡）：**包要在这一帧就摆上去**（它同时也把「GL 还在建」那段空白盖住），
+       所以放在最后调 —— 前面 closeBtn.focus() 会把焦点抢走，包要接过来（它是可聚焦的控件：
+       键盘用户按回车即撕开）。减少动态时 startDeal 自己直接返回，这里不必再判。 */
+    if (opts && opts.deal) startDeal(items[i]);
   }
 
   /* ---------- 深链（`#deck-07`）----------
@@ -769,6 +1026,7 @@
 
   function closeDialog() {
     if (dlg.hidden) return;
+    clearPack();                         // 撕到一半关掉也要收：在飞的 rAF 与定时器靠序号失效
     if (viewer) viewer.setOpen(false);   // 停掉动画循环：弹层关着时不该占着 GPU
     if (window.__bg && window.__bg.start) window.__bg.start();   // 背景 shader 恢复（见 openDialog）
     dlg.hidden = true;
@@ -798,6 +1056,9 @@
       return;
     }
     if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !onCanvas) {
+      // 撕包还盖在台面上时左右键不换卡：换卡会重新 fillDialog，而包记的是**上一张**的系列
+      // （焦点在包上，方向键本来也到不了这里 —— 这条是给合成事件与别的落点兜底）
+      if (dlg.classList.contains('is-packing')) return;
       e.preventDefault();
       go(e.key === 'ArrowRight' ? 1 : -1, true);
       return;

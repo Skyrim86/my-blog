@@ -289,13 +289,15 @@
 
     /* 点击：开那张卡的 3D 弹层（并让左栏卡片组翻到它）。入口由 home-deck.js 暴露 ——
        弹层与当前索引都在那个闭包里，不开这个口子外面拿不到。第二个参数是触发者，
-       弹层关闭时焦点才还得到这颗按钮（见 home-deck.js 里 closeDialog 的注释）。 */
+       弹层关闭时焦点才还得到这颗按钮（见 home-deck.js 里 closeDialog 的注释）。
+       第三个参数 `{deal:true}` = 撕开一个卡包再翻面（2026-09-27）：每日一抽与收藏库的抽卡
+       共用那一段表演，这样两处「抽」的手感是同一个。 */
     if (dailyBtn) {
         dailyBtn.addEventListener('click', () => {
             const idx = parseInt(dailyBtn.dataset.deckIndex, 10);
             if (Number.isNaN(idx)) return;
             if (window.homeDeck && typeof window.homeDeck.openAt === 'function') {
-                window.homeDeck.openAt(idx, dailyBtn);
+                window.homeDeck.openAt(idx, dailyBtn, { deal: true });
             }
         });
     }
