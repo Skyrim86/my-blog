@@ -36,56 +36,19 @@
      卡面要占 517px 宽、2x 屏上 1034 个物理像素，544px 那档会被拉到近两倍（糊得看得见）。
      **它不进 srcset**，只有两处用它：card-3d.js 的面贴图、弹层里那张平面大图 —— 于是
      列表页的访客一个字节都不多下，只有真打开弹层的人下这一张（约 30KB）。 */ -}}
-{{- /* 系列的两个聚合字段（2026-09-27，为卡包而加）：**系列张数**（包面那行「收藏卡 · n 张」）
-     与**系列配色**（包面主色）。口径一律从清单**现算**，不另建手写的「系列色表」——
-     手写表会在第一次换图时静默过期。
-
-     配色怎么定的：把该系列**每张画**的调色板摊开，取其中**彩度最高**的那一个
-     （彩度 = 最亮通道 − 最暗通道；跳过太黑太白的：最亮 < 40 或最暗 > 215 的不参选）。
-     整个系列都挑不出来时退回该系列第一张画的**主色** —— 于是包面要么是这批画里真实存在的
-     一个颜色，要么是这批画的底色（灰的）。
-     为什么不直接用主色（调色板 index 0）：实测那 5 个系列的主色是 #aeabb9 / #cdd6dd / #dad7dd /
-     #0d0b0c / #080a0b —— 主色多半落在画的**底**上，而底在透明 PNG 上是白或黑，
-     5 个包会变成 3 个浅灰 + 2 个近黑，正好把「系列配色」这件事做没了。
-
+{{- /* 系列的聚合字段：只留**系列张数**（包面那行小字里的 {n}），口径从清单**现算**。
      为什么烘进**每一条**而不是给 JS 一张单独的系列表：卡包在两个页面各弹一次 ——
-     首页那一支手里的清单是「今天的 12 张」（子集），系列张数必须仍是**整册**里那个数。 */ -}}
+     首页那一支手里的清单是「今天的 12 张」（子集），系列张数必须仍是**整册**里那个数。
+
+     原来这里还有**系列配色**（seriesAccent：摊开该系列每张画的调色板、取彩度最高的那个，
+     跳过太黑太白的）。2026-09-27 用户口径「做成统一的卡包，先不分系列」之后它没有消费者了，
+     删掉 —— 每张画扫一遍调色板也让构建白慢一截。要做回来时别再手写「系列色表」
+     （换图会静默过期），算法在 git 历史里（这次删除的那个 commit）。 */ -}}
 {{- $seriesCount := dict }}
-{{- $seriesBase := dict }}
-{{- $seriesAccent := dict }}
-{{- $seriesSat := dict }}
 {{- range index hugo.Data "home-cards" }}
 {{- $series := .series }}
 {{- $n := 0 }}{{ with index $seriesCount $series }}{{ $n = . }}{{ end }}
 {{- $seriesCount = merge $seriesCount (dict $series (add $n 1)) }}
-{{- with resources.Get .image }}
-{{- $dom := "" }}{{ with .Colors }}{{ $dom = printf "%v" (index . 0) }}{{ end }}
-{{- if not (index $seriesBase $series) }}{{ $seriesBase = merge $seriesBase (dict $series $dom) }}{{ end }}
-{{- $best := "" }}
-{{- $bestsat := 0 }}
-{{- range .Colors }}
-{{- $hex := printf "%v" . }}
-{{- if eq (len $hex) 7 }}
-{{- $r := int (printf "0x%s" (substr $hex 1 2)) }}
-{{- $g := int (printf "0x%s" (substr $hex 3 2)) }}
-{{- $b := int (printf "0x%s" (substr $hex 5 2)) }}
-{{- $mx := math.Max (math.Max $r $g) $b }}
-{{- $mn := math.Min (math.Min $r $g) $b }}
-{{- if and (ge $mx 40) (le $mn 215) }}
-{{- $sat := sub $mx $mn }}
-{{- if gt $sat $bestsat }}{{ $bestsat = $sat }}{{ $best = $hex }}{{ end }}
-{{- end }}
-{{- end }}
-{{- end }}
-{{- /* 跨张比较：同一系列里谁更出彩谁当主色（每张又各有换行，所以这张的彩度要与已记下的比） */}}
-{{- if $best }}
-{{- $cur := 0 }}{{ with index $seriesSat $series }}{{ $cur = . }}{{ end }}
-{{- if gt $bestsat $cur }}
-{{- $seriesSat = merge $seriesSat (dict $series $bestsat) }}
-{{- $seriesAccent = merge $seriesAccent (dict $series $best) }}
-{{- end }}
-{{- end }}
-{{- end }}
 {{- end }}
 {{- $items := slice }}
 {{- range index hugo.Data "home-cards" }}
@@ -214,7 +177,6 @@
         "arcane" "Ⅳ" "legend" "Ⅴ" "miracle" "Ⅵ") $rankWall)
     "tint" $tint "ring" $ringInk
     "seriesCount" (index $seriesCount .series | default 0)
-    "seriesAccent" (or (index $seriesAccent .series) (index $seriesBase .series) $tint)
     "credit" (.credit | default "") "url" (.credit_url | default "") ) }}
 {{- else }}
 {{- warnf "data/home-cards.yaml 里的 %q 在 assets/ 下找不到（先跑 tools/cards/make-cards.py），这一张跳过" .image }}

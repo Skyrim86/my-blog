@@ -1111,8 +1111,9 @@ for (const name of ['hash01', 'todaySeed', 'pickToday']) {
       ['data-compare', 'deckCompare'], ['data-compare-clear', 'deckCompareClear'],
       ['data-compare-go', 'deckCompareGo'], ['data-compare-title', 'deckCompareTitle'], ['data-compare-fail', 'deckCompareFail'],
       ['data-loading', 'deckLoading'],
-      // 卡包那四条（2026-09-27）：首页的「今日一卡」按下去也会撕包，文案挂在同一个根节点上
-      ['data-pack-kind', 'deckPackKind'], ['data-pack-hint', 'deckPackHint'],
+      // 卡包那五条（2026-09-27）：首页的「今日一卡」按下去也会撕包，文案挂在同一个根节点上
+      ['data-pack-kind', 'deckPackKind'], ['data-pack-title', 'deckPackTitle'],
+      ['data-pack-hint', 'deckPackHint'],
       ['data-pack-hint-touch', 'deckPackHintTouch'], ['data-pack-tear', 'deckPackTear'],
     ]],
     ['layouts/_partials/deck-wall.html', [
@@ -1125,7 +1126,8 @@ for (const name of ['hash01', 'todaySeed', 'pickToday']) {
       ['data-loading', 'deckLoading'],
       // 抽卡（原「今日一抽」）与卡包（2026-09-27）
       ['data-draw', 'deckDraw'], ['data-draw-aria', 'deckDrawAria'], ['data-draw-announce', 'deckDrawAnnounce'],
-      ['data-pack-kind', 'deckPackKind'], ['data-pack-hint', 'deckPackHint'],
+      ['data-pack-kind', 'deckPackKind'], ['data-pack-title', 'deckPackTitle'],
+      ['data-pack-hint', 'deckPackHint'],
       ['data-pack-hint-touch', 'deckPackHintTouch'], ['data-pack-tear', 'deckPackTear'],
     ]],
   ];

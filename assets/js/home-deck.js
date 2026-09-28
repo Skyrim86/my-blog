@@ -635,12 +635,13 @@
       6. **减少了动态就整段跳过**（包本身都不建）。原来那条注释说「整段跳过」，代码里却只有
          CSS 关掉了扫光 —— 真正跑的仍是「亮卡背 + 翻面」。这里按注释的原意落成：
          减少动态时弹层直接显示正面，没有包、没有卡背、没有翻。
-      7. **包面用的是抽到那张卡的系列配色**（清单字段 `seriesAccent`，算法见 deck-manifest.html）：
-         该系列画里彩度最高的那个颜色 —— 抽卡时不预告等级，但预告「这是哪一批」。
-         与「系列」这个名字配套。字色按主色亮度现算（`inkOn`）—— 系列主色从 #080a0b 到
-         #f1eced 都有，写死一种字色总有一半的包看不清。
+      7. **包面是一条统一的包**（用户 2026-09-27 口径：「做成统一的卡包，先不分系列」）：配色与工艺
+         写死在 CSS 里（用卡背那套 --cardback-* 的值：深藏青 + 金），大字是 i18n 的
+         `deckPackTitle`「Skyrim 收藏卡」—— 不再是系列名。原来那条「包面用抽到那张卡的系列配色」
+         连同 `seriesAccent`/`inkOn` 一起下线：五个系列五款包既不好看也不统一，而且它的字色判据
+         本来就有一半的系列会判错（详见 i18n/zh.toml 里 [deckPackTitle] 那段注释）。
       8. **撕口在顶上那条**（用户口径「像游戏王那样，从上边撕开」）：撕下来的那一条只有包高的
-         `--pack-strip`（17%），大号系列名留在**袋身**上。手往下拖（或点一下、或回车）才撕 —— 
+         `--pack-strip`（15%），大字留在**袋身**上。手往下拖（或点一下、或回车）才撕 ——
          **没有自动撕**（原来那条「落包 320ms 后自己撕开」已按用户口径删掉）：包摆在那儿等人动手，
          等多久都行。所以「往下」= 正方向，判据在 `onPackMove` 的 `dy`。 */
   var PACK_TEAR_MS = 900;    // 「点一下 / 回车」之后撕到底这一段（跟手那条由手的速度决定）
@@ -653,32 +654,21 @@
   function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
   function livePack(seq) { return !!packDeal && packDeal.seq === seq; }
 
-  /* 包面文字用亮字还是暗字：判据是**纸面**的亮度，不是系列色本身的亮度（阈值 0.65）。
-     实测（lab/工具/packprobe.py 的帧图读数）：纸面亮度 ≈ 0.28 × 系列色亮度 ——
-     纸面 = `color-mix(系列色 68%, #14141a)` 再叠两层网点（见 21-card-deck.css），
-     比系列色暗得多。现有 5 个系列的系列色亮度是 0.30~0.40，纸面落在 86~92/255：
-     这里给亮字，实测对比度 6.3:1；按系列色亮度改成暗字反而掉到 2.8:1（踩过）。
-     阈值取 0.65 是「纸面 0.2」的反推 —— 亮字与暗字在那一带的对比度相等，两边都不吃亏。 */
-  function inkOn(hex) {
-    var m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
-    if (!m) return '#f6f4f1';
-    var v = parseInt(m[1], 16);
-    function ch(c) { c /= 255; return c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4); }
-    var lum = .2126 * ch((v >> 16) & 255) + .7152 * ch((v >> 8) & 255) + .0722 * ch(v & 255);
-    return lum > .65 ? '#15141a' : '#f6f4f1';
-  }
+  /* 这里原来有个 `inkOn(hex)`：按**纸面**亮度现算包面的字用亮字还是暗字（阈值 0.65）。
+     包面统一成一条写死配色的包之后它没有调用者了，删掉 —— 字色现在写在 CSS 里
+     （深藏青纸上用暖白 + 金）。留这段是提醒：真要做「按系列换包面」时别再照抄「按系列色亮度判」，
+     那条判据有一半的系列会判错（实测纸面亮度 ≈ 0.28 × 系列色亮度，见 lab/结果 里那几张帧图）。 */
 
   function buildPack(item) {
     var it = item || {};
     var count = it.seriesCount || (items.length || 0);
+    var title = deck.dataset.packTitle || 'Skyrim 收藏卡';
     var el = document.createElement('div');
     el.className = 'home-deck-pack';
     el.tabIndex = 0;
     el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', (deck.dataset.packTear || '撕开卡包：{series} · {n} 张')
-      .replace('{series}', it.series || '').replace('{n}', String(count)));
-    el.style.setProperty('--pack-accent', it.seriesAccent || it.tint || '#2a2b33');
-    el.style.setProperty('--pack-ink', inkOn(it.seriesAccent || it.tint));
+    el.setAttribute('aria-label', (deck.dataset.packTear || '撕开卡包：{title} · {n} 张')
+      .replace('{title}', title).replace('{n}', String(count)));
     // 裂口原点：没按下之前先在正中（键盘回车、直接点一下都从中间裂开）
     el.style.setProperty('--rip-x', '50%');
 
@@ -697,7 +687,7 @@
     bot.className = 'home-deck-pack-bot';
     var name = document.createElement('span');
     name.className = 'home-deck-pack-name';
-    name.textContent = it.series || '';
+    name.textContent = title;                       // 统一的包面大字（不再随系列变）
     var foot = document.createElement('div');
     foot.className = 'home-deck-pack-foot';       // 徽记 + 口令贴袋身下沿
     var mark = document.createElement('span');
@@ -706,8 +696,12 @@
     hint.className = 'home-deck-pack-hint';
     var coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     hint.textContent = (coarse ? deck.dataset.packHintTouch : deck.dataset.packHint) || '';
+    var frame = document.createElement('i');
+    frame.className = 'home-deck-pack-frame';     // 袋身上的印刷金边（美化，2026-09-27）
+    frame.setAttribute('aria-hidden', 'true');
     foot.appendChild(mark);
     foot.appendChild(hint);
+    bot.appendChild(frame);
     bot.appendChild(name);
     bot.appendChild(foot);
 
@@ -846,6 +840,8 @@
     // 手还按着时人就接管了 --tear：这一帧的进度当起点，往下拖为正（撕的是顶上那一条）
     packDeal.drag = { y: e.clientY, from: packDeal.tear, span: Math.max(140, (el.clientHeight || 600) * PACK_DRAG), moved: false };
     el.classList.add('is-grabbing');
+    // 手一按下去就退出「无手那条」：两片分家从此**跟手**（线性），不再走 .is-auto 的缓入
+    el.classList.remove('is-auto');
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* 没有捕获也能撕：事件仍落在包上 */ }
   }
 
@@ -864,15 +860,20 @@
     packDeal.drag = null;
     if (packDeal.el) packDeal.el.classList.remove('is-grabbing');
     /* 三个出口：几乎没动（= 点一下，触屏与鼠标点击都走这条）→ 撕到底；
-       撕过一半 → 撕到底；其余 → 回弹（「还没撕开」也算一种反馈，比硬判死好）。 */
-    if (!d || !d.moved || tear >= .5) tearThru(seq);
-    else springBack(seq);
+       撕过一半 → 撕到底；其余 → 回弹（「还没撕开」也算一种反馈，比硬判死好）。
+       「点一下」那条没有手可跟，所以挂 `.is-auto` 换个曲线组（见 21-card-deck.css 里 --sep 那段）：
+       手撕要跟手（线性），无人那条才可以先抗一下、末段被带走。 */
+    if (!d || !d.moved || tear >= .5) {
+      if (packDeal.el && (!d || !d.moved)) packDeal.el.classList.add('is-auto');
+      tearThru(seq);
+    } else springBack(seq);
   }
 
   function onPackKey(e) {
     if (!packDeal || packDeal.torn) return;
     if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowDown') {
       e.preventDefault();
+      if (packDeal.el) packDeal.el.classList.add('is-auto');   // 键盘那条也没有手在拖
       tearThru(packDeal.seq);
     }
   }
