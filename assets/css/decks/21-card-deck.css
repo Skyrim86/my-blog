@@ -888,14 +888,21 @@ html.is-deck-dialog #bottom-link {
 
 /* ---------- 卡包与撕开（2026-09-27）----------
 
-   结构是 JS 建的（home-deck.js 的 buildPack）：一层 .home-deck-pack，里面**两片 + 一条封口** ——
-   顶上那条（.home-deck-pack-top，撕口以上、带小字标签）、袋身（-bot，撕口以下、带系列名与口令）、
-   **封口条**（-seal，横跨撕口，只有 2×齿高那么高）。分界线就是撕口，所以撕开时不会把哪个字切成两半。
+   结构是 JS 建的（home-deck.js 的 buildPack），从上到下共五层：
+   **上片**（.home-deck-pack-top，里面是 3 个 `.home-deck-pack-seg` 分段 —— 撕下来丢掉的那条）、
+   **卡背细边**（.home-deck-pack-cardedge，撕开后缝里露出的卡背上沿）、
+   **袋身**（.home-deck-pack-bot，撕口以下、带大字与口令）、
+   **封口条**（.home-deck-pack-seal，横跨撕口，只有 2×齿高那么高）、
+   **纤维拉丝**（.home-deck-pack-fuzz，跟着裂口前沿的那层白丝）。
+   分界线就是撕口，所以撕开时不会把哪个字切成两半。
 
    全部动作只由两个数驱动：`--tear`（0→1，JS 写）与 `--rip-x`（撕口从包的哪儿开始裂，JS 在
-   按下那一刻写，默认 50%）。CSS 里由它们再推出两个量：
-     · `--rip` = 已经裂开的半宽（`--tear × 150%`）—— 封口条的 mask 窗口按它张开；
-     · `--sep` = 两片**真正分开**的进度（`--tear` 过 0.3 才开始）—— 撕裂要先跑一截，纸才分家。
+   按下那一刻写，默认 50%）。CSS 里由它们再推出这几个量：
+     · `--rip` = 已经裂开的半宽（`--rip-t` 的二次缓出 × 200%）—— 封口条与纤维层的 mask 按它张开；
+     · `--rip-t` = 喂给前沿的进度（连续值，或**手撕那条**的量化值 `--tear-q`）；
+     · `--sep` = 两片**真正分开**的进度（`--tear` 过 0.22 才开始）—— 撕裂要先跑一截，纸才分家；
+     · `--fall` = 上片那条纸的下坠量（像素，单位是 JS 写的 `--pack-h`）；
+     · `--strip-out` = 那条纸最后那一下的收走（过 .8 才起，等于「滑到袋身下沿才收」）。
    `--tear-out` 是后半程的淡出（JS 一并算好写进来，省得在 CSS 里堆 max()）。
 
    四条几何/观感上的硬约束：
@@ -918,16 +925,28 @@ html.is-deck-dialog #bottom-link {
   color: var(--pack-ink, #f4f5f9);
   --tear: 0;
   --tear-out: 0;
+  --tear-q: 0;                 /* 手撕那条用的量化进度（JS 每帧写，见 home-deck.js 的 setTear） */
+  --pack-h: 720px;             /* 包高的像素值（startDeal 写进来）—— 分段位移用它当单位 */
   --rip-x: 50%;                /* 裂口原点（按下那一刻的 x，见 home-deck.js 的 onPackDown） */
   /* **裂口前沿先快后稳**：`--rip` 取 `--tear` 的二次缓出（t(2−t)），13% 行程就把整条封口吃光 ——
-     撕开的感觉主要来自这一段跑得快、后面才是纸分家。线性写的话整段像被匀速裁开。 */
-  --rip: calc((2 * var(--tear) - var(--tear) * var(--tear)) * 200%);
+     撕开的感觉主要来自这一段跑得快、后面才是纸分家。线性写的话整段像被匀速裁开。
+     `--rip-t` 是「喂给前沿的那个进度」：默认就是连续的 `--tear`；**手撕那条**换成量化的
+     `--tear-q`（`.is-hand`，见下）—— 前沿一跳一跳地走 = 纤维一束束断开（用户 2026-10-01
+     口径「顿挫」）。量化只进前沿：`--sep`（两片分家）仍吃连续的 `--tear`，跟手不受影响。 */
+  --rip-t: var(--tear);
+  --rip-n: calc(2 * var(--rip-t) - var(--rip-t) * var(--rip-t));   /* 无量纲，纤维层要拿它算淡出 */
+  --rip: calc(var(--rip-n) * 200%);
   /* 两片分家：`--t2` 过 .22 才起步（撕裂先跑一截，纸才让开）。
      **手撕那条跟手**（线性）——拉多少走多少，这是「自然」的正解；`.is-auto`（点一下 / 回车，
      没有手可跟）才换二次缓入：先抗住、末段被带走。两条共用同一个收口，所以曲线挂在类上。 */
   --t2: clamp(0, calc((var(--tear) - .22) / .78), 1);
   --sep: var(--t2);
   --sep-out: calc(1 - (1 - var(--sep)) * (1 - var(--sep)));   /* 缓出：袋身早动早停 */
+  /* 被撕下来那条的**下坠**：整体走 `--sep` 的二次（越掉越快），单位是像素 ——
+     三个分段的盒子高度不同，用百分比位移会在接缝处错开成裂缝（2026-10-01）。 */
+  --fall: calc(var(--sep) * var(--sep) * var(--pack-h) * .9);
+  /* 那条**全程不淡出**，滑到袋身下沿（= 下坠走完）才收走（用户 2026-10-01 口径）。 */
+  --strip-out: clamp(0, calc((var(--sep) - .8) / .2), 1);
   --pack-strip: 15%;           /* 撕口离包顶的高度：顶上那一条 = 撕下来丢掉的部分（像游戏王卡包） */
   /* 包面配色：**全站一款**（用户口径「做成统一的卡包，先不分系列」）。
      取值就是卡背那套 `--cardback-*`（见本文件下面那组自定义属性）：深藏青纸 + 金。 */
@@ -950,6 +969,10 @@ html.is-deck-dialog #bottom-link {
    手撕那条不加这个类，`--sep` 就是线性的（拉多少走多少，纸跟着手）。 */
 .home-deck-pack.is-auto { --sep: calc(var(--t2) * var(--t2)); }
 
+/* 手撕那条的**顿挫**：前沿吃量化的进度（`.is-hand` 从 pointerdown 起一直挂着，见 home-deck.js）。
+   不换 `--sep` —— 纸还是拉多少走多少，只有裂口前沿一跳一跳地开。 */
+.home-deck-pack.is-hand { --rip-t: var(--tear-q, var(--tear)); }
+
 .home-deck-pack-top,
 .home-deck-pack-bot {
   position: absolute;
@@ -961,26 +984,194 @@ html.is-deck-dialog #bottom-link {
   filter: drop-shadow(0 calc(var(--sep) * 5px) calc(var(--sep) * 11px) rgba(0, 0, 0, .5));
 }
 
-/* 顶上那条（撕下来的）：**往下扯**、往右下甩开并淡出。z-index 2 是为了让它从袋身**前面**掠过 ——
-   同层里后写的兄弟元素画在上面，不给 z-index 就会被袋身盖住。
-   横向漂 6% 就够：16% 时半撕状态看着像「图层没对齐」（视觉判读原话），不是撕开的甩动。
+/* 顶上那条（撕下来的）= **3 个分段**（2026-10-01 用户口径「逼真一些」）。
+   以前整条是一个刚体：一个 transform 平移 + 转 5°，读起来是「一块板被推走」。真纸被手指带起来
+   会**弓一下**、两端下垂，所以拆成三段，各段给不同的下坠系数与转角（末段被带得最多）。
 
-   三条曲线**分工**（用户口径「动作自然一些」）：横漂走缓出（`--sep-out`：被扯的那一下先滑出去）、
-   下落与转角跟 `--sep` 走（手撕那条就是线性 = 跟手；点一下那条的 `--sep` 本身是二次缓入，
-   于是读起来是末段才被带走）。
-   全挂同一个进度、又同一条曲线时，三条一起匀速走完，读起来就是「图层平移」——这是判读说「不自然」的来源。 */
+   三条几何约束（改之前先读这三条）：
+     · **段高 = 纸区三等分 + 46px 重叠**（首段 0..86、中段 40..126、末段 80..126；中段正好
+       收在条的底，多一像素就会在撕口上压出 2px 的纸边）。相邻段在 --sep 末段会错开十几像素，
+       没有重叠，接缝处就裂出一条白缝（包里没有别的层能垫在下面）。46px 是**算出来的**：
+       段间相对转角在 600px 宽上把两端拉开 600·sinΔθ 的高差，重叠必须盖住「错位 + 这一项」。
+       两版实测（`lab/工具/teargap.py`，读数在 `lab/记录/`）：重叠 20px + 转角 4/8/13°
+       → 末帧右端露白 11.8px；重叠 32px + 转角 4/6.5/10° → +3.7px；46px → 见下节记录的读数。
+     · **转角上限 10°、段间差不超 2.5°**：同一条式子反过来用 —— 角度是「弓起来」最直接的
+       读数，但段间差每多 1°，两头就多拉开 10px。4 / 6.5 / 10 是「读得出扇开」与「接缝不露白」
+       之间的那条线。
+     · **位移用像素不用百分比**：三段的盒子高度不同（末段还要盖住撕口那道齿带），
+       百分比位移是各算各的，段间会错开成裂缝。`--fall` 的单位是 `--pack-h`（JS 写的包高像素）。
+     · **末段必须盖到撕口那道齿带**（`bottom: 0`，而不是与另外两段等高）—— 齿带是它的下沿。
+
+   z-index 2 是为了让它从袋身**前面**掠过；横向漂 3/6/9%：原来 6% 是上限（16% 时半撕状态
+   看着像「图层没对齐」），所以按段递增、末段最大。 */
 .home-deck-pack-top {
   top: 0;
   height: var(--pack-strip);
+  z-index: 2;
+  /* 全程不淡出：`--strip-out` 只在**下坠走完**（--sep 过 .8）那一段收，等于「滑到袋身下沿才收走」 */
+  opacity: calc(1 - var(--strip-out));
+}
+
+.home-deck-pack-seg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-style: normal;          /* `<i>` 默认斜体，会把里面那行小字标签带着一起斜 */
+  background-repeat: no-repeat;
+  will-change: transform;
+  /* 只有**左右两条**边线：上下不加 —— 段与段是重叠的，谁在接缝上画一条线，纸上就多出一道横痕 */
+  box-shadow:
+    inset 1px 0 0 0 color-mix(in oklab, var(--pack-gold) 30%, transparent),
+    inset -1px 0 0 0 color-mix(in oklab, var(--pack-gold) 30%, transparent);
+  transform: translate(calc(var(--sep-out) * var(--seg-dx)), calc(var(--fall) * var(--seg-f)))
+    rotate(calc(var(--sep) * var(--seg-r)));
+  /* 纸面：与原来那片**同一套层**（网点、斜向高光、金箔掠光、竖向渐变），只是三段各拿一段。
+     竖向渐变的端点按段**手写插值**（74→71.3→68.7→66）—— 三段接缝处色阶必须接上，
+     这是上一轮已经踩过的一条（两片色差 16% 被判读读成「上下两块色差明显」）。 */
+  /* 斜向高光**三段逐字相同**（那是「一道光穿过整条纸」）：第一版按段给了 .15/.06/0，
+     纸带行剖面在段缝处读出 17 点与 11 点的亮度台阶（`lab/工具/tearfilm.py`）——
+     同一道高光在每段重新起步，肉眼看就是纸上横着两道折痕。
+     104° 这条几乎竖直（轴长 603px、竖向分量只占 5%），所以在每段各画一次也是对齐的：
+     同一 x 处三段的值差 ≈1.5 级（y 项），接不上才怪。 */
+  --seg-hi: linear-gradient(104deg, rgba(255, 255, 255, .15) 0 18%, rgba(255, 255, 255, 0) 42%);
+  --seg-a: 74%;
+  --seg-b: 71.3%;
+  background-image:
+    var(--seg-hi),
+    linear-gradient(104deg, color-mix(in oklab, var(--pack-gold) 14%, transparent) 0 11%,
+      transparent 38%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .032) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .03) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg, color-mix(in oklab, var(--pack-face) var(--seg-a), #14141a),
+      color-mix(in oklab, var(--pack-face) var(--seg-b), #131319));
+}
+
+/* 分段的**高度/位置一律用 `100%`（= 它所在的那条 = `.home-deck-pack-top` 的高度），不要用
+   `var(--pack-strip)`：那个 15% 是**相对包**的，一旦落到分段这个层级，百分比就改成按**条的
+   高度**解析（126px 的 15% = 18.9px）—— 会把三段压成三片薄片（2026-10-01 实测：段高 24.5
+   而不是 60）。同样的道理，`--pack-strip` 在**包的直接子元素**上（`.home-deck-pack-top`
+   自己的 height、`.home-deck-pack-cardedge`、`.home-deck-pack-fuzz`）才是对的。 */
+.home-deck-pack-seg[data-seg="0"] {
+  top: 0;
+  height: calc((100% - var(--pack-toothh)) / 3 + 46px);
+  /* 顶上那条的**上沿**金线只归首段（包顶那条压边，与袋身的 `-1px` 那条同一写法） */
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklab, var(--pack-gold) 40%, transparent),
+    inset 1px 0 0 0 color-mix(in oklab, var(--pack-gold) 30%, transparent),
+    inset -1px 0 0 0 color-mix(in oklab, var(--pack-gold) 30%, transparent);
+  --seg-a: 74%;
+  --seg-b: 71.3%;
+  --seg-f: .872;               /* 下坠最少、转角最小 = 「被带着走的那一头」 */
+  --seg-dx: 3%;
+  --seg-r: 4deg;
+  /* 首段额外叠**包顶那圈受光**（径向）；它的半径只有这一段高，到段缝处已经衰减到 0 */
+  --seg-hi: radial-gradient(120% 62% at 50% 0%, rgba(255, 255, 255, .14), transparent 66%),
+    linear-gradient(104deg, rgba(255, 255, 255, .15) 0 18%, rgba(255, 255, 255, 0) 42%);
+}
+
+/* 中段：小字标签贴在这儿，flex 居中再往上顶 7px —— 段高 60 的中心在 70，而整条纸的
+   中心在 63（静止态的位置不能因为拆段而挪动）。 */
+.home-deck-pack-seg[data-seg="1"] {
+  top: calc((100% - var(--pack-toothh)) / 3);
+  height: calc((100% - var(--pack-toothh)) / 3 + 46px);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: .5rem;
-  z-index: 2;
-  transform: translate(calc(var(--sep-out) * 6%), calc(var(--sep) * var(--sep) * 96%))
-    rotate(calc(var(--sep) * 5deg));
-  opacity: calc(1 - var(--tear-out));
+  padding-bottom: 14px;
+  --seg-a: 71.3%;
+  --seg-b: 68.7%;
+  --seg-f: .880;
+  --seg-dx: 6%;
+  --seg-r: 6.5deg;
+}
+
+.home-deck-pack-seg[data-seg="2"] {
+  top: calc((100% - var(--pack-toothh)) * 2 / 3);
+  bottom: 0;                   /* 盖到撕口那道齿带为止 */
+  --seg-a: 68.7%;
+  --seg-b: 66%;
+  --seg-f: .888;               /* 下坠最多、转角最大 = 「被手指捏住的那一头」 */
+  --seg-dx: 9%;
+  --seg-r: 10deg;
+  /* 末段额外叠**袋底那道暗角**（径向，同样衰减在段缝之外） */
+  --seg-hi: radial-gradient(140% 72% at 50% 120%, rgba(0, 0, 0, .42), transparent 64%),
+    linear-gradient(104deg, rgba(255, 255, 255, .15) 0 18%, rgba(255, 255, 255, 0) 42%);
+}
+
+/* 撕口里露出的**卡背上沿**：没有任何东西垫着时，撕开的就是一只空袋（弹层底色）。
+   压的位置正好是袋身纸面的起点，只在撕口那道缝的高度上露一条，随 `--tear` 长出来。 */
+.home-deck-pack-cardedge {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  top: calc(var(--pack-strip) + var(--pack-toothh));
+  height: calc(3px + var(--sep) * 11px);
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 2px 2px 0 0;
+  background-image:
+    linear-gradient(180deg, rgba(0, 0, 0, .5), transparent 72%),
+    linear-gradient(100deg, color-mix(in oklab, var(--cardback-accent) 26%, transparent) 0 14%,
+      transparent 46%),
+    linear-gradient(180deg, var(--cardback-bg1), var(--cardback-bg2));
+  box-shadow: 0 -1px 0 0 color-mix(in oklab, var(--cardback-accent) 45%, transparent);
+  /* 露出来跟 `--tear` 走，收走跟 `--tear-out` 走：只按 `--tear` 挂的话，撕到底那 500ms
+     （袋身已经淡掉、那条纸也滑走了）会剩一条 548×14 的卡背边悬在台面正中 —— 一条没人认领的浮层 */
+  opacity: calc(clamp(0, calc(var(--tear) * 5 - 1.4), 1) * (1 - var(--tear-out)));
+}
+
+/* 裂口前沿的**纤维拉丝**：极窄一层白丝，跟着裂口跑。
+   两条横带（`--rip-x ∓ --rip` 处各一条，就是裂口正在推进的那两个前沿）与一条纵向羽化
+   **求交**（`mask-composite: intersect`）——所以丝只长在前沿那十几像素里，不会铺满整条开口。
+   一条 90° 渐变里写 8 个停点就能出两条带子：比两层 mask 取并更省，也不依赖 `add` 的合成顺序
+   （两层的并集要按顺序合成，浏览器对 `mask-composite` 列表的映射不值得赌）。
+   淡出由 `--rip-n`（无量纲）算：前沿贯通（--rip 到 95%）就没了 = 「快贯通时才淡出」。 */
+.home-deck-pack-fuzz {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--pack-strip) - var(--pack-toothh) - 4px);
+  height: calc(var(--pack-toothh) * 2 + 8px);
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background-image:
+    repeating-linear-gradient(90deg,
+      /* 亮档压到 .62/.36/.5：第一版（.85/.45/.7）实测带内峰值**满 255**（两层丝叠到饱和），
+         白得发死，不像纤维、像贴了一道白胶带 */
+      rgba(255, 255, 255, .62) 0 1px, transparent 1px 2.6px,
+      rgba(255, 255, 255, .36) 2.6px 3.3px, transparent 3.3px 5.6px,
+      rgba(255, 255, 255, .5) 5.6px 6.2px, transparent 6.2px 9px),
+    repeating-linear-gradient(88deg,
+      rgba(255, 255, 255, .38) 0 1px, transparent 1px 4.4px);
+}
+
+.home-deck-pack-fuzz.is-on {
+  opacity: clamp(0, calc(1 - var(--rip-n) / .95), 1);
+  -webkit-mask-image:
+    linear-gradient(90deg,
+      transparent calc(var(--rip-x) - var(--rip) - 24px),
+      #000 calc(var(--rip-x) - var(--rip) - 7px),
+      #000 calc(var(--rip-x) - var(--rip) + 7px),
+      transparent calc(var(--rip-x) - var(--rip) + 24px),
+      transparent calc(var(--rip-x) + var(--rip) - 24px),
+      #000 calc(var(--rip-x) + var(--rip) - 7px),
+      #000 calc(var(--rip-x) + var(--rip) + 7px),
+      transparent calc(var(--rip-x) + var(--rip) + 24px)),
+    linear-gradient(180deg, transparent 0, #000 40% 60%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg,
+      transparent calc(var(--rip-x) - var(--rip) - 24px),
+      #000 calc(var(--rip-x) - var(--rip) - 7px),
+      #000 calc(var(--rip-x) - var(--rip) + 7px),
+      transparent calc(var(--rip-x) - var(--rip) + 24px),
+      transparent calc(var(--rip-x) + var(--rip) - 24px),
+      #000 calc(var(--rip-x) + var(--rip) - 7px),
+      #000 calc(var(--rip-x) + var(--rip) + 7px),
+      transparent calc(var(--rip-x) + var(--rip) + 24px)),
+    linear-gradient(180deg, transparent 0, #000 40% 60%, transparent 100%);
+  mask-composite: intersect;
 }
 
 /* 袋身（主体）：被扯掉顶上那条之后留在原地，只往左上让开一点点并淡出。
@@ -1013,7 +1204,8 @@ html.is-deck-dialog #bottom-link {
 /* 纸面：底色是**系列配色**的深浅两级（一条竖向渐变给包的体积感），上面压同一组细网点
    （α 网点用两层 45°/-45° 细纹叠出来，省一个半调素材），最上面一道斜向高光当纸的反光。
    两片纸的参数必须**逐字相同** —— 否则撕开时纹理对不上，看上去是两块色块被切开。 */
-.home-deck-pack-top::before,
+/* 纸面：两片的参数必须逐字相同 —— 否则撕开时纹理对不上，看上去是两块色块被切开。
+   （顶上那条 2026-10-01 拆成三个分段，纸面搬到 `.home-deck-pack-seg` 上，见上。） */
 .home-deck-pack-bot::before {
   content: "";
   position: absolute;
@@ -1052,19 +1244,8 @@ html.is-deck-dialog #bottom-link {
    竖向渐变（`--pack-paper`）**在撕口处必须接上**：上片 68%→64%、下片 64%→52%、
    封口条恒 64% —— 三处收尾都是同一个数。两片都走 68%→52% 时，缝上会差 16% 的色阶，
    判读逐字写的是「上下两块色差明显」，那不是错觉。 */
-.home-deck-pack-top::before {
-  /* 顶上那条的纸：**与袋身、封口条在撕口处接上**（这里收到 66%）。 */
-  --pack-paper: linear-gradient(180deg,
-      color-mix(in oklab, var(--pack-face) 74%, #14141a),
-      color-mix(in oklab, var(--pack-face) 66%, #131319));
-  inset: 0 0 var(--pack-toothh) 0;
-  border-radius: 10px 10px 0 0;
-  box-shadow:
-    inset 0 1px 0 0 color-mix(in oklab, var(--pack-gold) 40%, transparent),
-    inset 1px 0 0 0 color-mix(in oklab, var(--pack-gold) 30%, transparent),
-    inset -1px 0 0 0 color-mix(in oklab, var(--pack-gold) 30%, transparent),
-    inset 0 0 0 1px rgba(0, 0, 0, .30);
-}
+/* 顶上那条的纸（2026-10-01 起在 `.home-deck-pack-seg` 上，三段各自拿一段；
+   这里只留下面这条注释说明它为什么曾经整块都不画内衬线）。 */
 
 .home-deck-pack-bot::before {
   /* 袋身的纸：从撕口那个色（66%）一路压暗到底（44%）—— 一条竖向渐变给整包体积感。 */
@@ -1163,7 +1344,7 @@ html.is-deck-dialog #bottom-link {
    系数取 40（2.5% 的行程内就完全不透明）是量出来的：原来取 8 时，裂口刚起那一段齿带才 25% 不透明，
    而两片纸在缝上本来就让开了 6px —— 于是裂口里透出的是包底（蓝底），判读读成「一个深灰色小方块」。
    齿带必须在封口条被吃掉的同时就位。 */
-.home-deck-pack-top::after,
+.home-deck-pack-seg[data-seg="2"]::after,
 .home-deck-pack-bot::after {
   content: "";
   position: absolute;
@@ -1176,8 +1357,10 @@ html.is-deck-dialog #bottom-link {
       color-mix(in oklab, var(--pack-ink) 58%, var(--pack-face)) 100%);
 }
 
-/* 上盖：平口在上（贴着纸），不规则边界朝下 —— 撕下来的那半，断口在下沿 */
-.home-deck-pack-top::after {
+/* 上盖：平口在上（贴着纸），不规则边界朝下 —— 撕下来的那半，断口在下沿。
+   2026-10-01 起挂在**末段**上（`data-seg="2"`）：齿带是那条纸的下沿，得跟着它一起飞 —— 
+   挂回 `.home-deck-pack-top` 的话，纸走了而齿留在撕口上。 */
+.home-deck-pack-seg[data-seg="2"]::after {
   bottom: 0;
   clip-path: polygon(
       0.00% 0.0%,100.00% 0.0%,100.00% 45.4%,99.56% 30.6%,98.28% 55.9%,97.98% 24.7%,

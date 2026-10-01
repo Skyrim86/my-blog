@@ -644,7 +644,12 @@
          `--pack-strip`（15%），大字留在**袋身**上。手往下拖（或点一下、或回车）才撕 ——
          **没有自动撕**（原来那条「落包 320ms 后自己撕开」已按用户口径删掉）：包摆在那儿等人动手，
          等多久都行。所以「往下」= 正方向，判据在 `onPackMove` 的 `dy`。 */
-  var PACK_TEAR_MS = 900;    // 「点一下 / 回车」之后撕到底这一段（跟手那条由手的速度决定）
+  /* 「点一下 / 回车」之后撕到底这一段（跟手那条由手的速度决定）。
+     2026-10-01 由 900 抬到 1200：用户要「看得清过程」（撕开本身是个过程，不该一闪而过）。 */
+  var PACK_TEAR_MS = 1200;
+  /* 手撕那条的**顿挫**步长（`--tear-q` 的量化格）：真纸是纤维一束束断，前沿不该匀速滑。
+     1/128 ≈ 0.78% 的 --tear，经 `--rip` 那条二次缓出放大成约 3% 包宽（600px 上 ≈18px）一跳。 */
+  var PACK_HAND_STEP = 1 / 128;
   var PACK_BACK_MS = 500;    // 撕开之后、翻面之前：卡背露着的那一拍
   var PACK_SPRING_MS = 220;  // 松手不够远 → 回弹
   var PACK_DRAG = .55;       // 拖满包高的这个比例算「撕到底」
@@ -676,12 +681,26 @@
        = 剩下的主体，带大号系列名 + 提示语）、封口条（横跨撕口那 12px 纸，静止时它把撕口盖住，
        包看着是完整的 —— 用户口径「不要开始就是撕开的样子」）。分界线就是撕口，所以撕开时
        不会有哪个字被切成两半（这是「两片分离」这个画法唯一的硬约束）。 */
+    /* 顶上那条（撕下来丢掉的）拆成 **3 段**：三段各自的位移与转角不同，整条才会被读成
+       「纸被手带起来弓了一下、两端下垂」，而不是一块硬板平移（用户 2026-10-01 口径
+       「撕卡动画逼真一些」）。段高 = 纸区三等分 **+ 20px 重叠** —— 重叠是必需的：末段
+       与首段在 --sep 末段会错开十几像素，没有重叠接缝就裂开一条白缝。 */
     var top = document.createElement('div');
     top.className = 'home-deck-pack-top';
-    var kicker = document.createElement('span');
-    kicker.className = 'home-deck-pack-kicker';
-    kicker.textContent = (deck.dataset.packKind || '收藏卡 · {n} 张').replace('{n}', String(count));
-    top.appendChild(kicker);
+    for (var si = 0; si < 3; si++) {
+      var seg = document.createElement('i');
+      seg.className = 'home-deck-pack-seg';
+      seg.dataset.seg = String(si);
+      seg.setAttribute('aria-hidden', 'true');
+      if (si === 1) {                  // 小字标签贴中间那一段（它落在原位置上，静止态看不出变化）
+        var kicker = document.createElement('span');
+        kicker.className = 'home-deck-pack-kicker';
+        kicker.textContent = (deck.dataset.packKind || '收藏卡 · {n} 张').replace('{n}', String(count));
+        seg.removeAttribute('aria-hidden');   // 这一段里有信息，不能整块藏掉
+        seg.appendChild(kicker);
+      }
+      top.appendChild(seg);
+    }
 
     var bot = document.createElement('div');
     bot.className = 'home-deck-pack-bot';
@@ -709,9 +728,22 @@
     seal.className = 'home-deck-pack-seal';      // 封口条：静止时盖住撕口那道缝
     seal.setAttribute('aria-hidden', 'true');
 
+    /* 撕开后缝里露出的**卡背上沿**（2026-10-01）：以前撕开露出的是弹层底色 = 撕开一只空袋。
+       它压在袋身纸面之上、上片之下，只在撕口那道缝的高度上露一条，随 --tear 出现。 */
+    var cardedge = document.createElement('i');
+    cardedge.className = 'home-deck-pack-cardedge';
+    cardedge.setAttribute('aria-hidden', 'true');
+
+    /* 裂口前沿的**纤维拉丝**：极窄一层白丝，跟着裂口前沿走、贯通前后淡出。 */
+    var fuzz = document.createElement('i');
+    fuzz.className = 'home-deck-pack-fuzz';
+    fuzz.setAttribute('aria-hidden', 'true');
+
     el.appendChild(top);
+    el.appendChild(cardedge);
     el.appendChild(bot);
     el.appendChild(seal);
+    el.appendChild(fuzz);
     el.addEventListener('pointerdown', onPackDown);
     el.addEventListener('pointermove', onPackMove);
     el.addEventListener('pointerup', onPackUp);
@@ -726,12 +758,18 @@
     var el = packDeal.el;
     if (!el) return;
     el.style.setProperty('--tear', packDeal.tear.toFixed(4));
+    // 手撕那条用的**量化**进度（台阶 = 纤维一束束断）。只进 `--rip` 前沿，不进 `--sep`。
+    el.style.setProperty('--tear-q',
+      (Math.round(packDeal.tear / PACK_HAND_STEP) * PACK_HAND_STEP).toFixed(4));
     // 封口条的 mask 只在「有人动手」之后挂（静止时挂着 mask，渐变的过渡段会让包底透出来一个亮点）
     var seal = packDeal.seal || (packDeal.seal = el.querySelector('.home-deck-pack-seal'));
     if (seal) {
       if (packDeal.tear > .002) seal.classList.add('is-ripping');
       else seal.classList.remove('is-ripping');
     }
+    // 纤维拉丝同一时刻才长出来（同上：静止态不许有任何「已经撕开」的痕迹）
+    var fz = packDeal.fuzz || (packDeal.fuzz = el.querySelector('.home-deck-pack-fuzz'));
+    if (fz) fz.classList.toggle('is-on', packDeal.tear > .002);
     // 两半是在后半程才淡出的（前半程是「撕口裂开」，还没到离场）
     el.style.setProperty('--tear-out', clamp01((packDeal.tear - .62) / .38).toFixed(4));
   }
@@ -743,6 +781,9 @@
     var el = buildPack(item);
     packDeal = { seq: seq, el: el, tear: 0, torn: false, ready: false, flipped: false, drag: null };
     stage.appendChild(el);
+    // 分段位移的单位是像素（腿长的量），所以把包高的**像素值**递给 CSS：
+    // 百分比在三个分段上会因段高不同而错开成裂缝（见 21-card-deck.css 里 --fall 那段）
+    el.style.setProperty('--pack-h', (el.clientHeight || 0) + 'px');
     dlg.classList.add('is-packing');
     setTear(0);
     if (viewer) viewer.setAngle(Math.PI, 0, true);
@@ -840,6 +881,9 @@
     // 手还按着时人就接管了 --tear：这一帧的进度当起点，往下拖为正（撕的是顶上那一条）
     packDeal.drag = { y: e.clientY, from: packDeal.tear, span: Math.max(140, (el.clientHeight || 600) * PACK_DRAG), moved: false };
     el.classList.add('is-grabbing');
+    // 手撕这条从按下起就走**量化**的前沿（`.is-hand` 一直挂到这一包结束）：中途摘掉会让
+    // 前沿从台阶位置跳回连续位置，读数上是一次十几像素的位移
+    el.classList.add('is-hand');
     // 手一按下去就退出「无手那条」：两片分家从此**跟手**（线性），不再走 .is-auto 的缓入
     el.classList.remove('is-auto');
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* 没有捕获也能撕：事件仍落在包上 */ }
