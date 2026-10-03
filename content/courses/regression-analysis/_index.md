@@ -11,8 +11,8 @@ date: 2026-09-15
 draft: false
 # 分区单位：本课程按「章」组织（改成 "周" 即切换为第 N 周）
 unit: "章"
-description: "回归分析课程笔记：以 Montgomery–Peck–Vining 为主线，按模块整理模型设定、最小二乘估计、推断与区间估计、模型诊断与变量选择，每个定理给完整证明。"
-summary: "按模块整理的笔记、作业全解与 R 上机实验；前置数学工具与定理另成一张张可检索的卡片。"
+description: "回归分析课程笔记：面向初学者的线性回归主线——建模、最小二乘与推断、模型诊断、共线性、变量选择与模型验证，按 7 章整理。"
+summary: "按章整理的笔记、三档作业与卡片：已上线第 01–04 章（含完整证明），余下三章按入门口径随写作上线；前置数学工具与定理另成可检索的卡片。"
 # 列表卡片封面（生成产物：tools/covers/make-covers.py）
 cover:
   image: "images/covers/regression-analysis.webp"
@@ -35,38 +35,14 @@ plan:
     title: "模型充分性检验"
     summary: "残差及其分布、四种缩放残差、残差图、偏回归图、PRESS、异常点与影响、失拟检验、纯误差估计"
   - weight: 5
-    title: "变换与加权"
-    summary: "方差稳定变换、线性化变换、Box–Cox 变换族、加权最小二乘、广义最小二乘"
-  - weight: 6
-    title: "杠杆与影响诊断"
-    summary: "帽子矩阵与杠杆、学生化残差、DFFITS 与 DFBETAS、Cook 距离"
-  - weight: 7
-    title: "多项式回归模型"
-    summary: "多项式模型的性质、正交多项式、中心化、分段多项式与样条入门"
-  - weight: 8
-    title: "指示变量"
-    summary: "哑变量编码、含指示变量的模型、交互项、分段回归、协方差分析形式"
-  - weight: 9
     title: "多重共线性"
-    summary: "共线性的诊断（VIF、条件数、方差分解比例）、岭回归、主成分回归"
-  - weight: 10
+    summary: "共线性的症状与后果、VIF 与条件数、系数方差被放大的量级、处理的取舍（岭回归只作点到）"
+  - weight: 6
     title: "变量选择与模型构建"
-    summary: "全子集与逐步法、Cp 准则、信息准则、PRESS、模型构建策略"
-  - weight: 11
+    summary: "全子集法与逐步法、Cp、信息准则、PRESS、模型构建策略"
+  - weight: 7
     title: "回归模型的验证"
     summary: "数据划分、交叉验证、PRESS 与预测能力的评估、模型确认"
-  - weight: 12
-    title: "非线性回归导论"
-    summary: "非线性模型的线性化、非线性最小二乘、Gauss–Newton 迭代、参数的渐近推断"
-  - weight: 13
-    title: "广义线性模型"
-    summary: "指数族、链接函数、偏差、IRLS、logistic 与 Poisson 回归"
-  - weight: 14
-    title: "时间序列数据的回归分析"
-    summary: "自相关误差、AR 模型、Durbin–Watson 检验、广义最小二乘与 Cochrane–Orcutt"
-  - weight: 15
-    title: "其他主题"
-    summary: "稳健回归、bootstrap、分类与回归树概览、测量误差"
 
 # 分类法只在这里写一次，由 cascade 下发给各章材料页。
 # target.kind: page 表示只发给 regular page（笔记 / 作业 / 实验）——课程主页与章节入口页都是
@@ -83,9 +59,9 @@ cascade:
     math: true
 ---
 
-回归分析研究如何用一个（或一组）自变量解释响应变量，并把「估计得多准」写清楚。
+回归分析研究如何用一个（或一组）自变量解释响应变量，并把「估计得多准」写清楚。这门课面向初学者，只走回归的主干——建模 → 一元 → 多元 → 诊断 → 共线性 → 变量选择 → 验证，共 7 章。
 
-本课程以 Montgomery, Peck & Vining *Introduction to Linear Regression Analysis*（6e）为主线，讲义与 R 上机并行：每个模块给出完整推导与证明，每条结论标注它用到哪几条假设——**不因讲义进度而在中途截断**。
+本课程以 Montgomery, Peck & Vining *Introduction to Linear Regression Analysis*（6e）为主线，讲义与 R 上机并行；每条结论标注它用到哪几条假设。第 01–04 章已上线，按完整证明写（可当深读）；余下三章按入门口径写——少证明、多例子。
 
 ## 课程简介
 
