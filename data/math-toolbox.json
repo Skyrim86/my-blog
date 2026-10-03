@@ -339,6 +339,7 @@
       "title": "条件期望、全期望律与全方差律",
       "aliases": [
         "全期望律",
+        "重期望律",
         "全方差律"
       ],
       "group": "1",
@@ -358,7 +359,8 @@
       "kind": "定义",
       "title": "协方差、相关系数与 Cauchy–Schwarz 不等式",
       "aliases": [
-        "Cauchy–Schwarz 不等式"
+        "Cauchy–Schwarz 不等式",
+        "Cauchy–Schwarz"
       ],
       "group": "1",
       "body": "**定义** $\\operatorname{Cov}(X,Y)=E\\big[(X-EX)(Y-EY)\\big]$。\n\n$$\n\\rho_{XY}=\\frac{\\operatorname{Cov}(X,Y)}{\\sqrt{\\operatorname{Var}(X)\\operatorname{Var}(Y)}}=\\frac{\\sigma_{XY}}{\\sigma_X\\sigma_Y}\\quad(\\sigma_X,\\sigma_Y>0).\n$$\n\n**命题（Cauchy–Schwarz）** 对任意随机变量 $U,V$ 有 $\\big(E(UV)\\big)^2\\le E(U^2)\\,E(V^2)$；等号成立当且仅当存在常数 $a,b$（不全为零）使 $aU+bV=0$ 几乎必然。",

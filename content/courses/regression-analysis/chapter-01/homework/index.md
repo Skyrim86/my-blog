@@ -51,7 +51,7 @@ summary: "档 1 全解（4 题）：三个模型的线性性判断、条件均�
 
 ### 预备结论
 
-**命题 A（重期望律）** 对随机变量 $u$ 与 $x$，只要期望存在，$\mathrm{E}(u)=\mathrm{E}\bigl[\mathrm{E}(u\mid x)\bigr]$。
+**命题 A（{{< tool "1.2" "重期望律" >}}）** 对随机变量 $u$ 与 $x$，只要期望存在，$\mathrm{E}(u)=\mathrm{E}\bigl[\mathrm{E}(u\mid x)\bigr]$。
 
 - 条件：$\mathrm{E}\lvert u\rvert<\infty$。
 - 结论：无条件期望等于条件期望的期望。

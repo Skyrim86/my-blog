@@ -89,7 +89,7 @@ $$\mathrm{E}\bigl[(y-g(x))^2\bigr]\ \ge\ \mathrm{E}\bigl[(y-\mathrm{E}(y\mid x))
 - 证明：分四步。
   1. 加减条件均值：$y-g(x)=\bigl[y-\mathrm{E}(y\mid x)\bigr]+\bigl[\mathrm{E}(y\mid x)-g(x)\bigr]$。
   2. 平方展开，交叉项为 $2\,\mathrm{E}\bigl\{\bigl[y-\mathrm{E}(y\mid x)\bigr]\bigl[\mathrm{E}(y\mid x)-g(x)\bigr]\bigr\}$。
-  3. 记 $h(x)=\mathrm{E}(y\mid x)-g(x)$，用重期望律：$\mathrm{E}\bigl\{\bigl[y-\mathrm{E}(y\mid x)\bigr]h(x)\bigr\}=\mathrm{E}\bigl\{h(x)\,\mathrm{E}\bigl[y-\mathrm{E}(y\mid x)\mid x\bigr]\bigr\}=0$，内层条件期望按定义为零。
+  3. 记 $h(x)=\mathrm{E}(y\mid x)-g(x)$，用{{< tool "1.2" "重期望律" >}}：$\mathrm{E}\bigl\{\bigl[y-\mathrm{E}(y\mid x)\bigr]h(x)\bigr\}=\mathrm{E}\bigl\{h(x)\,\mathrm{E}\bigl[y-\mathrm{E}(y\mid x)\mid x\bigr]\bigr\}=0$，内层条件期望按定义为零。
   4. 于是 $\mathrm{E}\bigl[(y-g(x))^2\bigr]=\mathrm{E}\bigl[(y-\mathrm{E}(y\mid x))^2\bigr]+\mathrm{E}\bigl[h(x)^2\bigr]$，右端第二项非负；它为零当且仅当 $h(x)=0$ 几乎处处。
 
 - 边界与反例：结论是「在均方误差这个准则下」的最优。换成绝对误差损失，最优预测是条件中位数，一般不等于条件均值；分布明显偏斜时两者差别不小。均方误差准则在数学上方便，但也让远离主体的观测按偏离的平方被放大，这个代价在诊断环节要还回来。
@@ -160,13 +160,13 @@ $$\mathrm{Var}(\varepsilon\mid x)=\sigma^2,\qquad \mathrm{Cov}(\varepsilon_i,\va
 
 - 结论：两者符号一致，大小与解释不同。含截距且斜率由最小二乘估计时 $r^2$ 与决定系数相等，无截距时这个等式不再成立。
 
-- 几何意义：两列数据各自中心化后看成两个向量，$r$ 就是它们的夹角余弦，$|r|\le1$ 即 Cauchy–Schwarz；$\hat\beta_1$ 是 $y$ 的中心化向量在 $x$ 的中心化方向上的投影长度除以回归元中心化向量的长度 $\Vert\mathbf x-\bar x\mathbf 1\Vert$——同一个投影长度，回归元越分散斜率越小，所以它带量纲、可任意大。相关看夹角，回归看投影长度。
+- 几何意义：两列数据各自中心化后看成两个向量，$r$ 就是它们的夹角余弦，$|r|\le1$ 即 {{< tool "1.3" "Cauchy–Schwarz" >}}；$\hat\beta_1$ 是 $y$ 的中心化向量在 $x$ 的中心化方向上的投影长度除以回归元中心化向量的长度 $\Vert\mathbf x-\bar x\mathbf 1\Vert$——同一个投影长度，回归元越分散斜率越小，所以它带量纲、可任意大。相关看夹角，回归看投影长度。
 
 - 强度：已证
 
 - 证明：分四步。
   1. $r=S_{xy}/\sqrt{S_{xx}S_{yy}}$、$\hat\beta_1=S_{xy}/S_{xx}$，两者同除一个正数，故同号。
-  2. $|S_{xy}|\le\sqrt{S_{xx}S_{yy}}$ 给出 $|r|\le 1$（Cauchy–Schwarz）。
+  2. $|S_{xy}|\le\sqrt{S_{xx}S_{yy}}$ 给出 $|r|\le 1$（{{< tool "1.3" "Cauchy–Schwarz" >}}）。
   3. 含截距时回归平方和 $SS_R=\hat\beta_1^2S_{xx}=S_{xy}^2/S_{xx}$，故决定系数 $R^2=SS_R/S_{yy}=S_{xy}^2/(S_{xx}S_{yy})=r^2$（完整推导见命题 02.16）。
   4. 取 $x$ 在 $\{-1,0,1\}$ 上等可能取值、$y=x^2$，则 $S_{xy}=0$ 而 $y$ 完全由 $x$ 决定，故 $r=0$ 不蕴含独立。
 

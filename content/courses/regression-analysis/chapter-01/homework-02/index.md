@@ -35,7 +35,7 @@ $$\mathrm{E}\bigl[(y-g(x))^2\bigr]\ \ge\ \mathrm{E}\bigl[(y-\mathrm{E}(y\mid x))
 
 ### 预备结论
 
-**命题 A（重期望律）** 若 $\mathrm{E}\lvert u\rvert<\infty$，则 $\mathrm{E}(u)=\mathrm{E}\bigl[\mathrm{E}(u\mid x)\bigr]$。
+**命题 A（{{< tool "1.2" "重期望律" >}}）** 若 $\mathrm{E}\lvert u\rvert<\infty$，则 $\mathrm{E}(u)=\mathrm{E}\bigl[\mathrm{E}(u\mid x)\bigr]$。
 
 - 条件：$\mathrm{E}\lvert u\rvert<\infty$。
 - 结论：无条件期望等于条件期望的无条件期望。

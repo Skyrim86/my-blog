@@ -150,13 +150,30 @@ bash scripts/new-content.sh remove   <content 路径> [--with-bundle] [--dry-run
 
 ```bash
 python tools/course-import/import_course.py            # 生成 / 更新
+python tools/course-import/import_course.py --chapter 01   # 只导这一章的正文（卡片与数学库仍全量重建）
 python tools/course-import/import_course.py --check    # 只比对（CI 不跑：CI 里没有课程项目目录）
 ```
+
+脚本需要 PyYAML（读 `data/math-branches.yaml` / `data/card-parents.yaml`）：用装了它的解释器跑，
+例如 `DECK_PYTHON`/`ADMIN_PYTHON` 那套里指定的 conda 环境；仓库默认的 `python` 通常没有它。
+
+**课程项目 2026-09-21 起改成 A–G 前缀目录**（`A笔记` / `B习题` / `C卡片` / `D讲义与参考书` /
+`E实验` / `F实验数据` / `G数学工具`），导入器的映射随之对齐 —— 旧的 `笔记/作业/实验/工具`
+四个目录**已经不存在**，拿旧映射跑会直接报「课程项目目录不存在」。源 → 产物的对应关系：
+
+| 课程项目 | 博客侧 |
+|---|---|
+| `A笔记/NN_*.md`（整章一篇） | `<chapter>/notes/index.md` 的正文（仍可按 § 拆页，`split_notes` 保留） |
+| `A笔记/figs/NN_*.svg` | `<chapter>/notes/figs/`（按章号前缀分流；`_src/` 是生成脚本，不进 bundle） |
+| `B习题/NN_*_{1,2,3}_{档}_{题目,解答}.md` | `<chapter>/homework[-0N]/index.md`：**三档各一页**（简单与中档 / 困难 / 定义与开放性讨论），题目与解答合成一页（`## 题目` / `## 解答` 两个二级节，解答侧标题降一级 —— 两边都有「## 题 N …」，同页两份会撞目录与锚点），题目文件里「解答见 `…_解答.md`」那行指引删掉（解答就在同页） |
+| `E实验/<lab>/笔记.md` + `figs/` | `<chapter>/lab/index.md` 与 bundle 内的图（没有 `笔记.md` 的实验室目录不出页：`REG_Lab03/04` 目前只有 `.Rmd`） |
+| `G数学工具/00_数学工具.md` | `data/math-toolbox.json` 的**工具卡** |
+| `C卡片/NN_*.md` 的卡片块 | `data/math-toolbox.json` 的**课程卡** |
 
 | 产物 | 来源 |
 |---|---|
 | `content/courses/<课程>/<chapter>/<材料>/index.md` 的**正文** | 课程项目的 `笔记/`、`作业/`、`实验/` 里的 md。front matter 仍由 `new-content.sh` 生成，脚本只替换正文；正文里**写结论的名字**（「由全方差律」），脚本按名字表换成 `{{< tool "1.2" "全方差律" >}}`；残留的旧写法 `【工具 k.m】` 会让导入报错退出 |
-| `data/math-toolbox.json` | `工具/00_数学工具.md`（按 `## k 名称` 分 6 组，条目形如 `### 名字 {#tool-1-2}` + 可选 `<!-- 别名: … -->`）+ 各模块笔记里的定理/定义/命题块。**每块都必须写名字**（`**引理 4.1（系数表示与正交性）**`）：没写名字导入器直接报错退出（`require_name`），因为无名卡在卡片墙上只是一个裸类别词。每张卡另加 `kind`（类别：定义/定理/命题…）、`num`（课程侧的编号：只进锚点 id、`{{< tool >}}` 参数与搜索关键词，**不再显示**）、`course`（属于哪门课）、`branch`（大类）与 `section`（细分）|
+| `data/math-toolbox.json` | **工具卡**：`G数学工具/00_数学工具.md`（按 `## k 名称` 分 6 组，条目形如 `### 名字 {#tool-1-2}` + 可选 `<!-- 别名: … -->`）；**课程卡**：`C卡片/NN_*.md`（2026-10-03 起改用卡片交付件，不再从笔记正文抽 —— 同一批结论在笔记里是讲解体、在卡片里是逐条改写过的短卡，两处逐字重合由课程侧的 `card_overlap.py` 看着）。卡片的 `num` 是「章.序」（`02.10`），`id` 是 `thm-<章>-<序>`。**每块都必须写名字**（`**引理 4.1（系数表示与正交性）**`）：没写名字导入器直接报错退出（`require_name`），因为无名卡在卡片墙上只是一个裸类别词。每张卡另加 `kind`（类别：定义/定理/命题…）、`num`（课程侧的编号：只进锚点 id、`{{< tool >}}` 参数与搜索关键词，**不再显示**）、`course`（属于哪门课）、`branch`（大类）与 `section`（细分）|
 | `data/math-branches.yaml` | **不是产物**：数学库（`/library/`）的**两级**分支清单（大类 → 细分）+ 卡片归属规则，手写维护，见 docs/features.md ㉒ |
 | `content/library/<大类>/`、`content/library/<大类>/<细分>/` 的页面 | **不是文件**：由 `content/library/_content.gotmpl`（Hugo content adapter）按 `data/math-branches.yaml` 现算生成——分支表加一项就自动多一页。所以这几个 URL 不在 `hugo list all` 的输出里，`check-sections.sh` 也看不见它们 |
 | `content/courses/<课程>/toolbox/<id>/index.md` | 与上同一批卡片：一张卡一个页面，front matter 由脚本生成、正文为空，模板按目录名从 data 取内容。它的 `title` 是**「名字（类别）」**（如 `Gauss–Markov（定理）`，2026-09-19 起不带编号）：JSON 里可能带公式，模板用 `RenderString` 渲染成真公式；而写进 front matter 的 title 要进 `<title>`、列表卡片与「相关内容」，不经过 Markdown/KaTeX，所以脚本会先降级成纯文本（`$F$ 检验` → `F 检验`；span 里是 `\hat\sigma^2` 这类命令时整段丢掉，`$\hat\sigma^2$ 无偏` → `无偏`）。**名字整段是公式的名字会被导入器拒收**（那样 h1 会变成空标题），所以名字里要留可读的纯文本部分 |
@@ -201,7 +218,7 @@ python tools/course-import/import_course.py --check    # 只比对（CI 不跑�
 | 写法 | 说明 |
 |---|---|
 | `{{< card "全方差律" >}}` | **推荐**：按名字或别名在所有库里找，不必记编号、也不必知道它属于哪个库。第二参数可覆盖显示文字 |
-| `{{< tool "1.4" >}}` / `{{< thm "4.4" >}}` | 按编号引用；`import_course.py` 自动接线生成的就是这种（80 处），保留兼容 |
+| `{{< tool "1.4" >}}` / `{{< thm "4.4" >}}` | 按编号引用；`import_course.py` 自动接线生成的就是这种（旧版课程笔记 80 处；2026-10-03 重导后第 01 章 4 处 —— 重构后的笔记正文少点工具名字，接线的密度取决于**工具卡的别名表**，见下一节），保留兼容 |
 | 直链 | 卡片页地址稳定（`/cs/<id>/`、`/courses/<课程>/toolbox/<id>/`），可以直接分享 |
 
 显示文字的顺序：显式第二参数 → 卡片名字 → 卡片自己的 `label`（「定理 10.2」）→ id。点开由 `assets/js/toolbox.js` 拦成弹窗，**没有 JS 时就是普通链接**，跳到完整可读的卡片页。弹窗是**多栏**的：在卡片里再点一张（正文引用、或卡片底部的「附属结论 / 所属」），那一张在旁边新开一栏，原来那张留在左边；栏数不设上限，多了横向滚动（窄屏改上下堆叠）。`Esc` 一层一层退：先收最后开的那栏，只剩一栏时关掉整个弹窗。
