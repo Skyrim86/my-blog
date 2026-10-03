@@ -14,8 +14,8 @@ cover:
   alt: "金融数学"
 # 分区单位：本课程按「章」组织（改成 "周" 即切换为第 N 周）
 unit: "章"
-description: "金融数学课程学习包：以 Ross《An Elementary Introduction to Mathematical Finance》（3e）为主线、Hull《Options, Futures, and Other Derivatives》补实务，按 13 章讲无套利定价、期权与投资组合。"
-summary: "无套利与风险中性定价、二叉树与 Black–Scholes、希腊字母、期望效用与均值方差、美式期权与动态规划；13 章规划已录入，材料随写作进度上线。"
+description: "金融数学课程学习包：以 Ross《An Elementary Introduction to Mathematical Finance》（3e）为主线、Hull《Options, Futures, and Other Derivatives》补实务，按 6 章讲概率与随机模型、利率与现值、无套利定价与 Black–Scholes。"
+summary: "概率与随机模型、利率与现值、无套利定价与二叉树、Black–Scholes 与希腊字母；6 章规划已录入，材料随写作进度上线。"
 # 课程主页自身没有公式；公式渲染由下面的 cascade 传给各章节材料页
 math: false
 plan:
@@ -35,29 +35,8 @@ plan:
     title: "用套利给合约定价"
     summary: "远期与期货、期权的基本头寸、套利机会、复制组合、看涨看跌平价、二叉树定价"
   - weight: 6
-    title: "套利定理"
-    summary: "状态价格、套利定理、风险中性概率的存在与唯一性、不完全市场"
-  - weight: 7
-    title: "Black–Scholes 公式"
-    summary: "风险中性估值的启发式推导、Black–Scholes 公式、希腊字母、隐含波动率"
-  - weight: 8
-    title: "期权的进一步结果"
-    summary: "美式期权与提前行权、红利的处理、看跌期权的解析定价、波动率的估计方式"
-  - weight: 9
-    title: "期望效用法估值"
-    summary: "效用函数、风险厌恶、确定性等价、Jensen 不等式、Arrow–Pratt 测度"
-  - weight: 10
-    title: "随机序关系"
-    summary: "一阶随机占优、二阶随机占优、似然比序、与均值方差判据的关系"
-  - weight: 11
-    title: "最优化模型"
-    summary: "线性规划、确定性动态规划、背包问题、概率型最优化、投资分配模型"
-  - weight: 12
-    title: "随机动态规划"
-    summary: "随机动态规划的递推、无限期模型、最优停时、美式期权的停时刻画"
-  - weight: 13
-    title: "异国期权"
-    summary: "障碍期权、亚式期权、回望期权、期权价格的偏微分方程方法（要点）"
+    title: "Black–Scholes 与期权结果"
+    summary: "风险中性估值的启发式推导、Black–Scholes 公式、希腊字母、隐含波动率、美式期权与提前行权、红利的处理、看跌期权的解析定价"
 # 分类法只在这里写一次，由 cascade 下发给各章材料页。
 # target.kind: page 表示只发给 regular page（笔记 / 作业 / 实验）——课程主页与章节入口页都是
 # section，即使带上标签也只会让 /tags/ 的计数虚高、词条页里并不出现（见 AGENTS.md）。
@@ -74,17 +53,17 @@ cascade:
 ---
 
 金融数学把「一份合约现在值多少」变成可计算的定价问题：先由无套利论证出价格必须满足的关系，再用复制组合或风险中性概率把数值算出来。
-本课程以 Ross《An Elementary Introduction to Mathematical Finance》（3e）为主线，Hull《Options, Futures, and Other Derivatives》补实务与制度，共 13 章；推导链在不引入随机微积分的前提下自足。
+本课程以 Ross《An Elementary Introduction to Mathematical Finance》（3e）为主线，Hull《Options, Futures, and Other Derivatives》补实务与制度，共 6 章、只留定价主线；推导链在不引入随机微积分的前提下自足。
 
 ## 课程简介
 
 - **目标**：用无套利论证给远期、期货与看涨看跌期权定价，解释复制组合与风险中性概率各自的角色；
 - **前提**：一元微积分；线性代数初步（矩阵、二次型）；概率论（随机变量、期望与方差、条件期望、协方差、正态分布）。
-- **重点**：无套利与风险中性定价、二叉树与 Black–Scholes、期望效用与均值方差、动态规划与美式期权。
+- **重点**：无套利与风险中性定价、二叉树与 Black–Scholes、希腊字母与隐含波动率、美式期权与提前行权。
 - 计算 Black–Scholes 价格与希腊字母，判断价格对执行价、到期、利率与波动率的敏感性方向与量级；
-- 在期望效用与均值方差两个框架下比较投资组合，说清风险厌恶如何进入决策；
-- 用动态规划为美式期权与最优停时建立递推，给障碍、亚式、回望期权定出可算的价格表达式。
-- **不在本包内**：Itô 积分的严格构造、鞅表示定理与测度变换的一般理论、连续时间最优控制、偏微分方程的数值解法、信用衍生品与利率曲线的完整建模。
+- 用二叉树与风险中性概率给欧式、美式期权定价，说清连续时间公式与离散递推的对应关系；
+- 说明这套定价框架依赖的假设，并指出它们在何处失效（隐含波动率微笑、跳跃）。
+- **不在本包内**：套利定理（状态价格与不完全市场）、期望效用与组合选择、随机序关系、最优化模型、随机动态规划与最优停时、异国期权的解析定价；Itô 积分的严格构造、鞅表示定理与测度变换的一般理论、连续时间最优控制、偏微分方程的数值解法、信用衍生品与利率曲线的完整建模。
 
 各章内容按大纲逐章整理，笔记、分档习题与卡片随写作进度上线；目前录入了规划。
 
