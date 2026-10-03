@@ -570,3 +570,20 @@ clarify 两问的结果：「**大字换成站点名/徽记（Skyrim 收藏卡�
 **发布流水线的两个坑**（本轮踩到，已固化）：
 1. **`push-blog.sh` 里的「工艺 × 明度」体检需要带 Pillow 的 Python**：默认 `python` 没有 Pillow 时它会**拦住整个推送**。指定 `DECK_PYTHON=<装了 Pillow 的解释器>` 即可（本轮用的是 conda `ml` 环境）。
 2. **渲染钩子 `render-image.html` 读 SVG 的 `.Width` 会让构建失败**（SVG 没有像素尺寸）：已按 `reflect.IsImageResourceWithMeta` 加守卫，见 features.md ㊲。
+
+## 2026-10-03 · 其余 7 门课装进博客（课程主页 + 规划表，不放材料）
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| 7 门课程主页 | ✅ 已落地 | `bayesian-statistics` / `single-variable-calculus` / `financial-mathematics` / `kaoyan-math-1` / `deep-learning` / `time-series-analysis` / `numerical-analysis`（原有页重写）。每页 = 课程简介（目标 / 前提 / 重点 / 不在本包内，取自各课包大纲第 1 节）+ 规划表（章清单取自大纲第 3 节：13 / 9 / 13 / 8 / 15 / 11 / 12 章，合计 81 章） |
+| 章节与材料 | ✅ 按拍板不建 | 只录规划：规划表全部显示「计划中」，站上不出现空章节页；`/courses/` 上 8 门课都能点开 |
+| 封面 | ✅ 已落地 | `tools/covers/make-covers.py` 的 `COVERS` 加 6 条并重跑（生成产物入库） |
+| 新标签 | ✅ 已落地 | 贝叶斯统计 / 时间序列分析 / 微积分 / 金融数学 / 考研数学（数学组），深度学习（计算机组）；`data/taxonomy.yaml` 与 `data/tag-groups.yaml` 两边同步 |
+| 数值分析旧两章 | ✅ 已下线 | `chapter-01/02`（2026-09-10 的旧文本，写作风格与新课包差一代）按拍板清掉，规划换成新课包的 12 章 |
+
+**下一轮**：各课的材料与章节入口页。上线时按回归分析那套走 —— `import_course.py` 的 `MODULES`
+加一章 + `new-content.sh chapter|notes|homework` 建骨架 + 重跑导入 + 发布。
+
+**一处口径**：课程主页的规划摘要由 `course-plan` 短代码当**纯文本**渲染，所以 `plan[].summary`
+里不能写 `$…$`（会原样露出来）。回归分析第 10 章的 `$C_p$` 已改成 `Cp 准则`；其余 7 门课的摘要
+在生成时统一剥掉了数学区。
