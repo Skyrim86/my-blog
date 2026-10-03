@@ -35,6 +35,48 @@ FONT_CANDIDATES = [
 ]
 
 COVERS = {
+    "bayesian-statistics": {
+        "label": "课程 · COURSE",
+        "title": "贝叶斯统计",
+        "subtitle": "先验 · 后验 · 决策",
+        "bg": ((14, 17, 30), (46, 34, 78)),
+        "accent": (126, 96, 220),
+    },
+    "single-variable-calculus": {
+        "label": "课程 · COURSE",
+        "title": "单变量微积分",
+        "subtitle": "极限 · 导数 · 积分",
+        "bg": ((13, 22, 28), (22, 62, 74)),
+        "accent": (72, 154, 176),
+    },
+    "financial-mathematics": {
+        "label": "课程 · COURSE",
+        "title": "金融数学",
+        "subtitle": "无套利 · 期权 · 布朗运动",
+        "bg": ((16, 20, 24), (58, 52, 26)),
+        "accent": (178, 150, 70),
+    },
+    "kaoyan-math-1": {
+        "label": "课程 · COURSE",
+        "title": "考研数学一",
+        "subtitle": "考点 · 证明 · 题型",
+        "bg": ((20, 16, 22), (66, 30, 46)),
+        "accent": (168, 62, 96),
+    },
+    "deep-learning": {
+        "label": "课程 · COURSE",
+        "title": "深度学习",
+        "subtitle": "梯度 · 卷积 · 注意力",
+        "bg": ((14, 18, 26), (30, 44, 80)),
+        "accent": (96, 130, 232),
+    },
+    "time-series-analysis": {
+        "label": "课程 · COURSE",
+        "title": "时间序列分析",
+        "subtitle": "平稳 · ARMA · 谱",
+        "bg": ((15, 20, 22), (28, 58, 54)),
+        "accent": (84, 168, 152),
+    },
     "numerical-analysis": {
         "label": "课程 · COURSE",
         "title": "数值分析",

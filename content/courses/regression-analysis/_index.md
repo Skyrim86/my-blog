@@ -51,7 +51,7 @@ plan:
     summary: "共线性的诊断（VIF、条件数、方差分解比例）、岭回归、主成分回归"
   - weight: 10
     title: "变量选择与模型构建"
-    summary: "全子集与逐步法、$C_p$、信息准则、PRESS、模型构建策略"
+    summary: "全子集与逐步法、Cp 准则、信息准则、PRESS、模型构建策略"
   - weight: 11
     title: "回归模型的验证"
     summary: "数据划分、交叉验证、PRESS 与预测能力的评估、模型确认"
