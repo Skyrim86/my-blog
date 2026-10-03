@@ -7,13 +7,19 @@
     python tools/course-import/import_course.py --check    # 只比对，与源不一致时退出码 1（CI 用）
     python tools/course-import/import_course.py --dry-run  # 只打印将要改动的文件
 
-唯一事实源是**课程项目目录**（默认 D:\\1.Study\\course\\回归分析，可用 --project 覆盖；
-DEFAULT_PROJECT 是写死的本机路径，换机器或项目挪过位置时先 --dry-run 看它找没找对）：
+唯一事实源是**课程项目目录**（默认 D:\\Study\\courses\\回归分析，可用 --project 覆盖；
+DEFAULT_PROJECT 是写死的本机路径，换机器或项目挪过位置时先 --dry-run 看它找没找对）。
+课程项目 2026-09-21 起改成 A–G 前缀目录，本脚本随之对齐（旧布局「笔记/作业/实验/工具」已不存在）：
 
-  - 笔记 / 作业 / 实验的 Markdown  ──▶ content/courses/regression-analysis/<chapter>/<material>/index.md 的**正文**
-  - 工具/00_数学工具.md 的条目      ──▶ data/math-toolbox.json（工具卡）
-  - 笔记里的定理 / 命题 / 推论 / 定义块 ──▶ data/math-toolbox.json（课程定理卡）
-  - 实验的 figs/*.png              ──▶ 同名材料页 bundle 下
+  - A笔记/NN_*.md                     ──▶ <chapter>/notes/index.md 的**正文**（整章一篇，仍按 § 可拆页）
+  - B习题/NN_*_{1,2,3}_{档}_{题目,解答}.md ──▶ <chapter>/homework[-0N]/index.md
+        三档各一页（简单与中档 / 困难 / 定义与开放性讨论）；题目与解答合成一页，
+        解答侧的标题降一级（两边都有「## 题 N …」，同页两份会撞目录与锚点）
+  - E实验/<lab>/笔记.md + figs/       ──▶ <chapter>/lab/index.md 的正文与 bundle 内的图
+  - G数学工具/00_数学工具.md 的条目    ──▶ data/math-toolbox.json（工具卡）
+  - C卡片/NN_*.md 里的卡片块           ──▶ data/math-toolbox.json（课程定理卡）
+
+  --chapter NN 只导入指定章的**正文**；卡片与数学库是课程级产物，任何时候都全量重建。
 
 front matter 不归本脚本管：材料页骨架由 scripts/new-content.sh 生成，脚本只替换正文；
 data/math-toolbox.json 是纯数据文件。**不要在博客里手改这些产物**——下次导入会覆盖。
@@ -35,24 +41,61 @@ except ImportError:  # pragma: no cover
     yaml = None
 
 REPO = Path(__file__).resolve().parents[2]
-DEFAULT_PROJECT = Path(r"D:\1.Study\course\回归分析")
+DEFAULT_PROJECT = Path(r"D:\Study\courses\回归分析")
+# 源文件相对课程根的路径（目录前缀见课程根 AGENTS.md 第 2 节）
+PROBLEM_DIR = "B习题"
+TOOL_FILE_REL = Path("G数学工具") / "00_数学工具.md"
+# 章笔记插图：A笔记/figs/ 下按「章号_」前缀分流（01_l2_projection.svg …），生成脚本在 _src/
+NOTES_FIGS_DIR = Path("A笔记") / "figs"
 COURSE = "regression-analysis"
 
-# 模块 → 博客章节目录 / 材料页目录 / 源文件
+# 章 → 博客章节目录 / 源文件。课程侧一章一件笔记、三档习题、一章一份卡片；
+# 材料页目录名决定章节页上的分组（notes→笔记、homework*→习题、lab*→实验）。
 MODULES = [
     {
         "module": "M1",
         "chapter": "chapter-01",
-        # 一篇笔记拆成多页：单页 1575 行、2500 多个数学区渲染出来约 2.5 MB，
-        # 超过 scripts/report-size.sh 的单页预算；按 § 号切在自然边界上（split_notes
-        # 只保留 first..last 之间的 § 小节），每页回到 1 MB 以内。
-        "notes": [
-            {"src": "笔记/M1_简单线性回归.md", "dir": "notes", "first": 1, "last": 6},
-            {"src": "笔记/M1_简单线性回归.md", "dir": "notes-02", "first": 7, "last": 11},
-            {"src": "笔记/M1_简单线性回归.md", "dir": "notes-03", "first": 12, "last": 999},
-        ],
-        "homework": ("作业/M1_习题选解.md", "homework"),
-        "labs": [("实验/REG_Lab02/笔记.md", "lab", "实验/REG_Lab02/figs")],
+        "stem": "01_回归分析与建模",
+        "notes": [{"src": "A笔记/01_回归分析与建模.md", "dir": "notes", "first": 1, "last": 999}],
+        "homework": [("1", "简单与中档", "homework"),
+                     ("2", "困难", "homework-02"),
+                     ("3", "定义与开放性讨论", "homework-03")],
+        "cards": "C卡片/01_回归分析与建模.md",
+        "labs": [],
+    },
+    {
+        "module": "M1",
+        "chapter": "chapter-02",
+        "stem": "02_简单线性回归",
+        "notes": [{"src": "A笔记/02_简单线性回归.md", "dir": "notes", "first": 1, "last": 999}],
+        "homework": [("1", "简单与中档", "homework"),
+                     ("2", "困难", "homework-02"),
+                     ("3", "定义与开放性讨论", "homework-03")],
+        "cards": "C卡片/02_简单线性回归.md",
+        "labs": [("E实验/REG_Lab02/笔记.md", "lab", "E实验/REG_Lab02/figs")],
+    },
+    {
+        "module": "M1",
+        "chapter": "chapter-03",
+        "stem": "03_多元线性回归",
+        "notes": [{"src": "A笔记/03_多元线性回归.md", "dir": "notes", "first": 1, "last": 999}],
+        "homework": [("1", "简单与中档", "homework"),
+                     ("2", "困难", "homework-02"),
+                     ("3", "定义与开放性讨论", "homework-03")],
+        "cards": "C卡片/03_多元线性回归.md",
+        # REG_Lab03/04 目录里只有 .Rmd/.html，没有 笔记.md，所以本包目前只有 02 章有实验页
+        "labs": [],
+    },
+    {
+        "module": "M2",
+        "chapter": "chapter-04",
+        "stem": "04_模型充分性检验",
+        "notes": [{"src": "A笔记/04_模型充分性检验.md", "dir": "notes", "first": 1, "last": 999}],
+        "homework": [("1", "简单与中档", "homework"),
+                     ("2", "困难", "homework-02"),
+                     ("3", "定义与开放性讨论", "homework-03")],
+        "cards": "C卡片/04_模型充分性检验.md",
+        "labs": [],
     },
 ]
 
@@ -81,6 +124,34 @@ def read_text(path: Path) -> str:
 
 
 SEC_HEAD = re.compile(r"^##\s+§\s*(\d+)")
+
+# 题目文件第二行的「解答见 `…_解答.md`」是源文件之间的指引，博客上解答就在同页，导入时删掉。
+SEE_ANSWER_RE = re.compile(r"^\s*解答见[^\n]*\n?", re.M)
+
+
+def demote_headings(text: str) -> str:
+    """二、三级标题各降一级（合成页里题目与解答各成一个二级节，见 MODULES 上方说明）。
+
+    只动标题行，且跳过围栏代码块——习题解答里贴代码是常态。
+    """
+    out, fence = [], False
+    for ln in text.split("\n"):
+        stripped = ln.lstrip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            fence = not fence
+        elif not fence:
+            m = re.match(r"^(#{2,3})\s+(\S.*)$", ln)
+            if m:
+                ln = "#" + m.group(1) + " " + m.group(2)
+        out.append(ln)
+    return "\n".join(out)
+
+
+def merge_homework(ti_raw: str, jie_raw: str) -> str:
+    """题目 + 解答 → 一页：`## 题目` / `## 解答` 两个二级节，内部标题降一级。"""
+    ti = demote_headings(SEE_ANSWER_RE.sub("", clean_body(ti_raw))).strip()
+    jie = demote_headings(clean_body(jie_raw)).strip()
+    return "## 题目\n\n%s\n\n---\n\n## 解答\n\n%s\n" % (ti, jie)
 
 
 def split_notes(text: str, first: int, last: int) -> str:
@@ -449,25 +520,39 @@ ACCESSORY_PREFERRED = {
 PARENTS_FILE = REPO / "data" / "card-parents.yaml"
 
 
-def card_section_key(card: dict, table: str):
-    """按维度取查表用的值：卡片 id / 节号（thm-<节>-<序> 的 <节>）/ 分组号 / 课程。"""
+def card_section_keys(card: dict, table: str) -> list:
+    """按维度取查表用的**候选**值（细 → 粗，取第一个命中）：卡片 id / 编号 / 分组号 / 课程。
+
+    nums 给两个候选：**全编号**（"02.10"，2026-10 起课程卡片按「章.序」统一编号）与它的**章号**
+    （"02"）。分支表因此只需写少数例外、其余按章兜底 —— 一章十几个条目逐条登记没人维护得住。
+    旧编号（`thm-4-4`，编号里放的是 § 号）同样按第一段命中，向后兼容。
+    """
     if table == "cards":
-        return card.get("id")
+        return [card.get("id")]
     if table == "nums":
-        parts = card.get("id", "").split("-")
-        return parts[1] if card.get("id", "").startswith("thm-") and len(parts) > 2 else None
+        num = str(card.get("num") or "")
+        cid = str(card.get("id") or "")
+        if not (cid.startswith("thm-") and num):
+            return []
+        keys = [num]
+        coarse = num.split(".", 1)[0]
+        if coarse != num:
+            keys.append(coarse)
+        return keys
     if table == "courses":
-        return card.get("course")
-    return card.get("group")
+        return [card.get("course")]
+    return [card.get("group")]
 
 
 def section_of(card: dict, cfg: dict) -> str:
     """卡片 → 细分 key：cards > nums > groups > modules > courses > default。"""
     assign = cfg.get("assign") or {}
     for table in SECTION_LOOKUPS:
-        hit = (assign.get(table) or {}).get(card_section_key(card, table))
-        if hit:
-            return hit
+        table_map = assign.get(table) or {}
+        for key in card_section_keys(card, table):
+            hit = table_map.get(key) if key is not None else None
+            if hit:
+                return hit
     return cfg["default"]
 
 
@@ -567,24 +652,22 @@ def build_toolbox(project: Path, cfg: dict) -> tuple[dict, list]:
     groups: list[dict] = []
     tool_cards: list[dict] = []
     thm_cards: list[dict] = []
-    tool_file = project / "工具" / "00_数学工具.md"
+    tool_file = project / TOOL_FILE_REL
     if not tool_file.exists():
         raise SystemExit("✗ 找不到 %s" % tool_file)
     g, c = parse_tool_file(tool_file)
     groups += g
     tool_cards += c
-    seen: set = set()
+    # 课程卡片的事实源是 C卡片/NN_*.md（课程侧的卡片交付件：卡面 + 用途 + 注），不是笔记：
+    # 同一批结论在笔记里是讲解体、在卡片里是逐条改写过的短卡，两者逐字重合由课程侧的
+    # card_overlap.py 门禁看着。解析器共用一套 —— 卡片文件里的 `**定义 NN.k（名字）**` 就是块首。
     for mod in MODULES:
-        for item in mod["notes"]:
-            src = project / item["src"]
-            if src in seen:
-                continue  # 同一份笔记切成多页时只需解析一次
-            seen.add(src)
-            if not src.exists():
-                continue
-            g, c = parse_note_theorems(src, mod["module"], mod["chapter"], item["dir"])
-            groups += g
-            thm_cards += c
+        src = project / mod["cards"]
+        if not src.exists():
+            raise SystemExit("✗ 找不到卡片文件 %s" % src)
+        g, c = parse_note_theorems(src, mod["module"], mod["chapter"], "cards")
+        groups += g
+        thm_cards += c
     for card in tool_cards + thm_cards:
         for key in ("body", "proof", "usage", "note"):
             card.setdefault(key, "")
@@ -602,6 +685,21 @@ def build_toolbox(project: Path, cfg: dict) -> tuple[dict, list]:
 
     # 主次关系（附属结论挂主卡）：规则 + data/card-parents.yaml 的手写覆盖
     attach_parents(tool_cards + thm_cards, load_parent_table(PARENTS_FILE), PARENTS_FILE)
+
+    # 跨章重名的卡片：一门课四章各写一遍同样的结论，名字撞在一起（一元的 Gauss–Markov 与
+    # 多元的 Gauss–Markov、两处「决定系数与调整决定系数」、「模型充分性」、「正态误差下的
+    # 抽样分布」）。名字是课程侧的事实（正文按名字引用、不要为此改课包），但卡片墙上两张
+    # 同名卡分不出谁是谁，卡片页 <title> 也会相同（check-frontmatter 警告）。**只在重名时**
+    # 补一个章号限定，墙、卡片页、搜索三处一起可辨；不重名的卡一个字都不动。
+    names = {}
+    for card in tool_cards + thm_cards:
+        key = (plain_card_title(card["title"]), card["kind"])
+        names[key] = names.get(key, 0) + 1
+    for card in tool_cards + thm_cards:
+        key = (plain_card_title(card["title"]), card["kind"])
+        num = str(card.get("num") or "")
+        if names[key] > 1 and "." in num:
+            card["title"] = "%s · %s 章" % (card["title"], num.split(".", 1)[0])
 
     toolbox = {
         "note": "由 tools/course-import/import_course.py 从课程项目生成，勿手改。",
@@ -752,6 +850,8 @@ def main() -> int:
     ap.add_argument("--project", default=str(DEFAULT_PROJECT))
     ap.add_argument("--check", action="store_true", help="只比对，不写盘")
     ap.add_argument("--dry-run", action="store_true", help="只打印将改动的文件")
+    ap.add_argument("--chapter", default="", metavar="NN",
+                    help="只导入这一章的正文（如 01）；卡片与数学库仍全量重建")
     args = ap.parse_args()
 
     project = Path(args.project)
@@ -773,6 +873,8 @@ def main() -> int:
 
     for mod in MODULES:
         chapter = mod["chapter"]
+        if args.chapter and not chapter.endswith("-%s" % args.chapter):
+            continue
         for item in mod["notes"]:
             src = project / item["src"]
             if not src.exists():
@@ -782,13 +884,21 @@ def main() -> int:
             body = page_body(raw, "%s §%s–§%s" % (item["src"], item["first"], item["last"]))
             dst = REPO / "content" / "courses" / COURSE / chapter / item["dir"] / "index.md"
             plan.append(("body", dst, body))
-        for key in ("homework",):
-            src_rel, material = mod[key]
-            src = project / src_rel
-            if not src.exists():
-                problems.append("缺少源文件 %s" % src)
+            # 章笔记的插图：A笔记/figs/<章号>_*.svg（按章号前缀分流，_src/ 是生成脚本不进 bundle）。
+            # 笔记正文用相对路径引用 figs/xxx.svg，所以图必须落在同一个 leaf bundle 里。
+            figs = project / NOTES_FIGS_DIR
+            if figs.is_dir():
+                for svg in sorted(figs.glob("%s_*" % chapter.rsplit("-", 1)[-1])):
+                    plan.append(("copy", dst.parent / "figs" / svg.name, svg))
+        for num, label, material in mod["homework"]:
+            srcs = {kind: project / PROBLEM_DIR / ("%s_%s_%s_%s.md" % (mod["stem"], num, label, kind))
+                    for kind in ("题目", "解答")}
+            missing = [str(p) for p in srcs.values() if not p.exists()]
+            if missing:
+                problems += ["缺少源文件 %s" % m for m in missing]
                 continue
-            body = page_body(read_text(src), src_rel)
+            where = "%s 档 %s" % (mod["stem"], label)
+            body = page_body(merge_homework(read_text(srcs["题目"]), read_text(srcs["解答"])), where)
             dst = REPO / "content" / "courses" / COURSE / chapter / material / "index.md"
             plan.append(("body", dst, body))
         for src_rel, material, figs_rel in mod["labs"]:

@@ -6,6 +6,9 @@
           是逐像素比对过的）。源文件保持 PNG —— 那 4 张图的出处是实验页里教 `ggsave()`/`png()`
           的 R 代码，改文件名会变成「代码写 png、页面里是 webp」。
        2. 补 width/height。主题原版不给内容图尺寸，实测产物里只有 alt/loading/src。
+          **只给有像素元数据的图补**：SVG 是矢量、读 `.Width` 会让构建直接失败（2026-10-03，
+          课程笔记的 SVG 插图第一次进 bundle 时踩到），所以先问 `reflect.IsImageResourceWithMeta`；
+          没有尺寸属性就交给浏览器，`.post-content img { height: auto }` 那条护栏仍然成立。
 
      为什么是 lossless 而不是 q82：调色板 PNG（03/04）走有损会**涨一倍**（实测 +104.6%，
      最大像素差 138），而 lossless 四张全部更小（−39% ~ −74%）。**JPEG 一律不转** ——
@@ -29,8 +32,12 @@
       {{- end -}}
     {{- end -}}
     {{- $src = $res.RelPermalink -}}
-    {{- $width = $res.Width -}}
-    {{- $height = $res.Height -}}
+    {{- /* SVG 是矢量、没有像素尺寸，直接读 .Width 会让构建失败（2026-10-03，课程笔记的
+          SVG 插图第一次进 bundle 时踩到）。有尺寸元数据的才取宽高，取不到就不写属性。 */ -}}
+    {{- if reflect.IsImageResourceWithMeta $res -}}
+      {{- $width = $res.Width -}}
+      {{- $height = $res.Height -}}
+    {{- end -}}
     {{- with $u.RawQuery -}}
       {{- $src = printf "%s?%s" $src . -}}
     {{- end -}}

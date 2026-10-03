@@ -23,20 +23,51 @@ math: false
 # 已发布判定按 title 与章节 _index.md 的 title **逐字相同**；计划中的模块先按下列标题写。
 plan:
   - weight: 1
-    title: "简单线性回归"
-    summary: "模型设定、最小二乘估计、估计量性质、假设检验与区间估计、预测、过原点回归、极大似然"
+    title: "回归分析与建模"
+    summary: "回归模型与误差项、四类分析目的、数据来源与固定设计、因果解释的边界、建模的迭代循环、充分性与内插外推"
   - weight: 2
-    title: "多元线性回归"
-    summary: "矩阵形式、几何投影、Gauss–Markov 定理、一般线性假设检验、偏系数解释"
+    title: "简单线性回归"
+    summary: "模型与假设、最小二乘解、线性质与 Gauss–Markov、误差方差估计、t 检验与方差分析、区间估计与预测、决定系数、过原点回归、极大似然"
   - weight: 3
-    title: "模型充分性与改进"
-    summary: "残差分析、异常点与影响诊断、变换与加权（Box–Cox、WLS）"
+    title: "多元线性回归"
+    summary: "矩阵形式与正规方程、正交投影与帽子矩阵、Gauss–Markov、额外平方和与一般线性假设检验、正交设计、区间估计"
   - weight: 4
-    title: "共线性与变量选择"
-    summary: "VIF、特征分析、岭回归、子集选择准则、逐步法、模型验证"
+    title: "模型充分性检验"
+    summary: "残差及其分布、四种缩放残差、残差图、偏回归图、PRESS、异常点与影响、失拟检验、纯误差估计"
   - weight: 5
-    title: "结构推广"
-    summary: "多项式与样条、指示变量与 ANOVA/ANCOVA、非线性回归、GLM、稳健回归"
+    title: "变换与加权"
+    summary: "方差稳定变换、线性化变换、Box–Cox 变换族、加权最小二乘、广义最小二乘"
+  - weight: 6
+    title: "杠杆与影响诊断"
+    summary: "帽子矩阵与杠杆、学生化残差、DFFITS 与 DFBETAS、Cook 距离"
+  - weight: 7
+    title: "多项式回归模型"
+    summary: "多项式模型的性质、正交多项式、中心化、分段多项式与样条入门"
+  - weight: 8
+    title: "指示变量"
+    summary: "哑变量编码、含指示变量的模型、交互项、分段回归、协方差分析形式"
+  - weight: 9
+    title: "多重共线性"
+    summary: "共线性的诊断（VIF、条件数、方差分解比例）、岭回归、主成分回归"
+  - weight: 10
+    title: "变量选择与模型构建"
+    summary: "全子集与逐步法、$C_p$、信息准则、PRESS、模型构建策略"
+  - weight: 11
+    title: "回归模型的验证"
+    summary: "数据划分、交叉验证、PRESS 与预测能力的评估、模型确认"
+  - weight: 12
+    title: "非线性回归导论"
+    summary: "非线性模型的线性化、非线性最小二乘、Gauss–Newton 迭代、参数的渐近推断"
+  - weight: 13
+    title: "广义线性模型"
+    summary: "指数族、链接函数、偏差、IRLS、logistic 与 Poisson 回归"
+  - weight: 14
+    title: "时间序列数据的回归分析"
+    summary: "自相关误差、AR 模型、Durbin–Watson 检验、广义最小二乘与 Cochrane–Orcutt"
+  - weight: 15
+    title: "其他主题"
+    summary: "稳健回归、bootstrap、分类与回归树概览、测量误差"
+
 # 分类法只在这里写一次，由 cascade 下发给各章材料页。
 # target.kind: page 表示只发给 regular page（笔记 / 作业 / 实验）——课程主页与章节入口页都是
 # section，即使带上标签也只会让 /tags/ 的计数虚高、词条页里并不出现（见 AGENTS.md）。

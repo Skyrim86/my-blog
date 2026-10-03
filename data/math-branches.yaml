@@ -126,15 +126,19 @@ branches:
         summary: "马尔可夫链、泊松过程、布朗运动与平稳过程"
 
   # ── 6 统计与数据 ─────────────────────────────────────────────────────
-  # 这一门是卡量最大的（回归分析一门课 56 张定理卡 + 6 张统计理论工具卡），
-  # 一个桶装 62 张必然过重，所以按课程笔记自己的进度（§ 号）拆成 6 个主题细分。
+  # 这一门是卡量最大的（回归分析一门课 67 张定理卡 + 6 张统计理论工具卡）。
+  # 2026-10-03：整门课按重构后的课包（4 章）重导，编号从「§ 号」改成「章.序」，
+  # 于是按章分主题，一章装不下的再按条目例外（见下面的 assign.nums）。
   - key: statistics-data
     name: 统计与数据
-    summary: "估计、检验与回归：从抽样性质到区间、拟合与渐近"
+    summary: "估计、检验与回归：从抽样性质到区间、诊断与渐近"
     sections:
       - key: stat-estimation
         name: 估计与最小二乘
         summary: "无偏性与 BLUE、极大似然与充分性、最小二乘与几何、模型设定与误差方差"
+      - key: stat-mlr
+        name: 多元线性模型
+        summary: "矩阵形式与正规方程、投影与帽子矩阵、正交性、多元下的 Gauss–Markov 与误差方差"
       - key: stat-sampling
         name: 估计量的抽样性质
         summary: "无偏性、方差与协方差、Gauss–Markov、抽样分布与标准误"
@@ -143,13 +147,16 @@ branches:
         summary: "拒绝域与 t 检验、显著性、p 值、检验与区间估计的等价性"
       - key: stat-anova
         name: 方差分析
-        summary: "平方和与自由度分解、F 检验与期望均方"
+        summary: "平方和与自由度分解、F 检验与期望均方、正交设计的可加分解"
       - key: stat-interval
         name: 区间估计与预测
         summary: "系数与误差方差的区间、均值响应、预测区间与收敛速度"
       - key: stat-fit-asymptotic
         name: 拟合优度与渐近
         summary: "$R^2$ 与相关、回归的极大似然与渐近性质、随机回归量"
+      - key: stat-diagnostics
+        name: 回归诊断
+        summary: "残差及其分布、标准化与外部学生化残差、PRESS、异常点与影响、失拟检验"
       - key: bayesian
         name: 贝叶斯统计
         summary: "先验与后验、共轭分布、贝叶斯估计与决策"
@@ -201,31 +208,47 @@ branches:
 
 # 卡片 → 细分的归属规则。匹配顺序细 → 粗，取第一个命中（见文件头说明）。
 assign:
-  # 按卡片 id 的例外：只有分组号无法区分时才用
+  # 按卡片 id 的例外：只有分组号（工具卡）与章号（课程卡）都分不出来时才用
   cards:
     tool-1-2: prob-conditioning      # 分组 1 里唯一讲条件期望的
     tool-6-1: prob-distributions     # 分组 6 里两张卡分属两个学科，见下面 tool-6-2
     tool-6-2: stat-estimation        # 样本相关系数与 Fisher z：统计推断而非概率论
-    thm-9-2: stat-tests              # §9 讲区间，但这一张是「检验与区间的等价性」，归检验
-  # 课程定理卡按课程笔记的 § 号归属（thm-<节>-<序>）
+  # 课程定理卡的编号是「章.序」（2026-10-03 起，如 02.10 = 第 2 章第 10 张卡），
+  # 查表给两个候选：全编号 → 章号。所以这里只写**例外**，其余按章兜底。
   nums:
-    # 估计与最小二乘：模型设定、最小二乘与几何、残差与误差方差
-    "2": stat-estimation
-    "3": stat-estimation
-    "6": stat-estimation
-    "14": stat-estimation
-    # 估计量的抽样性质
-    "4": stat-sampling
-    "5": stat-sampling
-    # 推断的四个主题
-    "7": stat-tests
-    "8": stat-anova
-    "9": stat-interval
-    "10": stat-interval
-    # 拟合、渐近与随机设计
-    "11": stat-fit-asymptotic
-    "15": stat-fit-asymptotic
-    "16": stat-fit-asymptotic
+    # 章级兜底
+    "01": stat-estimation      # 建模、误差项、四类用途与设计、充分性与内插外推
+    "02": stat-estimation      # 模型与假设、最小二乘解、线性质与权重、误差方差、过原点回归
+    "03": stat-mlr             # 矩阵形式、正规方程、投影与帽子矩阵、正交性
+    "04": stat-diagnostics     # 残差分布、缩放残差、异常点、PRESS、失拟
+    # 01 章例外
+    "01.5": stat-fit-asymptotic      # 相关系数与回归斜率的差别（相关而非估计）
+    # 02 章例外：性质类与推断类
+    "02.5": stat-sampling
+    "02.6": stat-sampling
+    "02.8": stat-sampling
+    "02.9": stat-tests
+    "02.10": stat-anova
+    "02.11": stat-tests              # 回归显著性 F 与 t 的等价（检验而非方差分析）
+    "02.12": stat-interval
+    "02.13": stat-interval
+    "02.14": stat-interval
+    "02.15": stat-fit-asymptotic
+    "02.16": stat-fit-asymptotic
+    # 03 章例外
+    "03.7": stat-sampling
+    "03.8": stat-sampling
+    "03.10": stat-anova
+    "03.11": stat-fit-asymptotic
+    "03.12": stat-sampling
+    "03.13": stat-tests
+    "03.14": stat-anova
+    "03.15": stat-anova
+    "03.16": stat-tests
+    "03.17": stat-tests
+    "03.18": stat-anova
+    "03.21": stat-interval
+    "03.22": stat-interval
   # 工具卡按 01–06 的分组号归属
   groups:
     "1": prob-moments
