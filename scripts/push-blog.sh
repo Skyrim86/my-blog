@@ -312,6 +312,22 @@ if [ -n "$dirty" ]; then
     printf '%s\n' "$cs_log" | sed -n '/▸/,$p' | sed 's/^/  /'
   fi
 
+  # 正文与属性守卫（2026-10-03 加，阻断，与 CI 同口径）。两件事：
+  #   1. 正文/meta 里出现字面 `**` —— goldmark emphasis 的 flanking 失配会把那对 ** 原样
+  #      吐进 HTML，并经 .Summary 复制到 meta description、分类页/标签页摘要与搜索索引。
+  #      此前没有任何检查看正文文本，累计漏了 41 处。
+  #   2. data-* 属性未转义 + 从引号内部截断，把截断点之后的文本当正文吐进 DOM。
+  # 必须在 hugo 构建之后跑：它读的是产物 public/。
+  if [ -f scripts/check-prose.mjs ]; then
+    echo "▸ 正文与属性守卫"
+    if ! pr_log="$(node scripts/check-prose.mjs 2>&1)"; then
+      printf '%s\n' "$pr_log" | sed 's/^/  /'
+      echo "✗ 正文里有字面 ** 或属性被截断，已中止（未提交、未推送）。"
+      exit 1
+    fi
+    printf '%s\n' "$pr_log" | tail -1 | sed 's/^/  /'
+  fi
+
   # 体积预算：成功时只留 3 行结论，超标时打全表（含最重页面 Top 10）便于定位。
   if [ -f scripts/report-size.sh ]; then
     echo "▸ 体积预算"

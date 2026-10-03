@@ -5,8 +5,29 @@
 {{- $page := .page -}}
 {{- $card := .card -}}
 {{- $base := .base -}}
+
+{{- /* data-search 的值（卡片筛选框用，assets/js/toolbox.js 读 dataset.search 做 indexOf）。
+       2026-10-03 修一个真 bug：原来写的是
+         substr (printf "%s %s %s %s" … ($card.body | plainify)) 0 260
+       直接塞进属性，于是两件事同时出错：
+         1. **未转义**：body 里的 " 与 < 原样进属性，会把属性提前闭合。
+         2. **从引号内部截断**：260 字符处若落在 `**命题（…）**` 中间，Hugo 产出的
+            属性是 `data-search="… $$ **命题">` —— 浏览器把 `**命题">` 当正文读出来。
+            实测 93 张卡里 20 张截断点落在 `**` 上，/library/ 那页还把半截文本吐进 DOM。
+
+       修法两步，**顺序不能反**：
+         · 先 substr 截断（截的是纯文本，长度按字符算，语义清楚）；
+         · 再 htmlEscape 转义引号与尖括号。
+       反过来（先转义再截断）会把 `&quot;` 这类实体从中间切开，又回到原问题。
+
+       为什么要留 260 这个上限：data-search 是给筛选做子串匹配的，60 张卡全量正文
+       会让属性体积翻几倍（见 report-size 的预算账）。截断点是「够用来认出一张卡」
+       的长度，不追求全文可搜 —— 全文检索走 /search/ 的 index.json，不走这里。 */ -}}
+{{- $searchRaw := printf "%s %s %s %s" $card.kind $card.num $card.title ($card.body | plainify) -}}
+{{- $searchText := substr $searchRaw 0 260 | htmlEscape -}}
+
 <article class="tb-card" id="card-{{ $card.id }}" data-id="{{ $card.id }}" data-group="{{ $card.group }}"
-         data-kind="{{ $card.kind }}" data-search="{{ substr (printf "%s %s %s %s" $card.kind $card.num $card.title ($card.body | plainify)) 0 260 }}">
+         data-kind="{{ $card.kind }}" data-search="{{ $searchText }}">
   <header class="tb-card-head">
     <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>
     {{- /* 名字在前，**没有编号** —— 编号只活在锚点 id 与短代码参数里，不进 UI（2026-09-19 起） */ -}}

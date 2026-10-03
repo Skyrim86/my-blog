@@ -14,9 +14,20 @@
          见 assets/js/toolbox.js 的筛选。 */ -}}
 {{- $card := .card -}}
 {{- $dup := .dup -}}
-{{- $search := printf "%s %s %s %s" $card.kind $card.num $card.title ($card.body | plainify) -}}
+
+{{- /* data-search：与 toolbox-card.html 同一套做法（先截断、后转义，顺序不能反 ——
+       先转义再截断会把 &quot; 这类实体从中间切开）。
+       2026-10-03：本文件原先是 `substr $search 0 240` 直接进属性，与 toolbox-card.html
+       那个 260 的版本犯同一个错 —— body 里的 " 会提前闭合属性、把后面的内容当正文吐出来。
+       实测 /library/probability-stochastic/prob-limit/ 上就是这条路径产出的
+       `设 $Y_1,">命题`（属性在 240 处被截断，截断点之后的文本漏进 DOM）。
+       上限 240 与 260 的差别是历史遗留（两个文件各写各的），本轮不合并 —— 改了会让
+       两个页面的筛选行为不一致，而收益是 0。 */ -}}
+{{- $searchRaw := printf "%s %s %s %s" $card.kind $card.num $card.title ($card.body | plainify) -}}
+{{- $searchText := substr $searchRaw 0 240 | htmlEscape -}}
+
 <article class="tb-card tb-teaser{{ if $dup }} tb-teaser--dup{{ end }}" data-id="{{ $card.id }}" data-group="{{ $card.group }}"
-         data-kind="{{ $card.kind }}" data-search="{{ substr $search 0 240 }}">
+         data-kind="{{ $card.kind }}" data-search="{{ $searchText }}">
   <a class="tb-teaser-link" href="{{ .url }}">
     {{- if not $dup }}
     <span class="tb-kind" data-kind="{{ $card.kind }}">{{ $card.kind }}</span>

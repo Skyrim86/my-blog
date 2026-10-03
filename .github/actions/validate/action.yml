@@ -161,6 +161,17 @@ runs:
       shell: bash
       run: node scripts/check-css-split.mjs
 
+    # 正文里的字面 `**` 与被截断的 data-* 属性（2026-10-03 加，阻断）。
+    # 起因：goldmark emphasis 的 flanking 规则有四种失配形态（闭合/开定界符各两种），
+    # 失配时那对 `**` 原样进 HTML，并经 .Summary 复制到 meta description、分类页/标签页
+    # 摘要与搜索索引 —— 一处源泄漏在产物里会变成 4~6 处。此前**没有任何检查看正文文本**
+    # （check-math-katex.mjs 只看数学区，且它全绿），累计漏了 41 处。
+    # 第二半查的是同一个模板 bug 的另一处：data-* 属性未转义 + 从引号内部截断，
+    # 把截断点之后的文本当正文吐进 DOM（见 layouts/_partials/toolbox-{card,teaser}.html）。
+    - name: 正文与属性守卫（阻断）
+      shell: bash
+      run: node scripts/check-prose.mjs
+
     # SEO / 订阅产物：只警告不阻断。查的是「构建能过但站点不可被发现」的那类事 ——
     # sitemap 与 RSS 里的 URL 是否带 baseURL 子路径、是否都指向真实存在的页面、
     # 生产构建的 robots.txt 是否误禁全站、首页 meta 是否被 noindex、feed 里有没有

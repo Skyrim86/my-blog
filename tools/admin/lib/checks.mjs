@@ -180,6 +180,16 @@ const ITEMS = [
     hint: '带卡片类的页面是否都接上了卡片表、其余页面有没有白吃',
   },
   {
+    id: 'prose',
+    label: '正文与属性',
+    runtime: 'node',
+    argv: ['scripts/check-prose.mjs'],
+    fast: false,
+    blocking: true,
+    needsBuild: true,
+    hint: '正文/meta 里有没有字面 **（goldmark emphasis 失配）、data-* 属性有没有被截断',
+  },
+  {
     id: 'size',
     label: '体积预算',
     runtime: 'bash',
