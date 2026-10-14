@@ -2,7 +2,7 @@
 
 - 日期：2026-09-21/22 夜
 - 机器：Windows 11 / RTX 5060 Laptop GPU（ANGLE D3D11）/ 屏幕 1280×800 逻辑 = 2560×1600 物理 @ dpr 2
-- 被测站点：`my-blog` 只读参考的 `public/`（`serve_public.py 8794`，未改主仓库、未改 `lab/`）
+- 被测站点：`my-blog` 只读参考的 `public/`（`serve_public.py 8794`，未改主仓库、未改 `my-blog-lab/`）
 - 结论一句话：**能上**。原型在出货分辨率下的 GPU 代价是 **0.13 ms/帧（6.06 ms 帧预算的 2.1%）**，
   主线程 0.007 ms/帧；真实页面帧间隔 A/B 里**量不到可归因于它的掉帧**。但必须带降级/暂停策略，
   且真正要盯的是 **canvas 像素数**，不是 shader 复杂度。
@@ -45,10 +45,10 @@ fragment shader（3 层 fbm 值噪声 + 3 条正弦带 + 静态星野）。无�
 
 ---
 
-## 2. 仪器改造（`lab/工具/frameab.py` → `frameab2.py`）
+## 2. 仪器改造（`my-blog-lab/工具/frameab.py` → `frameab2.py`）
 
 原版只支持注入 CSS。本实验要注入 JS 脚本、开弹层、交错轮次、保留原始数据，所以复制改造
-（`lab/` 只读未动）：
+（`my-blog-lab/` 只读未动）：
 
 1. `variants` 支持 `js`（`Page.addScriptToEvaluateOnNewDocument`，shader 因此和真上线一样首屏就在）、
    `setup`（导航后、录制前执行，如 `window.homeDeck.openAt(0)`）、`drag`（录制中每帧在 3D 卡 canvas 上
@@ -281,8 +281,8 @@ shader pass 只有 1.37 ms**。也就是说**崩的不是着色，是那张 9352
 **报告**：本文件（`docs/exp-bg.md`）。
 
 > 2026-09-22 归拢：原型、仪器与全部原始数据原在临时区（`…\cache\scratch\bg\`，72 小时自动清理），
-> 已整体迁到 `..\lab\结果\bg-shader\`，浏览器 profile 与三份构建副本删除。下表文件名不变，
-> 路径一律以 `..\lab\结果\bg-shader\` 为根。
+> 已整体迁到 `..\my-blog-lab\结果\bg-shader\`，浏览器 profile 与三份构建副本删除。下表文件名不变，
+> 路径一律以 `..\my-blog-lab\结果\bg-shader\` 为根。
 
 **原型与工具**
 - `bg-shader.js`（原型；含 `scale/oct/fps/once/gpuQuery` 旋钮、`stats()` 暴露帧数/draw 数/主线程 µs/GPU 分布）
@@ -301,7 +301,7 @@ shader pass 只有 1.37 ms**。也就是说**崩的不是着色，是那张 9352
 - 降级代理：`raw-home-nogpu.json`
 - 负载日志：`cpu-main.log`、`cpu-home.log`；截图：`probe-final-1.png`、`probe-shader1-1.png`、`probe-base-static-1.png`
 
-**未改动的只读参考**：`D:\projects\blog\my-blog`（主仓库）、`D:\projects\blog\lab\结果\`
+**未改动的只读参考**：`D:\projects\blog\my-blog`（主仓库）、`D:\projects\blog\my-blog-lab\结果\`
 
 ---
 
@@ -312,7 +312,7 @@ shader pass 只有 1.37 ms**。也就是说**崩的不是着色，是那张 9352
 
 1. **双主题配色**（原型没有）。落地前先补了本文件 §8 列的第一风险 —— 文字对比度。做法：整屏截图，对每个可见文字元素
    取它矩形内的**底色众数**（笔画是少数、底是多数）算 WCAG 对比度，逐帧取最坏；「最坏像素」一列要**排除笔画像素**
-   （不隐藏文字时它恒等于文字自己 = 1.00，是个假信号）。仪器：`lab/结果/bg-shader-contrast/{capture,analyze}-contrast.py`。
+   （不隐藏文字时它恒等于文字自己 = 1.00，是个假信号）。仪器：`my-blog-lab/结果/bg-shader-contrast/{capture,analyze}-contrast.py`。
 
    | 臂 | 最差对比度 | 阈值 | 不合格 |
    |---|---|---|---|
@@ -332,7 +332,7 @@ shader pass 只有 1.37 ms**。也就是说**崩的不是着色，是那张 9352
    （`:root[data-bg="__shader"]{--bg-image-*:none}`），失败路径改成 `standDown()` 把 data-bg 换回静态套。
    好处是首屏连壁纸请求都不会发（行内变量方案要等脚本跑完），代价是「套」这个概念多了一个没有图片的成员 ——
    `bg-switch.js` 的预取与解码靠 URL 为空来跳过它。降级验证脚本：
-   `lab/结果/bg-shader-contrast/check-degrade.py` —— 三种情况各起一个 Edge，判 `__bg.why` 与 `--bg-image-light`
+   `my-blog-lab/结果/bg-shader-contrast/check-degrade.py` —— 三种情况各起一个 Edge，判 `__bg.why` 与 `--bg-image-light`
    是否仍是 `url(...)`：正常挂载并置 `none` ✓、reduced-motion 保留原图 ✓、无 WebGL 保留原图 ✓。
 
 3. **弹层期间停背景**：`home-deck.js` 的 `openDialog` / `closeDialog` 接上 `__bg.stop()` / `start()`（§5 记的机制，
@@ -435,7 +435,7 @@ C 与 D 的差就是这一版的代价面：**提前量必须 ≥ 下载时间**
 按 `].join('
 ');` 之类的串锚点做替换一直 `count 0`（转义层级对不上），索引定位反而稳。
 
-### 复跑清单（都在 `lab/结果/bg-shader-contrast/`）
+### 复跑清单（都在 `my-blog-lab/结果/bg-shader-contrast/`）
 
 | 脚本 | 判什么 |
 |---|---|

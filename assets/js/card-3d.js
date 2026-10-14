@@ -25,7 +25,7 @@
 //      POM（光线步进）只负责**比一个网格格子更细**的皱褶。两者共用同一张图、不同尺度。
 //   3. **空闲时完全停掉动画循环**。这是博客首页的一个弹层，不该在没人动的时候一直烧 GPU。
 //      拖拽中、惯性中、回弹中、指针悬在卡上时才 requestAnimationFrame；一旦静止就停，
-//      下次输入再起。`stats().running` 就是给这个断言用的（lab/工具/shots.py 会读它）。
+//      下次输入再起。`stats().running` 就是给这个断言用的（my-blog-lab/工具/shots.py 会读它）。
 //   4. **失败不静默**：没有 WebGL、或着色器编译/链接失败时，回退到原来的平面大图、
 //      在 console 明确报错、并在容器上写 `data-gl="error"`。黑屏是最糟的结果，
 //      因为它看起来像「这张卡本来就长这样」。
@@ -784,7 +784,7 @@
     //     原图 → 叠 0.055 幅度 / 46px 格线 + 外框：**平均绝对差 5.99、>8 的像素 14.65%**（判读：
     //          「表面多了一层格子状起伏，线条处有高光与阴影」，无撕裂）
     //     原图 → 极端黑白棋盘（0.85 幅度）：20.44 / 48.2%，画面碎成马赛克（证明纹理确实在渲染里）
-    // **注意别再用 `lab/工具/patternproto.py` 的旧结论**：它把图案写进了 `public/` 里的构建产物，
+    // **注意别再用 `my-blog-lab/工具/patternproto.py` 的旧结论**：它把图案写进了 `public/` 里的构建产物，
     // 而当时（和现在）8831 端口上是 hugo 开发服务器 —— 它从 `assets/` 现渲染，改 `public/` 等于
     // 改了一个没人服务的副本，量到的 0.035 是噪声。同一个图案写进源码是 5.99，差 170 倍。
     // 也就是说：**「工艺纹样做进 3D 表面」这条路是通的**（brief 里那条待办的前提已经满足），
@@ -974,7 +974,7 @@
   // 一层脏紫雾（第一版 0.35 就是这样，对比图上一眼可见）。要的是「转起来掠过一道彩」，
   // 不是「换了个色调」。
   // 2026-09-26 曲线重配（用户拍板）：正视项 0.10 → 0.175，掠射封顶不变（系数和仍 1.0，
-  // fres=1 处与旧逐像素一致）。依据是同相位对照图（lab/结果/spin-holo-ab4）：全局 0.35
+  // fres=1 处与旧逐像素一致）。依据是同相位对照图（my-blog-lab/结果/spin-holo-ab4）：全局 0.35
   // 在正视「明显且干净」、在掠射判「紫雾/洗灰/发脏」——所以只把正视抬到 0.35 当量
   // （0.175×0.20 = 0.10×0.35），掠射保持 0.20 现状，紫雾风险归零。
   '    col += holo * uTint * uHolo * foilMask * (0.175 + 0.825 * fres) * 0.20;',
@@ -1760,7 +1760,7 @@
     frames++;
     syncStand();          // 展示台：卡片下面的那条投影（DOM，跟着转角走）
     var now = performance.now();
-    // 观察面（lab/工具/shots.py 读它断言「转到位了」）。降频写 DOM 属性：每帧写会触发样式重算。
+    // 观察面（my-blog-lab/工具/shots.py 读它断言「转到位了」）。降频写 DOM 属性：每帧写会触发样式重算。
     if (now - lastStats > 120) {
       lastStats = now;
       canvas.setAttribute('data-yaw', yaw.toFixed(3));
@@ -1888,7 +1888,7 @@
 
   /* 弹簧与惯性的积分。**必须分子步**：显式欧拉里阻尼项是 vy*C*dt，而 dt 会被慢帧撑到 0.05s，
      此时 C*dt = 26×0.05 = 1.3 > 1 —— 速度每步翻号且放大，卡片会自己转飞到 -85 弧度。
-     实测就是这么炸的（lab/结果/deck3d/assert.js 里 afterFlip.yaw 一度是 -85.697）。
+     实测就是这么炸的（my-blog-lab/结果/deck3d/assert.js 里 afterFlip.yaw 一度是 -85.697）。
      子步长取 4ms：C*h = 0.104，稳。最多 24 个子步，够覆盖一帧 96ms。 */
   function integrate(dt) {
     var steps = Math.min(24, Math.max(1, Math.ceil(dt / 0.004)));
@@ -2246,7 +2246,7 @@
       return wantBack;
     },
     isBack: function () { return faceOf(baseYaw) === 'back'; },
-    // 给 lab/工具/shots.py 的读数：断言「转到位了 / 画面非空 / 空闲时真的停了 / 各档效果真的不同」
+    // 给 my-blog-lab/工具/shots.py 的读数：断言「转到位了 / 画面非空 / 空闲时真的停了 / 各档效果真的不同」
     stats: function () {
       return {
         supported: api.supported, running: !!raf, frames: frames, faceSwaps: faceSwaps,
@@ -2267,8 +2267,8 @@
           sparkle: +fxEff.sparkle.toFixed(4), holo: +fxEff.holo.toFixed(4),
           halo: +fxEff.halo.toFixed(4), cliff: +fxEff.cliff.toFixed(4),
           glint: +fxEff.glint.toFixed(4),
-          // 时间通道的包络与**过完包络的值**：探针断言「进/出不跳」读它（lab/工具/flicker2.py）
-          // 档位斜坡的生效权重（探针断言「换档不跳」读它，lab/工具/flicker2.py）
+          // 时间通道的包络与**过完包络的值**：探针断言「进/出不跳」读它（my-blog-lab/工具/flicker2.py）
+          // 档位斜坡的生效权重（探针断言「换档不跳」读它，my-blog-lab/工具/flicker2.py）
           govK: +govFxk.toFixed(4), drag: dragging ? 1 : 0, inertia: inertia ? 1 : 0,
           bgZoom: +fxEff.bgZoom.toFixed(4), bgParMax: +fxEff.bgParMax.toFixed(4),
           wall: +fxEff.wall.toFixed(4), cast: +fxEff.cast.toFixed(4),
@@ -2314,7 +2314,7 @@
     isInspect: function () { return inspect; },
     /* 现画一帧、同一任务里把画布读成 dataURL（**给「存图」与「对比」用**）。
        为什么必须现画：WebGL 的绘图缓冲在同一帧之外读是空的 —— lab 那边踩过一次
-       （见 lab/README.md 里 readPixels 那条坑），所以这里 resize 完立刻 draw、再立刻 toDataURL，
+       （见 my-blog-lab/README.md 里 readPixels 那条坑），所以这里 resize 完立刻 draw、再立刻 toDataURL，
        中间不回到事件循环。取不到（没 GL / 画布被污染）时返回空串，调用方自己兜。 */
     snapshot: function () {
       if (!GL || !canvas || !canvas.width) return '';
@@ -2324,7 +2324,7 @@
     },
     // 把卡钉在指定角度（lab 拍照用；pin=true 时不起弹簧，不会被拉回正面）。
     // pin 时**同步画一帧**而不是排进 rAF：lab 里紧接着就要把画布 drawImage 到合成图上，
-    // 而 WebGL 的绘图缓冲在同一帧之外读是空的（见 lab/README.md 里那条 readPixels 的坑）。
+    // 而 WebGL 的绘图缓冲在同一帧之外读是空的（见 my-blog-lab/README.md 里那条 readPixels 的坑）。
     setAngle: function (y, p, pin) {
       yaw = y; pitch = p || 0; vy = 0; vp = 0; dragging = false; inertia = false;
       baseYaw = pin ? y : Math.round(y / Math.PI) * Math.PI;

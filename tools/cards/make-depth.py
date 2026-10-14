@@ -51,10 +51,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 MANIFEST = os.path.join(ROOT, "data", "home-cards.yaml")
 FACES = os.path.join(ROOT, "assets", "images", "cards")
 DEPTH = os.path.join(FACES, "depth")
-LAB = os.path.join(ROOT, os.pardir, "lab", "shots", "cards_depth_check.png")
+LAB = os.path.join(ROOT, os.pardir, "my-blog-lab", "结果", "cards_depth_check.png")
 # 模型：**默认 Small，这是量出来的结论，不是随手选的**。
 # 2026-09-21 拿 6 张代表卡（近景 / 全身 / 细长物件 / 细线密集）做过 Small vs Base 的对照，
-# 判据是「浮雕边缘利不利落」——`lab/结果/deck7/depth_model_ab.py` 出表与放大图：
+# 判据是「浮雕边缘利不利落」——`my-blog-lab/结果/deck7/depth_model_ab.py` 出表与放大图：
 #   · 高度梯度 p99：6 张里 4 张 Base **更低**（更软）；最大梯度 3 张更低
 #   · 肉眼看：白蔷、银霜、木刀在 Base 下明显更糊，而「闲坐」的花束与「大小姐」的面部
 #     内部起伏 Base 略多 —— 有得有失，但没有一项统计上更好
@@ -263,7 +263,7 @@ def skin_mask(im, blur=6.0, boost=2.2):
 def subject_mask(hf, lo=None, hi=None):
     """「主体」= 高度高于背景的那一整块（阈值化 + 窄过渡）。
 
-    **为什么不用分割模型**（2026-09-25 试过，工具 `lab/工具/subjectmask_preview.py`）：
+    **为什么不用分割模型**（2026-09-25 试过，工具 `my-blog-lab/工具/subjectmask_preview.py`）：
     `jonathandinu/face-parsing` 在这套插画卡上域外**过覆盖** —— 把整个人（头发、脸、脖子、
     躯干、手臂、连衣服）都判成脸/皮肤类，占了 80% 画面；`mattmdjaga/segformer_b2_clothes`
     则**严重漏检** —— 只切出发顶和墨镜，脸和脖子都没有。两个都不合用。

@@ -18,7 +18,7 @@
 #                        不写则按**实测四角颜色**取（必须按 alpha 挑像素，见 corners_flat）
 #
 # 出图 600×840（首页卡面显示 264px 宽的 2 倍再加一档），WebP q82；顺手把全部卡面拼一张接触表写到
-# ../lab/结果/cards_check.png —— 取景对不对只能看图定。跑完还会报「目录里有、清单里没有」
+# ../my-blog-lab/结果/cards_check.png —— 取景对不对只能看图定。跑完还会报「目录里有、清单里没有」
 # 的孤儿产物（撤掉一张卡时容易忘了删产物）。
 import os
 import sys
@@ -29,7 +29,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MANIFEST = os.path.join(ROOT, "data", "home-cards.yaml")
-LAB = os.path.join(ROOT, os.pardir, "lab", "shots", "cards_check.png")
+LAB = os.path.join(ROOT, os.pardir, "my-blog-lab", "结果", "cards_check.png")
 # 600×840（2026-09-20 从 480×672 提上来）：首页显示宽度 16.5rem = 264px，模板要 264 与 528
 # 两档，主图比 528 再宽一点才不至于在 2x 屏上被放大（Hugo 的 Resize 放大会发虚还多花字节）。
 CARD_W, CARD_H = 600, 840

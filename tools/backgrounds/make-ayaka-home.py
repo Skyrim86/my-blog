@@ -17,7 +17,7 @@
 # 谁后跑谁赢，卡面尺寸或取景一改，旧脚本就能把它们悄悄覆盖回去。卡面统一只走 make-cards.py
 # （清单是 data/home-cards.yaml），这里只留立绘。
 #
-# 改完**必须看预览图**（写在仓库外的 ../lab/结果/ayaka_check.png，深底 / 浅底各一张）。
+# 改完**必须看预览图**（写在仓库外的 ../my-blog-lab/结果/ayaka_check.png，深底 / 浅底各一张）。
 import os
 
 import numpy as np
@@ -26,7 +26,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BG = os.path.join(ROOT, "tools", "backgrounds")
 IMAGES = os.path.join(ROOT, "assets", "images")
-LAB = os.path.join(ROOT, os.pardir, "lab", "shots")
+LAB = os.path.join(ROOT, os.pardir, "my-blog-lab", "结果")
 
 SRC_FIG = os.path.join(BG, "source-ayaka-desk.png")
 DEST_FIG = os.path.join(IMAGES, "ayaka-home.webp")

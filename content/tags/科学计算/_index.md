@@ -7,7 +7,7 @@ description: "数值方法的实现与误差分析：浮点模型、迭代收敛
 # 词条仍留在 data/taxonomy.yaml 与 data/tag-groups.yaml（拼写事实源与分组不删，
 # 材料上线后它会自己活过来），但页面对爬虫与访客都不该是「一个空列表」。
 #
-# 为什么只需要 sitemap.disable（本轮实测过两个开关，见 lab/结果/audit-2026-10-03/）：
+# 为什么只需要 sitemap.disable（本轮实测过两个开关，见 my-blog-lab/结果/audit-2026-10-03/）：
 #   · sitemap.disable → 真的从 sitemap.xml 里去掉（实测：加之前 -c 能命中，加之后 0 命中）
 #   · noindex / robotsNoIndex → **不生效**。仓库里没有任何模板读这两个键（extend_head.html
 #     只按 .Kind "404" 输出 robots meta），所以写它们只是看着像在管、实际什么都不做。

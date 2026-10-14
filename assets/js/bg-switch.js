@@ -22,7 +22,7 @@
 // 动态开着时**空闲期不预取静态壁纸**（第四版留下的口径：同一时刻只让一张背景占着下载与
 // 解码位图），改由**意图预热**接手 —— 悬停/聚焦/按下任一个背景按钮时才取「点下去会落到的那张」
 // （warmStaticIntent / warmDynIntent）。鼠标与键盘够用；触屏没有悬停，按下去那一刻才开始。
-// 四个跑法的数字见 lab/结果/bg-shader-contrast/check-prefetch.py。
+// 四个跑法的数字见 my-blog-lab/结果/bg-shader-contrast/check-prefetch.py。
 //
 // 事实源仍然是 <html data-bg="..."> 一个属性：静态套写静态 id，动态开写动态 id（形如
 // `__dyn-xxx`，前缀由模板给）。所以：

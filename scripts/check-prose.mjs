@@ -2,7 +2,7 @@
 /* 正文守卫：产物里不许出现字面 `**`（goldmark emphasis 失配泄漏）与被截断的属性。
  *
  * 为什么要有这个：`.md` 里的 `**粗**` 在 CommonMark 的 flanking 规则下有四种失配形态，
- * 闭合与开定界符各两种（详见 lab/工具/find-strongleak.py 的文件头）。失配时那一对
+ * 闭合与开定界符各两种（详见 my-blog-lab/工具/find-strongleak.py 的文件头）。失配时那一对
  * `**` 会**原样进 HTML**，而且同一段文字还会经 .Summary 进 meta description、分类页与
  * 标签页的摘要行、搜索索引 —— 一处源泄漏在产物里会复制 4~6 次。
  *
@@ -124,7 +124,7 @@ for (const k of ['leak', 'attr']) {
 console.log(`
 修法（别手改产物）：
   · .md 里的：在 goldmark emphasis 失配的那对 ** 之一旁**补一个空格。判据与四种形态见
-    lab/工具/find-strongleak.py 的文件头；批量修用 lab/工具/fix-strongleak.py --apply。
+    my-blog-lab/工具/find-strongleak.py 的文件头；批量修用 my-blog-lab/工具/fix-strongleak.py --apply。
   · data-* 属性的：先 substr 截断、**再** htmlEscape（顺序反了会把实体从中间切开），
     见 layouts/_partials/toolbox-card.html 与 toolbox-teaser.html 的注释。`);
 process.exit(1);

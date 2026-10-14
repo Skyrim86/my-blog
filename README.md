@@ -43,6 +43,7 @@ front matter 的唯一事实源是 `archetypes/`，标签的唯一事实源是 `
 | 文档 | 内容 |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | 给 AI 助手的规则与指针（改代码前必读的部分） |
+| [`../my-blog-lab/docs/项目手册.md`](../my-blog-lab/docs/项目手册.md) | **过程区**（仓库外）：从零搭建清单、现状与交接、关键决策、量测证据索引 |
 | [`docs/architecture.md`](docs/architecture.md) | 目录结构、`hugo.toml` 配置要点、构建与部署链、CI |
 | [`docs/content.md`](docs/content.md) | 三种内容形态、front matter 规则、`cascade` 与标签词表 |
 | [`docs/features.md`](docs/features.md) | 每一项自定义功能实现在哪个文件、机制是什么 |

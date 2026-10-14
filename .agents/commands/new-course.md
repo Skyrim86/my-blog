@@ -23,7 +23,7 @@ bash scripts/new-content.sh notes|homework|lab <课程> <章节> [--dir 目录�
 |---|---|---|---|
 | `notes` | `notes/` | 学习笔记 | 📖 |
 | `homework` | `homework/` | 作业 | 📝 |
-| `lab` | `lab/` | 实验 | 🧪 |
+| `lab` | `my-blog-lab/` | 实验 | 🧪 |
 
 同一章要放第二个实验时用 `--dir lab-02`（权重自动接着排）。章目录下**任何** leaf bundle 都会被章入口页列为材料卡片，顺序由 `weight` 决定 —— 所以材料页的**目录名与它在页面上的名字、位置无关**。
 

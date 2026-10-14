@@ -25,7 +25,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 CARDS = os.path.join(ROOT, "assets", "images", "cards")
 OUT = os.path.join(CARDS, "emboss")
 
-SCALE = 26.0        # 高度放大：越大压痕越深（与 lab/工具/bevelmap.py 同一组常数，别单改一处）
+SCALE = 26.0        # 高度放大：越大压痕越深（与 my-blog-lab/工具/bevelmap.py 同一组常数，别单改一处）
 LIGHT = np.array([-0.52, -0.60, 0.61], dtype=np.float32)   # 左上方光源
 GAIN = 2.2          # 受光图的斜率增益（进 tanh 前）。定值依据是 3× 判读的两轮对照：
                     #   1.6 → 「很克制，第一眼像柔光提亮」7/10；2.2 → 「一眼读出压印」7.5/10，

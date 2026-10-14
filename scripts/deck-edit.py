@@ -26,7 +26,7 @@ ops 的形状（`apply` 的 stdin）：
 update 只改给定的字段（没给的字段一个字节都不动）；move / delete 也是**只动该动的行** ——
 清单里那些分组注释、行尾注释、字段顺序全部原样保留，diff 才读得出来。
 
-**明度口径**：与 lab/工具/craftfit.py 的 lum() 逐字一致（PIL 转灰度 → 缩到 60×84 → 取均值）。
+**明度口径**：与 my-blog-lab/工具/craftfit.py 的 lum() 逐字一致（PIL 转灰度 → 缩到 60×84 → 取均值）。
 「§十八 工艺 × 明度」那次体检的结论就是按它量出来的，改这里必须同步那份实测脚本，
 否则面板上的「违规」与设计纲要里记的会对不上。**不写死进清单**：换图后自动重算。
 """
@@ -66,7 +66,7 @@ RANK_LABEL = dict(RANKS)
 #   中 140 ≤ L <185 上面的 + 星芒全息
 #   暗 L < 140      凸印压痕 / 烫金箔 / 全息 / 星芒全息 / 星屑 / 墨染
 # 键是**中文工艺名**（纲要里的口径），值是这个仓库可能用的**代码名**：
-# 现役十六种里的四个（foil / holo-prism / silver / starnight，与 lab/工具/craftfit.py 的 MAP16 一致）
+# 现役十六种里的四个（foil / holo-prism / silver / starnight，与 my-blog-lab/工具/craftfit.py 的 MAP16 一致）
 # 加上新八种里新增的四个（emboss / pearl / goldfoil / inkwash，同样取 craftfit.py 的命名）。
 # 另四个候选写法（gold-foil / ink-wash）是防迁移时换拼法 —— 多认一个不会误判，少认一个就会漏判。
 # **新八种落地后若改了代码名，只改这张表**：判「违规」只认代码→中文这一跳。
@@ -325,7 +325,7 @@ def set_field(block, key, value):
 # ---------------------------------------------------------------- 明度
 
 def card_lum(path):
-    """卡面灰度均值。**与 lab/工具/craftfit.py 的 lum() 同款**：转灰度 → BILINEAR 缩到 60×84 → 取均值。
+    """卡面灰度均值。**与 my-blog-lab/工具/craftfit.py 的 lum() 同款**：转灰度 → BILINEAR 缩到 60×84 → 取均值。
     60×84 这个尺寸是那次实测定下来的（够稳、又比读全图快一个量级）。"""
     from PIL import Image
     import numpy as np
@@ -338,7 +338,7 @@ def card_lum(path):
 
 def build_cards(doc, manifest_path, labels, avail):
     """清单 → 面板要的卡片数组（含明度体检）。"""
-    lum_state = {"ok": True, "method": "PIL 灰度 → 缩到 60×84 → 均值（与 lab/工具/craftfit.py 同款）",
+    lum_state = {"ok": True, "method": "PIL 灰度 → 缩到 60×84 → 均值（与 my-blog-lab/工具/craftfit.py 同款）",
                  "error": None}
     try:
         import PIL  # noqa: F401

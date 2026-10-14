@@ -2,7 +2,7 @@
 
 > 2026-09-22 由主会话补完实测部分；同日改动落地 main（`699796b`，另含预算抬到 gzip 11264 KB）。
 > 实验工作树与分支：`wt/cards` / `exp/cards`（`f1cb4cc`）—— 工作树 2026-09-22 已删，分支留档。
-> 仪器与全部量测数据在 `../lab/结果/cards-412/`（原在临时区，2026-09-22 迁入；临时区 72 小时自清）。
+> 仪器与全部量测数据在 `../my-blog-lab/结果/cards-412/`（原在临时区，2026-09-22 迁入；临时区 72 小时自清）。
 
 ## 改动
 
@@ -28,7 +28,7 @@
 
 ## 观感对照
 
-`lab/结果/cards-412-vs-544/sheet-412-vs-544.jpg`：四张卡（ayaka-kimono / ayaka-desk /
+`my-blog-lab/结果/cards-412-vs-544/sheet-412-vs-544.jpg`：四张卡（ayaka-kimono / ayaka-desk /
 emilia-01 / kafka-03）在 **411 物理像素**（= 205.7 CSS px × DPR2，与真实显示一致）下
 左 412 档、右 544 档，右侧再各带一张 3× 放大的局部。
 
@@ -42,7 +42,7 @@ emilia-01 / kafka-03）在 **411 物理像素**（= 205.7 CSS px × DPR2，与�
 
 ```bash
 R=D:/projects/blog/my-blog
-L=D:/projects/blog/lab
+L=D:/projects/blog/my-blog-lab
 # 站点副本必须带前缀剥离：产物里的资源路径是 /my-blog/...，普通 http.server 会 404
 python $L/shots/serve_public.py 8793 $R/public &
 cd $L/shots/cards-412
@@ -85,7 +85,7 @@ python wallmeasure.py --url http://127.0.0.1:8793/collection/ --dpr 1 --out new-
 
 ## 实测
 
-工具：`../lab/结果/deck-perf/check-cardflow.py`。本地站点 + **512 kbit/s 节流**（80 ms 延迟）、
+工具：`../my-blog-lab/结果/deck-perf/check-cardflow.py`。本地站点 + **512 kbit/s 节流**（80 ms 延迟）、
 冷缓存、DPR2（DPR1 的那一档单独跑）；判据是 `card3d.stats().faceSwaps` **自增** = 卡面贴图真的换人了，
 不是「某张图下完」。改前那一列取的是「xl 那张下完」—— 旧代码里这两件事本来就是同一时刻。
 
@@ -114,7 +114,7 @@ python wallmeasure.py --url http://127.0.0.1:8793/collection/ --dpr 1 --out new-
 
 ```bash
 R=D:/projects/blog/my-blog
-L=D:/projects/blog/lab
+L=D:/projects/blog/my-blog-lab
 python $L/工具/serve_public.py 8793 $R/public &
 cd $L/结果/deck-perf
 for sc in home-next-dwell home-next-now home-open ov-next wall-open; do

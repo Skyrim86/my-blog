@@ -632,7 +632,7 @@ other = "壁纸已切换到 {name}"
 
 # 动态背景正开着时，「壁纸」按钮的那一下**不换套**（只把动态收起来、显示按钮上写着的那张），
 # 所以按钮名要说清这件事 —— 否则点了没换下一张，看着像坏了。提示写在名字**之前**，
-# 因为回归测（lab/结果/bg-shader-contrast/check-switch.py）取的是名字那一节。
+# 因为回归测（my-blog-lab/结果/bg-shader-contrast/check-switch.py）取的是名字那一节。
 [bgSwitchLabelDynOn]
 other = "切换壁纸（点一下会关掉动态背景）：当前 {name}"
 
