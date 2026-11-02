@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import re
 import sys
@@ -470,6 +471,32 @@ def cmd_show(args, st) -> int:
     return 0
 
 
+def sync_math_page(entry, weight):
+    """Reuse the course generator's page contract, including stable dates and URLs."""
+    import runpy
+    import subprocess
+    import shutil
+    course = str(entry.get('course') or '')
+    if not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', course):
+        raise ValueError('数学卡必须关联有效课程标识')
+    home = REPO / 'content' / 'courses' / course
+    if not (home / '_index.md').is_file():
+        raise ValueError('请先通过课程脚手架创建数学卡所属课程')
+    if not (home / 'toolbox' / '_index.md').is_file():
+        bash = os.environ.get('ADMIN_BASH') or shutil.which('bash')
+        if not bash and os.name == 'nt':
+            bash = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
+        subprocess.run([bash or 'bash', 'scripts/new-content.sh', 'section',
+                        f'courses/{course}/toolbox', '--title', '数学工具', '--body-stdin'],
+                       cwd=REPO, input='\n', text=True, encoding='utf-8', check=True,
+                       capture_output=True, **({'creationflags': 0x08000000} if os.name == 'nt' else {}))
+    generator = runpy.run_path(str(REPO / 'tools/course-import/import_course.py'))
+    generator['require_name'](entry, '卡片编辑')
+    page = home / 'toolbox' / entry['id'] / 'index.md'
+    write_lf(page, generator['card_page_md'](entry, weight, generator['card_page_date'](page)))
+    return rel(page)
+
+
 def cmd_save(args, st) -> int:
     payload = json.load(sys.stdin)
     cid = payload.get("id") or ""
@@ -521,6 +548,8 @@ def cmd_save(args, st) -> int:
         original_text = data_path.read_text(encoding="utf-8")
         data = json.loads(original_text)
         entry = next(e for e in data["cards"] if e.get("id") == cid)
+        if fields.get('id', cid) != cid or (fields.get('course', entry.get('course')) or '') != (entry.get('course') or ''):
+            sys.exit('✗ 已有卡片的 id 与课程保持不变，避免改变网址')
         for k, v in fields.items():
             entry[k] = v
         for k, v in sections.items():
@@ -529,14 +558,13 @@ def cmd_save(args, st) -> int:
             # 「本地覆盖」标记：import_course.py 的 preserve_edited 据此跳过这张卡。
             # 少了它，重跑导入会把你的修改静默冲掉。
             entry["edited"] = True
+            changed.append(sync_math_page(entry, data['cards'].index(entry) + 1))
         write_lf(data_path, dump_like(data_path, original_text, data))
         changed.append(rel(data_path))
         # 只有 gen-cards.mjs 管的库（有 cards 前缀，当前是 CS）才让它重生成卡片页；
         # 数学卡不是它生成的，对它跑会写出一批错误的页面
         if st["libs"][card["lib"]].get("cards"):
             regen = card["lib"]
-        else:
-            note = "卡片页标题要等下次跑 import_course.py 才同步（它不覆盖 edited 的卡，是安全的）"
 
     out = {"ok": True, "changed": changed}
     if regen:
@@ -587,20 +615,31 @@ def cmd_create(args, st) -> int:
     # target == hand：写进指定库的 JSON（并提示重生成卡片页）
     lib_key = payload.get("lib") or "cs"
     lib = st["libs"].get(lib_key)
-    if not lib or not lib.get("cards"):
+    if not lib or (not lib.get("cards") and lib_key != 'math'):
         sys.exit(f"✗ 库 {lib_key} 不支持手写新增（它没有 cards 前缀 / 不存在）")
+    tree = st['blog'].get(lib_key, {})
+    if branch not in tree or section not in (tree[branch].get('sections') or {}):
+        sys.exit('✗ 请选择该库现有的大类与细分')
+    if lib_key == 'math' and (not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', course)
+                            or not (REPO / 'content/courses' / course / '_index.md').is_file()):
+        sys.exit('✗ 数学卡必须指定已经创建的课程')
     data_path = REPO / "data" / f"{lib['data']}.json"
     original_text = data_path.read_text(encoding="utf-8")
     data = json.loads(original_text)
     n = sum(1 for e in data["cards"] if str(e.get("id", "")).startswith(lib_key + "-")) + 1
-    data["cards"].append({
+    entry = {
         "id": cid, "num": str(n), "label": f"{lib.get('label', lib_key)} {n}", "kind": kind,
         "title": title, "aliases": [], "branch": branch, "section": section,
         "body": str(payload.get("body") or ""), "usage": "", "note": "", "proof": "",
-    })
+    }
+    if lib_key == 'math':
+        entry.update(course=course, edited=True, parents=[])
+        sync_math_page(entry, len(data['cards']) + 1)
+    data["cards"].append(entry)
     write_lf(data_path, dump_like(data_path, original_text, data))
-    emit({"ok": True, "id": cid, "path": rel(data_path), "regen": lib_key,
-          "hint": f"接着跑 node scripts/gen-cards.mjs {lib_key} 生成卡片页"})
+    emit({"ok": True, "id": cid, "path": rel(data_path),
+          **({"regen": lib_key, "hint": f"接着跑 node scripts/gen-cards.mjs {lib_key} 生成卡片页"}
+             if lib.get('cards') else {"hint": "数学卡与页面已保存；后续课程导入保留 edited 覆盖"})})
     return 0
 
 

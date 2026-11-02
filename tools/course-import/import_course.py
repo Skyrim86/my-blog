@@ -928,8 +928,10 @@ def main() -> int:
     expected = set()
     for i, card in enumerate(toolbox["cards"], start=1):
         expected.add(card["id"])
-        plan.append(("text", TOOLBOX_DIR / card["id"] / "index.md",
-                     card_page_md(card, i, card_page_date(TOOLBOX_DIR / card["id"] / "index.md"))))
+        # Edited cards can originate in another course; keep their original URL.
+        card_dir = REPO / 'content' / 'courses' / card.get('course', COURSE) / 'toolbox'
+        plan.append(("text", card_dir / card["id"] / "index.md",
+                     card_page_md(card, i, card_page_date(card_dir / card["id"] / "index.md"))))
     for orphan in orphan_card_dirs(expected):
         plan.append(("rmtree", orphan, None))
 
